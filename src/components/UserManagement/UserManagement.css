@@ -1,0 +1,154 @@
+.management-content {
+    padding: 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stat-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-card.blue .stat-icon {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+.stat-card.green .stat-icon {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.stat-card.red .stat-icon {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.stat-card.purple .stat-icon {
+    background-color: #f3e8ff;
+    color: #7c3aed;
+}
+
+.stat-card.orange .stat-icon {
+    background-color: #fed7aa;
+    color: #c2410c;
+}
+
+.stat-content h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 1px 0;
+}
+
+.stat-content p {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+}
+
+.table-section {
+    margin-top: 15px;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.table-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.add-btn {
+    background-color: #83cee4;
+    color: #011926;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.add-btn:hover {
+    background-color: #5bc0db;
+}
+
+/* Dark mode styles */
+.dark .management-content {
+    /* No specific styles needed */
+}
+
+.dark .stat-card {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+.dark .stat-content h3 {
+    color: #f9fafb;
+}
+
+.dark .stat-content p {
+    color: #d1d5db;
+}
+
+.dark .table-header h2 {
+    color: #f9fafb;
+}
+
+.dark .add-btn {
+    background-color: #7dd0e9;
+}
+
+.dark .stat-card.blue .stat-icon {
+    background-color: #1e3a8a;
+    color: #93c5fd;
+}
+
+.dark .stat-card.green .stat-icon {
+    background-color: #14532d;
+    color: #86efac;
+}
+
+.dark .stat-card.red .stat-icon {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+.dark .stat-card.purple .stat-icon {
+    background-color: #581c87;
+    color: #c4b5fd;
+}
+
+.dark .stat-card.orange .stat-icon {
+    background-color: #9a3412;
+    color: #fdba74;
+}

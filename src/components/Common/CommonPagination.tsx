@@ -1,0 +1,158 @@
+import React, { useEffect } from 'react';
+import ReactPaginate from 'react-paginate';
+import Select from 'react-select';
+import './CommonPagination.css';
+
+interface CommonPaginationProps {
+    show: boolean;
+    pageCount: number;
+    currentPage?: number;
+    onPageChange: (selectedItem: { selected: number }) => void;
+    totalItems?: number;
+    itemsPerPage?: number;
+    onItemsPerPageChange?: (itemsPerPage: number) => void;
+}
+
+const CommonPagination: React.FC<CommonPaginationProps> = ({
+    show,
+    pageCount,
+    currentPage = 0,
+    onPageChange,
+    totalItems,
+    itemsPerPage = 10,
+    onItemsPerPageChange
+}) => {
+    useEffect(() => {
+        const appMain = document.querySelector('.app-main');
+        if (appMain) {
+            if (show && pageCount > 1) {
+                appMain.classList.add('with-pagination');
+            } else {
+                appMain.classList.remove('with-pagination');
+            }
+        }
+        return () => {
+            const appMain = document.querySelector('.app-main');
+            if (appMain) {
+                appMain.classList.remove('with-pagination');
+            }
+        };
+    }, [show, pageCount]);
+
+    if (!show || pageCount <= 1) return null;
+
+    const startItem = currentPage * itemsPerPage + 1;
+    const endItem = Math.min((currentPage + 1) * itemsPerPage, totalItems || 0);
+
+    const itemsPerPageOptions = [
+        { value: 10, label: '10' },
+        { value: 20, label: '20' },
+        { value: 40, label: '40' },
+        { value: 60, label: '60' },
+        { value: 80, label: '80' },
+        { value: 100, label: '100' }
+    ];
+
+    const customStyles = {
+        control: (provided: any, state: any) => ({
+            ...provided,
+            minHeight: '28px',
+            height: '28px',
+            fontSize: '11px',
+            border: '1px solid #e2e8f0',
+            borderRadius: '4px',
+            boxShadow: 'none',
+            '&:hover': {
+                borderColor: '#cbd5e1'
+            }
+        }),
+        valueContainer: (provided: any) => ({
+            ...provided,
+            height: '28px',
+            padding: '0 6px'
+        }),
+        input: (provided: any) => ({
+            ...provided,
+            margin: '0px'
+        }),
+        indicatorSeparator: () => ({
+            display: 'none'
+        }),
+        indicatorsContainer: (provided: any) => ({
+            ...provided,
+            height: '28px'
+        }),
+        menu: (provided: any) => ({
+            ...provided,
+            borderRadius: '6px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+        }),
+        menuList: (provided: any) => ({
+            ...provided,
+            padding: '4px',
+            borderRadius: '6px'
+        }),
+        option: (provided: any, state: any) => ({
+            ...provided,
+            fontSize: '11px',
+            padding: '6px 8px',
+            borderRadius: '4px',
+            backgroundColor: state.isSelected ? '#83cee4' : state.isFocused ? '#f8fafc' : 'transparent',
+            color: state.isSelected ? '#011926' : '#64748b',
+            cursor: 'pointer',
+            '&:active': {
+                backgroundColor: '#83cee4'
+            }
+        })
+    };
+
+    return (
+        <div className="common-pagination-container">
+            <div className="pagination-left">
+                {totalItems && (
+                    <div className="pagination-info">
+                        Showing {startItem}-{endItem} of {totalItems} results
+                    </div>
+                )}
+                {onItemsPerPageChange && (
+                    <div className="items-per-page">
+                        <span className="items-per-page-label">Per Page:</span>
+                        <Select
+                            value={itemsPerPageOptions.find(option => option.value === itemsPerPage)}
+                            onChange={(option) => option && onItemsPerPageChange(option.value)}
+                            options={itemsPerPageOptions}
+                            styles={customStyles}
+                            isSearchable={false}
+                            className="items-per-page-select"
+                            menuPlacement="auto"
+                        />
+                    </div>
+                )}
+            </div>
+            
+            <div className="pagination-center">
+                <ReactPaginate
+                    pageCount={pageCount}
+                    pageRangeDisplayed={3}
+                    marginPagesDisplayed={1}
+                    onPageChange={onPageChange}
+                    forcePage={currentPage}
+                    containerClassName="pagination"
+                    pageClassName="pagination-item"
+                    pageLinkClassName="pagination-link"
+                    activeClassName="pagination-active"
+                    previousClassName="pagination-item"
+                    nextClassName="pagination-item"
+                    previousLinkClassName="pagination-link"
+                    nextLinkClassName="pagination-link"
+                    disabledClassName="pagination-disabled"
+                    previousLabel="‹"
+                    nextLabel="›"
+                />
+            </div>
+        </div>
+    );
+};
+
+export default CommonPagination;

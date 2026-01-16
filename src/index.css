@@ -1,0 +1,48 @@
+/* Global font styles - Inter for all components except login pages */
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1e1f23;
+}
+
+.dark * {
+  color: #f9fafb;
+}
+
+/* Override for login and intro animation pages */
+.login-container,
+.login-container *,
+.intro-animation,
+.intro-animation * {
+  font-family: 'Comfortaa', cursive !important;
+}
+
+/* Ensure sidebar and dashboard use Inter */
+.sidebar,
+.sidebar *,
+.dashboard-layout,
+.dashboard-layout *,
+.dashboard-content,
+.dashboard-content * {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* Override for sidebar logo to use Comfortaa */
+.sidebar .logo-container,
+.sidebar .logo-container *,
+.sidebar .logo-icon {
+  font-family: 'Comfortaa', cursive !important;
+  font-weight: 900 !important;
+}
+
+/* Reset any custom font families in components */
+body, html {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #edf6f7;
+  color: #1e1f23;
+}
+
+.dark body,
+.dark html {
+  background-color: #111827;
+  color: #f9fafb;
+}

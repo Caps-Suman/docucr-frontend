@@ -1,0 +1,128 @@
+.common-pagination-container {
+    position: fixed;
+    bottom: 10px;
+    left: calc(var(--sidebar-width) + 20px);
+    right: 10px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 6px 16px;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    transition: left 0.3s ease;
+}
+
+.pagination-left {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-center {
+    flex: 0;
+}
+
+.pagination-info {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.items-per-page {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-left: 8px;
+    border-left: 1px solid #e2e8f0;
+}
+
+.items-per-page-label {
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.items-per-page-select {
+    min-width: 70px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+}
+
+.pagination-item {
+    list-style: none;
+}
+
+.pagination-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.pagination-link:hover {
+    background-color: #f8fafc;
+}
+
+.pagination-active .pagination-link {
+    background-color: #83cee4;
+    color: #011926;
+}
+
+.pagination-disabled .pagination-link {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-disabled .pagination-link:hover {
+    background: transparent;
+}
+
+/* Dark mode */
+.dark .pagination-info,
+.dark .items-per-page-label {
+    color: #9ca3af;
+}
+
+.dark .items-per-page {
+    border-left-color: #374151;
+}
+
+.dark .common-pagination-container {
+    background: #1a1e23;
+    border-color: #374151;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dark .pagination-link {
+    background: transparent;
+    color: #d1d5db;
+}
+
+.dark .pagination-link:hover {
+    background-color: #374151;
+}
+
+.dark .pagination-active .pagination-link {
+    background-color: #7dd0e9;
+    color: #002436;
+}
