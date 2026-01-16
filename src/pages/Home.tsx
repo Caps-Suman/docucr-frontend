@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Home = () => {
+const Home: React.FC = () => {
     return (
         <div>
             <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>Overview</h1>

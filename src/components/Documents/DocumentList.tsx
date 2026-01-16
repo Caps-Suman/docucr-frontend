@@ -2,18 +2,35 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, MoreVertical, Calendar } from 'lucide-react';
 
-const mockDocuments = [
+interface Document {
+    id: number;
+    name: string;
+    type: string;
+    date: string;
+    status: 'Processed' | 'Pending' | 'Failed';
+}
+
+const mockDocuments: Document[] = [
     { id: 1, name: 'Invoice_2024_001.pdf', type: 'Invoice', date: '2024-03-10', status: 'Processed' },
     { id: 2, name: 'Contract_Acme_v2.pdf', type: 'Contract', date: '2024-03-12', status: 'Pending' },
     { id: 3, name: 'Receipt_Lunch.jpg', type: 'Receipt', date: '2024-03-15', status: 'Failed' },
     { id: 4, name: 'Q1_Report.pdf', type: 'Report', date: '2024-03-18', status: 'Processed' },
 ];
 
-const DocumentList = () => {
+const DocumentList: React.FC = () => {
     const navigate = useNavigate();
 
-    const handleRowClick = (id) => {
+    const handleRowClick = (id: number) => {
         navigate(`/dashboard/documents/${id}`);
+    };
+
+    const getStatusStyle = (status: Document['status']) => {
+        const styles = {
+            Processed: { backgroundColor: '#dcfce7', color: '#166534' },
+            Failed: { backgroundColor: '#fee2e2', color: '#991b1b' },
+            Pending: { backgroundColor: '#fef3c7', color: '#92400e' }
+        };
+        return styles[status];
     };
 
     return (
@@ -70,8 +87,7 @@ const DocumentList = () => {
                                         borderRadius: '12px',
                                         fontSize: '12px',
                                         fontWeight: '600',
-                                        backgroundColor: doc.status === 'Processed' ? '#dcfce7' : doc.status === 'Failed' ? '#fee2e2' : '#fef3c7',
-                                        color: doc.status === 'Processed' ? '#166534' : doc.status === 'Failed' ? '#991b1b' : '#92400e'
+                                        ...getStatusStyle(doc.status)
                                     }}>
                                         {doc.status}
                                     </span>

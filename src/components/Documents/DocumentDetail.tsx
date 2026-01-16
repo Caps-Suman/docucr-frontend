@@ -1,14 +1,22 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, Download, Share, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Share, Trash2 } from 'lucide-react';
 
-const DocumentDetail = () => {
-    const { id } = useParams();
+interface Document {
+    id: string;
+    name: string;
+    type: string;
+    date: string;
+    status: string;
+    content: string;
+}
+
+const DocumentDetail: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    // Mock data lookup
-    const doc = {
-        id,
+    const doc: Document = {
+        id: id || '',
         name: 'Invoice_2024_001.pdf',
         type: 'Invoice',
         date: '2024-03-10',
@@ -18,7 +26,6 @@ const DocumentDetail = () => {
 
     return (
         <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
-            {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', gap: '16px' }}>
                 <button
                     onClick={() => navigate(-1)}
@@ -43,10 +50,7 @@ const DocumentDetail = () => {
                 </div>
             </div>
 
-            {/* Content Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-
-                {/* Main Content (Preview) */}
                 <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '24px', minHeight: '500px' }}>
                     <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#1e293b' }}>Document Preview</h3>
                     <div style={{ width: '100%', height: '400px', backgroundColor: '#f1f5f9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
@@ -54,11 +58,9 @@ const DocumentDetail = () => {
                     </div>
                 </div>
 
-                {/* Sidebar (Details/Metadata) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '24px' }}>
                         <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#1e293b' }}>Details</h3>
-
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div>
                                 <label style={{ fontSize: '12px', fontWeight: '500', color: '#94a3b8', textTransform: 'uppercase' }}>Type</label>
@@ -91,7 +93,6 @@ const DocumentDetail = () => {
                         <p style={{ fontSize: '14px', color: '#64748b' }}>No key-value pairs extracted yet.</p>
                     </div>
                 </div>
-
             </div>
         </div>
     );
