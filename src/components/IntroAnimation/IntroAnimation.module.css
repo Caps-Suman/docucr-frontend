@@ -18,6 +18,6 @@
   pointer-events: none;
 }
 
-canvas {
+.canvas {
   display: block;
 }

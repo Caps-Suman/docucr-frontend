@@ -10,6 +10,8 @@ import Home from './pages/Home';
 import DocumentList from './components/Documents/DocumentList/DocumentList';
 import DocumentDetail from './components/Documents/DocumentDetail/DocumentDetail';
 import UserPermissionManagement from './components/UserPermissionManagement/UserPermissionManagement';
+import FormManagement from './components/FormManagement/FormManagement';
+import FormBuilder from './components/FormBuilder/FormBuilder';
 
 const DefaultComponent: React.FC = () => (
   <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -79,6 +81,11 @@ const App: React.FC = () => {
         </Route>
         <Route path="/profile" element={<AppLayout />}>
           <Route index element={<Profile />} />
+        </Route>
+        <Route path="/forms" element={<AppLayout />}>
+          <Route index element={<FormManagement />} />
+          <Route path="create" element={<FormBuilder />} />
+          <Route path=":id" element={<FormBuilder />} />
         </Route>
 
       </Routes>

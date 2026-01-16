@@ -1,3 +1,5 @@
+import apiClient from '../utils/apiClient';
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export interface User {
@@ -49,45 +51,30 @@ export interface UserUpdateData {
     supervisor_id?: string;
 }
 
-const getAuthHeaders = (): HeadersInit => {
-    const token = localStorage.getItem('access_token');
-    return {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
-    };
-};
-
 const userService = {
     getUsers: async (page: number = 1, pageSize: number = 10, search?: string): Promise<UserListResponse> => {
         const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
         if (search) params.append('search', search);
-        const response = await fetch(`${API_URL}/api/users?${params}`, {
-            headers: getAuthHeaders()
-        });
+        const response = await apiClient(`${API_URL}/api/users?${params}`);
         if (!response.ok) throw new Error('Failed to fetch users');
         return response.json();
     },
 
     getUserStats: async (): Promise<UserStats> => {
-        const response = await fetch(`${API_URL}/api/users/stats`, {
-            headers: getAuthHeaders()
-        });
+        const response = await apiClient(`${API_URL}/api/users/stats`);
         if (!response.ok) throw new Error('Failed to fetch user stats');
         return response.json();
     },
 
     getUser: async (id: string): Promise<User> => {
-        const response = await fetch(`${API_URL}/api/users/${id}`, {
-            headers: getAuthHeaders()
-        });
+        const response = await apiClient(`${API_URL}/api/users/${id}`);
         if (!response.ok) throw new Error('Failed to fetch user');
         return response.json();
     },
 
     createUser: async (data: UserCreateData): Promise<User> => {
-        const response = await fetch(`${API_URL}/api/users/`, {
+        const response = await apiClient(`${API_URL}/api/users/`, {
             method: 'POST',
-            headers: getAuthHeaders(),
             body: JSON.stringify(data)
         });
         if (!response.ok) {
@@ -98,9 +85,8 @@ const userService = {
     },
 
     updateUser: async (id: string, data: UserUpdateData): Promise<User> => {
-        const response = await fetch(`${API_URL}/api/users/${id}`, {
+        const response = await apiClient(`${API_URL}/api/users/${id}`, {
             method: 'PUT',
-            headers: getAuthHeaders(),
             body: JSON.stringify(data)
         });
         if (!response.ok) {
@@ -111,9 +97,8 @@ const userService = {
     },
 
     deleteUser: async (id: string): Promise<void> => {
-        const response = await fetch(`${API_URL}/api/users/${id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
+        const response = await apiClient(`${API_URL}/api/users/${id}`, {
+            method: 'DELETE'
         });
         if (!response.ok) {
             const error = await response.json();

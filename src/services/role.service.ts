@@ -1,3 +1,5 @@
+import apiClient from '../utils/apiClient';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export interface Role {
@@ -36,18 +38,8 @@ export interface RoleStats {
 }
 
 class RoleService {
-  private getHeaders(): HeadersInit {
-    const token = localStorage.getItem('access_token');
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
-    };
-  }
-
   async getRoles(page: number = 1, pageSize: number = 10): Promise<RoleListResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/roles?page=${page}&page_size=${pageSize}`, {
-      headers: this.getHeaders()
-    });
+    const response = await apiClient(`${API_BASE_URL}/api/roles?page=${page}&page_size=${pageSize}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch roles');
@@ -57,9 +49,7 @@ class RoleService {
   }
 
   async getRoleStats(): Promise<RoleStats> {
-    const response = await fetch(`${API_BASE_URL}/api/roles/stats`, {
-      headers: this.getHeaders()
-    });
+    const response = await apiClient(`${API_BASE_URL}/api/roles/stats`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch role stats');
@@ -69,9 +59,7 @@ class RoleService {
   }
 
   async getRole(roleId: string): Promise<Role> {
-    const response = await fetch(`${API_BASE_URL}/api/roles/${roleId}`, {
-      headers: this.getHeaders()
-    });
+    const response = await apiClient(`${API_BASE_URL}/api/roles/${roleId}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch role');
@@ -81,9 +69,8 @@ class RoleService {
   }
 
   async createRole(data: RoleCreate): Promise<Role> {
-    const response = await fetch(`${API_BASE_URL}/api/roles`, {
+    const response = await apiClient(`${API_BASE_URL}/api/roles`, {
       method: 'POST',
-      headers: this.getHeaders(),
       body: JSON.stringify(data)
     });
 
@@ -96,9 +83,8 @@ class RoleService {
   }
 
   async updateRole(roleId: string, data: RoleUpdate): Promise<Role> {
-    const response = await fetch(`${API_BASE_URL}/api/roles/${roleId}`, {
+    const response = await apiClient(`${API_BASE_URL}/api/roles/${roleId}`, {
       method: 'PUT',
-      headers: this.getHeaders(),
       body: JSON.stringify(data)
     });
 
@@ -111,9 +97,7 @@ class RoleService {
   }
 
   async getRoleModules(roleId: string): Promise<Array<{ module_id: string; privilege_id: string }>> {
-    const response = await fetch(`${API_BASE_URL}/api/roles/${roleId}/modules`, {
-      headers: this.getHeaders()
-    });
+    const response = await apiClient(`${API_BASE_URL}/api/roles/${roleId}/modules`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch role modules');
@@ -124,9 +108,8 @@ class RoleService {
   }
 
   async deleteRole(roleId: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/api/roles/${roleId}`, {
-      method: 'DELETE',
-      headers: this.getHeaders()
+    const response = await apiClient(`${API_BASE_URL}/api/roles/${roleId}`, {
+      method: 'DELETE'
     });
 
     if (!response.ok) {

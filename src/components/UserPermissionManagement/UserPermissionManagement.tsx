@@ -2,23 +2,23 @@ import React, { useState } from 'react';
 import { Users, Shield } from 'lucide-react';
 import UserManagement from './UserManagement/UserManagement';
 import RoleManagement from './RoleManagement/RoleManagement';
-import './UserPermissionManagement.css';
+import styles from './UserPermissionManagement.module.css';
 
 const UserPermissionManagement: React.FC = () => {
     const [activeTab, setActiveTab] = useState('users');
 
     return (
-        <div className="user-permission-management">
-            <div className="tabs">
-                <button 
-                    className={`tab ${activeTab === 'users' ? 'active' : ''}`}
+        <div className={styles['user-permission-management']}>
+            <div className={styles.tabs}>
+                <button
+                    className={`${styles.tab} ${activeTab === 'users' ? styles.active : ''}`}
                     onClick={() => setActiveTab('users')}
                 >
                     <Users size={16} />
                     Users
                 </button>
-                <button 
-                    className={`tab ${activeTab === 'roles' ? 'active' : ''}`}
+                <button
+                    className={`${styles.tab} ${activeTab === 'roles' ? styles.active : ''}`}
                     onClick={() => setActiveTab('roles')}
                 >
                     <Shield size={16} />
@@ -26,7 +26,7 @@ const UserPermissionManagement: React.FC = () => {
                 </button>
             </div>
 
-            <div className="tab-content">
+            <div className={styles['tab-content']}>
                 {activeTab === 'users' ? <UserManagement /> : <RoleManagement />}
             </div>
         </div>

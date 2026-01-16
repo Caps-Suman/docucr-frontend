@@ -1,3 +1,5 @@
+import apiClient from '../utils/apiClient';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export interface FormField {
@@ -48,18 +50,8 @@ export interface FormStats {
 }
 
 class FormService {
-  private getHeaders(): HeadersInit {
-    const token = localStorage.getItem('access_token');
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
-    };
-  }
-
   async getForms(page: number = 1, pageSize: number = 10): Promise<FormListResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/forms?page=${page}&page_size=${pageSize}`, {
-      headers: this.getHeaders()
-    });
+    const response = await apiClient(`${API_BASE_URL}/api/forms?page=${page}&page_size=${pageSize}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch forms');
@@ -69,9 +61,7 @@ class FormService {
   }
 
   async getFormStats(): Promise<FormStats> {
-    const response = await fetch(`${API_BASE_URL}/api/forms/stats`, {
-      headers: this.getHeaders()
-    });
+    const response = await apiClient(`${API_BASE_URL}/api/forms/stats`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch form stats');
@@ -81,9 +71,7 @@ class FormService {
   }
 
   async getForm(formId: string): Promise<Form> {
-    const response = await fetch(`${API_BASE_URL}/api/forms/${formId}`, {
-      headers: this.getHeaders()
-    });
+    const response = await apiClient(`${API_BASE_URL}/api/forms/${formId}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch form');
@@ -93,9 +81,8 @@ class FormService {
   }
 
   async createForm(data: FormCreate): Promise<Form> {
-    const response = await fetch(`${API_BASE_URL}/api/forms`, {
+    const response = await apiClient(`${API_BASE_URL}/api/forms`, {
       method: 'POST',
-      headers: this.getHeaders(),
       body: JSON.stringify(data)
     });
 
@@ -108,9 +95,8 @@ class FormService {
   }
 
   async updateForm(formId: string, data: FormUpdate): Promise<Form> {
-    const response = await fetch(`${API_BASE_URL}/api/forms/${formId}`, {
+    const response = await apiClient(`${API_BASE_URL}/api/forms/${formId}`, {
       method: 'PUT',
-      headers: this.getHeaders(),
       body: JSON.stringify(data)
     });
 
@@ -123,9 +109,8 @@ class FormService {
   }
 
   async deleteForm(formId: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/api/forms/${formId}`, {
-      method: 'DELETE',
-      headers: this.getHeaders()
+    const response = await apiClient(`${API_BASE_URL}/api/forms/${formId}`, {
+      method: 'DELETE'
     });
 
     if (!response.ok) {

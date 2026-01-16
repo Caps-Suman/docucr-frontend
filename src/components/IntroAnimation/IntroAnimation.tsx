@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import './IntroAnimation.css';
+import styles from './IntroAnimation.module.css';
 
 interface IntroAnimationProps {
   onComplete: () => void;
@@ -26,7 +26,7 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -131,9 +131,9 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
   }, [onComplete]);
 
   return (
-    <div className={`intro-container ${isFading ? 'fade-out' : ''}`}>
+    <div className={`${styles['intro-container']} ${isFading ? styles['fade-out'] : ''}`}>
       <div style={{ fontFamily: 'Comfortaa', position: 'absolute', visibility: 'hidden' }}>.</div>
-      <canvas ref={canvasRef} />
+      <canvas ref={canvasRef} className={styles.canvas} />
     </div>
   );
 };

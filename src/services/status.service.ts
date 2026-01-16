@@ -1,3 +1,5 @@
+import apiClient from '../utils/apiClient';
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export interface Status {
@@ -7,19 +9,9 @@ export interface Status {
     type: string | null;
 }
 
-const getAuthHeaders = (): HeadersInit => {
-    const token = localStorage.getItem('access_token');
-    return {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
-    };
-};
-
 const statusService = {
     getStatuses: async (): Promise<Status[]> => {
-        const response = await fetch(`${API_URL}/api/statuses`, {
-            headers: getAuthHeaders()
-        });
+        const response = await apiClient(`${API_URL}/api/statuses`);
         if (!response.ok) throw new Error('Failed to fetch statuses');
         return response.json();
     },
