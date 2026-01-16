@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import modulesService, { Module } from '../services/modules.service';
-import authService from '../services/auth.service';
-import { getComponentForRoute } from '../utils/componentRegistry';
-import DocumentDetail from './Documents/DocumentDetail';
+import modulesService, { Module } from '../../services/modules.service';
+import authService from '../../services/auth.service';
+import { getComponentForRoute } from '../../utils/componentRegistry';
+import DocumentDetail from '../Documents/DocumentDetail/DocumentDetail';
 
 const DynamicRoutes: React.FC = () => {
     const [modules, setModules] = useState<Module[]>([]);

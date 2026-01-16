@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Shield } from 'lucide-react';
-import UserManagement from './UserManagement';
-import RoleManagement from './RoleManagement';
+import UserManagement from './UserManagement/UserManagement';
+import RoleManagement from './RoleManagement/RoleManagement';
 import './UserPermissionManagement.css';
 
 const UserPermissionManagement: React.FC = () => {

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@radix-ui/react-select": "^2.2.6",
     "@types/node": "^25.0.8",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
@@ -14,7 +15,7 @@
     "react-router-dom": "^7.12.0",
     "react-scripts": "5.0.1",
     "react-select": "^5.10.2",
-    "typescript": "^5.9.3"
+    "typescript": "^4.9.5"
   },
   "scripts": {
     "dev": "PORT=4200 react-scripts start",

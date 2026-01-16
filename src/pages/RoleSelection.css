@@ -1,0 +1,153 @@
+.role-selection-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #011926 0%, #033d5c 100%);
+    padding: 20px;
+}
+
+.role-selection-card {
+    background: white;
+    border-radius: 16px;
+    padding: 40px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.role-selection-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.role-icon {
+    color: #83cee4;
+    margin-bottom: 16px;
+}
+
+.role-selection-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #011926;
+    margin: 0 0 8px 0;
+}
+
+.role-selection-header p {
+    font-size: 16px;
+    color: #64748b;
+    margin: 4px 0;
+}
+
+.subtitle {
+    font-size: 14px !important;
+    color: #94a3b8 !important;
+}
+
+.roles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.role-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.role-card:hover {
+    border-color: #83cee4;
+    background: #f8fcfd;
+}
+
+.role-card.selected {
+    border-color: #83cee4;
+    background: #e6f7fb;
+}
+
+.role-card-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.role-card-content svg {
+    color: #64748b;
+}
+
+.role-card.selected .role-card-content svg {
+    color: #011926;
+}
+
+.role-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.selected-icon {
+    color: #83cee4;
+}
+
+.btn-continue {
+    width: 100%;
+    padding: 14px;
+    background: #83cee4;
+    color: #011926;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+}
+
+.btn-continue:hover:not(:disabled) {
+    background: #5bc0db;
+}
+
+.btn-continue:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-back {
+    width: 100%;
+    padding: 14px;
+    background: #f1f5f9;
+    color: #011926;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-back:hover:not(:disabled) {
+    background: #e2e8f0;
+}
+
+.btn-back:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.error-message {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    text-align: center;
+}

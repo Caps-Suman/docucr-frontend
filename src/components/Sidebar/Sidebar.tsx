@@ -9,7 +9,6 @@ import {
     Shield,
     Settings,
     User,
-    ChevronDown,
     LogOut,
     ArrowRightLeft
 } from 'lucide-react';
@@ -21,7 +20,6 @@ interface SidebarProps {}
 
 const Sidebar: React.FC<SidebarProps> = () => {
     const [collapsed, setCollapsed] = useState(false);
-    const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
     const [modules, setModules] = useState<Module[]>([]);
     const [loading, setLoading] = useState(true);
     const location = useLocation();
@@ -58,15 +56,6 @@ const Sidebar: React.FC<SidebarProps> = () => {
 
     const toggleCollapse = () => {
         setCollapsed(!collapsed);
-    };
-
-    const toggleSubmenu = (key: string) => {
-        if (collapsed) {
-            setCollapsed(false);
-            setOpenMenus({ [key]: true });
-        } else {
-            setOpenMenus(prev => ({ ...prev, [key]: !prev[key] }));
-        }
     };
 
     const getModulesByCategory = () => {

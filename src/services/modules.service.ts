@@ -33,6 +33,23 @@ class ModulesService {
     return data.modules;
   }
 
+  async getAllModules(): Promise<Module[]> {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/api/modules`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch modules');
+    }
+
+    const data: ModulesResponse = await response.json();
+    return data.modules;
+  }
+
   hasPrivilege(module: Module, privilege: string): boolean {
     return module.privileges.includes(privilege);
   }
@@ -48,4 +65,5 @@ class ModulesService {
   }
 }
 
-export default new ModulesService();
+const modulesService = new ModulesService();
+export default modulesService;

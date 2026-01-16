@@ -1,7 +1,7 @@
 import React from 'react';
 import Home from '../pages/Home';
-import DocumentList from '../components/Documents/DocumentList';
-import UserPermissionManagement from '../components/UserManagement/UserPermissionManagement';
+import DocumentList from '../components/Documents/DocumentList/DocumentList';
+import UserPermissionManagement from '../components/UserPermissionManagement/UserPermissionManagement';
 
 function DefaultComponent() {
   return React.createElement(

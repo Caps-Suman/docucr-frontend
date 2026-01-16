@@ -60,7 +60,12 @@ const CommonDropdown: React.FC<CommonDropdownProps> = ({
             ...provided,
             borderRadius: '6px',
             border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            zIndex: 9999
+        }),
+        menuPortal: (provided) => ({
+            ...provided,
+            zIndex: 9999
         }),
         menuList: (provided) => ({
             ...provided,
@@ -90,6 +95,8 @@ const CommonDropdown: React.FC<CommonDropdownProps> = ({
             isSearchable={isSearchable}
             className={className}
             menuPlacement={menuPlacement}
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
             placeholder={placeholder}
         />
     );

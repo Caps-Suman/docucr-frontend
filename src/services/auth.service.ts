@@ -7,14 +7,25 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
+  access_token?: string;
+  refresh_token?: string;
+  token_type?: string;
+  expires_in?: number;
+  requires_role_selection?: boolean;
+  temp_token?: string;
+  roles?: Array<{ id: string; name: string }>;
   user: {
     email: string;
     first_name: string;
     last_name: string;
+    role?: { id: string; name: string };
   };
+}
+
+export interface RoleSelectionRequest {
+  email: string;
+  role_id: string;
+  remember_me?: boolean;
 }
 
 export interface ForgotPasswordRequest {
@@ -41,6 +52,25 @@ class AuthService {
     return response.json();
   }
 
+  async selectRole(data: RoleSelectionRequest, tempToken?: string): Promise<LoginResponse> {
+    const token = tempToken || this.getToken();
+    const response = await fetch(`${API_BASE_URL}/api/auth/select-role`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      throw new Error(error.error || 'Role selection failed');
+    }
+
+    return response.json();
+  }
+
   async forgotPassword(data: ForgotPasswordRequest): Promise<{ message: string }> {
     const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
       method: 'POST',
@@ -60,6 +90,10 @@ class AuthService {
     localStorage.setItem('access_token', token);
   }
 
+  saveRefreshToken(token: string): void {
+    localStorage.setItem('refresh_token', token);
+  }
+
   saveUser(user: LoginResponse['user']): void {
     localStorage.setItem('user', JSON.stringify(user));
   }
@@ -68,15 +102,50 @@ class AuthService {
     return localStorage.getItem('access_token');
   }
 
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refresh_token');
+  }
+
   getUser(): LoginResponse['user'] | null {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   }
 
+  async refreshAccessToken(): Promise<string> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${refreshToken}`
+      }
+    });
+
+    if (!response.ok) {
+      this.logout();
+      throw new Error('Failed to refresh token');
+    }
+
+    const data: LoginResponse = await response.json();
+    if (data.access_token) {
+      this.saveToken(data.access_token);
+      if (data.refresh_token) {
+        this.saveRefreshToken(data.refresh_token);
+      }
+      return data.access_token;
+    }
+    throw new Error('No access token in response');
+  }
+
   logout(): void {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
   }
 }
 
-export default new AuthService();
+const authService = new AuthService();
+export default authService;

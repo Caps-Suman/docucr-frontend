@@ -51,6 +51,38 @@
     gap: 12px;
 }
 
+.role-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #011926;
+    font-size: 13px;
+    font-weight: 500;
+    background-color: #e2f3f9;
+    padding: 6px 10px;
+    border-radius: 14px;
+    border: 1px solid #83cee4;
+    height: 32px;
+}
+
+.role-edit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    color: #011926;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.role-edit-btn:hover {
+    background-color: #83cee4;
+    color: white;
+}
+
 .user-details {
     display: flex;
     align-items: center;
@@ -61,6 +93,7 @@
     background-color: #e2f3f9;
     padding: 6px 10px;
     border-radius: 14px;
+    height: 32px;
 }
 
 .theme-toggle {
@@ -131,6 +164,7 @@
 .logout-option:hover {
     background-color: #fee2e2;
     color: #dc2626;
+    border-radius: 5px;
 }
 
 .app-main {
@@ -158,6 +192,21 @@
 .dark .user-details {
     background-color: #374151;
     color: #f9fafb;
+}
+
+.dark .role-display {
+    background-color: #374151;
+    color: #83cee4;
+    border-color: #4b5563;
+}
+
+.dark .role-edit-btn {
+    color: #83cee4;
+}
+
+.dark .role-edit-btn:hover {
+    background-color: #4b5563;
+    color: #83cee4;
 }
 
 .dark .theme-toggle {

@@ -1,6 +1,6 @@
-import React, { useState, FormEvent, ChangeEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import React, { useState, FormEvent, ChangeEvent, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Eye, EyeOff, Shield, ChevronRight } from 'lucide-react';
 import authService from '../services/auth.service';
 import './Login.css';
 
@@ -22,6 +22,11 @@ const Login: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showRoleSelection, setShowRoleSelection] = useState(false);
+  const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedRole, setSelectedRole] = useState('');
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [tempToken, setTempToken] = useState<string>('');
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -33,6 +38,39 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.showRoleSelection) {
+      const user = authService.getUser();
+      const token = authService.getToken();
+      if (user && token) {
+        setUserInfo(user);
+        setTempToken(token);
+        fetchUserRoles(user.email);
+        setShowRoleSelection(true);
+      }
+    }
+  }, [location]);
+
+  const fetchUserRoles = async (email: string) => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/users/email/${email}`);
+      if (!response.ok) throw new Error('Failed to fetch user roles');
+      const userData = await response.json();
+      setRoles(userData.roles || []);
+    } catch (err: any) {
+      setErrors({ submit: err.message || 'Failed to load roles' });
+    }
+  };
+
+  const formatRoleName = (name: string) => {
+    return name
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
 
   const validateEmail = (email: string): boolean => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -80,12 +118,56 @@ const Login: React.FC = () => {
           remember_me: formData.rememberMe
         });
         
-        authService.saveToken(data.access_token);
-        authService.saveUser(data.user);
-        navigate('/dashboard');
+        // Check if role selection is required
+        if (data.requires_role_selection && data.roles) {
+          setRoles(data.roles);
+          setUserInfo(data.user);
+          setTempToken(data.temp_token || '');
+          setShowRoleSelection(true);
+        } else {
+          authService.saveToken(data.access_token!);
+          if (data.refresh_token) {
+            authService.saveRefreshToken(data.refresh_token);
+          }
+          authService.saveUser(data.user);
+          navigate('/dashboard');
+        }
       }
     } catch (error: any) {
       setErrors({ submit: error.message || 'Network error. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRoleSelect = async () => {
+    if (!selectedRole) {
+      setErrors({ submit: 'Please select a role' });
+      return;
+    }
+
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const data = await authService.selectRole({
+        email: userInfo?.email || formData.email,
+        role_id: selectedRole,
+        remember_me: formData.rememberMe
+      }, tempToken);
+
+      if (!data.access_token) {
+        throw new Error('No access token received');
+      }
+
+      authService.saveToken(data.access_token);
+      if (data.refresh_token) {
+        authService.saveRefreshToken(data.refresh_token);
+      }
+      authService.saveUser(data.user);
+      navigate('/dashboard');
+    } catch (error: any) {
+      setErrors({ submit: error.message || 'Failed to select role' });
     } finally {
       setLoading(false);
     }
@@ -113,7 +195,64 @@ const Login: React.FC = () => {
       </div>
 
       <div className="login-right">
-        <div className="login-form-wrapper">
+        {showRoleSelection ? (
+          <div className="login-form-wrapper">
+            <div className="role-selection-header">
+              <Shield size={40} className="role-icon" style={{ color: '#83cee4', marginBottom: '12px' }} />
+              <h2>Select Your Role</h2>
+              <p className="subtitle">
+                Welcome, {userInfo?.first_name} {userInfo?.last_name}
+              </p>
+              <p className="subtitle" style={{ marginTop: '0', marginBottom: '24px' }}>
+                Choose the role you want to use for this session
+              </p>
+            </div>
+
+            <div className="roles-list">
+              {roles.map((role) => (
+                <div
+                  key={role.id}
+                  className={`role-card ${selectedRole === role.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedRole(role.id)}
+                >
+                  <div className="role-card-content">
+                    <Shield size={16} />
+                    <span className="role-name">{formatRoleName(role.name)}</span>
+                  </div>
+                  {selectedRole === role.id && (
+                    <ChevronRight size={16} className="selected-icon" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {errors.submit && <div className="error-message">{errors.submit}</div>}
+
+            <button
+              className="btn-primary"
+              onClick={handleRoleSelect}
+              disabled={!selectedRole || loading}
+            >
+              {loading ? 'Please wait...' : 'Continue'}
+            </button>
+
+            <p className="toggle-text" style={{ marginTop: '16px' }}>
+              <button
+                className="forgot-link"
+                onClick={() => {
+                  setShowRoleSelection(false);
+                  setSelectedRole('');
+                  setRoles([]);
+                  setUserInfo(null);
+                }}
+                disabled={loading}
+              >
+                Login?
+              </button>
+            </p>
+          </div>
+        ) : (
+          <div className="login-form-wrapper">
           <h2>
             {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Sign In'}
           </h2>
@@ -202,16 +341,13 @@ const Login: React.FC = () => {
                   />
                   <span>Remember me</span>
                 </label>
-                <a
-                  href="#"
+                <button
+                  type="button"
                   className="forgot-link"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setIsForgotPassword(true);
-                  }}
+                  onClick={() => setIsForgotPassword(true)}
                 >
                   Forgot Password?
-                </a>
+                </button>
               </div>
             )}
 
@@ -235,6 +371,7 @@ const Login: React.FC = () => {
             </p>
           )}
         </div>
+        )}
       </div>
     </div>
   );

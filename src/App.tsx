@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 import Login from './pages/Login';
-import IntroAnimation from './components/IntroAnimation';
-import AppLayout from './components/Layout/AppLayout';
+import RoleSelection from './pages/RoleSelection';
+import Profile from './pages/Profile';
+import IntroAnimation from './components/IntroAnimation/IntroAnimation';
+import AppLayout from './components/Layout/AppLayout/AppLayout';
 import Home from './pages/Home';
-import DocumentList from './components/Documents/DocumentList';
-import DocumentDetail from './components/Documents/DocumentDetail';
-import UserPermissionManagement from './components/UserManagement/UserPermissionManagement';
+import DocumentList from './components/Documents/DocumentList/DocumentList';
+import DocumentDetail from './components/Documents/DocumentDetail/DocumentDetail';
+import UserPermissionManagement from './components/UserPermissionManagement/UserPermissionManagement';
 
 const DefaultComponent: React.FC = () => (
   <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -17,17 +19,40 @@ const DefaultComponent: React.FC = () => (
 );
 
 const App: React.FC = () => {
-  const [showIntro, setShowIntro] = useState<boolean>(true);
+  const [showIntro, setShowIntro] = useState<boolean>(() => {
+    const hasSeenIntro = sessionStorage.getItem('hasSeenIntro');
+    return hasSeenIntro !== 'true';
+  });
+
+  const handleIntroComplete = () => {
+    sessionStorage.setItem('hasSeenIntro', 'true');
+    setShowIntro(false);
+  };
+
+  React.useEffect(() => {
+    // Reset intro flag when component mounts if needed
+    const hasSeenIntro = sessionStorage.getItem('hasSeenIntro');
+    if (hasSeenIntro !== 'true') {
+      setShowIntro(true);
+    }
+  }, []);
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={
           <>
-            {showIntro && <IntroAnimation onComplete={() => setShowIntro(false)} />}
-            {!showIntro && <Login />}
+            <Login />
+            {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
           </>
         } />
+        <Route path="/login" element={
+          <>
+            <Login />
+            {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
+          </>
+        } />
+        <Route path="/role-selection" element={<RoleSelection />} />
 
         {/* Direct module routes */}
         <Route path="/dashboard" element={<AppLayout />}>
@@ -53,7 +78,7 @@ const App: React.FC = () => {
           <Route index element={<DefaultComponent />} />
         </Route>
         <Route path="/profile" element={<AppLayout />}>
-          <Route index element={<DefaultComponent />} />
+          <Route index element={<Profile />} />
         </Route>
 
       </Routes>
