@@ -15,6 +15,7 @@ export interface LoginResponse {
   temp_token?: string;
   roles?: Array<{ id: string; name: string }>;
   user: {
+    id: string;
     email: string;
     first_name: string;
     last_name: string;
@@ -49,7 +50,14 @@ class AuthService {
       throw new Error(error.error || 'Login failed');
     }
 
-    return response.json();
+    const result = await response.json();
+    
+    // Save user ID if available
+    if (result.user?.id) {
+      this.saveUserId(result.user.id);
+    }
+    
+    return result;
   }
 
   async selectRole(data: RoleSelectionRequest, tempToken?: string): Promise<LoginResponse> {
@@ -68,7 +76,14 @@ class AuthService {
       throw new Error(error.error || 'Role selection failed');
     }
 
-    return response.json();
+    const result = await response.json();
+    
+    // Save user ID if available
+    if (result.user?.id) {
+      this.saveUserId(result.user.id);
+    }
+    
+    return result;
   }
 
   async forgotPassword(data: ForgotPasswordRequest): Promise<{ message: string }> {
@@ -98,6 +113,10 @@ class AuthService {
     localStorage.setItem('user', JSON.stringify(user));
   }
 
+  saveUserId(userId: string): void {
+    localStorage.setItem('user_id', userId);
+  }
+
   getToken(): string | null {
     return localStorage.getItem('access_token');
   }
@@ -109,6 +128,10 @@ class AuthService {
   getUser(): LoginResponse['user'] | null {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
+  }
+
+  getCurrentUserId(): string | null {
+    return localStorage.getItem('user_id');
   }
 
   async refreshAccessToken(): Promise<string> {
@@ -144,6 +167,7 @@ class AuthService {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
+    localStorage.removeItem('user_id');
   }
 }
 

@@ -11,6 +11,7 @@ interface ConfirmModalProps {
     confirmText?: string;
     cancelText?: string;
     type?: 'warning' | 'danger';
+    loading?: boolean;
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -21,7 +22,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     message,
     confirmText = 'Confirm',
     cancelText = 'Cancel',
-    type = 'warning'
+    type = 'warning',
+    loading = false
 }) => {
     if (!isOpen) return null;
 
@@ -41,14 +43,19 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                     <p>{message}</p>
                 </div>
                 <div className={styles.actions}>
-                    <button className={styles.cancelButton} onClick={onClose}>
+                    <button 
+                        className={styles.cancelButton} 
+                        onClick={onClose}
+                        disabled={loading}
+                    >
                         {cancelText}
                     </button>
                     <button 
                         className={`${styles.confirmButton} ${type === 'warning' ? styles.confirmButtonWarning : styles.confirmButtonDanger}`} 
                         onClick={onConfirm}
+                        disabled={loading}
                     >
-                        {confirmText}
+                        {loading ? 'Processing...' : confirmText}
                     </button>
                 </div>
             </div>

@@ -128,3 +128,60 @@
     margin: 16px 0 24px 0;
     font-size: 16px;
 }
+
+/* Dark mode */
+:global(.dark) .title {
+    color: #f9fafb;
+}
+
+:global(.dark) .statCard {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .statValue {
+    color: #f9fafb;
+}
+
+:global(.dark) .statLabel {
+    color: #d1d5db;
+}
+
+:global(.dark) .documentType {
+    background: #374151;
+    color: #d1d5db;
+}
+
+:global(.dark) .emptyState {
+    background: #1f2937;
+    border-color: #374151;
+    color: #d1d5db;
+}
+
+:global(.dark) .uploadButton {
+    color: #011926 !important;
+}
+
+:global(.dark) .iconTotal {
+    background-color: #1e3a8a;
+    color: #93c5fd;
+}
+
+:global(.dark) .iconProcessed {
+    background-color: #14532d;
+    color: #86efac;
+}
+
+:global(.dark) .iconProcessing {
+    background-color: #9a3412;
+    color: #fdba74;
+}
+
+:global(.dark) .iconUploading {
+    background-color: #3730a3;
+    color: #a5b4fc;
+}
+
+:global(.dark) .documentName {
+    color: #f9fafb;
+}

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import formService, { Form, FormField } from '../../../services/form.service';
 import clientService from '../../../services/client.service';
 import documentTypeService from '../../../services/documentType.service';
+import documentService from '../../../services/document.service';
+import { uploadStore } from '../../../store/uploadStore';
 import CommonDropdown from '../../Common/CommonDropdown';
 import styles from './DocumentUpload.module.css';
 
@@ -104,14 +106,14 @@ const DocumentUpload: React.FC = () => {
 
     const validateForm = (): boolean => {
         if (!selectedForm?.fields) return true;
-        
+
         const newErrors: Record<string, string> = {};
         selectedForm.fields.forEach(field => {
             if (field.required && (!formData[field.id || ''] || formData[field.id || ''] === '')) {
                 newErrors[field.id || ''] = `${field.label} is required`;
             }
         });
-        
+
         setFormErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -130,7 +132,7 @@ const DocumentUpload: React.FC = () => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
-        
+
         const droppedFiles = Array.from(e.dataTransfer.files);
         setFiles(prev => [...prev, ...droppedFiles]);
     };
@@ -151,21 +153,61 @@ const DocumentUpload: React.FC = () => {
             alert('Please select at least one file');
             return;
         }
-        
+
         if (selectedForm && !validateForm()) {
             return;
         }
-        
+
         setUploading(true);
-        // TODO: Implement upload logic with form data
-        console.log('Uploading files:', files);
-        console.log('Form data:', formData);
-        
-        setTimeout(() => {
-            setUploading(false);
-            setFiles([]);
+
+        try {
+            const { addUpload } = uploadStore.getState();
+
+            // Keep track of tempIds to map back to results
+            const tempIds: string[] = [];
+
+            // Add files to upload store immediately
+            files.forEach(file => {
+                const tempId = `temp-${Date.now()}-${Math.random()}`;
+                tempIds.push(tempId);
+                addUpload({
+                    tempId,
+                    filename: file.name,
+                    fileSize: file.size,
+                    status: 'queued',
+                    progress: 0,
+                    createdAt: new Date().toISOString()
+                });
+            });
+
+            // Start upload process (returns immediately with queued documents)
+            const uploadResults = await documentService.uploadDocuments(files);
+            console.log('Upload initiated:', uploadResults);
+
+            // Update upload store with document IDs
+            const { updateUpload } = uploadStore.getState();
+            uploadResults.forEach((result, index) => {
+                const tempId = tempIds[index];
+                if (tempId) {
+                    updateUpload(tempId, {
+                        documentId: result.id,
+                        status: 'uploading'
+                    });
+                }
+            });
+
+            // Show success message
+            // Show success message
+            console.log(`${uploadResults.length} document(s) queued for upload.`);
+
+            // Navigate immediately to documents list to show queued documents
             navigate('/documents');
-        }, 2000);
+        } catch (error) {
+            console.error('Upload failed:', error);
+            alert('Upload failed. Please try again.');
+        } finally {
+            setUploading(false);
+        }
     };
 
     const renderFormField = (field: FormField) => {
@@ -269,6 +311,17 @@ const DocumentUpload: React.FC = () => {
                     </div>
                 );
 
+            case 'date':
+                return (
+                    <input
+                        type="date"
+                        className={`${styles.formInput} ${hasError ? styles.error : ''}`}
+                        value={value}
+                        onChange={(e) => handleFormFieldChange(fieldId, e.target.value)}
+                        placeholder={field.placeholder}
+                    />
+                );
+
             default:
                 return (
                     <input
@@ -286,7 +339,7 @@ const DocumentUpload: React.FC = () => {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
-                    <button 
+                    <button
                         className={styles.backButton}
                         onClick={() => navigate('/documents')}
                     >
@@ -301,7 +354,7 @@ const DocumentUpload: React.FC = () => {
                         disabled={uploading}
                     >
                         <Upload size={14} />
-                        {uploading ? 'Uploading...' : 'Upload selected'}
+                        {uploading ? 'Queuing Documents...' : 'Upload selected'}
                     </button>
                 )}
             </div>
@@ -310,7 +363,7 @@ const DocumentUpload: React.FC = () => {
                 {/* Left Section (60%) - Document Handling */}
                 <div className={styles.leftSection}>
                     <div className={styles.section}>
-                        <div 
+                        <div
                             className={`${styles.dropZone} ${dragActive ? styles.active : ''}`}
                             onDragEnter={handleDrag}
                             onDragLeave={handleDrag}
@@ -373,7 +426,7 @@ const DocumentUpload: React.FC = () => {
                                     <p className={styles.formDescription}>{selectedForm.description}</p>
                                 )}
                             </div>
-                            
+
                             <div className={styles.formFields}>
                                 {selectedForm.fields?.map((field) => (
                                     <div key={field.id} className={styles.formGroup}>

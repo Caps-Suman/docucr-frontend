@@ -368,3 +368,141 @@
         width: 100%;
     }
 }
+
+/* Dark mode */
+:global(.dark) .backButton {
+    color: #d1d5db;
+}
+
+:global(.dark) .backButton:hover {
+    background-color: #374151;
+    color: #f9fafb;
+}
+
+:global(.dark) .title {
+    color: #f9fafb;
+}
+
+:global(.dark) .section {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .sectionTitle {
+    color: #f9fafb;
+}
+
+:global(.dark) .uploadButtonTop {
+    color: #011926 !important;
+}
+
+:global(.dark) .uploadButtonTop svg {
+    color: #011926 !important;
+}
+
+:global(.dark) .dropZone {
+    border-color: #4b5563;
+    background: #374151;
+}
+
+:global(.dark) .dropZone.active {
+    border-color: #83cee4;
+    background: #1e3a8a;
+}
+
+:global(.dark) .uploadIcon {
+    color: #d1d5db;
+}
+
+:global(.dark) .dropText {
+    color: #f9fafb;
+}
+
+:global(.dark) .orText {
+    color: #9ca3af;
+}
+
+:global(.dark) .browseButton {
+    color: #011926 !important;
+}
+
+:global(.dark) .fileItem {
+    background: #374151;
+}
+
+:global(.dark) .fileName {
+    color: #f9fafb;
+}
+
+:global(.dark) .fileSize {
+    color: #d1d5db;
+}
+
+:global(.dark) .removeButton {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+:global(.dark) .removeButton:hover {
+    background: #991b1b;
+}
+
+:global(.dark) .formContainer {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .formTitle {
+    color: #f9fafb;
+}
+
+:global(.dark) .formDescription {
+    color: #d1d5db;
+}
+
+:global(.dark) .formHeader {
+    border-color: #4b5563;
+}
+
+:global(.dark) .label {
+    color: #f3f4f6;
+}
+
+:global(.dark) .formInput {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+:global(.dark) .formInput:focus {
+    border-color: #83cee4;
+    box-shadow: 0 0 0 3px rgba(131, 206, 228, 0.2);
+}
+
+:global(.dark) .checkboxLabel,
+:global(.dark) .radioLabel {
+    color: #f3f4f6;
+}
+
+:global(.dark) .noFormMessage {
+    color: #d1d5db;
+    background: #374151;
+    border-color: #4b5563;
+}
+
+:global(.dark) .loadingState {
+    color: #d1d5db;
+}
+
+:global(.dark) .uploadSection {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .uploadButton {
+    color: #011926 !important;
+}
+
+:global(.dark) .uploadButton svg {
+    color: #011926 !important;
+}
