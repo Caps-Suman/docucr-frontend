@@ -198,3 +198,49 @@
     background-color: #fed7aa;
     color: #c2410c;
 }
+
+/* Dark mode styles */
+:global(.dark) .title {
+    color: #f9fafb;
+}
+
+:global(.dark) .statCard {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+}
+
+:global(.dark) .statValue {
+    color: #f9fafb;
+}
+
+:global(.dark) .statLabel {
+    color: #d1d5db;
+}
+
+:global(.dark) .emptyState {
+    color: #d1d5db;
+}
+
+:global(.dark) .createButton {
+    background-color: #7dd0e9;
+    color: #011926;
+}
+
+:global(.dark) .createButton:hover {
+    background-color: #5bc0db;
+}
+
+:global(.dark) .iconTotal {
+    background-color: #1e3a8a;
+    color: #93c5fd;
+}
+
+:global(.dark) .iconActive {
+    background-color: #14532d;
+    color: #86efac;
+}
+
+:global(.dark) .iconInactive {
+    background-color: #9a3412;
+    color: #fdba74;
+}

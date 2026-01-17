@@ -73,3 +73,44 @@
     opacity: 1;
     background-color: rgba(0, 0, 0, 0.1);
 }
+
+/* Dark mode styles */
+html.dark .toast-success,
+html.dark .toast-success .toast-message {
+    color: #000000 !important;
+}
+
+html.dark .toast-success svg {
+    stroke: #000000 !important;
+    fill: #000000 !important;
+}
+
+html.dark .toast-error,
+html.dark .toast-error .toast-message {
+    color: #000000 !important;
+}
+
+html.dark .toast-error svg {
+    stroke: #000000 !important;
+    fill: #000000 !important;
+}
+
+html.dark .toast-warning,
+html.dark .toast-warning .toast-message {
+    color: #000000 !important;
+}
+
+html.dark .toast-warning svg {
+    stroke: #000000 !important;
+    fill: #000000 !important;
+}
+
+html.dark .toast-info,
+html.dark .toast-info .toast-message {
+    color: #000000 !important;
+}
+
+html.dark .toast-info svg {
+    stroke: #000000 !important;
+    fill: #000000 !important;
+}

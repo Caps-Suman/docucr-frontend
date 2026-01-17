@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, FileText, CheckCircle, XCircle, StopCircle, PlayCircle } from 'lucide-react';
 import Table from '../Table/Table';
+import Loading from '../Common/Loading';
 import formService, { Form, FormStats } from '../../services/form.service';
 import CommonPagination from '../Common/CommonPagination';
 import ConfirmModal from '../Common/ConfirmModal';
@@ -14,6 +15,7 @@ const FormManagement: React.FC = () => {
     const [forms, setForms] = useState<Form[]>([]);
     const [stats, setStats] = useState<FormStats>({ total_forms: 0, active_forms: 0, inactive_forms: 0 });
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -75,6 +77,7 @@ const FormManagement: React.FC = () => {
     const confirmDelete = async () => {
         if (!formToDelete) return;
 
+        setActionLoading(formToDelete);
         try {
             await formService.deleteForm(formToDelete);
             setToast({ message: 'Form deleted successfully', type: 'success' });
@@ -83,6 +86,7 @@ const FormManagement: React.FC = () => {
         } catch (error) {
             setToast({ message: 'Failed to delete form', type: 'error' });
         } finally {
+            setActionLoading(null);
             setDeleteModalOpen(false);
             setFormToDelete(null);
         }
@@ -91,6 +95,7 @@ const FormManagement: React.FC = () => {
     const handleToggleStatus = async (form: Form) => {
         const isActive = form.status_id === activeStatusId;
         
+        setActionLoading(form.id);
         if (isActive) {
             // Deactivate directly
             const inactiveStatus = statuses.find(s => s.name === 'INACTIVE');
@@ -101,9 +106,12 @@ const FormManagement: React.FC = () => {
                 fetchStats();
             } catch (error) {
                 setToast({ message: 'Failed to deactivate form', type: 'error' });
+            } finally {
+                setActionLoading(null);
             }
         } else {
             // Show confirmation for activation
+            setActionLoading(null);
             setFormToActivate(form);
             setActivateModalOpen(true);
         }
@@ -112,6 +120,7 @@ const FormManagement: React.FC = () => {
     const confirmActivate = async () => {
         if (!formToActivate) return;
 
+        setActionLoading(formToActivate.id);
         try {
             await formService.updateForm(formToActivate.id, { status_id: activeStatusId });
             setToast({ message: 'Form activated successfully. All other forms have been deactivated.', type: 'success' });
@@ -120,6 +129,7 @@ const FormManagement: React.FC = () => {
         } catch (error) {
             setToast({ message: 'Failed to activate form', type: 'error' });
         } finally {
+            setActionLoading(null);
             setActivateModalOpen(false);
             setFormToActivate(null);
         }
@@ -187,6 +197,10 @@ const FormManagement: React.FC = () => {
         }
     ];
 
+    if (loading) {
+        return <Loading message="Loading forms..." />;
+    }
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
@@ -233,7 +247,6 @@ const FormManagement: React.FC = () => {
             <Table
                 columns={columns}
                 data={forms}
-                className={loading ? 'loading' : ''}
             />
 
             {!loading && forms.length === 0 && (

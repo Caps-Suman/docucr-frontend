@@ -12,6 +12,7 @@ import DocumentDetail from './components/Documents/DocumentDetail/DocumentDetail
 import UserPermissionManagement from './components/UserPermissionManagement/UserPermissionManagement';
 import FormManagement from './components/FormManagement/FormManagement';
 import FormBuilder from './components/FormBuilder/FormBuilder';
+import ClientManagement from './components/ClientManagement/ClientManagement';
 
 const DefaultComponent: React.FC = () => (
   <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -74,7 +75,7 @@ const App: React.FC = () => {
           <Route index element={<DefaultComponent />} />
         </Route>
         <Route path="/clients" element={<AppLayout />}>
-          <Route index element={<DefaultComponent />} />
+          <Route index element={<ClientManagement />} />
         </Route>
         <Route path="/settings" element={<AppLayout />}>
           <Route index element={<DefaultComponent />} />

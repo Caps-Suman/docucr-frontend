@@ -2,6 +2,7 @@ import React from 'react';
 import Home from '../pages/Home';
 import DocumentList from '../components/Documents/DocumentList/DocumentList';
 import UserPermissionManagement from '../components/UserPermissionManagement/UserPermissionManagement';
+import ClientManagement from '../components/ClientManagement/ClientManagement';
 
 function DefaultComponent() {
   return React.createElement(
@@ -17,7 +18,7 @@ const componentRegistry: Record<string, React.ComponentType<any>> = {
   '/documents': DocumentList,
   '/templates': DefaultComponent,
   '/sops': DefaultComponent,
-  '/clients': DefaultComponent,
+  '/clients': ClientManagement,
   '/users-permissions': UserPermissionManagement,
   '/settings': DefaultComponent,
   '/profile': DefaultComponent,

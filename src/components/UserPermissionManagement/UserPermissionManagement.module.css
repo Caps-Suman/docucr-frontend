@@ -71,8 +71,8 @@
     color: #9ca3af;
 }
 
-.dark .tab.active {
-    color: #002436;
-    background: linear-gradient(135deg, #7dd0e9 0%, #5bc0db 100%);
+:global(.dark) .tab.active {
+    background-color: #111827 !important;
+    color: #d1d5db !important;
     box-shadow: 0 4px 12px rgba(125, 208, 233, 0.4);
 }

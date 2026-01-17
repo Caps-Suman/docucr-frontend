@@ -1,0 +1,248 @@
+.managementContent {
+    padding: 15px;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.statCard {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.statIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.statCard.blue .statIcon {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+.statCard.green .statIcon {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.statCard.red .statIcon {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.statContent h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 1px 0;
+}
+
+.statContent p {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+}
+
+.tableSection {
+    margin-top: 15px;
+}
+
+.tableHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.tableHeader h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.addBtn {
+    background-color: #83cee4;
+    color: #011926;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.addBtn:hover {
+    background-color: #5bc0db;
+}
+
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.statusBadge.active {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.statusBadge.inactive {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.actionBtn {
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.actionBtn.edit {
+    color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.actionBtn.edit:hover {
+    background-color: #dbeafe;
+}
+
+.actionBtn.activate {
+    color: #22c55e;
+    background-color: #f0fdf4;
+}
+
+.actionBtn.activate:hover {
+    background-color: #dcfce7;
+}
+
+.actionBtn.deactivate {
+    color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.actionBtn.deactivate:hover {
+    background-color: #fee2e2;
+}
+
+.actionBtn.delete {
+    color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.actionBtn.delete:hover {
+    background-color: #fee2e2;
+}
+
+/* Dark mode styles */
+:global(.dark) .statCard {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+}
+
+:global(.dark) .statContent h3 {
+    color: #f9fafb;
+}
+
+:global(.dark) .statContent p {
+    color: #d1d5db;
+}
+
+:global(.dark) .statCard.blue .statIcon {
+    background-color: #1e3a8a;
+    color: #93c5fd;
+}
+
+:global(.dark) .statCard.green .statIcon {
+    background-color: #14532d;
+    color: #86efac;
+}
+
+:global(.dark) .statCard.red .statIcon {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+:global(.dark) .tableHeader h2 {
+    color: #f9fafb;
+}
+
+:global(.dark) .addBtn {
+    background-color: #7dd0e9;
+    color: #011926;
+}
+
+:global(.dark) .addBtn:hover {
+    background-color: #5bc0db;
+}
+
+:global(.dark) .statusBadge.active {
+    background-color: #064e3b;
+    color: #6ee7b7;
+}
+
+:global(.dark) .statusBadge.inactive {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+:global(.dark) .actionBtn.edit {
+    color: #60a5fa;
+    background-color: #1e3a8a;
+}
+
+:global(.dark) .actionBtn.edit:hover {
+    background-color: #1e40af;
+}
+
+:global(.dark) .actionBtn.activate {
+    color: #4ade80;
+    background-color: #14532d;
+}
+
+:global(.dark) .actionBtn.activate:hover {
+    background-color: #166534;
+}
+
+:global(.dark) .actionBtn.deactivate {
+    color: #f87171;
+    background-color: #7f1d1d;
+}
+
+:global(.dark) .actionBtn.deactivate:hover {
+    background-color: #991b1b;
+}
+
+:global(.dark) .actionBtn.delete {
+    color: #f87171;
+    background-color: #7f1d1d;
+}
+
+:global(.dark) .actionBtn.delete:hover {
+    background-color: #991b1b;
+}

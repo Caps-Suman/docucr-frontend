@@ -218,3 +218,77 @@
 .privilege-select-custom {
     width: 100%;
 }
+
+/* Dark mode styles */
+.dark .modal-content {
+    background: #1f2937;
+}
+
+.dark .modal-header {
+    border-bottom-color: #374151;
+}
+
+.dark .modal-header h2 {
+    color: #f9fafb;
+}
+
+.dark .modal-close {
+    color: #9ca3af;
+}
+
+.dark .modal-close:hover {
+    background-color: #374151;
+    color: #f9fafb;
+}
+
+.dark .form-group label {
+    color: #d1d5db;
+}
+
+.dark .form-group input,
+.dark .form-group textarea {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+.dark .form-group input:focus,
+.dark .form-group textarea:focus {
+    border-color: #7dd0e9;
+    box-shadow: 0 0 0 3px rgba(125, 208, 233, 0.1);
+}
+
+.dark .btn-cancel,
+.dark .btn-back {
+    background-color: #374151;
+    color: #d1d5db;
+}
+
+.dark .btn-cancel:hover,
+.dark .btn-back:hover {
+    background-color: #4b5563;
+}
+
+.dark .btn-submit,
+.dark .btn-next {
+    background-color: #7dd0e9;
+    color: #011926;
+}
+
+.dark .btn-submit:hover,
+.dark .btn-next:hover {
+    background-color: #5bc0db;
+}
+
+.dark .module-hint {
+    color: #9ca3af;
+}
+
+.dark .module-item {
+    background-color: #374151;
+    border-color: #4b5563;
+}
+
+.dark .module-label {
+    color: #d1d5db;
+}
