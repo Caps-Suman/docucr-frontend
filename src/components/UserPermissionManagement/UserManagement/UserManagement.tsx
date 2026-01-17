@@ -10,7 +10,6 @@ import userService, { User, UserStats } from '../../../services/user.service';
 import roleService from '../../../services/role.service';
 import statusService, { Status } from '../../../services/status.service';
 import './UserManagement.css';
-import '../../Common/Tooltip.css';
 
 const UserManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(0);

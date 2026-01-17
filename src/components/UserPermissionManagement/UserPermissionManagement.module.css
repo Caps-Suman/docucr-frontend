@@ -8,7 +8,6 @@
     border-radius: 12px;
     padding: 6px;
     margin-bottom: 15px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     border: 1px solid #e2e8f0;
     width: fit-content;
     gap: 5px;
@@ -40,7 +39,6 @@
 .tab.active {
     color: #011926;
     background: #83cee4;
-    box-shadow: 0 4px 12px rgba(125, 208, 233, 0.3);
     font-weight: 600;
 }
 
@@ -49,30 +47,29 @@
 }
 
 /* Dark mode styles */
-.dark .tabs {
-    background: #1f2937;
+:global(.dark) .tabs {
+    background: #1a1e23;
     border-color: #374151;
 }
 
-.dark .tab {
+:global(.dark) .tab {
     color: #9ca3af;
 }
 
-.dark .tab:hover {
+:global(.dark) .tab:hover {
     color: #f3f4f6;
     background-color: rgba(125, 208, 233, 0.15);
 }
 
-.dark .tab:hover svg {
+:global(.dark) .tab:hover svg {
     color: #f3f4f6;
 }
 
-.dark .tab svg {
+:global(.dark) .tab svg {
     color: #9ca3af;
 }
 
 :global(.dark) .tab.active {
-    background-color: #111827 !important;
-    color: #d1d5db !important;
-    box-shadow: 0 4px 12px rgba(125, 208, 233, 0.4);
+    background-color: #374151 !important;
+    color: #83cee4 !important;
 }

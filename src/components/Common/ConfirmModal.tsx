@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
-import './ConfirmModal.css';
+import styles from './ConfirmModal.module.css';
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -26,25 +26,28 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="confirm-overlay" onClick={onClose}>
-            <div className="confirm-content" onClick={(e) => e.stopPropagation()}>
-                <div className="confirm-header">
-                    <div className={`confirm-icon ${type}`}>
+        <div className={styles.overlay} onClick={onClose}>
+            <div className={styles.content} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.header}>
+                    <div className={`${styles.icon} ${type === 'warning' ? styles.iconWarning : styles.iconDanger}`}>
                         <AlertTriangle size={24} />
                     </div>
-                    <button className="confirm-close" onClick={onClose}>
+                    <button className={styles.closeButton} onClick={onClose}>
                         <X size={20} />
                     </button>
                 </div>
-                <div className="confirm-body">
+                <div className={styles.body}>
                     <h3>{title}</h3>
                     <p>{message}</p>
                 </div>
-                <div className="confirm-actions">
-                    <button className="btn-cancel" onClick={onClose}>
+                <div className={styles.actions}>
+                    <button className={styles.cancelButton} onClick={onClose}>
                         {cancelText}
                     </button>
-                    <button className={`btn-confirm ${type}`} onClick={onConfirm}>
+                    <button 
+                        className={`${styles.confirmButton} ${type === 'warning' ? styles.confirmButtonWarning : styles.confirmButtonDanger}`} 
+                        onClick={onConfirm}
+                    >
                         {confirmText}
                     </button>
                 </div>

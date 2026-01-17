@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
-import './Toast.css';
+import styles from './Toast.module.css';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -27,10 +27,10 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 3000 }
     const Icon = icons[type];
 
     return (
-        <div className={`toast toast-${type}`}>
+        <div className={`${styles.toast} ${styles[type]}`}>
             <Icon size={20} />
-            <span className="toast-message">{message}</span>
-            <button className="toast-close" onClick={onClose}>
+            <span className={styles.message}>{message}</span>
+            <button className={styles.closeButton} onClick={onClose}>
                 <X size={16} />
             </button>
         </div>

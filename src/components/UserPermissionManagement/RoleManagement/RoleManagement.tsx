@@ -11,7 +11,6 @@ import modulesService from '../../../services/modules.service';
 import privilegeService, { Privilege } from '../../../services/privilege.service';
 import statusService, { Status } from '../../../services/status.service';
 import '../UserManagement/UserManagement.css';
-import '../../Common/Tooltip.css';
 
 const RoleManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(0);

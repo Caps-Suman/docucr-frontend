@@ -4,7 +4,7 @@ import Select from 'react-select';
 import authService from '../services/auth.service';
 import Toast, { ToastType } from '../components/Common/Toast';
 import Loading from '../components/Common/Loading';
-import { customSelectStyles } from '../styles/selectStyles';
+import { getCustomSelectStyles } from '../styles/selectStyles';
 import { fetchWithAuth } from '../utils/api';
 import './Profile.css';
 
@@ -266,7 +266,7 @@ const Profile: React.FC = () => {
                                             value={countryCodeOptions.find(opt => opt.value === formData.phone_country_code)}
                                             onChange={(option) => setFormData({ ...formData, phone_country_code: option?.value || '+91' })}
                                             options={countryCodeOptions}
-                                            styles={customSelectStyles}
+                                            styles={getCustomSelectStyles()}
                                             isDisabled={!editMode}
                                         />
                                     </div>

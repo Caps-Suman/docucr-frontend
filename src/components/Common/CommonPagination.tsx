@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import ReactPaginate from 'react-paginate';
 import Select from 'react-select';
-import './CommonPagination.css';
+import styles from './CommonPagination.module.css';
 
 interface CommonPaginationProps {
     show: boolean;
@@ -108,30 +108,30 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
     };
 
     return (
-        <div className="common-pagination-container">
-            <div className="pagination-left">
+        <div className={styles.container}>
+            <div className={styles.left}>
                 {totalItems && (
-                    <div className="pagination-info">
+                    <div className={styles.info}>
                         Showing {startItem}-{endItem} of {totalItems} results
                     </div>
                 )}
                 {onItemsPerPageChange && (
-                    <div className="items-per-page">
-                        <span className="items-per-page-label">Per Page:</span>
+                    <div className={styles.itemsPerPage}>
+                        <span className={styles.itemsPerPageLabel}>Per Page:</span>
                         <Select
                             value={itemsPerPageOptions.find(option => option.value === itemsPerPage)}
                             onChange={(option) => option && onItemsPerPageChange(option.value)}
                             options={itemsPerPageOptions}
                             styles={customStyles}
                             isSearchable={false}
-                            className="items-per-page-select"
+                            className={styles.itemsPerPageSelect}
                             menuPlacement="auto"
                         />
                     </div>
                 )}
             </div>
             
-            <div className="pagination-center">
+            <div className={styles.center}>
                 <ReactPaginate
                     pageCount={pageCount}
                     pageRangeDisplayed={3}

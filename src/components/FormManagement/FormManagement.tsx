@@ -8,7 +8,6 @@ import CommonPagination from '../Common/CommonPagination';
 import ConfirmModal from '../Common/ConfirmModal';
 import Toast from '../Common/Toast';
 import styles from './FormManagement.module.css';
-import '../../components/Common/Tooltip.css';
 
 const FormManagement: React.FC = () => {
     const navigate = useNavigate();

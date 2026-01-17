@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, ChevronLeft } from 'lucide-react';
 import Select from 'react-select';
-import { customSelectStyles } from '../../../styles/selectStyles';
-import './RoleModal.css';
+import { getCustomSelectStyles } from '../../../styles/selectStyles';
+import styles from './RoleModal.module.css';
 
 interface ModulePermission {
     module_id: string;
@@ -145,153 +145,151 @@ const RoleModal: React.FC<RoleModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
+        <div className={styles.overlay} onClick={onClose}>
+            <div className={styles.content} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.header}>
                     <h2>{title} {`- Step ${step} of 2`}</h2>
-                    <button className="modal-close" onClick={onClose}>
+                    <button className={styles.closeButton} onClick={onClose}>
                         <X size={20} />
                     </button>
                 </div>
-                <form onSubmit={handleSubmit}>
-                    {step === 1 && (
-                        <>
-                            <div className="form-group">
-                                <label>Role Name *</label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => handleNameChange(e.target.value)}
-                                    required
-                                    placeholder="Enter role name"
-                                    maxLength={50}
-                                    style={{ 
-                                        textTransform: 'uppercase',
-                                        borderColor: errors.name ? '#ef4444' : '#d1d5db'
-                                    }}
-                                />
-                                {errors.name && (
-                                    <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                                        {errors.name}
+                <form className={styles.form} onSubmit={handleSubmit}>
+                    <div className={styles.formContent}>
+                        {step === 1 && (
+                            <>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Role Name *</label>
+                                    <input
+                                        type="text"
+                                        className={`${styles.input} ${styles.inputUppercase}`}
+                                        value={name}
+                                        onChange={(e) => handleNameChange(e.target.value)}
+                                        required
+                                        placeholder="Enter role name"
+                                        maxLength={50}
+                                        style={{ borderColor: errors.name ? '#ef4444' : '#d1d5db' }}
+                                    />
+                                    {errors.name && (
+                                        <span className={styles.errorText}>
+                                            {errors.name}
+                                        </span>
+                                    )}
+                                    <span className={styles.charCount}>
+                                        {name.length}/50 characters
                                     </span>
-                                )}
-                                <span style={{ color: '#64748b', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                                    {name.length}/50 characters
-                                </span>
-                            </div>
-                            <div className="form-group">
-                                <label>Description</label>
-                                <textarea
-                                    value={description}
-                                    onChange={(e) => handleDescriptionChange(e.target.value)}
-                                    placeholder="Enter role description"
-                                    maxLength={300}
-                                    rows={4}
-                                    style={{ borderColor: errors.description ? '#ef4444' : '#d1d5db' }}
-                                />
-                                {errors.description && (
-                                    <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                                        {errors.description}
-                                    </span>
-                                )}
-                                <span style={{ color: '#64748b', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                                    {description.length}/300 characters
-                                </span>
-                            </div>
-                        </>
-                    )}
-
-                    {step === 2 && (
-                        <div className="module-assignment">
-                            <p className="module-hint">Assign modules and privileges to this role</p>
-                            {modules.length === 0 ? (
-                                <p style={{ textAlign: 'center', color: '#64748b' }}>No modules available</p>
-                            ) : (
-                                <div className="module-list">
-                                    {modules.map(module => {
-                                        const privilegeOptions = [
-                                            { value: '', label: 'No Access', description: 'No permissions' },
-                                            ...privileges.map(p => {
-                                                let description = '';
-                                                const name = p.name.toLowerCase();
-                                                if (name.includes('read')) description = 'View only';
-                                                else if (name.includes('write') || name.includes('create')) description = 'View & Create';
-                                                else if (name.includes('update') || name.includes('edit')) description = 'View, Create & Edit';
-                                                else if (name.includes('delete')) description = 'Full access';
-                                                else if (name.includes('manage') || name.includes('admin')) description = 'Complete control';
-                                                else description = 'Access granted';
-                                                return { value: p.id, label: p.name, description };
-                                            })
-                                        ];
-                                        const selectedValue = privilegeOptions.find(opt => opt.value === (selectedModules[module.id] || ''));
-                                        
-                                        return (
-                                            <div key={module.id} className="module-item">
-                                                <label className="module-label">{module.label}</label>
-                                                <Select
-                                                    value={selectedValue}
-                                                    onChange={(option) => option && handleModulePrivilegeChange(module.id, option.value)}
-                                                    options={privilegeOptions}
-                                                    className="privilege-select-custom"
-                                                    classNamePrefix="privilege"
-                                                    isSearchable={false}
-                                                    menuPortalTarget={document.body}
-                                                    menuPosition="fixed"
-                                                    formatOptionLabel={(option: any) => (
-                                                        <div>
-                                                            <div style={{ fontWeight: 500 }}>{option.label}</div>
-                                                            <div style={{ fontSize: '11px', color: '#64748b' }}>{option.description}</div>
-                                                        </div>
-                                                    )}
-                                                    styles={{
-                                                        ...customSelectStyles,
-                                                        control: (base) => ({
-                                                            ...base,
-                                                            minHeight: '32px',
-                                                            fontSize: '13px',
-                                                            borderColor: '#d1d5db',
-                                                            '&:hover': { borderColor: '#011926' }
-                                                        }),
-                                                        menu: (base) => ({
-                                                            ...base,
-                                                            fontSize: '13px',
-                                                            zIndex: 10000
-                                                        }),
-                                                        menuPortal: (base) => ({
-                                                            ...base,
-                                                            zIndex: 10000
-                                                        })
-                                                    }}
-                                                />
-                                            </div>
-                                        );
-                                    })}
                                 </div>
-                            )}
-                        </div>
-                    )}
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Description</label>
+                                    <textarea
+                                        className={styles.textarea}
+                                        value={description}
+                                        onChange={(e) => handleDescriptionChange(e.target.value)}
+                                        placeholder="Enter role description"
+                                        maxLength={300}
+                                        rows={4}
+                                        style={{ borderColor: errors.description ? '#ef4444' : '#d1d5db' }}
+                                    />
+                                    {errors.description && (
+                                        <span className={styles.errorText}>
+                                            {errors.description}
+                                        </span>
+                                    )}
+                                    <span className={styles.charCount}>
+                                        {description.length}/300 characters
+                                    </span>
+                                </div>
+                            </>
+                        )}
 
-                    <div className="modal-actions">
                         {step === 2 && (
-                            <button type="button" className="btn-back" onClick={handleBack}>
+                            <div className={styles.moduleAssignment}>
+                                <p className={styles.moduleHint}>Assign modules and privileges to this role</p>
+                                {modules.length === 0 ? (
+                                    <p className={styles.noModules}>No modules available</p>
+                                ) : (
+                                    <div className={styles.moduleList}>
+                                        {modules.map(module => {
+                                            const privilegeOptions = [
+                                                { value: '', label: 'No Access', description: 'No permissions' },
+                                                ...privileges.map(p => {
+                                                    let description = '';
+                                                    const name = p.name.toLowerCase();
+                                                    if (name.includes('read')) description = 'View only';
+                                                    else if (name.includes('write') || name.includes('create')) description = 'View & Create';
+                                                    else if (name.includes('update') || name.includes('edit')) description = 'View, Create & Edit';
+                                                    else if (name.includes('delete')) description = 'Full access';
+                                                    else if (name.includes('manage') || name.includes('admin')) description = 'Complete control';
+                                                    else description = 'Access granted';
+                                                    return { value: p.id, label: p.name, description };
+                                                })
+                                            ];
+                                            const selectedValue = privilegeOptions.find(opt => opt.value === (selectedModules[module.id] || ''));
+                                            
+                                            return (
+                                                <div key={module.id} className={styles.moduleItem}>
+                                                    <label className={styles.moduleLabel}>{module.label}</label>
+                                                    <Select
+                                                        value={selectedValue}
+                                                        onChange={(option) => option && handleModulePrivilegeChange(module.id, option.value)}
+                                                        options={privilegeOptions}
+                                                        className="privilege-select-custom"
+                                                        classNamePrefix="privilege"
+                                                        isSearchable={false}
+                                                        menuPortalTarget={document.body}
+                                                        menuPosition="fixed"
+                                                        formatOptionLabel={(option: any) => (
+                                                            <div>
+                                                                <div style={{ fontWeight: 500 }}>{option.label}</div>
+                                                                <div style={{ fontSize: '11px', color: '#64748b' }}>{option.description}</div>
+                                                            </div>
+                                                        )}
+                                                        styles={{
+                                                            ...getCustomSelectStyles(),
+                                                            control: (base) => ({
+                                                                ...getCustomSelectStyles().control(base),
+                                                                minHeight: '32px',
+                                                                fontSize: '13px'
+                                                            }),
+                                                            menu: (base) => ({
+                                                                ...getCustomSelectStyles().menu(base),
+                                                                fontSize: '13px',
+                                                                zIndex: 10000
+                                                            }),
+                                                            menuPortal: (base) => ({
+                                                                ...base,
+                                                                zIndex: 10000
+                                                            })
+                                                        }}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={styles.actions}>
+                        {step === 2 && (
+                            <button type="button" className={styles.backButton} onClick={handleBack}>
                                 <ChevronLeft size={16} color="#64748b" /> Back
                             </button>
                         )}
-                        <button type="button" className="btn-cancel" onClick={onClose}>
+                        <button type="button" className={styles.cancelButton} onClick={onClose}>
                             Cancel
                         </button>
                         {step === 1 ? (
                             <button 
                                 type="button" 
-                                className="btn-next" 
+                                className={styles.nextButton} 
                                 onClick={(e) => { e.preventDefault(); handleNext(); }}
                                 disabled={!name.trim() || !!errors.name}
-                                style={{ opacity: (!name.trim() || !!errors.name) ? 0.5 : 1 }}
                             >
                                 Next <ChevronRight size={16} color="white" />
                             </button>
                         ) : (
-                            <button type="submit" className="btn-submit" disabled={isSubmitting} style={{ opacity: isSubmitting ? 0.6 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>
+                            <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
                                 {isSubmitting ? 'Saving...' : (initialData ? 'Update' : 'Create')}
                             </button>
                         )}

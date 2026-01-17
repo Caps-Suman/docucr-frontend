@@ -2,7 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import CommonDropdown from '../Common/CommonDropdown';
 import { FormField } from '../../services/form.service';
-import styles from './FormBuilder.module.css';
+import styles from './EditFieldModal.module.css';
 
 interface EditFieldModalProps {
     isOpen: boolean;

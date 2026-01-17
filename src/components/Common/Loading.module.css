@@ -1,0 +1,63 @@
+/* Loading Container */
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  z-index: 1800;
+  backdrop-filter: blur(2px);
+}
+
+/* Loading Content */
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top: 3px solid #83cee4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Loading Message */
+.message {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Dark mode */
+:global(.dark) .fullscreen {
+  background: rgba(31, 41, 55, 0.9);
+}
+
+:global(.dark) .spinner {
+  border-color: #4b5563;
+  border-top-color: #7dd0e9;
+}
+
+:global(.dark) .message {
+  color: #d1d5db;
+}

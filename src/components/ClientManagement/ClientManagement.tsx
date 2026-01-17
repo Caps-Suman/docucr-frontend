@@ -9,7 +9,6 @@ import ClientModal from './ClientModal';
 import clientService, { Client } from '../../services/client.service';
 import statusService, { Status } from '../../services/status.service';
 import styles from './ClientManagement.module.css';
-import '../Common/Tooltip.css';
 
 const ClientManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(0);

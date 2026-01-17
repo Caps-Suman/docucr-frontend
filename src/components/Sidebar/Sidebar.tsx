@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard,
     FileText,
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import modulesService, { Module } from '../../services/modules.service';
 import authService from '../../services/auth.service';
-import './Sidebar.css';
+import styles from './Sidebar.module.css';
 
 interface SidebarProps {}
 
@@ -22,7 +22,6 @@ const Sidebar: React.FC<SidebarProps> = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [modules, setModules] = useState<Module[]>([]);
     const [loading, setLoading] = useState(true);
-    const location = useLocation();
 
     // Icon mapping
     const iconMap: Record<string, React.ReactNode> = {
@@ -63,27 +62,17 @@ const Sidebar: React.FC<SidebarProps> = () => {
     };
 
     const renderModuleItem = (module: Module) => {
-        const isActive = location.pathname === module.route;
         const icon = iconMap[module.icon] || <FileText size={20} />;
 
         return (
-            <div key={module.id}>
-                <div className={`nav-item ${isActive ? 'active' : ''}`}>
-                    <NavLink 
-                        to={module.route} 
-                        style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            width: '100%', 
-                            color: 'inherit', 
-                            textDecoration: 'none' 
-                        }}
-                    >
-                        <div className="nav-icon">{icon}</div>
-                        <span className="nav-label">{module.label}</span>
-                    </NavLink>
-                </div>
-            </div>
+            <NavLink 
+                key={module.id}
+                to={module.route}
+                className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
+            >
+                <div className={styles.navIcon}>{icon}</div>
+                <span className={styles.navLabel}>{module.label}</span>
+            </NavLink>
         );
     };
 
@@ -99,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
         return (
             <div key={category}>
                 {!collapsed && category !== 'main' && (
-                    <div className="nav-group-label">{categoryLabels[category] || category}</div>
+                    <div className={styles.navGroupLabel}>{categoryLabels[category] || category}</div>
                 )}
                 {categoryModules.map(renderModuleItem)}
             </div>
@@ -108,17 +97,17 @@ const Sidebar: React.FC<SidebarProps> = () => {
 
     if (loading) {
         return (
-            <div className={`sidebar ${collapsed ? 'collapsed' : 'expanded'}`}>
-                <div className="sidebar-header">
-                    <div className="logo-container">
-                        <div className="logo-icon">
+            <div className={`${styles.sidebar} ${collapsed ? styles.collapsed : styles.expanded}`}>
+                <div className={styles.header}>
+                    <div className={styles.logoContainer}>
+                        <div className={styles.logoIcon}>
                             <ArrowRightLeft size={18} />
                         </div>
                         {!collapsed && <span>docucr</span>}
                     </div>
                 </div>
-                <div className="sidebar-nav">
-                    <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                <div className={styles.nav}>
+                    <div className={styles.loading}>
                         Loading...
                     </div>
                 </div>
@@ -129,22 +118,22 @@ const Sidebar: React.FC<SidebarProps> = () => {
     const modulesByCategory = getModulesByCategory();
 
     return (
-        <div className={`sidebar ${collapsed ? 'collapsed' : 'expanded'}`}>
+        <div className={`${styles.sidebar} ${collapsed ? styles.collapsed : styles.expanded}`}>
             {/* Header */}
-            <div className="sidebar-header">
+            <div className={styles.header}>
                 {collapsed ? (
-                    <button className="collapse-btn" onClick={toggleCollapse}>
+                    <button className={styles.collapseBtn} onClick={toggleCollapse}>
                         <LogOut size={16} />
                     </button>
                 ) : (
                     <>
-                        <div className="logo-container">
-                            <div className="logo-icon">
+                        <div className={styles.logoContainer}>
+                            <div className={styles.logoIcon}>
                                 d
                             </div>
                             <span>docucr</span>
                         </div>
-                        <button className="collapse-btn" onClick={toggleCollapse}>
+                        <button className={styles.collapseBtn} onClick={toggleCollapse}>
                             <LogOut size={16} style={{ transform: 'rotate(180deg)' }} />
                         </button>
                     </>
@@ -152,7 +141,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
             </div>
 
             {/* Navigation */}
-            <div className="sidebar-nav">
+            <div className={styles.nav}>
                 {/* Main modules */}
                 {renderCategorySection('main', modulesByCategory.main || [])}
                 
@@ -164,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
             </div>
 
             {/* Footer */}
-            <div className="sidebar-footer">
+            <div className={styles.footer}>
             </div>
         </div>
     );

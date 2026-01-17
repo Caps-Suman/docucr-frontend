@@ -1,5 +1,5 @@
 import React from 'react';
-import './Loading.css';
+import styles from './Loading.module.css';
 
 interface LoadingProps {
   fullScreen?: boolean;
@@ -8,10 +8,10 @@ interface LoadingProps {
 
 const Loading: React.FC<LoadingProps> = ({ fullScreen = false, message = 'Loading...' }) => {
   return (
-    <div className={`loading-container ${fullScreen ? 'fullscreen' : ''}`}>
-      <div className="loading-content">
-        <div className="spinner"></div>
-        <p className="loading-message">{message}</p>
+    <div className={`${styles.container} ${fullScreen ? styles.fullscreen : ''}`}>
+      <div className={styles.content}>
+        <div className={styles.spinner}></div>
+        <p className={styles.message}>{message}</p>
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Select from 'react-select';
-import { customSelectStyles } from '../../styles/selectStyles';
+import { getCustomSelectStyles } from '../../styles/selectStyles';
 import { Client } from '../../services/client.service';
-import './ClientModal.css';
+import styles from './ClientModal.module.css';
 
 interface ClientModalProps {
     isOpen: boolean;
@@ -109,97 +109,104 @@ const ClientModal: React.FC<ClientModalProps> = ({
     ];
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
+        <div className={styles.overlay} onClick={onClose}>
+            <div className={styles.content} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.header}>
                     <h2>{title}</h2>
-                    <button className="modal-close" onClick={onClose}>
+                    <button className={styles.closeButton} onClick={onClose}>
                         <X size={20} />
                     </button>
                 </div>
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label>Client Type *</label>
-                        <Select
-                            value={typeOptions.find(opt => opt.value === type)}
-                            onChange={(selected) => setType(selected?.value || 'Individual')}
-                            options={typeOptions}
-                            placeholder="Select client type"
-                            styles={customSelectStyles}
-                        />
-                    </div>
-                    {type === 'Group' ? (
-                        <div className="form-group">
-                            <label>Business Name *</label>
+                <form className={styles.form} onSubmit={handleSubmit}>
+                    <div className={styles.formContent}>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>Client Type *</label>
+                            <Select
+                                value={typeOptions.find(opt => opt.value === type)}
+                                onChange={(selected) => setType(selected?.value || 'Individual')}
+                                options={typeOptions}
+                                placeholder="Select client type"
+                                styles={getCustomSelectStyles()}
+                            />
+                        </div>
+                        {type === 'Group' ? (
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Business Name *</label>
+                                <input
+                                    type="text"
+                                    className={styles.input}
+                                    value={businessName}
+                                    onChange={(e) => setBusinessName(e.target.value)}
+                                    placeholder="Enter business name"
+                                    style={{ borderColor: errors.businessName ? '#ef4444' : '#d1d5db' }}
+                                />
+                                {errors.businessName && <span className={styles.errorText}>{errors.businessName}</span>}
+                            </div>
+                        ) : (
+                            <div className={styles.formRowThree}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>First Name *</label>
+                                    <input
+                                        type="text"
+                                        className={styles.input}
+                                        value={firstName}
+                                        onChange={(e) => setFirstName(e.target.value)}
+                                        placeholder="Enter first name"
+                                        style={{ borderColor: errors.firstName ? '#ef4444' : '#d1d5db' }}
+                                    />
+                                    {errors.firstName && <span className={styles.errorText}>{errors.firstName}</span>}
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Middle Name</label>
+                                    <input
+                                        type="text"
+                                        className={styles.input}
+                                        value={middleName}
+                                        onChange={(e) => setMiddleName(e.target.value)}
+                                        placeholder="Enter middle name"
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Last Name</label>
+                                    <input
+                                        type="text"
+                                        className={styles.input}
+                                        value={lastName}
+                                        onChange={(e) => setLastName(e.target.value)}
+                                        placeholder="Enter last name"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>NPI</label>
                             <input
                                 type="text"
-                                value={businessName}
-                                onChange={(e) => setBusinessName(e.target.value)}
-                                placeholder="Enter business name"
-                                style={{ borderColor: errors.businessName ? '#ef4444' : '#d1d5db' }}
+                                className={styles.input}
+                                value={npi}
+                                onChange={(e) => setNpi(e.target.value)}
+                                placeholder="Enter NPI"
                             />
-                            {errors.businessName && <span className="error-text">{errors.businessName}</span>}
                         </div>
-                    ) : (
-                        <div className="form-row-three">
-                            <div className="form-group">
-                                <label>First Name *</label>
-                                <input
-                                    type="text"
-                                    value={firstName}
-                                    onChange={(e) => setFirstName(e.target.value)}
-                                    placeholder="Enter first name"
-                                    style={{ borderColor: errors.firstName ? '#ef4444' : '#d1d5db' }}
-                                />
-                                {errors.firstName && <span className="error-text">{errors.firstName}</span>}
-                            </div>
-                            <div className="form-group">
-                                <label>Middle Name</label>
-                                <input
-                                    type="text"
-                                    value={middleName}
-                                    onChange={(e) => setMiddleName(e.target.value)}
-                                    placeholder="Enter middle name"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Last Name</label>
-                                <input
-                                    type="text"
-                                    value={lastName}
-                                    onChange={(e) => setLastName(e.target.value)}
-                                    placeholder="Enter last name"
-                                />
-                            </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>Description</label>
+                            <textarea
+                                className={styles.textarea}
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="Enter description"
+                                rows={3}
+                            />
                         </div>
-                    )}
-                    <div className="form-group">
-                        <label>NPI</label>
-                        <input
-                            type="text"
-                            value={npi}
-                            onChange={(e) => setNpi(e.target.value)}
-                            placeholder="Enter NPI"
-                        />
                     </div>
-                    <div className="form-group">
-                        <label>Description</label>
-                        <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Enter description"
-                            rows={3}
-                        />
-                    </div>
-                    <div className="modal-actions">
-                        <button type="button" className="btn-cancel" onClick={onClose}>
+                    <div className={styles.actions}>
+                        <button type="button" className={styles.cancelButton} onClick={onClose}>
                             Cancel
                         </button>
                         <button 
                             type="submit" 
-                            className="btn-submit" 
+                            className={styles.submitButton} 
                             disabled={isSubmitting}
-                            style={{ opacity: isSubmitting ? 0.6 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
                         >
                             {isSubmitting ? 'Saving...' : (initialData ? 'Update' : 'Create')}
                         </button>
