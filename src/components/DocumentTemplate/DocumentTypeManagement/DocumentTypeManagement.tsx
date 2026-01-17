@@ -6,6 +6,7 @@ import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
 import { fetchWithAuth } from '../../../utils/api';
 import styles from './DocumentTypeManagement.module.css';
+import '../../../styles/globals/tooltips.css';
 
 interface DocumentType {
     id: string;
@@ -126,20 +127,22 @@ const DocumentTypeManagement: React.FC = () => {
             sortable: false,
             render: (_: any, row: DocumentType) => (
                 <div className={styles.actions}>
-                    <button
-                        className={styles.editButton}
-                        onClick={() => handleEdit(row)}
-                        title="Edit"
-                    >
-                        <Edit size={16} />
-                    </button>
-                    <button
-                        className={styles.deleteButton}
-                        onClick={() => handleDelete(row)}
-                        title="Delete"
-                    >
-                        <Trash2 size={16} />
-                    </button>
+                    <span className="tooltip-wrapper" data-tooltip="Edit">
+                        <button
+                            className={styles.editButton}
+                            onClick={() => handleEdit(row)}
+                        >
+                            <Edit size={16} />
+                        </button>
+                    </span>
+                    <span className="tooltip-wrapper" data-tooltip="Delete">
+                        <button
+                            className={styles.deleteButton}
+                            onClick={() => handleDelete(row)}
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </span>
                 </div>
             )
         }

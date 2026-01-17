@@ -76,7 +76,8 @@
 }
 
 .editButton,
-.deleteButton {
+.activateButton,
+.deactivateButton {
     padding: 6px;
     border: none;
     border-radius: 6px;
@@ -97,12 +98,22 @@
     color: #334155;
 }
 
-.deleteButton {
+.activateButton {
+    background: #f0fdf4;
+    color: #22c55e;
+}
+
+.activateButton:hover {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.deactivateButton {
     background: #fef2f2;
     color: #dc2626;
 }
 
-.deleteButton:hover {
+.deactivateButton:hover {
     background: #fee2e2;
     color: #b91c1c;
 }
@@ -139,14 +150,32 @@
     color: #f9fafb;
 }
 
-:global(.dark) .deleteButton {
+:global(.dark) .activateButton {
+    background: #14532d;
+    color: #4ade80;
+}
+
+:global(.dark) .activateButton:hover {
+    background: #166534;
+    color: #22c55e;
+}
+
+:global(.dark) .deactivateButton {
     background: #7f1d1d;
     color: #f87171;
 }
 
-:global(.dark) .deleteButton:hover {
+:global(.dark) .deactivateButton:hover {
     background: #991b1b;
     color: #fca5a5;
+}
+
+:global(.dark) .createButton svg {
+    color: #011926 !important;
+}
+
+:global(.dark) .createButton {
+    color: #011926 !important;
 }
 
 :global(html.dark) .createButton,

@@ -14,6 +14,7 @@ import FormManagement from './components/FormManagement/FormManagement';
 import FormBuilder from './components/FormBuilder/FormBuilder';
 import ClientManagement from './components/ClientManagement/ClientManagement';
 import DocumentTemplate from './components/DocumentTemplate/DocumentTemplate';
+import CreateTemplate from './components/DocumentTemplate/TemplateManagement/CreateTemplate';
 
 const DefaultComponent: React.FC = () => (
   <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -71,6 +72,8 @@ const App: React.FC = () => {
         </Route>
         <Route path="/templates" element={<AppLayout />}>
           <Route index element={<DocumentTemplate />} />
+          <Route path="create" element={<CreateTemplate />} />
+          <Route path="edit/:id" element={<CreateTemplate />} />
         </Route>
         <Route path="/sops" element={<AppLayout />}>
           <Route index element={<DefaultComponent />} />
