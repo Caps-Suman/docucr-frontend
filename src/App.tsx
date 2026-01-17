@@ -13,6 +13,7 @@ import UserPermissionManagement from './components/UserPermissionManagement/User
 import FormManagement from './components/FormManagement/FormManagement';
 import FormBuilder from './components/FormBuilder/FormBuilder';
 import ClientManagement from './components/ClientManagement/ClientManagement';
+import DocumentTemplate from './components/DocumentTemplate/DocumentTemplate';
 
 const DefaultComponent: React.FC = () => (
   <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -69,7 +70,7 @@ const App: React.FC = () => {
           <Route path=":id" element={<DocumentDetail />} />
         </Route>
         <Route path="/templates" element={<AppLayout />}>
-          <Route index element={<DefaultComponent />} />
+          <Route index element={<DocumentTemplate />} />
         </Route>
         <Route path="/sops" element={<AppLayout />}>
           <Route index element={<DefaultComponent />} />

@@ -18,7 +18,7 @@
   background: white;
   border-radius: 12px;
   width: 90%;
-  max-width: 600px;
+  max-width: 500px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -81,12 +81,6 @@
   gap: 8px;
 }
 
-.formRowThree {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
-}
-
 .label {
   font-size: 13px;
   font-weight: 500;
@@ -110,7 +104,7 @@
 }
 
 .textarea {
-  min-height: 70px;
+  min-height: 80px;
   resize: vertical;
   font-family: inherit;
 }
@@ -131,30 +125,31 @@
   flex-shrink: 0;
 }
 
-.cancelButton {
+.cancelButton,
+.submitButton {
   padding: 10px 20px;
-  border: 1px solid #e2e8f0;
-  background: white;
   border-radius: 8px;
-  cursor: pointer;
+  font-size: 14px;
   font-weight: 500;
-  color: #64748b;
+  cursor: pointer;
   transition: all 0.2s;
+  border: none;
+}
+
+.cancelButton {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .cancelButton:hover {
-  background-color: #f8fafc;
+  background: #e2e8f0;
 }
 
 .submitButton {
-  padding: 10px 20px;
   background: #e2f3f9;
   color: #011926;
   border: 1px solid #83cee4;
-  border-radius: 8px;
-  cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s;
 }
 
 .submitButton:hover:not(:disabled) {
@@ -164,14 +159,6 @@
 .submitButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .formRowThree {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
 }
 
 /* Dark mode */
@@ -219,19 +206,9 @@
 
 :global(.dark) .cancelButton {
   background: #374151;
-  border-color: #4b5563;
   color: #d1d5db;
 }
 
 :global(.dark) .cancelButton:hover {
-  background-color: #4b5563;
-}
-
-:global(.dark) .submitButton {
-  background-color: #7dd0e9;
-  color: #011926;
-}
-
-:global(.dark) .submitButton:hover:not(:disabled) {
-  background-color: #83cee4;
+  background: #4b5563;
 }

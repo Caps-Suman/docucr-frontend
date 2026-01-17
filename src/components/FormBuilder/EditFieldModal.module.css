@@ -148,7 +148,7 @@
 }
 
 .saveButton:hover {
-  background: #5bc0db;
+  background: #83cee4;
 }
 
 /* Dark mode */
@@ -210,5 +210,5 @@
 }
 
 :global(.dark) .saveButton:hover {
-  background-color: #5bc0db;
+  background-color: #83cee4;
 }

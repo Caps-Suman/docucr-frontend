@@ -214,13 +214,14 @@
 }
 
 .nextButton {
-  background: #83cee4;
+  background: #e2f3f9;
   color: #011926;
-  border: none;
+  border: 1px solid #83cee4;
+  font-weight: 600;
 }
 
 .nextButton:hover:not(:disabled) {
-  background: #5bc0db;
+  background: #83cee4;
 }
 
 .nextButton:disabled {
@@ -229,13 +230,14 @@
 }
 
 .submitButton {
-  background: #83cee4;
+  background: #e2f3f9;
   color: #011926;
-  border: none;
+  border: 1px solid #83cee4;
+  font-weight: 600;
 }
 
 .submitButton:hover:not(:disabled) {
-  background: #5bc0db;
+  background: #83cee4;
 }
 
 .submitButton:disabled {
@@ -325,5 +327,5 @@
 
 :global(.dark) .nextButton:hover:not(:disabled),
 :global(.dark) .submitButton:hover:not(:disabled) {
-  background-color: #5bc0db;
+  background-color: #83cee4;
 }

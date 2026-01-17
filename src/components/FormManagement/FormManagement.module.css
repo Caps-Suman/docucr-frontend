@@ -81,19 +81,19 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #83cee4;
+    background-color: #e2f3f9;
     color: #011926;
     padding: 10px 20px;
     border-radius: 8px;
-    font-weight: 500;
-    border: none;
+    font-weight: 600;
+    border: 1px solid #83cee4;
     cursor: pointer;
     transition: all 0.2s;
     text-decoration: none;
 }
 
 .createButton:hover {
-    background-color: #5bc0db;
+    background-color: #83cee4;
 }
 
 /* Status Badge Styles */
@@ -227,7 +227,7 @@
 }
 
 :global(.dark) .createButton:hover {
-    background-color: #5bc0db;
+    background-color: #83cee4;
 }
 
 :global(.dark) .iconTotal {

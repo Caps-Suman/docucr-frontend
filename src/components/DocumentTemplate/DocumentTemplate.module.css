@@ -1,4 +1,4 @@
-.user-permission-management {
+.document-template {
     padding: 15px;
 }
 
@@ -27,7 +27,7 @@
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
-    min-width: 120px;
+    min-width: 140px;
     justify-content: center;
 }
 

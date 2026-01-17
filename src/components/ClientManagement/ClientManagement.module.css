@@ -78,18 +78,18 @@
 }
 
 .addBtn {
-    background-color: #83cee4;
+    background-color: #e2f3f9;
     color: #011926;
-    border: none;
+    border: 1px solid #83cee4;
     padding: 10px 20px;
     border-radius: 8px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
 .addBtn:hover {
-    background-color: #5bc0db;
+    background-color: #83cee4;
 }
 
 .statusBadge {
@@ -198,7 +198,7 @@
 }
 
 :global(.dark) .addBtn:hover {
-    background-color: #5bc0db;
+    background-color: #83cee4;
 }
 
 :global(.dark) .statusBadge.active {

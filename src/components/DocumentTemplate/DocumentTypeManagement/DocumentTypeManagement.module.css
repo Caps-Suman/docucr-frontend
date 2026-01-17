@@ -1,0 +1,150 @@
+.container {
+    padding: 0;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.createButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.createButton:hover {
+    background: #83cee4;
+}
+
+.loading {
+    padding: 40px;
+    text-align: center;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.emptyState {
+    padding: 60px 40px;
+    text-align: center;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.emptyState svg {
+    color: #d1d5db;
+    margin-bottom: 16px;
+}
+
+.emptyState h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #374155;
+}
+
+.emptyState p {
+    margin: 0 0 24px 0;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+}
+
+.editButton,
+.deleteButton {
+    padding: 6px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.editButton {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.editButton:hover {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.deleteButton {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.deleteButton:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* Dark mode */
+:global(.dark) .header h2 {
+    color: #f9fafb;
+}
+
+:global(.dark) .loading {
+    color: #d1d5db;
+}
+
+:global(.dark) .emptyState {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .emptyState h3 {
+    color: #f9fafb;
+}
+
+:global(.dark) .emptyState p {
+    color: #d1d5db;
+}
+
+:global(.dark) .editButton {
+    background: #374151;
+    color: #d1d5db;
+}
+
+:global(.dark) .editButton:hover {
+    background: #4b5563;
+    color: #f9fafb;
+}
+
+:global(.dark) .deleteButton {
+    background: #7f1d1d;
+    color: #f87171;
+}
+
+:global(.dark) .deleteButton:hover {
+    background: #991b1b;
+    color: #fca5a5;
+}
