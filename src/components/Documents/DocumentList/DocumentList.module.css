@@ -1,0 +1,130 @@
+.container {
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
+
+.uploadButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.uploadButton:hover {
+    background: #83cee4;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.statCard {
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.statIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.statInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.statValue {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 1px 0;
+}
+
+.statLabel {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+}
+
+.iconTotal {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+.iconProcessed {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.iconProcessing {
+    background-color: #fed7aa;
+    color: #c2410c;
+}
+
+.iconUploading {
+    background-color: #e0e7ff;
+    color: #6366f1;
+}
+
+.documentName {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.documentType {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 60px 20px;
+    color: #94a3b8;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.emptyState p {
+    margin: 16px 0 24px 0;
+    font-size: 16px;
+}

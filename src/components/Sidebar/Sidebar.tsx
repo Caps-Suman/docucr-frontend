@@ -108,7 +108,8 @@ const Sidebar: React.FC<SidebarProps> = () => {
                 </div>
                 <div className={styles.nav}>
                     <div className={styles.loading}>
-                        Loading...
+                        <div className={styles.spinner}></div>
+                        {!collapsed && <span>Loading...</span>}
                     </div>
                 </div>
             </div>

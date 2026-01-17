@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Files } from 'lucide-react';
+import { Plus, Edit, Trash2, Files, CheckCircle, XCircle } from 'lucide-react';
 import Table from '../../Table/Table';
 import DocumentTypeModal from './DocumentTypeModal';
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
+import Loading from '../../Common/Loading';
 import { fetchWithAuth } from '../../../utils/api';
+import documentTypeService from '../../../services/documentType.service';
 import styles from './DocumentTypeManagement.module.css';
 import '../../../styles/globals/tooltips.css';
 
@@ -12,6 +14,7 @@ interface DocumentType {
     id: string;
     name: string;
     description?: string;
+    status_id: string;
     created_at: string;
     updated_at: string;
 }
@@ -58,6 +61,28 @@ const DocumentTypeManagement: React.FC = () => {
     const handleDelete = (documentType: DocumentType) => {
         setDocumentTypeToDelete(documentType);
         setIsConfirmModalOpen(true);
+    };
+
+    const handleActivate = async (documentType: DocumentType) => {
+        try {
+            await documentTypeService.activateDocumentType(documentType.id);
+            setToast({ message: 'Document type activated successfully', type: 'success' });
+            loadDocumentTypes();
+        } catch (error) {
+            console.error('Failed to activate document type:', error);
+            setToast({ message: 'Failed to activate document type', type: 'error' });
+        }
+    };
+
+    const handleDeactivate = async (documentType: DocumentType) => {
+        try {
+            await documentTypeService.deactivateDocumentType(documentType.id);
+            setToast({ message: 'Document type deactivated successfully', type: 'success' });
+            loadDocumentTypes();
+        } catch (error) {
+            console.error('Failed to deactivate document type:', error);
+            setToast({ message: 'Failed to deactivate document type', type: 'error' });
+        }
     };
 
     const handleModalSubmit = async (data: { name: string; description?: string }) => {
@@ -115,6 +140,16 @@ const DocumentTypeManagement: React.FC = () => {
     const columns = [
         { key: 'name', header: 'Name', sortable: true },
         { key: 'description', header: 'Description', sortable: false },
+        {
+            key: 'status_id',
+            header: 'Status',
+            sortable: true,
+            render: (value: string) => (
+                <span className={`status-badge ${value === 'ACTIVE' ? 'active' : 'inactive'}`}>
+                    {value === 'ACTIVE' ? 'Active' : 'Inactive'}
+                </span>
+            )
+        },
         { 
             key: 'created_at', 
             header: 'Created', 
@@ -135,6 +170,25 @@ const DocumentTypeManagement: React.FC = () => {
                             <Edit size={16} />
                         </button>
                     </span>
+                    {row.status_id === 'ACTIVE' ? (
+                        <span className="tooltip-wrapper" data-tooltip="Deactivate">
+                            <button
+                                className={styles.deactivateButton}
+                                onClick={() => handleDeactivate(row)}
+                            >
+                                <XCircle size={16} />
+                            </button>
+                        </span>
+                    ) : (
+                        <span className="tooltip-wrapper" data-tooltip="Activate">
+                            <button
+                                className={styles.activateButton}
+                                onClick={() => handleActivate(row)}
+                            >
+                                <CheckCircle size={16} />
+                            </button>
+                        </span>
+                    )}
                     <span className="tooltip-wrapper" data-tooltip="Delete">
                         <button
                             className={styles.deleteButton}
@@ -164,9 +218,7 @@ const DocumentTypeManagement: React.FC = () => {
             </div>
 
             {loading ? (
-                <div className={styles.loading}>
-                    Loading...
-                </div>
+                <Loading message="Loading document types..." />
             ) : documentTypes.length === 0 ? (
                 <div className={styles.emptyState}>
                     <Files size={48} />

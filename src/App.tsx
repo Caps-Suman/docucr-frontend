@@ -9,6 +9,7 @@ import AppLayout from './components/Layout/AppLayout/AppLayout';
 import Home from './pages/Home';
 import DocumentList from './components/Documents/DocumentList/DocumentList';
 import DocumentDetail from './components/Documents/DocumentDetail/DocumentDetail';
+import DocumentUpload from './components/Documents/DocumentUpload/DocumentUpload';
 import UserPermissionManagement from './components/UserPermissionManagement/UserPermissionManagement';
 import FormManagement from './components/FormManagement/FormManagement';
 import FormBuilder from './components/FormBuilder/FormBuilder';
@@ -68,6 +69,7 @@ const App: React.FC = () => {
         </Route>
         <Route path="/documents" element={<AppLayout />}>
           <Route index element={<DocumentList />} />
+          <Route path="upload" element={<DocumentUpload />} />
           <Route path=":id" element={<DocumentDetail />} />
         </Route>
         <Route path="/templates" element={<AppLayout />}>

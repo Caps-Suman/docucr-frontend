@@ -11,6 +11,7 @@ export interface FormField {
   options?: string[];
   validation?: any;
   order?: number;
+  is_system?: boolean;
 }
 
 export interface Form {
@@ -75,6 +76,16 @@ class FormService {
 
     if (!response.ok) {
       throw new Error('Failed to fetch form');
+    }
+
+    return response.json();
+  }
+
+  async getActiveForm(): Promise<Form> {
+    const response = await apiClient(`${API_BASE_URL}/api/forms/active`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch active form');
     }
 
     return response.json();

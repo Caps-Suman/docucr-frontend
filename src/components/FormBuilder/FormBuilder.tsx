@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, GripVertical, Edit2 } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, GripVertical, Edit2 } from 'lucide-react';
 import formService, { FormField } from '../../services/form.service';
 import Toast from '../Common/Toast';
 import CommonDropdown from '../Common/CommonDropdown';
@@ -16,6 +16,29 @@ const FIELD_TYPES = [
     { value: 'select', label: 'Select Dropdown' },
     { value: 'checkbox', label: 'Checkbox' },
     { value: 'radio', label: 'Radio Button' }
+];
+
+const SYSTEM_FIELDS = [
+    {
+        id: 'client',
+        field_type: 'select',
+        label: 'Client',
+        placeholder: 'Select client',
+        required: true,
+        options: [],
+        order: 0,
+        is_system: true
+    },
+    {
+        id: 'document_type',
+        field_type: 'select',
+        label: 'Document Type',
+        placeholder: 'Select document type',
+        required: true,
+        options: [],
+        order: 0,
+        is_system: true
+    }
 ];
 
 const FormBuilder: React.FC = () => {
@@ -46,6 +69,7 @@ const FormBuilder: React.FC = () => {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editingField, setEditingField] = useState<FormField | null>(null);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState<'dynamic' | 'system'>('dynamic');
 
     useEffect(() => {
         if (isEditMode) {
@@ -92,6 +116,22 @@ const FormBuilder: React.FC = () => {
             order: 0
         });
         setOptionsInput('');
+    };
+
+    const handleAddSystemField = (systemField: any) => {
+        // Check if system field already exists
+        const exists = fields.some(f => f.id === systemField.id || (f as any).is_system && f.label === systemField.label);
+        if (exists) {
+            setToast({ message: 'System field already added', type: 'error' });
+            return;
+        }
+
+        const newField: FormField = {
+            ...systemField,
+            id: systemField.id,
+            order: fields.length
+        };
+        setFields([...fields, newField]);
     };
 
     const handleRemoveField = (index: number) => {
@@ -310,13 +350,15 @@ const FormBuilder: React.FC = () => {
                                             </label>
                                         </div>
                                         <div className={styles.previewActions}>
-                                            <button
-                                                className={styles.editFieldPreview}
-                                                onClick={() => handleEditField(index)}
-                                                title="Edit Field"
-                                            >
-                                                <Edit2 size={14} />
-                                            </button>
+                                            {!(field as any).is_system && (
+                                                <button
+                                                    className={styles.editFieldPreview}
+                                                    onClick={() => handleEditField(index)}
+                                                    title="Edit Field"
+                                                >
+                                                    <Edit2 size={14} />
+                                                </button>
+                                            )}
                                             <button
                                                 className={styles.removeFieldPreview}
                                                 onClick={() => handleRemoveField(index)}
@@ -367,14 +409,28 @@ const FormBuilder: React.FC = () => {
                 <div className={styles.rightPanel}>
                     <div className={styles.fieldsHeader}>
                         <h3 className={styles.panelTitle}>Add New Field</h3>
-                        <button className={styles.addFieldButton} onClick={handleAddField}>
-                            <Plus size={16} />
-                            Add Field
+                    </div>
+
+                    {/* Tabs */}
+                    <div className={styles.tabContainer}>
+                        <button 
+                            className={`${styles.tab} ${activeTab === 'dynamic' ? styles.activeTab : ''}`}
+                            onClick={() => setActiveTab('dynamic')}
+                        >
+                            Dynamic Fields
+                        </button>
+                        <button 
+                            className={`${styles.tab} ${activeTab === 'system' ? styles.activeTab : ''}`}
+                            onClick={() => setActiveTab('system')}
+                        >
+                            System Fields
                         </button>
                     </div>
 
-                    <div className={styles.fieldItem}>
-                        <div className={styles.fieldGrid}>
+                    {activeTab === 'dynamic' && (
+                        <>
+                            <div className={styles.fieldItem}>
+                                <div className={styles.fieldGrid}>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Type</label>
                                 <CommonDropdown
@@ -460,8 +516,39 @@ const FormBuilder: React.FC = () => {
                                     <span className={styles.label}>Required Field</span>
                                 </label>
                             </div>
+                            </div>
                         </div>
-                    </div>
+                        <div className={styles.addFieldButtonContainer}>
+                            <button className={styles.addFieldButton} onClick={handleAddField}>
+                                <ArrowLeft size={16} />
+                                Add Field
+                            </button>
+                        </div>
+                        </>
+                    )}
+
+                    {activeTab === 'system' && (
+                        <div className={styles.systemFieldsContainer}>
+                            {SYSTEM_FIELDS.map((systemField) => {
+                                const isAdded = fields.some(f => f.id === systemField.id || ((f as any).is_system && f.label === systemField.label));
+                                return (
+                                    <div key={systemField.id} className={styles.systemFieldItem}>
+                                        <div className={styles.systemFieldInfo}>
+                                            <span className={styles.systemFieldLabel}>{systemField.label}</span>
+                                            <span className={styles.systemFieldType}>{systemField.field_type}</span>
+                                        </div>
+                                        <button 
+                                            className={`${styles.addSystemFieldButton} ${isAdded ? styles.disabled : ''}`}
+                                            onClick={() => handleAddSystemField(systemField)}
+                                            disabled={isAdded}
+                                        >
+                                            {isAdded ? 'Added' : <ArrowLeft size={16} />}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
 

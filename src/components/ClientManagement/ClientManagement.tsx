@@ -196,15 +196,62 @@ const ClientManagement: React.FC = () => {
         }
     ];
 
-    if (loading) {
-        return <Loading message="Loading clients..." />;
-    }
-
     const clientStats = [
         { title: 'Total Clients', value: totalClients.toString(), icon: Users, color: 'blue' },
         { title: 'Active Clients', value: activeClients.toString(), icon: UserCheck, color: 'green' },
         { title: 'Inactive Clients', value: inactiveClients.toString(), icon: UserX, color: 'red' }
     ];
+
+    if (loading) {
+        return (
+            <div className={styles.managementContent}>
+                <div className={styles.statsGrid}>
+                    {clientStats.map((stat, index) => (
+                        <div key={index} className={`${styles.statCard} ${styles[stat.color]}`}>
+                            <div className={styles.statIcon}>
+                                <stat.icon size={16} />
+                            </div>
+                            <div className={styles.statContent}>
+                                <h3>{stat.value}</h3>
+                                <p>{stat.title}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className={styles.tableSection}>
+                    <div className={styles.tableHeader}>
+                        <h2>
+                            <Users size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                            Clients
+                        </h2>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <input
+                                type="text"
+                                placeholder="Search clients..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(0);
+                                }}
+                                style={{
+                                    padding: '8px 12px',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '6px',
+                                    fontSize: '14px',
+                                    width: '250px'
+                                }}
+                            />
+                            <button className={styles.addBtn} onClick={handleAddNew}>
+                                Add Client
+                            </button>
+                        </div>
+                    </div>
+                    <Loading message="Loading clients..." />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.managementContent}>

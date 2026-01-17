@@ -4,6 +4,7 @@ import modulesService, { Module } from '../../services/modules.service';
 import authService from '../../services/auth.service';
 import { getComponentForRoute } from '../../utils/componentRegistry';
 import DocumentDetail from '../Documents/DocumentDetail/DocumentDetail';
+import DocumentUpload from '../Documents/DocumentUpload/DocumentUpload';
 
 const DynamicRoutes: React.FC = () => {
     const [modules, setModules] = useState<Module[]>([]);
@@ -56,6 +57,7 @@ const DynamicRoutes: React.FC = () => {
                 );
             })}
             
+            <Route path="documents/upload" element={<DocumentUpload />} />
             <Route path="documents/:id" element={<DocumentDetail />} />
             <Route index element={<Navigate to={defaultRoute} replace />} />
             <Route path="*" element={

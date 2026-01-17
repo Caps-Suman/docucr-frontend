@@ -5,6 +5,7 @@ import Table from '../../Table/Table';
 import TemplateModal from './TemplateModal';
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
+import Loading from '../../Common/Loading';
 import { fetchWithAuth } from '../../../utils/api';
 import statusService, { Status } from '../../../services/status.service';
 import styles from './TemplateManagement.module.css';
@@ -275,9 +276,7 @@ const TemplateManagement: React.FC = () => {
             </div>
 
             {loading ? (
-                <div className={styles.loading}>
-                    Loading...
-                </div>
+                <Loading message="Loading templates..." />
             ) : templates.length === 0 ? (
                 <div className={styles.emptyState}>
                     <Layout size={48} />

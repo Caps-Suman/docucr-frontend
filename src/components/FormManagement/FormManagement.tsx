@@ -197,7 +197,52 @@ const FormManagement: React.FC = () => {
     ];
 
     if (loading) {
-        return <Loading message="Loading forms..." />;
+        return (
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <h1 className={styles.title}>Form Templates</h1>
+                    <button
+                        className={styles.createButton}
+                        onClick={() => navigate('/forms/create')}
+                    >
+                        <Plus size={20} />
+                        Create New Form
+                    </button>
+                </div>
+
+                <div className={styles.statsGrid}>
+                    <div className={styles.statCard}>
+                        <div className={`${styles.statIcon} ${styles.iconTotal}`}>
+                            <FileText size={16} />
+                        </div>
+                        <div className={styles.statInfo}>
+                            <span className={styles.statValue}>{stats.total_forms}</span>
+                            <span className={styles.statLabel}>Total Forms</span>
+                        </div>
+                    </div>
+                    <div className={styles.statCard}>
+                        <div className={`${styles.statIcon} ${styles.iconActive}`}>
+                            <CheckCircle size={16} />
+                        </div>
+                        <div className={styles.statInfo}>
+                            <span className={styles.statValue}>{stats.active_forms}</span>
+                            <span className={styles.statLabel}>Active Forms</span>
+                        </div>
+                    </div>
+                    <div className={styles.statCard}>
+                        <div className={`${styles.statIcon} ${styles.iconInactive}`}>
+                            <XCircle size={16} />
+                        </div>
+                        <div className={styles.statInfo}>
+                            <span className={styles.statValue}>{stats.inactive_forms}</span>
+                            <span className={styles.statLabel}>Inactive Forms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <Loading message="Loading forms..." />
+            </div>
+        );
     }
 
     return (
@@ -243,12 +288,7 @@ const FormManagement: React.FC = () => {
                 </div>
             </div>
 
-            <Table
-                columns={columns}
-                data={forms}
-            />
-
-            {!loading && forms.length === 0 && (
+            {forms.length === 0 ? (
                 <div className={styles.emptyState}>
                     <FileText size={48} />
                     <p>No forms available</p>
@@ -260,6 +300,11 @@ const FormManagement: React.FC = () => {
                         Create Your First Form
                     </button>
                 </div>
+            ) : (
+                <Table
+                    columns={columns}
+                    data={forms}
+                />
             )}
 
             <CommonPagination
