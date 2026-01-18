@@ -101,15 +101,10 @@ const WebhookSettings: React.FC = () => {
                 </div>
                 {!showForm && (
                     <button
-                        className={styles.addButton}
-                        onClick={() => {
-                            setShowForm(true);
-                            setEditingId(null);
-                            setNewWebhook({ name: '', url: '', events: [], is_active: true });
-                        }}
+                        className={styles.comingSoonButton}
+                        disabled
                     >
-                        <Plus size={16} />
-                        Add Webhook
+                        Coming Soon
                     </button>
                 )}
             </div>

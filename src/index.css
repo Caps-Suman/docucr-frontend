@@ -20,19 +20,19 @@
 }
 
 /* Ensure sidebar and dashboard use Inter */
-.sidebar,
-.sidebar *,
-.dashboard-layout,
-.dashboard-layout *,
-.dashboard-content,
-.dashboard-content * {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+[class*="sidebar"],
+[class*="sidebar"] *,
+[class*="dashboard-layout"],
+[class*="dashboard-layout"] *,
+[class*="dashboard-content"],
+[class*="dashboard-content"] * {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* Override for sidebar logo to use Comfortaa */
-.sidebar .logo-container,
-.sidebar .logo-container *,
-.sidebar .logo-icon {
+[class*="sidebar"] [class*="logoContainer"],
+[class*="sidebar"] [class*="logoContainer"] *,
+[class*="sidebar"] [class*="logoIcon"] {
   font-family: 'Comfortaa', cursive !important;
   font-weight: 900 !important;
 }
