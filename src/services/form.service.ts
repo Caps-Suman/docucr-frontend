@@ -18,7 +18,8 @@ export interface Form {
   id: string;
   name: string;
   description: string | null;
-  status_id: string | null;
+  status_id: number | null;
+  statusCode: string | null;
   created_at: string;
   fields_count?: number;
   fields?: FormField[];

@@ -4,7 +4,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export interface Status {
     id: string;
-    name: string;
+    code: string;
     description: string | null;
     type: string | null;
 }
@@ -16,9 +16,9 @@ const statusService = {
         return response.json();
     },
 
-    getStatusByName: async (name: string): Promise<Status | null> => {
+    getStatusByCode: async (code: string): Promise<Status | null> => {
         const statuses = await statusService.getStatuses();
-        return statuses.find(s => s.name === name) || null;
+        return statuses.find(s => s.code === code) || null;
     }
 };
 

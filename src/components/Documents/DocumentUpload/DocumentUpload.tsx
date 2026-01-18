@@ -7,6 +7,7 @@ import documentTypeService from '../../../services/documentType.service';
 import documentService from '../../../services/document.service';
 import { uploadStore } from '../../../store/uploadStore';
 import CommonDropdown from '../../Common/CommonDropdown';
+import CommonDatePicker from '../../Common/CommonDatePicker';
 import Toast, { ToastType } from '../../Common/Toast';
 import styles from './DocumentUpload.module.css';
 
@@ -359,12 +360,11 @@ const DocumentUpload: React.FC = () => {
 
             case 'date':
                 return (
-                    <input
-                        type="date"
+                    <CommonDatePicker
+                        selected={value ? new Date(value) : null}
+                        onChange={(date: Date | null) => handleFormFieldChange(fieldId, date ? date.toISOString().split('T')[0] : '')}
                         className={`${styles.formInput} ${hasError ? styles.error : ''}`}
-                        value={value}
-                        onChange={(e) => handleFormFieldChange(fieldId, e.target.value)}
-                        placeholder={field.placeholder}
+                        placeholderText={field.placeholder || 'Select date'}
                     />
                 );
 

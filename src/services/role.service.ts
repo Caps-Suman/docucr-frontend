@@ -6,7 +6,8 @@ export interface Role {
   id: string;
   name: string;
   description: string | null;
-  status_id: string | null;
+  status_id: number | null;
+  statusCode: string | null;
   can_edit: boolean;
   users_count: number;
 }

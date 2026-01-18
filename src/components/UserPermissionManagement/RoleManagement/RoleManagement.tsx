@@ -37,19 +37,9 @@ const RoleManagement: React.FC = () => {
 
     useEffect(() => {
         loadModulesAndPrivileges();
-        loadStatuses();
     }, []);
 
-    const loadStatuses = async () => {
-        try {
-            const statusesData = await statusService.getStatuses();
-            setStatuses(statusesData);
-            const active = statusesData.find(s => s.name === 'ACTIVE');
-            if (active) setActiveStatusId(active.id);
-        } catch (error) {
-            console.error('Failed to load statuses:', error);
-        }
-    };
+
 
     const loadModulesAndPrivileges = async () => {
         try {
@@ -134,7 +124,7 @@ const RoleManagement: React.FC = () => {
             setToast({ message: 'System roles cannot be modified', type: 'warning' });
             return;
         }
-        const isActive = role.status_id === activeStatusId;
+        const isActive = role.statusCode === 'ACTIVE';
         if (isActive) {
             setConfirmModal({ isOpen: true, role });
             return;
@@ -144,9 +134,8 @@ const RoleManagement: React.FC = () => {
 
     const toggleRoleStatus = async (role: Role) => {
         try {
-            const isActive = role.status_id === activeStatusId;
-            const inactiveStatus = statuses.find(s => s.name === 'INACTIVE');
-            const newStatusId = isActive ? (inactiveStatus?.id || '') : activeStatusId;
+            const isActive = role.statusCode === 'ACTIVE';
+            const newStatusId = isActive ? 'INACTIVE' : 'ACTIVE';
             await roleService.updateRole(role.id, { status_id: newStatusId });
             loadData();
         } catch (error) {
@@ -165,11 +154,9 @@ const RoleManagement: React.FC = () => {
         if (type === 'total') {
             setStatusFilter(null);
         } else if (type === 'active') {
-            const activeStatus = statuses.find(s => s.name === 'ACTIVE');
-            setStatusFilter(activeStatus?.id || null);
+            setStatusFilter('ACTIVE');
         } else if (type === 'inactive') {
-            const inactiveStatus = statuses.find(s => s.name === 'INACTIVE');
-            setStatusFilter(inactiveStatus?.id || null);
+            setStatusFilter('INACTIVE');
         }
         setCurrentPage(0);
     };
@@ -196,7 +183,7 @@ const RoleManagement: React.FC = () => {
                 icon: UserCheck,
                 color: 'green',
                 onClick: () => handleStatClick('active'),
-                active: statusFilter === activeStatusId
+                active: statusFilter === 'ACTIVE'
             },
             {
                 title: 'Inactive Roles',
@@ -204,7 +191,7 @@ const RoleManagement: React.FC = () => {
                 icon: UserX,
                 color: 'orange',
                 onClick: () => handleStatClick('inactive'),
-                active: !!(statusFilter && statusFilter !== activeStatusId)
+                active: statusFilter === 'INACTIVE'
             }
         ];
 
@@ -212,10 +199,10 @@ const RoleManagement: React.FC = () => {
         { key: 'name', header: 'Role Name' },
         { key: 'description', header: 'Description' },
         {
-            key: 'status_id',
+            key: 'statusCode',
             header: 'Status',
-            render: (value: string | null, row: Role) => {
-                const isActive = value === activeStatusId;
+            render: (value: string | null) => {
+                const isActive = value === 'ACTIVE';
                 return (
                     <span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>
                         {isActive ? 'Active' : 'Inactive'}
@@ -238,13 +225,13 @@ const RoleManagement: React.FC = () => {
                             <Edit2 size={14} />
                         </button>
                     </span>
-                    <span className="tooltip-wrapper" data-tooltip={row.can_edit ? (row.status_id === activeStatusId ? 'Deactivate' : 'Activate') : "Cannot modify system role"}>
+                    <span className="tooltip-wrapper" data-tooltip={row.can_edit ? (row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate') : "Cannot modify system role"}>
                         <button
-                            className={`action-btn ${row.status_id === activeStatusId ? 'deactivate' : 'activate'}`}
+                            className={`action-btn ${row.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'}`}
                             onClick={() => handleToggleStatus(row)}
                             style={{ opacity: row.can_edit ? 1 : 0.5, cursor: row.can_edit ? 'pointer' : 'not-allowed' }}
                         >
-                            {row.status_id === activeStatusId ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+                            {row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />}
                         </button>
                     </span>
                 </div>

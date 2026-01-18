@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Download, Trash2, FileText, Upload, CheckCircle, Clock, UploadCloud, X, Loader2, RefreshCw, Ban, Filter } from 'lucide-react';
+import { Eye, Download, Trash2, FileText, Upload, CheckCircle, Clock, UploadCloud, X, Loader2, RefreshCw, Ban, Filter, Archive, ArchiveRestore } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import Loading from '../../Common/Loading';
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
 import CommonDropdown from '../../Common/CommonDropdown';
+import CommonDatePicker from '../../Common/CommonDatePicker';
 import documentService from '../../../services/document.service';
 import authService from '../../../services/auth.service';
 import documentListConfigService from '../../../services/documentListConfig.service';
@@ -23,11 +22,12 @@ interface DocumentListItem {
     type: string;
     size: number;
     uploadedAt: string;
-    status: 'processing' | 'completed' | 'failed' | 'uploading' | 'queued' | 'uploaded' | 'ai_queued' | 'analyzing' | 'ai_failed' | 'upload_failed' | 'cancelled';
+    status: 'processing' | 'completed' | 'failed' | 'uploading' | 'queued' | 'uploaded' | 'ai_queued' | 'analyzing' | 'ai_failed' | 'upload_failed' | 'cancelled' | 'archived';
     isUploading?: boolean;
     progress?: number;
     errorMessage?: string;
     customFormData?: any;
+    isArchived?: boolean;
 }
 
 const DocumentList: React.FC = () => {
@@ -56,6 +56,13 @@ const DocumentList: React.FC = () => {
         dateTo: null
     });
     const [formFields, setFormFields] = useState<any[]>([]);
+    const [stats, setStats] = useState({
+        total: 0,
+        processed: 0,
+        processing: 0,
+        uploading: 0,
+        archived: 0
+    });
 
     const activeFilterCount = Object.entries(activeFilters).filter(([key, value]) => {
         if (key === 'dateFrom' || key === 'dateTo') {
@@ -81,23 +88,34 @@ const DocumentList: React.FC = () => {
 
 
 
+    // Load metadata on component mount and wait for it
     useEffect(() => {
-        loadDocuments();
+        const initializeData = async () => {
+            await loadMetadata();
+            loadDocuments();
+        };
+        initializeData();
+    }, []);
+
+    // Load documents when filters change
+    useEffect(() => {
+        if (clients.length > 0 || documentTypes.length > 0) {
+            loadDocuments();
+        }
         setupWebSocket();
-        loadMetadata();
 
         return () => {
             if (wsRef.current) {
                 wsRef.current.close();
             }
         };
-    }, [activeFilters]);
+    }, [activeFilters, clients, documentTypes]);
 
     const loadMetadata = async () => {
         try {
             const [clientsRes, docTypesRes, activeFormRes] = await Promise.all([
-                clientService.getClients(1, 1000).catch(() => ({ clients: [] })),
-                documentTypeService.getDocumentTypes(1, 1000).catch(() => []),
+                clientService.getClients(1, 1000),
+                documentTypeService.getDocumentTypes(1, 1000),
                 authService.getUser()?.role?.name !== 'super_admin' ? formService.getActiveForm().catch(() => null) : Promise.resolve(null)
             ]);
 
@@ -130,15 +148,35 @@ const DocumentList: React.FC = () => {
             });
         }
     }, [documents, uploadingDocs]);
+
+    const loadStats = async () => {
+        try {
+            const statsRes = await documentService.getStats();
+            setStats(statsRes);
+        } catch (error) {
+            console.error('Failed to load document stats:', error);
+        }
+    };
+
     const loadDocuments = async () => {
         try {
             setLoading(true);
+            loadStats();
 
             // Prepare filters
             const formFilters: Record<string, any> = {};
             Object.entries(activeFilters).forEach(([key, value]) => {
                 if (key.startsWith('form_') && value) {
-                    formFilters[key.replace('form_', '')] = value;
+                    const fieldId = key.replace('form_', '');
+                    // Handle date values - convert Date objects to date strings using local date
+                    if (value instanceof Date) {
+                        const year = value.getFullYear();
+                        const month = String(value.getMonth() + 1).padStart(2, '0');
+                        const day = String(value.getDate()).padStart(2, '0');
+                        formFilters[fieldId] = `${year}-${month}-${day}`;
+                    } else {
+                        formFilters[fieldId] = value;
+                    }
                 }
             });
 
@@ -158,10 +196,11 @@ const DocumentList: React.FC = () => {
                 type: doc.filename.split('.').pop()?.toUpperCase() || 'FILE',
                 size: doc.file_size / (1024 * 1024), // Convert to MB
                 uploadedAt: doc.created_at,
-                status: mapDocumentStatus(doc.status),
+                status: (doc as any).is_archived ? 'archived' : mapDocumentStatus(doc.statusCode),
                 progress: doc.upload_progress,
                 errorMessage: doc.error_message,
-                customFormData: (doc as any).custom_form_data || {}
+                customFormData: (doc as any).custom_form_data || {},
+                isArchived: (doc as any).is_archived || false
             }));
 
             // Fetch column configuration
@@ -213,8 +252,8 @@ const DocumentList: React.FC = () => {
         }
     };
 
-    const mapDocumentStatus = (status_id: string): 'processing' | 'completed' | 'failed' | 'uploading' | 'queued' | 'uploaded' | 'ai_queued' | 'analyzing' | 'ai_failed' | 'upload_failed' | 'cancelled' => {
-        switch (status_id) {
+    const mapDocumentStatus = (statusCode: string): 'processing' | 'completed' | 'failed' | 'uploading' | 'queued' | 'uploaded' | 'ai_queued' | 'analyzing' | 'ai_failed' | 'upload_failed' | 'cancelled' | 'archived' => {
+        switch (statusCode) {
             case 'COMPLETED': return 'completed';
             case 'UPLOADED': return 'uploaded';
             case 'PROCESSING': return 'processing';
@@ -226,6 +265,7 @@ const DocumentList: React.FC = () => {
             case 'AI_FAILED': return 'ai_failed';
             case 'UPLOAD_FAILED': return 'upload_failed';
             case 'CANCELLED': return 'cancelled';
+            case 'ARCHIVED': return 'archived';
             default: return 'processing';
         }
     };
@@ -309,6 +349,34 @@ const DocumentList: React.FC = () => {
         } catch (error) {
             console.error(error);
             setToast({ message: 'Failed to cancel analysis', type: 'error' });
+        }
+    };
+
+    const handleArchive = async (id: string) => {
+        try {
+            await documentService.archiveDocument(id);
+            setToast({ message: 'Document archived', type: 'success' });
+            // Update the document in state immediately for better UX
+            setDocuments(prev => prev.map(doc =>
+                doc.id === id ? { ...doc, isArchived: true, status: 'archived' } : doc
+            ));
+        } catch (error) {
+            console.error(error);
+            setToast({ message: 'Failed to archive document', type: 'error' });
+        }
+    };
+
+    const handleUnarchive = async (id: string) => {
+        try {
+            await documentService.unarchiveDocument(id);
+            setToast({ message: 'Document unarchived', type: 'success' });
+            // Update the document in state immediately for better UX
+            setDocuments(prev => prev.map(doc =>
+                doc.id === id ? { ...doc, isArchived: false, status: 'completed' } : doc
+            ));
+        } catch (error) {
+            console.error(error);
+            setToast({ message: 'Failed to unarchive document', type: 'error' });
         }
     };
 
@@ -465,6 +533,12 @@ const DocumentList: React.FC = () => {
                                                 icon: <Ban size={12} />,
                                                 text: 'Cancelled'
                                             };
+                                        case 'archived':
+                                            return {
+                                                class: 'inactive',
+                                                icon: <Archive size={12} />,
+                                                text: 'Archived'
+                                            };
                                         case 'failed':
                                             return {
                                                 class: 'error',
@@ -553,6 +627,20 @@ const DocumentList: React.FC = () => {
                                                     <Download size={14} />
                                                 </button>
                                             </span>
+                                            {!row.isArchived && (
+                                                <span className={styles.tooltipWrapper} data-tooltip="Archive">
+                                                    <button className="action-btn" onClick={() => handleArchive(row.id)}>
+                                                        <Archive size={14} />
+                                                    </button>
+                                                </span>
+                                            )}
+                                            {row.isArchived && (
+                                                <span className={styles.tooltipWrapper} data-tooltip="Unarchive">
+                                                    <button className="action-btn activate" onClick={() => handleUnarchive(row.id)}>
+                                                        <ArchiveRestore size={14} />
+                                                    </button>
+                                                </span>
+                                            )}
                                             <span className={styles.tooltipWrapper} data-tooltip="Delete">
                                                 <button className="action-btn delete" onClick={() => handleDeleteClick(row)}>
                                                     <Trash2 size={14} />
@@ -580,28 +668,64 @@ const DocumentList: React.FC = () => {
                     key: col.id,
                     header: col.label,
                     render: (_: any, row: DocumentListItem) => {
-                        const val = row.customFormData ? row.customFormData[formFieldId] : null;
-                        if (!val) return <span style={{ color: '#94a3b8' }}>-</span>;
+                        const data = row.customFormData || {};
 
-                        // Resolve UUIDs for specific fields
-                        if (col.label.toLowerCase() === 'client') {
-                            const client = clients.find(c => c.id === val);
-                            const clientName = client ? (client.business_name || `${client.first_name} ${client.last_name}`) : String(val);
-                            return (
-                                <span className={styles.tooltipWrapper} data-tooltip={clientName}>
-                                    <span className={styles.cellContent}>{clientName}</span>
-                                </span>
-                            );
+                        // Strategy 1: Direct lookup by column ID (stripped of form_ prefix)
+                        let val = data[formFieldId];
+
+                        // Strategy 2: Lookup by column label (handles cases where keys are labels)
+                        if (!val && col.label) {
+                            val = data[col.label];
                         }
 
-                        if (col.label.toLowerCase().includes('document type')) {
-                            const type = documentTypes.find(t => t.id === val);
-                            const typeName = type ? type.name : String(val);
-                            return (
-                                <span className={styles.tooltipWrapper} data-tooltip={typeName}>
-                                    <span className={styles.cellContent}>{typeName}</span>
-                                </span>
+                        // Strategy 3: Lookup by actual field metadata (handles ID mismatch in config)
+                        if (!val && formFields.length > 0) {
+                            const fieldMetadata = formFields.find(f =>
+                                f.id === formFieldId ||
+                                f.label === col.label ||
+                                (f.label && col.label && f.label.toLowerCase() === col.label.toLowerCase())
                             );
+                            if (fieldMetadata) {
+                                val = data[fieldMetadata.id] || data[fieldMetadata.label];
+                            }
+                        }
+
+                        if (!val) return <span style={{ color: '#94a3b8' }}>-</span>;
+
+                        // Better matching for system fields
+                        const normalizedLabel = col.label.trim().toLowerCase();
+                        const formField = formFields.find(f => f.id === formFieldId);
+
+                        // Check if this is a client or document type field by UUID pattern and field name
+                        const isUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val));
+                        const isClientField = normalizedLabel.includes('client') || (formField && formField.label && formField.label.toLowerCase().includes('client'));
+                        const isDocTypeField = normalizedLabel.includes('document type') || normalizedLabel.includes('doc type') || (formField && formField.label && formField.label.toLowerCase().includes('document type'));
+                        const isSystemField = isClientField || isDocTypeField || formField?.is_system;
+
+                        if (isSystemField && isUuidPattern) {
+                            // Handle Client resolution
+                            if (isClientField) {
+                                if (clients.length === 0) return <span style={{ color: '#94a3b8', fontSize: '12px' }}>Loading clients...</span>;
+                                const client = clients.find(c => String(c.id) === String(val));
+                                const clientName = client ? (client.business_name || `${client.first_name} ${client.last_name}`.trim()) : `Unknown Client (${String(val).substring(0, 8)}...)`;
+                                return (
+                                    <span className={styles.tooltipWrapper} data-tooltip={clientName}>
+                                        <span className={styles.cellContent}>{clientName}</span>
+                                    </span>
+                                );
+                            }
+
+                            // Handle Document Type resolution
+                            if (isDocTypeField) {
+                                if (documentTypes.length === 0) return <span style={{ color: '#94a3b8', fontSize: '12px' }}>Loading types...</span>;
+                                const type = documentTypes.find(t => String(t.id) === String(val));
+                                const typeName = type ? type.name : `Unknown Type (${String(val).substring(0, 8)}...)`;
+                                return (
+                                    <span className={styles.tooltipWrapper} data-tooltip={typeName}>
+                                        <span className={styles.cellContent}>{typeName}</span>
+                                    </span>
+                                );
+                            }
                         }
 
                         const displayValue = Array.isArray(val) ? val.join(', ') : String(val);
@@ -614,7 +738,7 @@ const DocumentList: React.FC = () => {
                 };
             }
         });
-    }, [columnConfig, navigate, clients, documentTypes]);
+    }, [columnConfig, navigate, clients, documentTypes, formFields, loading]);
 
     return (
         <div className={styles.container}>
@@ -669,6 +793,10 @@ const DocumentList: React.FC = () => {
                             <Ban size={12} className={`${styles.legendIcon} ${styles.colorCancelled}`} />
                             <span>Cancelled: Manually stopped</span>
                         </span>
+                        <span className={styles.legendItem}>
+                            <Archive size={12} className={`${styles.legendIcon} ${styles.colorArchived}`} />
+                            <span>Archived: Document archived</span>
+                        </span>
                     </div>
                 </div>
                 <div className={styles.headerButtons}>
@@ -698,7 +826,7 @@ const DocumentList: React.FC = () => {
                         <FileText size={16} />
                     </div>
                     <div className={styles.statInfo}>
-                        <span className={styles.statValue}>{documents.length}</span>
+                        <span className={styles.statValue}>{stats.total}</span>
                         <span className={styles.statLabel}>Total Documents</span>
                     </div>
                 </div>
@@ -708,7 +836,7 @@ const DocumentList: React.FC = () => {
                     </div>
                     <div className={styles.statInfo}>
                         <span className={styles.statValue}>
-                            {documents.filter(d => d.status === 'completed').length}
+                            {stats.processed}
                         </span>
                         <span className={styles.statLabel}>Processed</span>
                     </div>
@@ -719,7 +847,7 @@ const DocumentList: React.FC = () => {
                     </div>
                     <div className={styles.statInfo}>
                         <span className={styles.statValue}>
-                            {documents.filter(d => d.status === 'processing').length}
+                            {stats.processing}
                         </span>
                         <span className={styles.statLabel}>Processing</span>
                     </div>
@@ -730,9 +858,20 @@ const DocumentList: React.FC = () => {
                     </div>
                     <div className={styles.statInfo}>
                         <span className={styles.statValue}>
-                            {documents.filter(d => d.status === 'queued' || d.status === 'uploading').length + uploadingDocs.length}
+                            {stats.uploading}
                         </span>
                         <span className={styles.statLabel}>Uploading</span>
+                    </div>
+                </div>
+                <div className={styles.statCard}>
+                    <div className={`${styles.statIcon} ${styles.iconArchived}`}>
+                        <Archive size={16} />
+                    </div>
+                    <div className={styles.statInfo}>
+                        <span className={styles.statValue}>
+                            {stats.archived}
+                        </span>
+                        <span className={styles.statLabel}>Archived</span>
                     </div>
                 </div>
             </div>
@@ -850,7 +989,8 @@ const DocumentList: React.FC = () => {
                                     { value: 'failed', label: 'Failed' },
                                     { value: 'ai_failed', label: 'AI Failed' },
                                     { value: 'upload_failed', label: 'Upload Failed' },
-                                    { value: 'cancelled', label: 'Cancelled' }
+                                    { value: 'cancelled', label: 'Cancelled' },
+                                    { value: 'archived', label: 'Archived' }
                                 ]}
                                 size="md"
                             />
@@ -859,27 +999,21 @@ const DocumentList: React.FC = () => {
                             <div className={styles.dateRow}>
                                 <div className={styles.dateField}>
                                     <label>From</label>
-                                    <DatePicker
+                                    <CommonDatePicker
                                         selected={filters.dateFrom}
                                         onChange={(date: Date | null) => setFilters(prev => ({ ...prev, dateFrom: date }))}
                                         className={styles.filterInput}
                                         placeholderText="Select from date"
-                                        dateFormat="MMM d, yyyy"
-                                        isClearable
-                                        popperPlacement="bottom-start"
                                     />
                                 </div>
                                 <div className={styles.dateField}>
                                     <label>To</label>
-                                    <DatePicker
+                                    <CommonDatePicker
                                         selected={filters.dateTo}
                                         onChange={(date: Date | null) => setFilters(prev => ({ ...prev, dateTo: date }))}
                                         className={styles.filterInput}
                                         placeholderText="Select to date"
-                                        dateFormat="MMM d, yyyy"
-                                        isClearable
                                         minDate={filters.dateFrom}
-                                        popperPlacement="bottom-start"
                                     />
                                 </div>
                             </div>
@@ -922,14 +1056,12 @@ const DocumentList: React.FC = () => {
                                     <label>{col.label}</label>
 
                                     {isDateField ? (
-                                        <DatePicker
+                                        <CommonDatePicker
                                             selected={filters[col.id] && typeof filters[col.id] === 'string' ? new Date(filters[col.id]) : filters[col.id]}
                                             onChange={(date: Date | null) => setFilters(prev => ({ ...prev, [col.id]: date }))}
                                             className={styles.filterInput}
                                             placeholderText={`Select ${col.label.toLowerCase()}`}
-                                            dateFormat="MMM d, yyyy"
-                                            isClearable
-                                            popperPlacement="bottom-start"
+                                            dateOnly={true}
                                         />
                                     ) : isDropdown ? (
                                         <CommonDropdown

@@ -6,7 +6,8 @@ export interface DocumentType {
     id: string;
     name: string;
     description?: string;
-    status_id?: string;
+    status_id?: number;
+    statusCode?: string;
     created_at?: string;
 }
 

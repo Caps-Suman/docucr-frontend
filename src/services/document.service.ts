@@ -6,7 +6,9 @@ export interface Document {
     id: string;
     filename: string;
     original_filename: string;
-    status: string;
+    status_id: number;
+    statusCode: string;
+    status: string; // Keep for compatibility
     file_size: number;
     upload_progress: number;
     error_message?: string;
@@ -87,6 +89,20 @@ class DocumentService {
         return response.json();
     }
 
+    async getStats(): Promise<{
+        total: number;
+        processed: number;
+        processing: number;
+        uploading: number;
+        archived: number;
+    }> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/stats`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch document stats');
+        }
+        return response.json();
+    }
+
     async getDocumentFormData(id: string): Promise<any> {
         const response = await apiClient(`${API_BASE_URL}/api/documents/${id}/form-data`);
         if (!response.ok) {
@@ -110,6 +126,26 @@ class DocumentService {
     }
 
 
+
+    async archiveDocument(documentId: string): Promise<void> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${documentId}/archive`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to archive document');
+        }
+    }
+
+    async unarchiveDocument(documentId: string): Promise<void> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${documentId}/unarchive`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to unarchive document');
+        }
+    }
 
     async deleteDocument(documentId: string): Promise<void> {
         const response = await apiClient(`${API_BASE_URL}/api/documents/${documentId}`, {
@@ -192,4 +228,5 @@ class DocumentService {
     }
 }
 
-export default new DocumentService();
+const documentService = new DocumentService();
+export default documentService;

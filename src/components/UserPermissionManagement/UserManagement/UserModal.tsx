@@ -32,6 +32,7 @@ interface UserModalProps {
     title: string;
     roles?: Array<{ id: string; name: string }>;
     supervisors?: Array<{ id: string; name: string }>;
+    clientName?: string;
 }
 
 const UserModal: React.FC<UserModalProps> = ({
@@ -41,7 +42,8 @@ const UserModal: React.FC<UserModalProps> = ({
     initialData,
     title,
     roles = [],
-    supervisors = []
+    supervisors = [],
+    clientName
 }) => {
     const [step, setStep] = useState(1);
     const [email, setEmail] = useState('');
@@ -106,6 +108,10 @@ const UserModal: React.FC<UserModalProps> = ({
         if (!initialData?.id && !password.trim()) newErrors.password = 'Password is required';
         else if (!initialData?.id && password.length < 6) newErrors.password = 'Password must be at least 6 characters';
         
+        if (phoneNumber && !/^\d{10,15}$/.test(phoneNumber)) {
+            newErrors.phoneNumber = 'Phone number must be 10-15 digits';
+        }
+        
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -167,7 +173,14 @@ const UserModal: React.FC<UserModalProps> = ({
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.content} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.header}>
-                    <h2>{title} - Step {step} of 2</h2>
+                    <h2>
+                        {title} - Step {step} of 2
+                        {clientName && (
+                            <div style={{ fontSize: '14px', fontWeight: 'normal', color: '#6b7280', marginTop: '4px' }}>
+                                For client: {clientName}
+                            </div>
+                        )}
+                    </h2>
                     <button className={styles.closeButton} onClick={onClose}>
                         <X size={20} />
                     </button>
@@ -295,8 +308,10 @@ const UserModal: React.FC<UserModalProps> = ({
                                             }}
                                             placeholder="10-15 digits"
                                             className={styles.phoneNumberInput}
+                                            style={{ borderColor: errors.phoneNumber ? '#ef4444' : '#d1d5db' }}
                                         />
                                     </div>
+                                    {errors.phoneNumber && <span className={styles.errorText}>{errors.phoneNumber}</span>}
                                 </div>
                             </>
                         )}
@@ -313,7 +328,19 @@ const UserModal: React.FC<UserModalProps> = ({
                                         className="role-select"
                                         classNamePrefix="select"
                                         placeholder="Select roles"
-                                        styles={getCustomSelectStyles()}
+                                        styles={{
+                                            ...getCustomSelectStyles(),
+                                            menu: (base) => ({
+                                                ...getCustomSelectStyles().menu(base),
+                                                zIndex: 10000
+                                            }),
+                                            menuPortal: (base) => ({
+                                                ...base,
+                                                zIndex: 10000
+                                            })
+                                        }}
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
                                     />
                                 </div>
                                 <div className={styles.formGroup}>
@@ -325,7 +352,19 @@ const UserModal: React.FC<UserModalProps> = ({
                                         className="supervisor-select"
                                         classNamePrefix="select"
                                         placeholder="Select supervisor"
-                                        styles={getCustomSelectStyles()}
+                                        styles={{
+                                            ...getCustomSelectStyles(),
+                                            menu: (base) => ({
+                                                ...getCustomSelectStyles().menu(base),
+                                                zIndex: 10000
+                                            }),
+                                            menuPortal: (base) => ({
+                                                ...base,
+                                                zIndex: 10000
+                                            })
+                                        }}
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
                                     />
                                 </div>
                             </>

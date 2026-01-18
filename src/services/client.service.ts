@@ -11,7 +11,8 @@ export interface Client {
     npi: string | null;
     is_user: boolean;
     type: string | null;
-    status_id: string | null;
+    status_id: number | null;
+    statusCode: string | null;
     description: string | null;
     created_at: string | null;
     updated_at: string | null;
@@ -38,7 +39,8 @@ export interface ClientCreateData {
     npi?: string;
     is_user?: boolean;
     type?: string;
-    status_id?: string;
+    status_id?: string; // Still allow sending code via status_id param to backend for now
+    statusCode?: string;
     description?: string;
 }
 
@@ -85,7 +87,7 @@ const clientService = {
         });
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || 'Failed to update client');
+            throw new Error(error.detail || error.message || 'Failed to update client');
         }
         return response.json();
     },
@@ -117,6 +119,12 @@ const clientService = {
     getUserClients: async (userId: string): Promise<Client[]> => {
         const response = await apiClient(`${API_URL}/api/clients/users/${userId}`);
         if (!response.ok) throw new Error('Failed to fetch user clients');
+        return response.json();
+    },
+
+    getClientUsers: async (clientId: string): Promise<Array<{id: string; username: string; name: string}>> => {
+        const response = await apiClient(`${API_URL}/api/clients/${clientId}/users`);
+        if (!response.ok) throw new Error('Failed to fetch client users');
         return response.json();
     }
 };

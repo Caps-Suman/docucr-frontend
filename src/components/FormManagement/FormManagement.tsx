@@ -22,8 +22,12 @@ const FormManagement: React.FC = () => {
     const [activateModalOpen, setActivateModalOpen] = useState(false);
     const [formToActivate, setFormToActivate] = useState<Form | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-    const [statuses, setStatuses] = useState<any[]>([]);
-    const [activeStatusId, setActiveStatusId] = useState<string>('');
+
+
+    useEffect(() => {
+        fetchForms(currentPage);
+        fetchStats();
+    }, [currentPage]);
 
     const fetchForms = async (page: number) => {
         try {
@@ -47,26 +51,6 @@ const FormManagement: React.FC = () => {
             console.error('Failed to fetch stats', error);
         }
     };
-
-    const fetchStatuses = async () => {
-        try {
-            const response = await fetch('http://localhost:8000/api/statuses', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-            });
-            const data = await response.json();
-            setStatuses(data);
-            const active = data.find((s: any) => s.name === 'ACTIVE');
-            if (active) setActiveStatusId(active.id);
-        } catch (error) {
-            console.error('Failed to fetch statuses', error);
-        }
-    };
-
-    useEffect(() => {
-        fetchForms(currentPage);
-        fetchStats();
-        fetchStatuses();
-    }, [currentPage]);
 
     const handleDeleteClick = (id: string) => {
         setFormToDelete(id);
@@ -92,14 +76,13 @@ const FormManagement: React.FC = () => {
     };
 
     const handleToggleStatus = async (form: Form) => {
-        const isActive = form.status_id === activeStatusId;
-        
+        const isActive = form.statusCode === 'ACTIVE';
+
         setActionLoading(form.id);
         if (isActive) {
             // Deactivate directly
-            const inactiveStatus = statuses.find(s => s.name === 'INACTIVE');
             try {
-                await formService.updateForm(form.id, { status_id: inactiveStatus?.id || '' });
+                await formService.updateForm(form.id, { status_id: 'INACTIVE' });
                 setToast({ message: 'Form deactivated successfully', type: 'success' });
                 fetchForms(currentPage);
                 fetchStats();
@@ -121,7 +104,7 @@ const FormManagement: React.FC = () => {
 
         setActionLoading(formToActivate.id);
         try {
-            await formService.updateForm(formToActivate.id, { status_id: activeStatusId });
+            await formService.updateForm(formToActivate.id, { status_id: 'ACTIVE' });
             setToast({ message: 'Form activated successfully. All other forms have been deactivated.', type: 'success' });
             fetchForms(currentPage);
             fetchStats();
@@ -151,10 +134,10 @@ const FormManagement: React.FC = () => {
             render: (value: string) => new Date(value).toLocaleDateString()
         },
         {
-            key: 'status',
+            key: 'statusCode',
             header: 'Status',
-            render: (_: any, row: Form) => {
-                const isActive = row.status_id === activeStatusId;
+            render: (value: string) => {
+                const isActive = value === 'ACTIVE';
                 return (
                     <span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>
                         {isActive ? 'Active' : 'Inactive'}
@@ -175,12 +158,17 @@ const FormManagement: React.FC = () => {
                             <Edit2 size={14} />
                         </button>
                     </span>
-                    <span className="tooltip-wrapper" data-tooltip={row.status_id === activeStatusId ? 'Deactivate' : 'Activate'}>
+                    <span className="tooltip-wrapper" data-tooltip={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
                         <button
-                            className={`action-btn ${row.status_id === activeStatusId ? 'deactivate' : 'activate'}`}
+                            className={`action-btn ${row.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'} ${actionLoading === row.id ? 'loading' : ''}`}
                             onClick={() => handleToggleStatus(row)}
+                            disabled={actionLoading === row.id}
                         >
-                            {row.status_id === activeStatusId ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+                            {actionLoading === row.id ? (
+                                <div className="spinner" />
+                            ) : (
+                                row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />
+                            )}
                         </button>
                     </span>
                     <span className="tooltip-wrapper" data-tooltip="Delete">

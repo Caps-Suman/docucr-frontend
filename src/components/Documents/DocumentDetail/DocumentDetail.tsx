@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, RefreshCw, Trash2, FileText, Calendar, HardDrive, Maximize2, Loader2, AlertCircle, Edit3, Save, X } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw, Trash2, FileText, Calendar, HardDrive, Maximize2, Loader2, AlertCircle, Edit3, Save, X, Archive, ArchiveRestore } from 'lucide-react';
 import documentService from '../../../services/document.service';
 import authService from '../../../services/auth.service';
 import Toast, { ToastType } from '../../Common/Toast';
@@ -15,12 +15,15 @@ interface DocumentDetailData {
     id: number;
     filename: string;
     original_filename: string;
+    status_id: number;
+    statusCode: string;
     status: string;
     file_size: number;
     content_type: string;
     created_at: string;
     updated_at: string;
     analysis_report_s3_key?: string;
+    is_archived?: boolean;
     extracted_documents: Array<{
         id: string;
         document_type: string | null;
@@ -120,8 +123,9 @@ const DocumentDetail: React.FC = () => {
                     if (!prev) return null;
                     return {
                         ...prev,
+                        statusCode: data.status,
+                        status_id: data.status_id, // ensure we have it if sent
                         status: data.status,
-                        // Update other fields if available in data, though typically minimal data is sent
                     };
                 });
             }
@@ -135,7 +139,7 @@ const DocumentDetail: React.FC = () => {
             setDocument(data);
 
             // Sync re-analyzing state with status
-            if (data.status === 'ANALYZING' || data.status === 'AI_QUEUED') {
+            if (data.statusCode === 'ANALYZING' || data.statusCode === 'AI_QUEUED') {
                 setIsReanalyzing(true);
             } else {
                 setIsReanalyzing(false);
@@ -184,6 +188,28 @@ const DocumentDetail: React.FC = () => {
             setToast({ message: "Failed to delete document", type: "error" });
             setIsDeleting(false);
             setShowDeleteModal(false);
+        }
+    };
+
+    const handleArchive = async () => {
+        if (!id) return;
+        try {
+            await documentService.archiveDocument(id);
+            setToast({ message: "Document archived", type: "success" });
+            fetchDocumentDetails(); // Refresh to show updated status
+        } catch (err) {
+            setToast({ message: "Failed to archive document", type: "error" });
+        }
+    };
+
+    const handleUnarchive = async () => {
+        if (!id) return;
+        try {
+            await documentService.unarchiveDocument(id);
+            setToast({ message: "Document unarchived", type: "success" });
+            fetchDocumentDetails(); // Refresh to show updated status
+        } catch (err) {
+            setToast({ message: "Failed to unarchive document", type: "error" });
         }
     };
 
@@ -293,6 +319,24 @@ const DocumentDetail: React.FC = () => {
                             Report
                         </button>
                     )}
+                    {!document.is_archived && (
+                        <button
+                            className={styles.actionButton}
+                            onClick={handleArchive}
+                        >
+                            <Archive size={16} />
+                            Archive
+                        </button>
+                    )}
+                    {document.is_archived && (
+                        <button
+                            className={`${styles.actionButton} ${styles.primaryAction}`}
+                            onClick={handleUnarchive}
+                        >
+                            <ArchiveRestore size={16} />
+                            Unarchive
+                        </button>
+                    )}
                     <button
                         className={`${styles.actionButton} ${styles.deleteAction}`}
                         onClick={() => setShowDeleteModal(true)}
@@ -337,8 +381,8 @@ const DocumentDetail: React.FC = () => {
                             <FileText size={18} />
                             Document Preview
                         </div>
-                        <span className={`${styles.statusBadge} ${styles[document.status.toLowerCase()]}`}>
-                            {document.status.replace('_', ' ').toLowerCase()}
+                        <span className={`${styles.statusBadge} ${styles[document.statusCode.toLowerCase()]}`}>
+                            {document.statusCode.replace('_', ' ').toLowerCase()}
                         </span>
                     </div>
                     <div className={styles.previewContainer}>
@@ -410,25 +454,44 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
                 const formDef = await formService.getForm(res.form_id);
                 setForm(formDef);
 
+                // Normalize data: preserve IDs, but if only label exists, map it to ID
+                const normalizedData = { ...res.data };
+                if (formDef.fields) {
+                    formDef.fields.forEach(field => {
+                        const fid = field.id || '';
+                        const flabel = field.label || '';
+                        if (fid && !normalizedData[fid] && flabel && normalizedData[flabel]) {
+                            normalizedData[fid] = normalizedData[flabel];
+                        }
+                    });
+                }
+
+                setData(normalizedData);
+                setEditData(normalizedData);
+
                 // Fetch systems data for resolution and editing
                 const clientRes = await clientService.getClients(1, 100);
                 const docTypeRes = await documentTypeService.getActiveDocumentTypes();
 
-                setClients(clientRes.clients.map(c => ({ id: c.id, name: c.business_name || `${c.first_name} ${c.last_name}`.trim() })));
-                setDocumentTypes(docTypeRes.map(t => ({ id: t.id, name: t.name })));
+                const clientList = clientRes.clients.map((c: any) => ({ id: c.id, name: c.business_name || `${c.first_name} ${c.last_name}`.trim() }));
+                setClients(clientList);
+                setDocumentTypes(docTypeRes.map((t: any) => ({ id: t.id, name: t.name })));
 
-                // Resolve initial values
+                // Resolve values for display (IDs to Names)
                 const mapping: Record<string, string> = {};
                 for (const field of formDef.fields || []) {
-                    const val = res.data[field.id || ''];
+                    const fieldId = field.id || '';
+                    const label = field.label || '';
+                    const val = normalizedData[fieldId] || normalizedData[label];
+
                     if (!val) continue;
 
-                    if (field.label.toLowerCase() === 'client') {
-                        const client = clientRes.clients.find(c => c.id === val);
-                        if (client) mapping[field.id!] = client.business_name || `${client.first_name} ${client.last_name}`.trim();
-                    } else if (field.label.toLowerCase().includes('document type')) {
-                        const type = docTypeRes.find(t => t.id === val);
-                        if (type) mapping[field.id!] = type.name;
+                    if (label.toLowerCase() === 'client') {
+                        const client = clientList.find((c: any) => String(c.id) === String(val) || String(c.name) === String(val));
+                        if (client) mapping[fieldId] = client.name;
+                    } else if (label.toLowerCase().includes('document type')) {
+                        const type = docTypeRes.find(t => String(t.id) === String(val) || String(t.name) === String(val));
+                        if (type) mapping[fieldId] = type.name;
                     }
                 }
                 setResolvedValues(mapping);
@@ -458,8 +521,15 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
         }
     };
 
-    const handleFieldChange = (fieldId: string, value: any) => {
-        setEditData((prev: any) => ({ ...prev, [fieldId]: value }));
+    const handleFieldChange = (fieldId: string, value: any, label?: string) => {
+        setEditData((prev: any) => {
+            const next = { ...prev, [fieldId]: value };
+            // If we have a label and it exists in the data, keep it in sync or remove it to prefer ID
+            if (label && next[label] !== undefined) {
+                delete next[label];
+            }
+            return next;
+        });
     };
 
     if (loading) return (
@@ -492,10 +562,13 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
                 {form ? (
                     form.fields?.map(field => {
                         const fieldId = field.id || '';
-                        const val = isEditing ? editData[fieldId] : data[fieldId];
+                        const label = field.label || '';
+
+                        // Robust lookup for display and edit
+                        let val = isEditing ? (editData[fieldId] ?? editData[label]) : (data[fieldId] ?? data[label]);
 
                         // Don't show empty fields in view mode
-                        if (!isEditing && (!val || (Array.isArray(val) && val.length === 0))) return null;
+                        if (!isEditing && (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0))) return null;
 
                         return (
                             <div key={fieldId} className={styles.summaryItem}>
@@ -510,7 +583,7 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
                                         {field.label.toLowerCase() === 'client' ? (
                                             <CommonDropdown
                                                 value={val || ''}
-                                                onChange={(v) => handleFieldChange(fieldId, v)}
+                                                onChange={(v) => handleFieldChange(fieldId, v, label)}
                                                 options={[
                                                     { value: '', label: 'Select client' },
                                                     ...clients.map(c => ({ value: c.id, label: c.name }))
@@ -520,7 +593,7 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
                                         ) : field.label.toLowerCase().includes('document type') ? (
                                             <CommonDropdown
                                                 value={val || ''}
-                                                onChange={(v) => handleFieldChange(fieldId, v)}
+                                                onChange={(v) => handleFieldChange(fieldId, v, label)}
                                                 options={[
                                                     { value: '', label: 'Select document type' },
                                                     ...documentTypes.map(t => ({ value: t.id, label: t.name }))
@@ -531,13 +604,13 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
                                             <textarea
                                                 className={styles.formInput}
                                                 value={val || ''}
-                                                onChange={(e) => handleFieldChange(fieldId, e.target.value)}
+                                                onChange={(e) => handleFieldChange(fieldId, e.target.value, label)}
                                                 rows={3}
                                             />
                                         ) : field.field_type === 'select' ? (
                                             <CommonDropdown
                                                 value={val || ''}
-                                                onChange={(v) => handleFieldChange(fieldId, v)}
+                                                onChange={(v) => handleFieldChange(fieldId, v, label)}
                                                 options={[
                                                     { value: '', label: 'Select an option' },
                                                     ...(field.options?.map(opt => ({ value: opt, label: opt })) || [])
@@ -556,7 +629,7 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
                                                                 const next = e.target.checked
                                                                     ? [...current, option]
                                                                     : current.filter((v: string) => v !== option);
-                                                                handleFieldChange(fieldId, next);
+                                                                handleFieldChange(fieldId, next, label);
                                                             }}
                                                         />
                                                         {option}
@@ -572,7 +645,7 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
                                                             name={fieldId}
                                                             value={option}
                                                             checked={val === option}
-                                                            onChange={(e) => handleFieldChange(fieldId, e.target.value)}
+                                                            onChange={(e) => handleFieldChange(fieldId, e.target.value, label)}
                                                         />
                                                         {option}
                                                     </label>
@@ -583,7 +656,7 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
                                                 type={field.field_type === 'date' ? 'date' : 'text'}
                                                 className={styles.formInput}
                                                 value={val || ''}
-                                                onChange={(e) => handleFieldChange(fieldId, e.target.value)}
+                                                onChange={(e) => handleFieldChange(fieldId, e.target.value, label)}
                                             />
                                         )}
                                     </div>

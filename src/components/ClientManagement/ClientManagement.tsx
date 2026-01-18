@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Edit2, PlayCircle, StopCircle, UserCheck, UserX, Briefcase } from 'lucide-react';
+import Select from 'react-select';
+import { getCustomSelectStyles } from '../../styles/selectStyles';
 import Table from '../Table/Table';
 import CommonPagination from '../Common/CommonPagination';
 import Loading from '../Common/Loading';
@@ -21,10 +23,16 @@ const ClientManagement: React.FC = () => {
     const [stats, setStats] = useState<ClientStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [statuses, setStatuses] = useState<Status[]>([]);
-    const [activeStatusId, setActiveStatusId] = useState<string>('');
+    const [selectedClients, setSelectedClients] = useState<string[]>([]);
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [users, setUsers] = useState<Array<{ id: string; name: string; roles: string }>>([]);
+    const [selectedUserId, setSelectedUserId] = useState<string>('');
+    const [showUsersModal, setShowUsersModal] = useState(false);
+    const [clientUsers, setClientUsers] = useState<Array<{id: string; username: string; name: string}>>([]);
+
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; client: Client | null; action: 'toggle' }>({
@@ -52,6 +60,11 @@ const ClientManagement: React.FC = () => {
                 id: u.id,
                 name: `${u.first_name} ${u.last_name} (${u.username})`
             })));
+            setUsers(usersData.users.map(u => ({
+                id: u.id,
+                name: `${u.first_name} ${u.last_name} (${u.username})`,
+                roles: u.roles.map(r => r.name).join(', ') || 'No roles'
+            })));
         } catch (error) {
             console.error('Failed to load user form data:', error);
         }
@@ -59,30 +72,27 @@ const ClientManagement: React.FC = () => {
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-    useEffect(() => {
-        loadStatuses();
-    }, []);
+
 
     useEffect(() => {
         loadClients();
-    }, [currentPage, itemsPerPage, searchTerm, statusFilter]);
+    }, [currentPage, itemsPerPage, debouncedSearchTerm, statusFilter]);
 
-    const loadStatuses = async () => {
-        try {
-            const statusesData = await statusService.getStatuses();
-            setStatuses(statusesData);
-            const active = statusesData.find(s => s.name === 'ACTIVE');
-            if (active) setActiveStatusId(active.id);
-        } catch (error) {
-            console.error('Failed to load statuses:', error);
-        }
-    };
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+            setCurrentPage(0);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+
 
     const loadClients = async () => {
         try {
             setLoading(true);
             const [data, statsData] = await Promise.all([
-                clientService.getClients(currentPage + 1, itemsPerPage, searchTerm || undefined, statusFilter || undefined),
+                clientService.getClients(currentPage + 1, itemsPerPage, debouncedSearchTerm || undefined, statusFilter || undefined),
                 clientService.getClientStats()
             ]);
             setClients(data.clients);
@@ -167,12 +177,55 @@ const ClientManagement: React.FC = () => {
         }
     };
 
+    const handleAssignClients = async (userId: string) => {
+        try {
+            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const assignedBy = currentUser.id || 'system';
+            await clientService.assignClientsToUser(userId, selectedClients, assignedBy);
+            setToast({ message: 'Clients assigned successfully', type: 'success' });
+            setSelectedClients([]);
+            setSelectedUserId('');
+            setShowAssignModal(false);
+            loadClients();
+        } catch (error: any) {
+            console.error('Failed to assign clients:', error);
+            setToast({ message: error?.message || 'Failed to assign clients', type: 'error' });
+        }
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedClients(clients.map(c => c.id));
+        } else {
+            setSelectedClients([]);
+        }
+    };
+
+    const handleSelectClient = (clientId: string, checked: boolean) => {
+        if (checked) {
+            setSelectedClients(prev => [...prev, clientId]);
+        } else {
+            setSelectedClients(prev => prev.filter(id => id !== clientId));
+        }
+    };
+
+    const handleShowClientUsers = async (clientId: string) => {
+        try {
+            const users = await clientService.getClientUsers(clientId);
+            setClientUsers(users);
+            setShowUsersModal(true);
+        } catch (error) {
+            console.error('Failed to load client users:', error);
+            setToast({ message: 'Failed to load client users', type: 'error' });
+        }
+    };
+
     const handleConfirmAction = async () => {
         if (!confirmModal.client) return;
 
         setActionLoading(confirmModal.client.id);
         try {
-            const isActive = confirmModal.client.status_id === activeStatusId;
+            const isActive = confirmModal.client.statusCode === 'ACTIVE';
             if (isActive) {
                 await clientService.deactivateClient(confirmModal.client.id);
                 setToast({ message: 'Client deactivated successfully', type: 'success' });
@@ -191,6 +244,26 @@ const ClientManagement: React.FC = () => {
     };
 
     const clientColumns = [
+        {
+            key: 'select',
+            header: (
+                <input
+                    type="checkbox"
+                    checked={selectedClients.length === clients.length && clients.length > 0}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    style={{ margin: 0 }}
+                />
+            ),
+            render: (_: any, row: Client) => (
+                <input
+                    type="checkbox"
+                    checked={selectedClients.includes(row.id)}
+                    onChange={(e) => handleSelectClient(row.id, e.target.checked)}
+                    style={{ margin: 0 }}
+                />
+            ),
+            width: '40px'
+        },
         {
             key: 'name',
             header: 'Name',
@@ -211,15 +284,55 @@ const ClientManagement: React.FC = () => {
             render: (value: string | null) => value || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
         },
         {
-            key: 'status_id',
+            key: 'statusCode',
             header: 'Status',
             render: (value: string | null) => {
-                const isActive = value === activeStatusId;
+                const isActive = value === 'ACTIVE';
                 return (
                     <span className={`${styles.statusBadge} ${isActive ? styles.active : styles.inactive}`}>
                         {isActive ? 'Active' : 'Inactive'}
                     </span>
                 );
+            }
+        },
+        {
+            key: 'assigned_users',
+            header: 'Assigned Users',
+            render: (value: string[], row: Client) => {
+                if (!value || value.length === 0) {
+                    return <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Unassigned</span>;
+                }
+                if (value.length === 1) {
+                    return value[0];
+                }
+                return (
+                    <span>
+                        {value[0]} 
+                        <button 
+                            onClick={() => handleShowClientUsers(row.id)}
+                            style={{
+                                marginLeft: '8px',
+                                background: '#e2f3f9',
+                                border: '1px solid #83cee4',
+                                borderRadius: '12px',
+                                padding: '2px 8px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                color: '#011926'
+                            }}
+                        >
+                            +{value.length - 1}
+                        </button>
+                    </span>
+                );
+            }
+        },
+        {
+            key: 'created_at',
+            header: 'Created Date',
+            render: (value: string | null) => {
+                if (!value) return <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>;
+                return new Date(value).toLocaleDateString();
             }
         },
         {
@@ -232,12 +345,34 @@ const ClientManagement: React.FC = () => {
                             <Edit2 size={14} />
                         </button>
                     </span>
-                    <span className="tooltip-wrapper" data-tooltip={row.status_id === activeStatusId ? 'Deactivate' : 'Activate'}>
+                    {!row.is_user && (
+                        <span className="tooltip-wrapper" data-tooltip="Create User">
+                            <button 
+                                className={`${styles.actionBtn} ${styles.createUser}`} 
+                                onClick={() => {
+                                    setCrossCreationData({
+                                        client_id: row.id,
+                                        email: '',
+                                        username: '',
+                                        first_name: row.first_name || '',
+                                        middle_name: row.middle_name || '',
+                                        last_name: row.last_name || '',
+                                        roles: [],
+                                        supervisor_id: undefined
+                                    });
+                                    loadUserFormData().then(() => setIsUserModalOpen(true));
+                                }}
+                            >
+                                <UserCheck size={14} />
+                            </button>
+                        </span>
+                    )}
+                    <span className="tooltip-wrapper" data-tooltip={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
                         <button
-                            className={`${styles.actionBtn} ${row.status_id === activeStatusId ? styles.deactivate : styles.activate}`}
+                            className={`${styles.actionBtn} ${row.statusCode === 'ACTIVE' ? styles.deactivate : styles.activate}`}
                             onClick={() => handleToggleStatus(row)}
                         >
-                            {row.status_id === activeStatusId ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+                            {row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />}
                         </button>
                     </span>
                 </div>
@@ -249,11 +384,9 @@ const ClientManagement: React.FC = () => {
         if (type === 'total') {
             setStatusFilter(null);
         } else if (type === 'active') {
-            const activeStatus = statuses.find(s => s.name === 'ACTIVE');
-            setStatusFilter(activeStatus?.id || null);
+            setStatusFilter('ACTIVE');
         } else if (type === 'inactive') {
-            const inactiveStatus = statuses.find(s => s.name === 'INACTIVE');
-            setStatusFilter(inactiveStatus?.id || null);
+            setStatusFilter('INACTIVE');
         }
         setCurrentPage(0);
     };
@@ -273,7 +406,7 @@ const ClientManagement: React.FC = () => {
             icon: UserCheck,
             color: 'green',
             onClick: () => handleStatClick('active'),
-            active: statusFilter === activeStatusId
+            active: statusFilter === 'ACTIVE'
         },
         {
             title: 'Inactive Clients',
@@ -281,7 +414,7 @@ const ClientManagement: React.FC = () => {
             icon: UserX,
             color: 'red',
             onClick: () => handleStatClick('inactive'),
-            active: !!(statusFilter && statusFilter !== activeStatusId)
+            active: statusFilter === 'INACTIVE'
         }
     ];
 
@@ -314,20 +447,29 @@ const ClientManagement: React.FC = () => {
                             Clients
                         </h2>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            {selectedClients.length > 0 && (
+                                <button 
+                                    className={styles.assignBtn}
+                                    onClick={() => {
+                                        loadUserFormData().then(() => setShowAssignModal(true));
+                                    }}
+                                >
+                                    Assign to User ({selectedClients.length})
+                                </button>
+                            )}
                             <input
                                 type="text"
-                                placeholder="Search clients..."
+                                placeholder="Search by name, business name, or NPI..."
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
-                                    setCurrentPage(0);
                                 }}
                                 style={{
                                     padding: '8px 12px',
                                     border: '1px solid #e5e7eb',
                                     borderRadius: '6px',
                                     fontSize: '14px',
-                                    width: '250px'
+                                    width: '350px'
                                 }}
                             />
                             <button className={styles.addBtn} onClick={handleAddNew}>
@@ -369,20 +511,29 @@ const ClientManagement: React.FC = () => {
                         Clients
                     </h2>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        {selectedClients.length > 0 && (
+                            <button 
+                                className={styles.assignBtn}
+                                onClick={() => {
+                                    loadUserFormData().then(() => setShowAssignModal(true));
+                                }}
+                            >
+                                Assign to User ({selectedClients.length})
+                            </button>
+                        )}
                         <input
                             type="text"
-                            placeholder="Search clients..."
+                            placeholder="Search by name, business name, or NPI..."
                             value={searchTerm}
                             onChange={(e) => {
                                 setSearchTerm(e.target.value);
-                                setCurrentPage(0);
                             }}
                             style={{
                                 padding: '8px 12px',
                                 border: '1px solid #e5e7eb',
                                 borderRadius: '6px',
                                 fontSize: '14px',
-                                width: '250px'
+                                width: '350px'
                             }}
                         />
                         <button className={styles.addBtn} onClick={handleAddNew}>
@@ -440,9 +591,9 @@ const ClientManagement: React.FC = () => {
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ isOpen: false, client: null, action: 'toggle' })}
                 onConfirm={handleConfirmAction}
-                title={confirmModal.client?.status_id === activeStatusId ? 'Deactivate Client' : 'Activate Client'}
-                message={`Are you sure you want to ${confirmModal.client?.status_id === activeStatusId ? 'deactivate' : 'activate'} this client?`}
-                confirmText={confirmModal.client?.status_id === activeStatusId ? 'Deactivate' : 'Activate'}
+                title={confirmModal.client?.statusCode === 'ACTIVE' ? 'Deactivate Client' : 'Activate Client'}
+                message={`Are you sure you want to ${confirmModal.client?.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'} this client?`}
+                confirmText={confirmModal.client?.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                 type="warning"
             />
 
@@ -472,7 +623,84 @@ const ClientManagement: React.FC = () => {
                 title="Create Linked User"
                 roles={roles}
                 supervisors={supervisors}
+                clientName={crossCreationData ? (
+                    clients.find(c => c.id === crossCreationData.client_id)?.business_name ||
+                    [crossCreationData.first_name, crossCreationData.middle_name, crossCreationData.last_name]
+                        .filter(Boolean).join(' ') || 'Unknown Client'
+                ) : undefined}
             />
+
+            {showAssignModal && (
+                <div className={styles.overlay} onClick={() => setShowAssignModal(false)}>
+                    <div className={styles.assignModal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.assignModalHeader}>
+                            <h3>Assign Clients to User</h3>
+                            <button onClick={() => setShowAssignModal(false)}>×</button>
+                        </div>
+                        <div className={styles.assignModalBody}>
+                            <label>Select User:</label>
+                            <Select
+                                options={users.map(user => ({
+                                    value: user.id,
+                                    label: `${user.name} - ${user.roles}`
+                                }))}
+                                onChange={(selected) => {
+                                    setSelectedUserId(selected?.value || '');
+                                }}
+                                placeholder="Select a user..."
+                                styles={{
+                                    ...getCustomSelectStyles(),
+                                    menu: (base) => ({
+                                        ...getCustomSelectStyles().menu(base),
+                                        zIndex: 10000
+                                    }),
+                                    menuPortal: (base) => ({
+                                        ...base,
+                                        zIndex: 10000
+                                    })
+                                }}
+                                menuPortalTarget={document.body}
+                                menuPosition="fixed"
+                            />
+                            <p>{selectedClients.length} client(s) will be assigned to the selected user.</p>
+                            <div className={styles.assignModalActions}>
+                                <button 
+                                    className={styles.cancelButton}
+                                    onClick={() => setShowAssignModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    className={styles.assignButton}
+                                    onClick={() => handleAssignClients(selectedUserId)}
+                                    disabled={!selectedUserId}
+                                >
+                                    Assign
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showUsersModal && (
+                <div className={styles.overlay} onClick={() => setShowUsersModal(false)}>
+                    <div className={styles.usersModal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.usersModalHeader}>
+                            <h3>Assigned Users</h3>
+                            <button onClick={() => setShowUsersModal(false)}>×</button>
+                        </div>
+                        <div className={styles.usersModalBody}>
+                            {clientUsers.map(user => (
+                                <div key={user.id} className={styles.userItem}>
+                                    <span className={styles.userName}>{user.name}</span>
+                                    <span className={styles.userUsername}>@{user.username}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {toast && (
                 <Toast

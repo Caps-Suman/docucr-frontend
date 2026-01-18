@@ -20,7 +20,7 @@ interface DocumentType {
     description?: string;
 }
 
-interface CreateTemplateProps {}
+interface CreateTemplateProps { }
 
 const FIELD_TYPES = [
     { value: 'TEXT', label: 'Text' },
@@ -35,10 +35,9 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const isEditMode = Boolean(id);
-    
+
     const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
-    const [statuses, setStatuses] = useState<Status[]>([]);
-    const [activeStatusId, setActiveStatusId] = useState<string>('');
+
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [formData, setFormData] = useState({
@@ -57,7 +56,6 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
     useEffect(() => {
-        loadStatuses();
         loadDocumentTypes();
     }, []);
 
@@ -69,24 +67,15 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
         }
     }, [id, isEditMode]);
 
-    const loadStatuses = async () => {
-        try {
-            const statusesData = await statusService.getStatuses();
-            setStatuses(statusesData);
-            const active = statusesData.find(s => s.name === 'ACTIVE');
-            if (active) setActiveStatusId(active.id);
-        } catch (error) {
-            console.error('Failed to load statuses:', error);
-        }
-    };
+
 
     const loadDocumentTypes = async () => {
         try {
             const response = await fetchWithAuth('/api/document-types/');
             if (response.ok) {
                 const data = await response.json();
-                // Filter by 'active' status (lowercase) since document types use hardcoded status values
-                setDocumentTypes(data.filter((dt: any) => dt.status_id === 'active'));
+                // Filter by 'ACTIVE' statusCode
+                setDocumentTypes(data.filter((dt: any) => dt.statusCode === 'ACTIVE'));
             } else {
                 const error = await response.json();
                 setToast({ message: error.detail || 'Failed to load document types', type: 'error' });
@@ -131,7 +120,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
         if (newField.fieldName.trim()) {
             if (editingIndex !== null) {
                 // Update existing field
-                setExtractionFields(prev => prev.map((item, i) => 
+                setExtractionFields(prev => prev.map((item, i) =>
                     i === editingIndex ? { ...newField } : item
                 ));
                 setEditingIndex(null);
@@ -168,7 +157,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
     };
 
     const updateExtractionField = (index: number, field: keyof ExtractionField, value: string) => {
-        setExtractionFields(prev => prev.map((item, i) => 
+        setExtractionFields(prev => prev.map((item, i) =>
             i === index ? { ...item, [field]: value } : item
         ));
     };
@@ -200,7 +189,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             return;
         }
@@ -272,7 +261,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
     return (
         <div className={styles.container}>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            
+
             <div className={styles.header}>
                 <button className={styles.backButton} onClick={() => navigate('/templates')}>
                     <ArrowLeft size={16} />
@@ -288,7 +277,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
                     <div className={styles.leftSection}>
                         <div className={styles.templateInfo}>
                             <h2>Template Information</h2>
-                            
+
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Template Name *</label>
                                 <input
@@ -362,7 +351,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
                                     )}
                                 </div>
                             ))}
-                            
+
                             {extractionFields.length === 0 && (
                                 <div className={styles.emptyPreview}>
                                     <p>No fields added yet. Add fields from the right panel.</p>

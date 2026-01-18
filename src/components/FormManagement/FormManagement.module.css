@@ -171,6 +171,25 @@
     background-color: #dcfce7;
 }
 
+:global(.action-btn.loading) {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+:global(.spinner) {
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 :global(.action-btn.delete) {
     color: #ef4444;
     background-color: #fef2f2;

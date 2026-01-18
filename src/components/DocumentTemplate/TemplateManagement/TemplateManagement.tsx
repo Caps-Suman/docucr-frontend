@@ -16,7 +16,8 @@ interface Template {
     template_name: string;
     description?: string;
     document_type_id: string;
-    status_id: string;
+    status_id: number;
+    statusCode: string;
     extraction_fields: ExtractionField[];
     created_at: string;
     updated_at: string;
@@ -38,7 +39,8 @@ interface DocumentType {
     id: string;
     name: string;
     description?: string;
-    status_id?: string;
+    status_id?: number;
+    statusCode?: string;
 }
 
 const TemplateManagement: React.FC = () => {
@@ -46,7 +48,7 @@ const TemplateManagement: React.FC = () => {
     const [templates, setTemplates] = useState<Template[]>([]);
     const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
     const [statuses, setStatuses] = useState<Status[]>([]);
-    const [activeStatusId, setActiveStatusId] = useState<string>('');
+    const [activeStatusCode, setActiveStatusCode] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
@@ -64,8 +66,8 @@ const TemplateManagement: React.FC = () => {
         try {
             const statusesData = await statusService.getStatuses();
             setStatuses(statusesData);
-            const active = statusesData.find(s => s.name === 'ACTIVE');
-            if (active) setActiveStatusId(active.id);
+            const active = statusesData.find(s => s.code === 'ACTIVE');
+            if (active) setActiveStatusCode(active.code);
         } catch (error) {
             console.error('Failed to load statuses:', error);
         }
@@ -95,8 +97,8 @@ const TemplateManagement: React.FC = () => {
             const response = await fetchWithAuth('/api/document-types/');
             if (response.ok) {
                 const data = await response.json();
-                // Filter by 'active' status (lowercase) since document types use hardcoded status values
-                setDocumentTypes(data.filter((dt: any) => dt.status_id === 'active'));
+                // Filter by 'ACTIVE' status (uppercase)
+                setDocumentTypes(data.filter((dt: any) => dt.statusCode === 'ACTIVE'));
             } else {
                 const error = await response.json();
                 setToast({ message: error.detail || 'Failed to load document types', type: 'error' });
@@ -127,10 +129,10 @@ const TemplateManagement: React.FC = () => {
         extraction_fields: ExtractionField[];
     }) => {
         try {
-            const url = editingTemplate 
-                ? `/api/templates/${editingTemplate.id}` 
+            const url = editingTemplate
+                ? `/api/templates/${editingTemplate.id}`
                 : '/api/templates/';
-            
+
             const response = await fetchWithAuth(url, {
                 method: editingTemplate ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -138,9 +140,9 @@ const TemplateManagement: React.FC = () => {
             });
 
             if (response.ok) {
-                setToast({ 
-                    message: `Template ${editingTemplate ? 'updated' : 'created'} successfully`, 
-                    type: 'success' 
+                setToast({
+                    message: `Template ${editingTemplate ? 'updated' : 'created'} successfully`,
+                    type: 'success'
                 });
                 setIsModalOpen(false);
                 loadTemplates();
@@ -164,9 +166,9 @@ const TemplateManagement: React.FC = () => {
             });
 
             if (response.ok) {
-                setToast({ 
-                    message: `Template ${action}d successfully`, 
-                    type: 'success' 
+                setToast({
+                    message: `Template ${action}d successfully`,
+                    type: 'success'
                 });
                 setIsConfirmModalOpen(false);
                 setTemplateToToggle(null);
@@ -193,9 +195,9 @@ const TemplateManagement: React.FC = () => {
 
     const columns = [
         { key: 'template_name', header: 'Template Name', sortable: true },
-        { 
-            key: 'document_type_id', 
-            header: 'Document Type', 
+        {
+            key: 'document_type_id',
+            header: 'Document Type',
             sortable: false,
             render: (_: string, row: Template) => getDocumentTypeName(row)
         },
@@ -207,18 +209,18 @@ const TemplateManagement: React.FC = () => {
             render: (value: ExtractionField[]) => `${value?.length || 0} fields`
         },
         {
-            key: 'status_id',
+            key: 'statusCode',
             header: 'Status',
             sortable: false,
             render: (value: string) => (
-                <span className={`status-badge ${value === activeStatusId ? 'active' : 'inactive'}`}>
-                    {value === activeStatusId ? 'Active' : 'Inactive'}
+                <span className={`status-badge ${value === 'ACTIVE' ? 'active' : 'inactive'}`}>
+                    {value === 'ACTIVE' ? 'Active' : 'Inactive'}
                 </span>
             )
         },
-        { 
-            key: 'created_at', 
-            header: 'Created', 
+        {
+            key: 'created_at',
+            header: 'Created',
             sortable: true,
             render: (value: string) => new Date(value).toLocaleDateString()
         },
@@ -236,7 +238,7 @@ const TemplateManagement: React.FC = () => {
                             <Edit size={16} />
                         </button>
                     </span>
-                    {row.status_id === activeStatusId ? (
+                    {row.statusCode === 'ACTIVE' ? (
                         <span className="tooltip-wrapper" data-tooltip="Deactivate">
                             <button
                                 className={styles.deactivateButton}
@@ -263,7 +265,7 @@ const TemplateManagement: React.FC = () => {
     return (
         <div className={styles.container}>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            
+
             <div className={styles.header}>
                 <h2>
                     <Layout size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />

@@ -3,8 +3,9 @@ import styles from './Table.module.css';
 
 interface Column {
     key: string;
-    header: string;
+    header: string | React.ReactNode;
     render?: (value: any, row: any) => React.ReactNode;
+    width?: string;
 }
 
 interface TableProps {
@@ -20,7 +21,7 @@ const Table: React.FC<TableProps> = ({ columns, data, className = '' }) => {
                 <thead>
                     <tr>
                         {columns.map((column) => (
-                            <th key={column.key}>{column.header}</th>
+                            <th key={column.key} style={{ width: column.width }}>{column.header}</th>
                         ))}
                     </tr>
                 </thead>

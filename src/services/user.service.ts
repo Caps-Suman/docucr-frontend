@@ -9,7 +9,8 @@ export interface User {
     first_name: string | null;
     middle_name: string | null;
     last_name: string | null;
-    status_id: string | null;
+    status_id: number | null;
+    statusCode: string | null;
     is_superuser: boolean;
     roles: Array<{ id: string; name: string }>;
     supervisor_id: string | null;

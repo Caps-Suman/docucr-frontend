@@ -25,8 +25,7 @@ const UserManagement: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
     const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
-    const [statuses, setStatuses] = useState<Status[]>([]);
-    const [activeStatusId, setActiveStatusId] = useState<string>('');
+
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; user: User | null; action: 'toggle' }>({ isOpen: false, user: null, action: 'toggle' });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
@@ -43,19 +42,9 @@ const UserManagement: React.FC = () => {
 
     useEffect(() => {
         loadRoles();
-        loadStatuses();
     }, []);
 
-    const loadStatuses = async () => {
-        try {
-            const statusesData = await statusService.getStatuses();
-            setStatuses(statusesData);
-            const active = statusesData.find(s => s.name === 'ACTIVE');
-            if (active) setActiveStatusId(active.id);
-        } catch (error) {
-            console.error('Failed to load statuses:', error);
-        }
-    };
+
 
     const loadRoles = async () => {
         try {
@@ -173,7 +162,7 @@ const UserManagement: React.FC = () => {
         if (!confirmModal.user) return;
 
         try {
-            const isActive = confirmModal.user.status_id === activeStatusId;
+            const isActive = confirmModal.user.statusCode === 'ACTIVE';
             if (isActive) {
                 await userService.deactivateUser(confirmModal.user.id);
                 setToast({ message: 'User deactivated successfully', type: 'success' });
@@ -195,11 +184,9 @@ const UserManagement: React.FC = () => {
         if (type === 'total') {
             setStatusFilter(null);
         } else if (type === 'active') {
-            const activeStatus = statuses.find(s => s.name === 'ACTIVE');
-            setStatusFilter(activeStatus?.id || null);
+            setStatusFilter('ACTIVE');
         } else if (type === 'inactive') {
-            const inactiveStatus = statuses.find(s => s.name === 'INACTIVE');
-            setStatusFilter(inactiveStatus?.id || null);
+            setStatusFilter('INACTIVE');
         }
         setCurrentPage(0);
     };
@@ -219,7 +206,7 @@ const UserManagement: React.FC = () => {
             icon: UserCheck,
             color: 'green',
             onClick: () => handleStatClick('active'),
-            active: statusFilter === activeStatusId
+            active: statusFilter === 'ACTIVE'
         },
         {
             title: 'Inactive Users',
@@ -227,7 +214,7 @@ const UserManagement: React.FC = () => {
             icon: UserX,
             color: 'red',
             onClick: () => handleStatClick('inactive'),
-            active: !!(statusFilter && statusFilter !== activeStatusId)
+            active: statusFilter === 'INACTIVE'
         },
         { title: 'Admin Users', value: stats?.admin_users.toString() || '0', icon: Shield, color: 'purple', onClick: undefined, active: false }
     ];
@@ -264,10 +251,10 @@ const UserManagement: React.FC = () => {
             }
         },
         {
-            key: 'status_id',
+            key: 'statusCode',
             header: 'Status',
-            render: (value: string | null, row: User) => {
-                const isActive = value === activeStatusId;
+            render: (value: string | null) => {
+                const isActive = value === 'ACTIVE';
                 return (
                     <span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>
                         {isActive ? 'Active' : 'Inactive'}
@@ -285,13 +272,13 @@ const UserManagement: React.FC = () => {
                             <Edit2 size={14} />
                         </button>
                     </span>
-                    <span className="tooltip-wrapper" data-tooltip={row.status_id === activeStatusId ? 'Deactivate' : 'Activate'}>
+                    <span className="tooltip-wrapper" data-tooltip={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
                         <button
-                            className={`action-btn ${row.status_id === activeStatusId ? 'deactivate' : 'activate'}`}
+                            className={`action-btn ${row.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'}`}
                             onClick={() => handleToggleStatus(row)}
                             style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer' }}
                         >
-                            {row.status_id === activeStatusId ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+                            {row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />}
                         </button>
                     </span>
                 </div>
@@ -392,9 +379,9 @@ const UserManagement: React.FC = () => {
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ isOpen: false, user: null, action: 'toggle' })}
                 onConfirm={handleConfirmAction}
-                title={confirmModal.user?.status_id === activeStatusId ? 'Deactivate User' : 'Activate User'}
-                message={`Are you sure you want to ${confirmModal.user?.status_id === activeStatusId ? 'deactivate' : 'activate'} this user?`}
-                confirmText={confirmModal.user?.status_id === activeStatusId ? 'Deactivate' : 'Activate'}
+                title={confirmModal.user?.statusCode === 'ACTIVE' ? 'Deactivate User' : 'Activate User'}
+                message={`Are you sure you want to ${confirmModal.user?.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'} this user?`}
+                confirmText={confirmModal.user?.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                 type="warning"
             />
 

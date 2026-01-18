@@ -129,6 +129,177 @@
     transition: background-color 0.2s;
 }
 
+.assignBtn {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.assignBtn:hover {
+    background: #059669;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.assignModal {
+    background: white;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90vw;
+}
+
+.assignModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.assignModalHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.assignModalHeader button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.assignModalBody {
+    padding: 20px;
+}
+
+.assignModalBody label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.assignModalBody p {
+    margin: 16px 0 0 0;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.assignModalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.cancelButton {
+    padding: 8px 16px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #6b7280;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.cancelButton:hover {
+    background: #f9fafb;
+}
+
+.assignButton {
+    padding: 8px 16px;
+    border: none;
+    background: #10b981;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.assignButton:hover:not(:disabled) {
+    background: #059669;
+}
+
+.assignButton:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+}
+
+.usersModal {
+    background: white;
+    border-radius: 8px;
+    width: 300px;
+    max-width: 90vw;
+}
+
+.usersModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.usersModalHeader h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.usersModalHeader button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.usersModalBody {
+    padding: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.userItem {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.userItem:last-child {
+    border-bottom: none;
+}
+
+.userName {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.userUsername {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
 .addBtn:hover {
     background-color: #83cee4;
 }
@@ -189,6 +360,15 @@
 
 .actionBtn.deactivate:hover {
     background-color: #fee2e2;
+}
+
+.actionBtn.createUser {
+    color: #8b5cf6;
+    background-color: #f3f4f6;
+}
+
+.actionBtn.createUser:hover {
+    background-color: #e5e7eb;
 }
 
 .actionBtn.delete {
@@ -277,6 +457,15 @@
 
 :global(.dark) .actionBtn.deactivate:hover {
     background-color: #991b1b;
+}
+
+:global(.dark) .actionBtn.createUser {
+    color: #a78bfa;
+    background-color: #374151;
+}
+
+:global(.dark) .actionBtn.createUser:hover {
+    background-color: #4b5563;
 }
 
 :global(.dark) .actionBtn.delete {

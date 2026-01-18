@@ -14,7 +14,8 @@ interface DocumentType {
     id: string;
     name: string;
     description?: string;
-    status_id: string;
+    status_id: number;
+    statusCode: string;
     created_at: string;
     updated_at: string;
 }
@@ -87,10 +88,10 @@ const DocumentTypeManagement: React.FC = () => {
 
     const handleModalSubmit = async (data: { name: string; description?: string }) => {
         try {
-            const url = editingDocumentType 
-                ? `/api/document-types/${editingDocumentType.id}` 
+            const url = editingDocumentType
+                ? `/api/document-types/${editingDocumentType.id}`
                 : '/api/document-types/';
-            
+
             const response = await fetchWithAuth(url, {
                 method: editingDocumentType ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -98,9 +99,9 @@ const DocumentTypeManagement: React.FC = () => {
             });
 
             if (response.ok) {
-                setToast({ 
-                    message: `Document type ${editingDocumentType ? 'updated' : 'created'} successfully`, 
-                    type: 'success' 
+                setToast({
+                    message: `Document type ${editingDocumentType ? 'updated' : 'created'} successfully`,
+                    type: 'success'
                 });
                 setIsModalOpen(false);
                 loadDocumentTypes();
@@ -141,7 +142,7 @@ const DocumentTypeManagement: React.FC = () => {
         { key: 'name', header: 'Name', sortable: true },
         { key: 'description', header: 'Description', sortable: false },
         {
-            key: 'status_id',
+            key: 'statusCode',
             header: 'Status',
             sortable: true,
             render: (value: string) => (
@@ -150,9 +151,9 @@ const DocumentTypeManagement: React.FC = () => {
                 </span>
             )
         },
-        { 
-            key: 'created_at', 
-            header: 'Created', 
+        {
+            key: 'created_at',
+            header: 'Created',
             sortable: true,
             render: (value: string) => new Date(value).toLocaleDateString()
         },
@@ -170,7 +171,7 @@ const DocumentTypeManagement: React.FC = () => {
                             <Edit size={16} />
                         </button>
                     </span>
-                    {row.status_id === 'ACTIVE' ? (
+                    {row.statusCode === 'ACTIVE' ? (
                         <span className="tooltip-wrapper" data-tooltip="Deactivate">
                             <button
                                 className={styles.deactivateButton}
@@ -205,7 +206,7 @@ const DocumentTypeManagement: React.FC = () => {
     return (
         <div className={styles.container}>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            
+
             <div className={styles.header}>
                 <h2>
                     <Files size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />

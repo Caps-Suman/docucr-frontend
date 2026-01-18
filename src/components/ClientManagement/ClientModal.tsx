@@ -15,7 +15,7 @@ interface ClientModalProps {
         last_name?: string;
         npi?: string;
         type?: string;
-        status_id?: string;
+        status_id?: string | number;
         description?: string;
     }) => void;
     initialData?: Client;
@@ -35,7 +35,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
     const [lastName, setLastName] = useState('');
     const [npi, setNpi] = useState('');
     const [type, setType] = useState('Individual');
-    const [statusId, setStatusId] = useState('');
+    const [statusId, setStatusId] = useState<string | number>('');
     const [description, setDescription] = useState('');
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,15 +65,19 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
-        
+
         if (type === 'Group' && !businessName.trim()) {
             newErrors.businessName = 'Business Name is required for Group type';
         }
-        
+
         if (type === 'Individual' && !firstName.trim()) {
             newErrors.firstName = 'First Name is required for Individual type';
         }
-        
+
+        if (npi && !/^\d{10}$/.test(npi)) {
+            newErrors.npi = 'NPI must be exactly 10 digits';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -81,7 +85,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validate()) return;
-        
+
         const data: any = {
             business_name: businessName.trim() || undefined,
             first_name: firstName.trim() || undefined,
@@ -89,10 +93,14 @@ const ClientModal: React.FC<ClientModalProps> = ({
             last_name: lastName.trim() || undefined,
             npi: npi.trim() || undefined,
             type: type.trim() || undefined,
-            status_id: statusId || undefined,
             description: description.trim() || undefined
         };
-        
+
+        // Only include status_id for new clients, not updates
+        if (!initialData && statusId) {
+            data.status_id = statusId;
+        }
+
         setIsSubmitting(true);
         try {
             await onSubmit(data);
@@ -126,7 +134,19 @@ const ClientModal: React.FC<ClientModalProps> = ({
                                 onChange={(selected) => setType(selected?.value || 'Individual')}
                                 options={typeOptions}
                                 placeholder="Select client type"
-                                styles={getCustomSelectStyles()}
+                                styles={{
+                                    ...getCustomSelectStyles(),
+                                    menu: (base) => ({
+                                        ...getCustomSelectStyles().menu(base),
+                                        zIndex: 10000
+                                    }),
+                                    menuPortal: (base) => ({
+                                        ...base,
+                                        zIndex: 10000
+                                    })
+                                }}
+                                menuPortalTarget={document.body}
+                                menuPosition="fixed"
                             />
                         </div>
                         {type === 'Group' ? (
@@ -184,9 +204,16 @@ const ClientModal: React.FC<ClientModalProps> = ({
                                 type="text"
                                 className={styles.input}
                                 value={npi}
-                                onChange={(e) => setNpi(e.target.value)}
-                                placeholder="Enter NPI"
+                                onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, '');
+                                    if (value.length <= 10) {
+                                        setNpi(value);
+                                    }
+                                }}
+                                placeholder="Enter 10-digit NPI"
+                                style={{ borderColor: errors.npi ? '#ef4444' : '#d1d5db' }}
                             />
+                            {errors.npi && <span className={styles.errorText}>{errors.npi}</span>}
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Description</label>
@@ -203,9 +230,9 @@ const ClientModal: React.FC<ClientModalProps> = ({
                         <button type="button" className={styles.cancelButton} onClick={onClose}>
                             Cancel
                         </button>
-                        <button 
-                            type="submit" 
-                            className={styles.submitButton} 
+                        <button
+                            type="submit"
+                            className={styles.submitButton}
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? 'Saving...' : (initialData ? 'Update' : 'Create')}
