@@ -15,7 +15,7 @@
     flex-direction: column;
     margin: 10px 10px 10px 0;
     gap: 10px;
-    /* overflow: hidden; */
+    overflow: hidden;
 }
 
 .app-header {

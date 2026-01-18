@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { GripVertical, Eye, EyeOff, Save, RotateCcw } from 'lucide-react';
+import { GripVertical, Eye, EyeOff, Save, RotateCcw, FileText, CheckCircle, Eye as ViewIcon, Download, Trash2 } from 'lucide-react';
 import formService, { FormField } from '../../../services/form.service';
+import documentListConfigService, { ColumnConfig as ServiceColumnConfig, DocumentListConfigRequest } from '../../../services/documentListConfig.service';
 import Toast, { ToastType } from '../../Common/Toast';
 import styles from './DocumentListingView.module.css';
 
@@ -9,8 +10,12 @@ interface ColumnConfig {
     label: string;
     visible: boolean;
     order: number;
+    width: number;
+    type: string;
+    required: boolean;
     isSystem: boolean;
     fieldType?: string;
+    formName?: string;
 }
 
 const DocumentListingView: React.FC = () => {
@@ -19,41 +24,29 @@ const DocumentListingView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
-    const [maxColumns, setMaxColumns] = useState(6);
 
     // Default system columns
     const defaultSystemColumns: ColumnConfig[] = [
-        { id: 'name', label: 'Document Name', visible: true, order: 1, isSystem: true },
-        { id: 'type', label: 'Type', visible: true, order: 2, isSystem: true },
-        { id: 'size', label: 'Size', visible: true, order: 3, isSystem: true },
-        { id: 'uploadedAt', label: 'Uploaded', visible: true, order: 4, isSystem: true },
-        { id: 'status', label: 'Status', visible: true, order: 5, isSystem: true },
-        { id: 'actions', label: 'Actions', visible: true, order: 6, isSystem: true }
+        { id: 'name', label: 'Document Name', visible: true, order: 1, width: 200, type: 'text', required: false, isSystem: true },
+        { id: 'type', label: 'Type', visible: true, order: 2, width: 120, type: 'text', required: false, isSystem: true },
+        { id: 'size', label: 'Size', visible: true, order: 3, width: 100, type: 'text', required: false, isSystem: true },
+        { id: 'uploadedAt', label: 'Uploaded', visible: true, order: 4, width: 150, type: 'date', required: false, isSystem: true },
+        { id: 'status', label: 'Status', visible: true, order: 5, width: 120, type: 'text', required: true, isSystem: true },
+        { id: 'actions', label: 'Actions', visible: true, order: 6, width: 100, type: 'text', required: true, isSystem: true }
     ];
 
     useEffect(() => {
         loadColumns();
-        calculateMaxColumns();
-        window.addEventListener('resize', calculateMaxColumns);
-        return () => window.removeEventListener('resize', calculateMaxColumns);
     }, []);
 
-    const calculateMaxColumns = () => {
-        const viewportWidth = window.innerWidth;
-        const sidebarWidth = 280;
-        const availableWidth = viewportWidth - sidebarWidth - 100;
-        const avgColumnWidth = 150;
-        const calculated = Math.floor(availableWidth / avgColumnWidth);
-        setMaxColumns(Math.max(3, Math.min(calculated, 8)));
-    };
 
     const loadColumns = async () => {
         try {
             setLoading(true);
-            
+
             // Load system columns
             let allColumns = [...defaultSystemColumns];
-            
+
             // Try to load form fields to add as additional columns
             try {
                 const activeForm = await formService.getActiveForm();
@@ -63,8 +56,12 @@ const DocumentListingView: React.FC = () => {
                         label: field.label,
                         visible: false, // Default to hidden for form fields
                         order: defaultSystemColumns.length + index + 1,
+                        width: 150,
+                        type: field.field_type || 'text',
+                        required: false,
                         isSystem: false,
-                        fieldType: field.field_type
+                        fieldType: field.field_type,
+                        formName: activeForm.name
                     }));
                     allColumns = [...allColumns, ...formColumns];
                 }
@@ -73,19 +70,24 @@ const DocumentListingView: React.FC = () => {
                 console.log('No active form found or error loading form fields');
             }
 
-            // Load saved configuration from localStorage
-            const savedConfig = localStorage.getItem('documentListingColumns');
-            if (savedConfig) {
-                try {
-                    const saved = JSON.parse(savedConfig);
+            // Load saved configuration from backend
+            try {
+                const response = await documentListConfigService.getUserConfig();
+                if (response.configuration) {
+                    const savedConfig = response.configuration;
                     // Merge saved config with available columns
                     allColumns = allColumns.map(col => {
-                        const savedCol = saved.find((s: ColumnConfig) => s.id === col.id);
-                        return savedCol ? { ...col, ...savedCol } : col;
+                        const savedCol = savedConfig.columns.find(s => s.id === col.id);
+                        return savedCol ? {
+                            ...col,
+                            visible: savedCol.visible,
+                            order: savedCol.order,
+                            width: savedCol.width
+                        } : col;
                     });
-                } catch (error) {
-                    console.error('Error parsing saved column config:', error);
                 }
+            } catch (error) {
+                console.error('Error fetching saved column config:', error);
             }
 
             // Sort by order
@@ -111,7 +113,7 @@ const DocumentListingView: React.FC = () => {
 
     const handleDrop = (e: React.DragEvent, targetId: string) => {
         e.preventDefault();
-        
+
         if (!draggedItem || draggedItem === targetId) {
             setDraggedItem(null);
             return;
@@ -142,24 +144,16 @@ const DocumentListingView: React.FC = () => {
     const toggleVisibility = (columnId: string) => {
         const visibleCount = columns.filter(col => col.visible).length;
         const column = columns.find(col => col.id === columnId);
-        
+
         if (column?.visible) {
             // Allow hiding if not required column
-            if (columnId !== 'status' && columnId !== 'actions') {
-                setColumns(prev => prev.map(col => 
+            if (!column.required) {
+                setColumns(prev => prev.map(col =>
                     col.id === columnId ? { ...col, visible: false } : col
                 ));
             }
         } else {
-            // Check if we can show more columns
-            if (visibleCount >= maxColumns) {
-                setToast({ 
-                    message: `Maximum ${maxColumns} columns can be displayed based on your screen width`, 
-                    type: 'error' 
-                });
-                return;
-            }
-            setColumns(prev => prev.map(col => 
+            setColumns(prev => prev.map(col =>
                 col.id === columnId ? { ...col, visible: true } : col
             ));
         }
@@ -168,7 +162,23 @@ const DocumentListingView: React.FC = () => {
     const saveConfiguration = async () => {
         try {
             setSaving(true);
-            localStorage.setItem('documentListingColumns', JSON.stringify(columns));
+
+            const config: DocumentListConfigRequest = {
+                columns: columns.map(col => ({
+                    id: col.id,
+                    label: col.label,
+                    visible: col.visible,
+                    order: col.order,
+                    width: col.width,
+                    type: col.type,
+                    required: col.required,
+                    isSystem: col.isSystem,
+                    formName: col.formName
+                })),
+                viewportWidth: window.innerWidth
+            };
+
+            await documentListConfigService.saveUserConfig(config);
             setToast({ message: 'Column configuration saved successfully', type: 'success' });
         } catch (error) {
             console.error('Error saving configuration:', error);
@@ -178,11 +188,15 @@ const DocumentListingView: React.FC = () => {
         }
     };
 
-    const resetToDefault = () => {
+    const resetToDefault = async () => {
         const resetColumns = [...defaultSystemColumns];
         setColumns(resetColumns);
-        localStorage.removeItem('documentListingColumns');
-        setToast({ message: 'Configuration reset to default', type: 'success' });
+        try {
+            await documentListConfigService.deleteUserConfig();
+            setToast({ message: 'Configuration reset to default', type: 'success' });
+        } catch (error) {
+            setToast({ message: 'Failed to reset configuration', type: 'error' });
+        }
     };
 
     if (loading) {
@@ -205,7 +219,9 @@ const DocumentListingView: React.FC = () => {
                                     .filter(col => col.visible)
                                     .sort((a, b) => a.order - b.order)
                                     .map(col => (
-                                        <th key={col.id}>{col.label}</th>
+                                        <th key={col.id}>
+                                            {col.label}
+                                        </th>
                                     ))
                                 }
                             </tr>
@@ -217,13 +233,29 @@ const DocumentListingView: React.FC = () => {
                                     .sort((a, b) => a.order - b.order)
                                     .map(col => (
                                         <td key={col.id}>
-                                            {col.id === 'name' && 'Sample Document.pdf'}
-                                            {col.id === 'type' && 'PDF'}
-                                            {col.id === 'size' && '2.5 MB'}
-                                            {col.id === 'uploadedAt' && '2024-01-15'}
-                                            {col.id === 'status' && 'Completed'}
-                                            {col.id === 'actions' && '• • •'}
-                                            {!col.isSystem && 'Sample Data'}
+                                            {col.id === 'name' && (
+                                                <div className={styles.documentName}>
+                                                    <FileText size={16} />
+                                                    <span>Sample Document.pdf</span>
+                                                </div>
+                                            )}
+                                            {col.id === 'type' && <span className={styles.documentType}>PDF</span>}
+                                            {col.id === 'size' && <span>2.50 MB</span>}
+                                            {col.id === 'uploadedAt' && <span>{new Date().toLocaleDateString()}</span>}
+                                            {col.id === 'status' && (
+                                                <span className={styles.statusBadge}>
+                                                    <CheckCircle size={12} />
+                                                    Completed
+                                                </span>
+                                            )}
+                                            {col.id === 'actions' && (
+                                                <div style={{ display: 'flex' }}>
+                                                    <span className={styles.actionBtn}><ViewIcon size={14} /></span>
+                                                    <span className={styles.actionBtn}><Download size={14} /></span>
+                                                    <span className={styles.actionBtn}><Trash2 size={14} /></span>
+                                                </div>
+                                            )}
+                                            {!col.isSystem && <span style={{ color: '#94a3b8' }}>Sample Value</span>}
                                         </td>
                                     ))
                                 }
@@ -237,19 +269,19 @@ const DocumentListingView: React.FC = () => {
                 <div>
                     <h2 className={styles.title}>Document Listing View Configuration</h2>
                     <p className={styles.description}>
-                        Configure which columns to display in the document listing page and their order. 
-                        Drag and drop to reorder columns. Maximum {maxColumns} columns can be displayed based on your screen width.
+                        Configure which columns to display in the document listing page and their order.
+                        Drag and drop to reorder columns.
                     </p>
                 </div>
                 <div className={styles.actions}>
-                    <button 
+                    <button
                         className={styles.resetButton}
                         onClick={resetToDefault}
                     >
                         <RotateCcw size={16} />
                         Reset to Default
                     </button>
-                    <button 
+                    <button
                         className={styles.saveButton}
                         onClick={saveConfiguration}
                         disabled={saving}
@@ -266,7 +298,7 @@ const DocumentListingView: React.FC = () => {
                     <span>Type</span>
                     <span>Visible</span>
                 </div>
-                
+
                 {columns.map((column) => (
                     <div
                         key={column.id}
@@ -279,19 +311,19 @@ const DocumentListingView: React.FC = () => {
                         <div className={styles.dragHandle}>
                             <GripVertical size={16} />
                         </div>
-                        
+
                         <div className={styles.columnInfo}>
                             <span className={styles.columnLabel}>{column.label}</span>
                         </div>
-                        
+
                         <div className={styles.columnType}>
                             <span className={`${styles.typeBadge} ${column.isSystem ? styles.system : styles.form}`}>
-                                {column.isSystem ? 'System' : `Form (${column.fieldType || 'text'})`}
+                                {column.isSystem ? 'System' : column.formName || 'Form'}
                             </span>
                         </div>
-                        
+
                         <div className={styles.visibilityToggle}>
-                            {(column.id === 'status' || column.id === 'actions') ? (
+                            {column.required ? (
                                 <span className={styles.requiredLabel}>Required</span>
                             ) : (
                                 <button

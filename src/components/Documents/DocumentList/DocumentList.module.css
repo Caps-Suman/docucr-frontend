@@ -5,7 +5,7 @@
 .header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 24px;
 }
 
@@ -13,10 +13,95 @@
     font-size: 24px;
     font-weight: 600;
     color: #1e293b;
-    margin: 0;
+    margin: 0 0 8px 0;
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.statusLegend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 8px;
+    row-gap: 8px;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.legendItem:not(:last-child)::after {
+    content: "|";
+    margin: 0 12px;
+    color: #e2e8f0;
+}
+
+:global(.dark) .legendItem:not(:last-child)::after {
+    color: #4b5563;
+}
+
+.legendIcon {
+    color: #94a3b8;
+}
+
+.colorSuccess {
+    color: #22c55e !important;
+    stroke: #22c55e !important;
+}
+
+.colorUploaded {
+    color: #3b82f6 !important;
+    stroke: #3b82f6 !important;
+}
+
+.colorQueued {
+    color: #64748b !important;
+    stroke: #64748b !important;
+}
+
+.colorProcessing {
+    color: #f59e0b !important;
+    stroke: #f59e0b !important;
+}
+
+.colorAnalyzing {
+    color: #8b5cf6 !important;
+    stroke: #8b5cf6 !important;
+}
+
+.colorAIQueued {
+    color: #a855f7 !important;
+    stroke: #a855f7 !important;
+}
+
+.colorUploading {
+    color: #3b82f6 !important;
+    stroke: #3b82f6 !important;
+}
+
+.colorFailed {
+    color: #ef4444 !important;
+    stroke: #ef4444 !important;
+}
+
+.colorAIFailed {
+    color: #f43f5e !important;
+    stroke: #f43f5e !important;
+}
+
+.colorUploadFailed {
+    color: #ef4444 !important;
+    stroke: #ef4444 !important;
+}
+
+.colorCancelled {
+    color: #64748b !important;
+    stroke: #64748b !important;
 }
 
 .uploadButton {
@@ -31,6 +116,8 @@
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .uploadButton:hover {
@@ -107,6 +194,7 @@
     align-items: center;
     gap: 8px;
     font-weight: 500;
+    font-size: 12px;
 }
 
 .documentType {
@@ -135,6 +223,69 @@
 /* Dark mode */
 :global(.dark) .title {
     color: #f9fafb;
+}
+
+:global(.dark) .legendItem {
+    color: #9ca3af;
+}
+
+:global(.dark) .legendIcon {
+    color: #6b7280;
+}
+
+:global(.dark) .colorSuccess {
+    color: #4ade80 !important;
+    stroke: #4ade80 !important;
+}
+
+:global(.dark) .colorUploaded {
+    color: #60a5fa !important;
+    stroke: #60a5fa !important;
+}
+
+:global(.dark) .colorQueued {
+    color: #9ca3af !important;
+    stroke: #9ca3af !important;
+}
+
+:global(.dark) .colorProcessing {
+    color: #fbbf24 !important;
+    stroke: #fbbf24 !important;
+}
+
+:global(.dark) .colorAnalyzing {
+    color: #a78bfa !important;
+    stroke: #a78bfa !important;
+}
+
+:global(.dark) .colorAIQueued {
+    color: #c084fc !important;
+    stroke: #c084fc !important;
+}
+
+:global(.dark) .colorUploading {
+    color: #60a5fa !important;
+    stroke: #60a5fa !important;
+}
+
+:global(.dark) .colorFailed {
+    color: #f87171 !important;
+    stroke: #f87171 !important;
+}
+
+:global(.dark) .colorAIFailed {
+    color: #fb7185 !important;
+    stroke: #fb7185 !important;
+}
+
+:global(.dark) .colorUploadFailed {
+    color: #f87171 !important;
+    stroke: #f87171 !important;
+}
+
+:global(.dark) .colorCancelled {
+    color: #9ca3af !important;
+    stroke: #9ca3af !important;
 }
 
 :global(.dark) .statCard {
@@ -216,9 +367,7 @@
     color: #991b1b;
 }
 
-:global(.dark) .statusBadge {
-    /* Base styles if needed */
-}
+
 
 :global(.dark) .active {
     background-color: #14532d;
@@ -320,4 +469,176 @@
 
 .animateSpin {
     animation: spin 1s linear infinite;
+}
+
+/* Inline Table Styles */
+.tableContainer {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #c4c7c5;
+    background: white;
+    position: relative;
+    overflow-y: visible;
+    /* Allow tooltips to show above */
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    table-layout: fixed;
+}
+
+.table th,
+.table td {
+    padding: 12px 16px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+/* Default column width */
+.table th:not(.stickyCol),
+.table td:not(.stickyCol) {
+    width: 150px;
+}
+
+.table thead {
+    background: #f8fafc;
+    border-bottom: 1px solid #c4c7c5;
+}
+
+.table th {
+    font-weight: 600;
+    color: #475569;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #c4c7c5;
+}
+
+.table tbody tr {
+    border-bottom: 1px solid #c4c7c5;
+    transition: background-color 0.2s;
+}
+
+.table tbody tr:hover {
+    background: #f8fafc;
+    z-index: 10;
+    position: relative;
+}
+
+.table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.table td {
+    padding: 8px 16px;
+    color: #444746;
+    position: relative;
+    overflow: visible;
+    /* Ensure tooltips are not clipped */
+    font-size: 12px;
+}
+
+.table td:hover {
+    z-index: 20;
+}
+
+/* Truncation for cells */
+.cellContent {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Tooltip Styles */
+.tooltipWrapper {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.tooltipWrapper::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    background-color: #1e293b;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: normal;
+    max-width: 300px;
+    width: max-content;
+    text-align: center;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 99999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    overflow-wrap: anywhere;
+}
+
+.tooltipWrapper::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1e293b;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 99999;
+}
+
+.tooltipWrapper:hover::after,
+.tooltipWrapper:hover::before {
+    opacity: 1;
+}
+
+/* Dark mode overrides for table */
+:global(.dark) .tableContainer {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .table thead {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+:global(.dark) .table th {
+    color: #d1d5db;
+    border-color: #4b5563;
+}
+
+:global(.dark) .table tbody tr {
+    border-color: #374151;
+}
+
+:global(.dark) .table tbody tr:hover {
+    background: #374151;
+}
+
+:global(.dark) .table td {
+    color: #d1d5db;
+}
+
+/* Dark mode for tooltips */
+:global(.dark) .tooltipWrapper::after {
+    background-color: #f9fafb;
+    color: #1e293b;
+}
+
+:global(.dark) .tooltipWrapper::before {
+    border-top-color: #f9fafb;
 }

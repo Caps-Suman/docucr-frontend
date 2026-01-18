@@ -38,7 +38,8 @@
 }
 
 /* Reset any custom font families in components */
-body, html {
+body,
+html {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: #edf6f7;
   color: #1e1f23;

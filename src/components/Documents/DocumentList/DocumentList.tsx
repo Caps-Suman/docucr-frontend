@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Eye, Download, Trash2, FileText, Upload, CheckCircle, Clock, UploadCloud, X, Loader2, RefreshCw, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Table from '../../Table/Table';
 import Loading from '../../Common/Loading';
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
-import documentService, { Document } from '../../../services/document.service';
+import documentService from '../../../services/document.service';
 import authService from '../../../services/auth.service';
+import documentListConfigService from '../../../services/documentListConfig.service';
+import clientService, { Client } from '../../../services/client.service';
+import documentTypeService, { DocumentType } from '../../../services/documentType.service';
 import { useUploadStore, uploadStore } from '../../../store/uploadStore';
 import styles from './DocumentList.module.css';
 
@@ -21,12 +23,17 @@ interface DocumentListItem {
     isUploading?: boolean;
     progress?: number;
     errorMessage?: string;
+    customFormData?: any;
 }
 
 const DocumentList: React.FC = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<DocumentListItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [columnConfig, setColumnConfig] = useState<any[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
+    const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
+    const [isPolling, setIsPolling] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [documentToDelete, setDocumentToDelete] = useState<DocumentListItem | null>(null);
     const [deleting, setDeleting] = useState(false);
@@ -71,8 +78,55 @@ const DocumentList: React.FC = () => {
                 uploadedAt: doc.created_at,
                 status: mapDocumentStatus(doc.status),
                 progress: doc.upload_progress,
-                errorMessage: doc.error_message
+                errorMessage: doc.error_message,
+                customFormData: (doc as any).custom_form_data || {}
             }));
+
+            // Fetch column configuration
+            try {
+                const response = await documentListConfigService.getUserConfig();
+                if (response.configuration) {
+                    setColumnConfig(response.configuration.columns.filter((c: any) => c.visible));
+                } else {
+                    // Default config if none saved
+                    setColumnConfig([
+                        { id: 'name', label: 'Document Name', isSystem: true },
+                        { id: 'type', label: 'Type', isSystem: true },
+                        { id: 'size', label: 'Size', isSystem: true },
+                        { id: 'uploadedAt', label: 'Uploaded', isSystem: true },
+                        { id: 'status', label: 'Status', isSystem: true },
+                        { id: 'actions', label: 'Actions', isSystem: true }
+                    ]);
+                }
+            } catch (error) {
+                console.error('Failed to load column config');
+                // Default config on error
+                setColumnConfig([
+                    { id: 'name', label: 'Document Name', isSystem: true },
+                    { id: 'type', label: 'Type', isSystem: true },
+                    { id: 'size', label: 'Size', isSystem: true },
+                    { id: 'uploadedAt', label: 'Uploaded', isSystem: true },
+                    { id: 'status', label: 'Status', isSystem: true },
+                    { id: 'actions', label: 'Actions', isSystem: true }
+                ]);
+            }
+
+            try {
+                const [clientsRes, docTypesRes] = await Promise.all([
+                    clientService.getClients(1, 1000).catch(() => ({ clients: [] })),
+                    documentTypeService.getDocumentTypes(1, 1000).catch(() => [])
+                ]);
+
+                // Handle different response formats safely
+                const clientList = Array.isArray(clientsRes) ? clientsRes : (clientsRes as any).clients || [];
+                const typeList = Array.isArray(docTypesRes) ? docTypesRes : (docTypesRes as any).document_types || [];
+
+                setClients(clientList);
+                setDocumentTypes(typeList);
+            } catch (err) {
+                console.error('Failed to load metadata for labels:', err);
+            }
+
             setDocuments(prevNodes => {
                 return formattedDocs.map(newDoc => {
                     const existingDoc = prevNodes.find(d => d.id === newDoc.id);
@@ -234,229 +288,323 @@ const DocumentList: React.FC = () => {
         }
     };
 
-    const columns = [
-        {
-            key: 'name',
-            header: 'Document Name',
-            render: (value: string, row: DocumentListItem) => (
-                <div className={styles.documentName}>
-                    <FileText size={16} />
-                    <span>{value}</span>
-                </div>
-            )
-        },
-        {
-            key: 'type',
-            header: 'Type',
-            render: (value: string) => <span className={styles.documentType}>{value}</span>
-        },
-        {
-            key: 'size',
-            header: 'Size',
-            render: (value: number) => <span>{value.toFixed(2)} MB</span>
-        },
-        {
-            key: 'uploadedAt',
-            header: 'Uploaded',
-            render: (value: string) => new Date(value).toLocaleDateString()
-        },
-        {
-            key: 'status',
-            header: 'Status',
-            render: (value: string, row: DocumentListItem) => {
-                const getStatusConfig = (status: string) => {
-                    switch (status) {
-                        case 'completed':
-                            return { class: 'active', icon: <CheckCircle size={12} />, text: 'Completed' };
-                        case 'queued':
-                            return { class: 'inactive', icon: <Clock size={12} />, text: 'Queued' };
-                        case 'uploading':
-                            const progressText = row.progress ? `Uploading (${row.progress}%)` : 'Uploading';
-                            return { class: 'inactive', icon: <UploadCloud size={12} />, text: progressText };
-                        case 'uploaded':
-                            return { class: 'active', icon: <CheckCircle size={12} />, text: 'Uploaded' };
-                        case 'processing':
-                            return { class: 'inactive', icon: <Clock size={12} />, text: 'Processing' };
-                        case 'upload_failed':
-                            return {
-                                class: 'error',
-                                icon: <X size={12} />,
-                                text: (
-                                    <span className="tooltip-wrapper tooltip-bottom" data-tooltip={row.errorMessage || 'Upload failed'}>
-                                        Upload Failed
+    const columns = React.useMemo(() => {
+        if (columnConfig.length === 0) return [];
+
+        const systemIds = ['name', 'type', 'size', 'uploadedAt', 'status', 'actions'];
+
+        return columnConfig.map(col => {
+            const isSystem = col.isSystem || systemIds.includes(col.id);
+            if (isSystem) {
+                switch (col.id) {
+                    case 'name':
+                        return {
+                            key: 'name',
+                            header: col.label,
+                            render: (value: string, row: DocumentListItem) => (
+                                <span className={styles.tooltipWrapper} data-tooltip={value}>
+                                    <div className={styles.documentName} style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                                        <FileText size={16} style={{ flexShrink: 0 }} />
+                                        <span className={styles.cellContent}>{value}</span>
+                                    </div>
+                                </span>
+                            )
+                        };
+                    case 'type':
+                        return {
+                            key: 'type',
+                            header: col.label,
+                            render: (value: string) => (
+                                <span className={styles.tooltipWrapper} data-tooltip={value}>
+                                    <span className={styles.documentType}>{value}</span>
+                                </span>
+                            )
+                        };
+                    case 'size':
+                        return {
+                            key: 'size',
+                            header: col.label,
+                            render: (value: number) => {
+                                const sizeText = `${value.toFixed(2)} MB`;
+                                return (
+                                    <span className={styles.tooltipWrapper} data-tooltip={sizeText}>
+                                        <span className={styles.cellContent}>{sizeText}</span>
                                     </span>
-                                )
-                            };
-                        case 'ai_queued':
-                            return { class: 'inactive', icon: <Clock size={12} />, text: 'AI Queued' };
-                        case 'analyzing':
-                            return {
-                                class: 'processing',
-                                icon: <Loader2 size={12} className={styles.animateSpin} />,
-                                text: row.errorMessage || 'Analyzing...'
-                            };
-                        case 'upload_failed':
-                            return {
-                                class: 'error',
-                                icon: <X size={12} />,
-                                text: (
-                                    <span className="tooltip-wrapper tooltip-bottom" data-tooltip={row.errorMessage || 'Upload failed'}>
-                                        Upload Failed
+                                );
+                            }
+                        };
+                    case 'uploadedAt':
+                        return {
+                            key: 'uploadedAt',
+                            header: col.label,
+                            render: (value: string) => {
+                                const dateText = new Date(value).toLocaleDateString();
+                                const fullDate = new Date(value).toLocaleString();
+                                return (
+                                    <span className={styles.tooltipWrapper} data-tooltip={fullDate}>
+                                        <span className={styles.cellContent}>{dateText}</span>
                                     </span>
-                                )
-                            };
-                        case 'ai_failed':
-                            return {
-                                class: 'error',
-                                icon: <X size={12} />,
-                                text: (
-                                    <span className="tooltip-wrapper tooltip-bottom" data-tooltip={row.errorMessage || 'Analysis failed'}>
-                                        Analysis Failed
+                                );
+                            }
+                        };
+                    case 'status':
+                        return {
+                            key: 'status',
+                            header: col.label,
+                            render: (value: string, row: DocumentListItem) => {
+                                const getStatusConfig = (status: string) => {
+                                    switch (status) {
+                                        case 'completed':
+                                            return { class: 'active', icon: <CheckCircle size={12} />, text: 'Completed' };
+                                        case 'queued':
+                                            return { class: 'inactive', icon: <Clock size={12} />, text: 'Queued' };
+                                        case 'uploading':
+                                            const progressText = row.progress ? `Uploading (${row.progress}%)` : 'Uploading';
+                                            return { class: 'inactive', icon: <UploadCloud size={12} />, text: progressText };
+                                        case 'uploaded':
+                                            return { class: 'active', icon: <CheckCircle size={12} />, text: 'Uploaded' };
+                                        case 'processing':
+                                            return { class: 'inactive', icon: <Clock size={12} />, text: 'Processing' };
+                                        case 'upload_failed':
+                                            return {
+                                                class: 'error',
+                                                icon: <X size={12} />,
+                                                text: (
+                                                    <span className={`${styles.tooltipWrapper} tooltip-bottom`} data-tooltip={row.errorMessage || 'Upload failed'}>
+                                                        Upload Failed
+                                                    </span>
+                                                )
+                                            };
+                                        case 'ai_queued':
+                                            return { class: 'inactive', icon: <Clock size={12} />, text: 'AI Queued' };
+                                        case 'analyzing':
+                                            return {
+                                                class: 'processing',
+                                                icon: <Loader2 size={12} className={styles.animateSpin} />,
+                                                text: row.errorMessage || 'Analyzing...'
+                                            };
+                                        case 'ai_failed':
+                                            return {
+                                                class: 'error',
+                                                icon: <X size={12} />,
+                                                text: (
+                                                    <span className={`${styles.tooltipWrapper} tooltip-bottom`} data-tooltip={row.errorMessage || 'Analysis failed'}>
+                                                        Analysis Failed
+                                                    </span>
+                                                )
+                                            };
+                                        case 'cancelled':
+                                            return {
+                                                class: 'inactive',
+                                                icon: <Ban size={12} />,
+                                                text: 'Cancelled'
+                                            };
+                                        case 'failed':
+                                            return {
+                                                class: 'error',
+                                                icon: <X size={12} />,
+                                                text: (
+                                                    <span className={`${styles.tooltipWrapper} tooltip-bottom`} data-tooltip={row.errorMessage || 'Unknown error'}>
+                                                        Failed
+                                                    </span>
+                                                )
+                                            };
+                                        default:
+                                            return { class: 'inactive', icon: <Clock size={12} />, text: status };
+                                    }
+                                };
+
+                                const config = getStatusConfig(value);
+                                return (
+                                    <span className={`status-badge ${config.class}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                        {config.icon}
+                                        {config.text}
                                     </span>
-                                )
-                            };
-                        case 'cancelled':
-                            return {
-                                class: 'inactive',
-                                icon: <Ban size={12} />,
-                                text: 'Cancelled'
-                            };
-                        case 'failed':
-                            // Fallback for old/generic failures
-                            return {
-                                class: 'error',
-                                icon: <X size={12} />,
-                                text: (
-                                    <span className="tooltip-wrapper tooltip-bottom" data-tooltip={row.errorMessage || 'Unknown error'}>
-                                        Failed
-                                    </span>
-                                )
-                            };
-                        default:
-                            return { class: 'inactive', icon: <Clock size={12} />, text: status };
+                                );
+                            }
+                        };
+                    case 'actions':
+                        return {
+                            key: 'actions',
+                            header: col.label,
+                            render: (_: any, row: DocumentListItem) => (
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    {(row.status === 'failed' || row.status === 'ai_failed' || row.status === 'upload_failed' || row.status === 'cancelled') && (
+                                        <span className={styles.tooltipWrapper} data-tooltip="Retry Analysis">
+                                            <button onClick={() => handleReanalyze(row.id)} className="action-btn activate">
+                                                <RefreshCw size={14} />
+                                            </button>
+                                        </span>
+                                    )}
+
+                                    {(row.status === 'analyzing' || row.status === 'ai_queued') && (
+                                        <span className={styles.tooltipWrapper} data-tooltip="Cancel Analysis">
+                                            <button onClick={() => handleCancel(row.id)} className="action-btn delete">
+                                                <Ban size={14} />
+                                            </button>
+                                        </span>
+                                    )}
+
+                                    {!row.isUploading && (
+                                        <>
+                                            <span className={styles.tooltipWrapper} data-tooltip={
+                                                row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed'
+                                                    ? "Upload in progress or failed"
+                                                    : "View Details"
+                                            }>
+                                                <button
+                                                    className={`action-btn edit ${row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed' ? 'disabled' : ''}`}
+                                                    onClick={() => {
+                                                        if (row.status !== 'queued' && row.status !== 'uploading' && row.status !== 'upload_failed') {
+                                                            navigate(`/documents/${row.id}`);
+                                                        }
+                                                    }}
+                                                    disabled={row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed'}
+                                                >
+                                                    <Eye size={14} />
+                                                </button>
+                                            </span>
+                                            <span className={styles.tooltipWrapper} data-tooltip="Download">
+                                                <button
+                                                    className="action-btn activate"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                            const url = await documentService.getDocumentDownloadUrl(row.id);
+                                                            const link = window.document.createElement('a');
+                                                            link.href = url;
+                                                            link.setAttribute('download', row.originalFilename || row.name);
+                                                            link.setAttribute('target', '_blank');
+                                                            link.setAttribute('rel', 'noopener noreferrer');
+                                                            window.document.body.appendChild(link);
+                                                            link.click();
+                                                            window.document.body.removeChild(link);
+                                                        } catch (error) {
+                                                            setToast({ message: "Failed to verify download", type: "error" });
+                                                        }
+                                                    }}
+                                                >
+                                                    <Download size={14} />
+                                                </button>
+                                            </span>
+                                            <span className={styles.tooltipWrapper} data-tooltip="Delete">
+                                                <button className="action-btn delete" onClick={() => handleDeleteClick(row)}>
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </span>
+                                        </>
+                                    )}
+                                    {row.isUploading && (
+                                        <span className={styles.tooltipWrapper} data-tooltip="Uploading...">
+                                            <button className="action-btn" disabled>
+                                                <Clock size={14} />
+                                            </button>
+                                        </span>
+                                    )}
+                                </div>
+                            )
+                        };
+                    default:
+                        return { key: col.id, header: col.label };
+                }
+            } else {
+                // Custom Form Field
+                const formFieldId = col.id.replace('form_', '');
+                return {
+                    key: col.id,
+                    header: col.label,
+                    render: (_: any, row: DocumentListItem) => {
+                        const val = row.customFormData ? row.customFormData[formFieldId] : null;
+                        if (!val) return <span style={{ color: '#94a3b8' }}>-</span>;
+
+                        // Resolve UUIDs for specific fields
+                        if (col.label.toLowerCase() === 'client') {
+                            const client = clients.find(c => c.id === val);
+                            const clientName = client ? (client.business_name || `${client.first_name} ${client.last_name}`) : String(val);
+                            return (
+                                <span className={styles.tooltipWrapper} data-tooltip={clientName}>
+                                    <span className={styles.cellContent}>{clientName}</span>
+                                </span>
+                            );
+                        }
+
+                        if (col.label.toLowerCase().includes('document type')) {
+                            const type = documentTypes.find(t => t.id === val);
+                            const typeName = type ? type.name : String(val);
+                            return (
+                                <span className={styles.tooltipWrapper} data-tooltip={typeName}>
+                                    <span className={styles.cellContent}>{typeName}</span>
+                                </span>
+                            );
+                        }
+
+                        const displayValue = Array.isArray(val) ? val.join(', ') : String(val);
+                        return (
+                            <span className={styles.tooltipWrapper} data-tooltip={displayValue}>
+                                <span className={styles.cellContent}>{displayValue}</span>
+                            </span>
+                        );
                     }
                 };
-
-                const config = getStatusConfig(value);
-                return (
-                    <span className={`status-badge ${config.class}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        {config.icon}
-                        {config.text}
-                    </span>
-                );
             }
-        },
-        {
-            key: 'actions',
-            header: 'Actions',
-            render: (_: any, row: DocumentListItem) => (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    {/* Retry Button */}
-                    {(row.status === 'failed' || row.status === 'ai_failed' || row.status === 'upload_failed' || row.status === 'cancelled') && (
-                        <span className="tooltip-wrapper" data-tooltip="Retry Analysis">
-                            <button
-                                onClick={() => handleReanalyze(row.id)}
-                                className="action-btn activate"
-                            >
-                                <RefreshCw size={14} />
-                            </button>
-                        </span>
-                    )}
-
-                    {/* Cancel Button */}
-                    {(row.status === 'analyzing' || row.status === 'ai_queued') && (
-                        <span className="tooltip-wrapper" data-tooltip="Cancel Analysis">
-                            <button
-                                onClick={() => handleCancel(row.id)}
-                                className="action-btn delete"
-                            >
-                                <Ban size={14} />
-                            </button>
-                        </span>
-                    )}
-
-                    {!row.isUploading && (
-                        <>
-                            <span className="tooltip-wrapper" data-tooltip={
-                                row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed'
-                                    ? "Upload in progress or failed"
-                                    : "View Details"
-                            }>
-                                <button
-                                    className={`action-btn edit ${row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed'
-                                        ? 'disabled'
-                                        : ''
-                                        }`}
-                                    onClick={() => {
-                                        if (row.status !== 'queued' && row.status !== 'uploading' && row.status !== 'upload_failed') {
-                                            navigate(`/documents/${row.id}`);
-                                        }
-                                    }}
-                                    disabled={row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed'}
-                                    style={
-                                        row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed'
-                                            ? { opacity: 0.5, cursor: 'not-allowed' }
-                                            : {}
-                                    }
-                                >
-                                    <Eye size={14} />
-                                </button>
-                            </span>
-                            <span className="tooltip-wrapper" data-tooltip="Download">
-                                <button
-                                    className="action-btn activate"
-                                    onClick={async (e) => {
-                                        e.stopPropagation();
-                                        try {
-                                            const url = await documentService.getDocumentDownloadUrl(row.id);
-                                            const link = window.document.createElement('a');
-                                            link.href = url;
-                                            link.setAttribute('download', row.originalFilename || row.name);
-                                            link.setAttribute('target', '_blank');
-                                            link.setAttribute('rel', 'noopener noreferrer');
-                                            window.document.body.appendChild(link);
-                                            link.click();
-                                            window.document.body.removeChild(link);
-                                        } catch (error) {
-                                            setToast({ message: "Failed to verify download", type: "error" });
-                                        }
-                                    }}
-                                >
-                                    <Download size={14} />
-                                </button>
-                            </span>
-                            <span className="tooltip-wrapper" data-tooltip="Delete">
-                                <button
-                                    className="action-btn delete"
-                                    onClick={() => handleDeleteClick(row)}
-                                >
-                                    <Trash2 size={14} />
-                                </button>
-                            </span>
-                        </>
-                    )
-                    }
-                    {
-                        row.isUploading && (
-                            <span className="tooltip-wrapper" data-tooltip="Uploading...">
-                                <button className="action-btn" disabled>
-                                    <Clock size={14} />
-                                </button>
-                            </span>
-                        )
-                    }
-                </div >
-            )
-        }
-    ];
+        });
+    }, [columnConfig, navigate, clients, documentTypes]);
 
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>
-                    <FileText size={20} />
-                    Documents
-                </h1>
+                <div>
+                    <h1 className={styles.title}>
+                        <FileText size={20} />
+                        Documents
+                    </h1>
+                    <div className={styles.statusLegend}>
+                        <span className={styles.legendItem}>
+                            <CheckCircle size={12} className={`${styles.legendIcon} ${styles.colorSuccess}`} />
+                            <span>Completed: Finished analysis</span>
+                        </span>
+                        <span className={styles.legendItem}>
+                            <CheckCircle size={12} className={`${styles.legendIcon} ${styles.colorUploaded}`} />
+                            <span>Uploaded: File ready for AI</span>
+                        </span>
+                        <span className={styles.legendItem}>
+                            <Clock size={12} className={`${styles.legendIcon} ${styles.colorQueued}`} />
+                            <span>Queued: Waiting to start</span>
+                        </span>
+                        <span className={styles.legendItem}>
+                            <Clock size={12} className={`${styles.legendIcon} ${styles.colorProcessing}`} />
+                            <span>Processing: Being analyzed</span>
+                        </span>
+                        <span className={styles.legendItem}>
+                            <Loader2 size={12} className={`${styles.legendIcon} ${styles.colorAnalyzing} ${styles.animateSpin}`} />
+                            <span>Analyzing: AI processing</span>
+                        </span>
+                        <span className={styles.legendItem}>
+                            <Clock size={12} className={`${styles.legendIcon} ${styles.colorAIQueued}`} />
+                            <span>AI Queued: Waiting for AI</span>
+                        </span>
+                        <span className={styles.legendItem}>
+                            <UploadCloud size={12} className={`${styles.legendIcon} ${styles.colorUploading}`} />
+                            <span>Uploading: File transfer</span>
+                        </span>
+                        <span className={styles.legendItem}>
+                            <X size={12} className={`${styles.legendIcon} ${styles.colorFailed}`} />
+                            <span>Failed: General error</span>
+                        </span>
+                        <span className={styles.legendItem}>
+                            <X size={12} className={`${styles.legendIcon} ${styles.colorAIFailed}`} />
+                            <span>AI Failed: Analysis error</span>
+                        </span>
+                        <span className={styles.legendItem}>
+                            <X size={12} className={`${styles.legendIcon} ${styles.colorUploadFailed}`} />
+                            <span>Upload Failed: Network error</span>
+                        </span>
+                        <span className={styles.legendItem}>
+                            <Ban size={12} className={`${styles.legendIcon} ${styles.colorCancelled}`} />
+                            <span>Cancelled: Manually stopped</span>
+                        </span>
+                    </div>
+                </div>
                 <button
                     className={styles.uploadButton}
                     onClick={() => navigate('/documents/upload')}
@@ -521,41 +669,57 @@ const DocumentList: React.FC = () => {
                     <p>No documents uploaded yet</p>
                 </div>
             ) : (
-                <Table
-                    columns={columns}
-                    data={(() => {
-                        const uploading = uploadingDocs
-                            .filter((doc: any) => !documents.find(d => String(d.id) === String(doc.documentId)))
-                            .map((doc: any) => ({
-                                id: doc.tempId,
-                                name: doc.filename,
-                                originalFilename: doc.filename,
-                                type: doc.filename.split('.').pop()?.toUpperCase() || 'FILE',
-                                size: doc.fileSize / (1024 * 1024),
-                                uploadedAt: doc.createdAt,
-                                status: doc.status,
-                                isUploading: true
-                            }));
+                <div className={styles.tableContainer}>
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                {columns.map((column: any) => (
+                                    <th key={column.key}>
+                                        {column.header}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {(() => {
+                                const uploading = uploadingDocs
+                                    .filter((doc: any) => !documents.find(d => String(d.id) === String(doc.documentId)))
+                                    .map((doc: any) => ({
+                                        id: doc.tempId,
+                                        name: doc.filename,
+                                        originalFilename: doc.filename,
+                                        type: doc.filename.split('.').pop()?.toUpperCase() || 'FILE',
+                                        size: doc.fileSize / (1024 * 1024),
+                                        uploadedAt: doc.createdAt,
+                                        status: doc.status,
+                                        isUploading: true,
+                                        progress: doc.progress
+                                    }));
 
-                        // Combine and deduplicate by ID just in case
-                        const combined = [...uploading, ...documents];
-                        const uniqueMap = new Map();
-                        combined.forEach(item => {
-                            // If user sees duplicates, it might be due to tempId vs real ID confusion or logic gaps.
-                            // We prefer 'documents' (backend) items over 'uploading' (store) items if possible, 
-                            // but we already filtered uploading above.
-                            // Key issue: if an uploading item has NO documentId yet, it uses tempId.
-                            // If it HAS documentId, we matched it against documents.
-                            // So duplicates might be strictly within 'documents' (unlikely) or 'uploadingDocs' (possible).
+                                const combined = [...uploading, ...documents];
+                                const uniqueMap = new Map();
+                                combined.forEach(item => {
+                                    uniqueMap.set(item.id, item);
+                                });
 
-                            // Use a composite key or just ensure we don't show same file twice?
-                            // Safest: Map by unique ID.
-                            uniqueMap.set(item.id, item);
-                        });
+                                const finalData = Array.from(uniqueMap.values());
 
-                        return Array.from(uniqueMap.values());
-                    })()}
-                />
+                                return finalData.map((row: any, index: number) => (
+                                    <tr key={row.id || index}>
+                                        {columns.map((column: any) => (
+                                            <td key={column.key}>
+                                                {column.render
+                                                    ? column.render(row[column.key], row)
+                                                    : row[column.key]
+                                                }
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ));
+                            })()}
+                        </tbody>
+                    </table>
+                </div>
             )}
 
             <ConfirmModal
