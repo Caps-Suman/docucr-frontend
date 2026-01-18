@@ -22,10 +22,7 @@ export interface ModulesResponse {
 
 class ModulesService {
   async getUserModules(email: string): Promise<Module[]> {
-    const response = await fetch(`${API_BASE_URL}/api/modules/user-modules?email=${encodeURIComponent(email)}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await apiClient(`${API_BASE_URL}/api/modules/user-modules?email=${encodeURIComponent(email)}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch user modules');
