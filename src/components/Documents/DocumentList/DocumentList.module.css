@@ -14,6 +14,9 @@
     font-weight: 600;
     color: #1e293b;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .uploadButton {
@@ -182,6 +185,139 @@
     color: #a5b4fc;
 }
 
-:global(.dark) .documentName {
-    color: #f9fafb;
+
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.active {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.inactive {
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+.processing {
+    background-color: #ffedd5;
+    color: #9a3412;
+}
+
+.error {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+:global(.dark) .statusBadge {
+    /* Base styles if needed */
+}
+
+:global(.dark) .active {
+    background-color: #14532d;
+    color: #86efac;
+}
+
+:global(.dark) .inactive {
+    background-color: #374151;
+    color: #d1d5db;
+}
+
+:global(.dark) .processing {
+    background-color: #7c2d12;
+    color: #fdba74;
+}
+
+:global(.dark) .error {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+/* Action Button Styles */
+:global(.action-btn) {
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+:global(.action-btn.edit) {
+    color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+:global(.action-btn.edit:hover) {
+    background-color: #dbeafe;
+}
+
+:global(.action-btn.activate) {
+    color: #22c55e;
+    background-color: #f0fdf4;
+}
+
+:global(.action-btn.activate:hover) {
+    background-color: #dcfce7;
+}
+
+:global(.action-btn.delete) {
+    color: #ef4444;
+    background-color: #fef2f2;
+}
+
+:global(.action-btn.delete:hover) {
+    background-color: #fee2e2;
+}
+
+/* Dark mode action button styles */
+:global(.dark) :global(.action-btn.edit) {
+    color: #60a5fa;
+    background-color: #1e3a8a;
+}
+
+:global(.dark) :global(.action-btn.edit:hover) {
+    background-color: #1e40af;
+}
+
+:global(.dark) :global(.action-btn.activate) {
+    color: #4ade80;
+    background-color: #14532d;
+}
+
+:global(.dark) :global(.action-btn.activate:hover) {
+    background-color: #166534;
+}
+
+:global(.dark) :global(.action-btn.delete) {
+    color: #f87171;
+    background-color: #7f1d1d;
+}
+
+:global(.dark) :global(.action-btn.delete:hover) {
+    background-color: #991b1b;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animateSpin {
+    animation: spin 1s linear infinite;
 }

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Download, Trash2, FileText, Upload, CheckCircle, Clock, UploadCloud, X } from 'lucide-react';
+import { Eye, Download, Trash2, FileText, Upload, CheckCircle, Clock, UploadCloud, X, Loader2, RefreshCw, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Table from '../../Table/Table';
 import Loading from '../../Common/Loading';
 import ConfirmModal from '../../Common/ConfirmModal';
+import Toast, { ToastType } from '../../Common/Toast';
 import documentService, { Document } from '../../../services/document.service';
 import authService from '../../../services/auth.service';
 import { useUploadStore, uploadStore } from '../../../store/uploadStore';
@@ -12,12 +13,14 @@ import styles from './DocumentList.module.css';
 interface DocumentListItem {
     id: string;
     name: string;
+    originalFilename: string;
     type: string;
     size: number;
     uploadedAt: string;
-    status: 'processing' | 'completed' | 'failed' | 'uploading' | 'queued' | 'uploaded';
+    status: 'processing' | 'completed' | 'failed' | 'uploading' | 'queued' | 'uploaded' | 'ai_queued' | 'analyzing' | 'ai_failed' | 'upload_failed' | 'cancelled';
     isUploading?: boolean;
     progress?: number;
+    errorMessage?: string;
 }
 
 const DocumentList: React.FC = () => {
@@ -29,6 +32,7 @@ const DocumentList: React.FC = () => {
     const [deleting, setDeleting] = useState(false);
     const wsRef = useRef<WebSocket | null>(null);
     const uploadingDocs = useUploadStore().uploadingDocs;
+    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     useEffect(() => {
         loadDocuments();
@@ -41,17 +45,33 @@ const DocumentList: React.FC = () => {
         };
     }, []);
 
+    // Cleanup upload store for documents that are already present in the backend list
+    useEffect(() => {
+        if (documents.length > 0 && uploadingDocs.length > 0) {
+            const { removeUpload } = uploadStore.getState();
+            uploadingDocs.forEach((uDoc: any) => {
+                if (uDoc.documentId) {
+                    const exists = documents.find(d => String(d.id) === String(uDoc.documentId));
+                    if (exists && (exists.status === 'uploaded' || exists.status === 'completed' || exists.status === 'processing')) {
+                        removeUpload(uDoc.tempId);
+                    }
+                }
+            });
+        }
+    }, [documents, uploadingDocs]);
     const loadDocuments = async () => {
         try {
             const docs = await documentService.getDocuments();
             const formattedDocs = docs.map(doc => ({
                 id: doc.id,
                 name: doc.filename,
+                originalFilename: doc.original_filename || doc.filename,
                 type: doc.filename.split('.').pop()?.toUpperCase() || 'FILE',
                 size: doc.file_size / (1024 * 1024), // Convert to MB
                 uploadedAt: doc.created_at,
                 status: mapDocumentStatus(doc.status),
-                progress: doc.upload_progress
+                progress: doc.upload_progress,
+                errorMessage: doc.error_message
             }));
             setDocuments(prevNodes => {
                 return formattedDocs.map(newDoc => {
@@ -73,7 +93,7 @@ const DocumentList: React.FC = () => {
         }
     };
 
-    const mapDocumentStatus = (status_id: string): 'processing' | 'completed' | 'failed' | 'uploading' | 'queued' | 'uploaded' => {
+    const mapDocumentStatus = (status_id: string): 'processing' | 'completed' | 'failed' | 'uploading' | 'queued' | 'uploaded' | 'ai_queued' | 'analyzing' | 'ai_failed' | 'upload_failed' | 'cancelled' => {
         switch (status_id) {
             case 'COMPLETED': return 'completed';
             case 'UPLOADED': return 'uploaded';
@@ -81,6 +101,11 @@ const DocumentList: React.FC = () => {
             case 'UPLOADING': return 'uploading';
             case 'QUEUED': return 'queued';
             case 'FAILED': return 'failed';
+            case 'AI_QUEUED': return 'ai_queued';
+            case 'ANALYZING': return 'analyzing';
+            case 'AI_FAILED': return 'ai_failed';
+            case 'UPLOAD_FAILED': return 'upload_failed';
+            case 'CANCELLED': return 'cancelled';
             default: return 'processing';
         }
     };
@@ -136,7 +161,12 @@ const DocumentList: React.FC = () => {
             setDocuments(prev => {
                 const updated = prev.map(doc =>
                     String(doc.id) === String(data.document_id)
-                        ? { ...doc, status: mapDocumentStatus(data.status), progress: data.progress }
+                        ? {
+                            ...doc,
+                            status: mapDocumentStatus(data.status),
+                            progress: data.progress,
+                            errorMessage: data.error_message
+                        }
                         : doc
                 );
 
@@ -152,6 +182,28 @@ const DocumentList: React.FC = () => {
         }
     };
 
+    const handleCancel = async (id: string) => {
+        try {
+            await documentService.cancelDocumentAnalysis(id);
+            setToast({ message: 'Analysis cancelled', type: 'success' });
+        } catch (error) {
+            console.error(error);
+            setToast({ message: 'Failed to cancel analysis', type: 'error' });
+        }
+    };
+
+    const handleReanalyze = async (id: string) => {
+        try {
+            await documentService.reanalyzeDocument(id);
+            setToast({ message: 'Analysis restarted', type: 'success' });
+        } catch (error) {
+            console.error(error);
+            setToast({ message: 'Failed to restart analysis', type: 'error' });
+        }
+    };
+
+
+
     const handleDeleteClick = (document: DocumentListItem) => {
         setDocumentToDelete(document);
         setShowDeleteModal(true);
@@ -165,9 +217,10 @@ const DocumentList: React.FC = () => {
                 setDocuments(prev => prev.filter(doc => doc.id !== documentToDelete.id));
                 setShowDeleteModal(false);
                 setDocumentToDelete(null);
+                setToast({ message: 'Document deleted successfully', type: 'success' });
             } catch (error) {
                 console.error('Failed to delete document:', error);
-                alert('Failed to delete document');
+                setToast({ message: 'Failed to delete document', type: 'error' });
             } finally {
                 setDeleting(false);
             }
@@ -224,8 +277,61 @@ const DocumentList: React.FC = () => {
                             return { class: 'active', icon: <CheckCircle size={12} />, text: 'Uploaded' };
                         case 'processing':
                             return { class: 'inactive', icon: <Clock size={12} />, text: 'Processing' };
+                        case 'upload_failed':
+                            return {
+                                class: 'error',
+                                icon: <X size={12} />,
+                                text: (
+                                    <span className="tooltip-wrapper tooltip-bottom" data-tooltip={row.errorMessage || 'Upload failed'}>
+                                        Upload Failed
+                                    </span>
+                                )
+                            };
+                        case 'ai_queued':
+                            return { class: 'inactive', icon: <Clock size={12} />, text: 'AI Queued' };
+                        case 'analyzing':
+                            return {
+                                class: 'processing',
+                                icon: <Loader2 size={12} className={styles.animateSpin} />,
+                                text: row.errorMessage || 'Analyzing...'
+                            };
+                        case 'upload_failed':
+                            return {
+                                class: 'error',
+                                icon: <X size={12} />,
+                                text: (
+                                    <span className="tooltip-wrapper tooltip-bottom" data-tooltip={row.errorMessage || 'Upload failed'}>
+                                        Upload Failed
+                                    </span>
+                                )
+                            };
+                        case 'ai_failed':
+                            return {
+                                class: 'error',
+                                icon: <X size={12} />,
+                                text: (
+                                    <span className="tooltip-wrapper tooltip-bottom" data-tooltip={row.errorMessage || 'Analysis failed'}>
+                                        Analysis Failed
+                                    </span>
+                                )
+                            };
+                        case 'cancelled':
+                            return {
+                                class: 'inactive',
+                                icon: <Ban size={12} />,
+                                text: 'Cancelled'
+                            };
                         case 'failed':
-                            return { class: 'error', icon: <X size={12} />, text: 'Failed' };
+                            // Fallback for old/generic failures
+                            return {
+                                class: 'error',
+                                icon: <X size={12} />,
+                                text: (
+                                    <span className="tooltip-wrapper tooltip-bottom" data-tooltip={row.errorMessage || 'Unknown error'}>
+                                        Failed
+                                    </span>
+                                )
+                            };
                         default:
                             return { class: 'inactive', icon: <Clock size={12} />, text: status };
                     }
@@ -245,12 +351,53 @@ const DocumentList: React.FC = () => {
             header: 'Actions',
             render: (_: any, row: DocumentListItem) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
+                    {/* Retry Button */}
+                    {(row.status === 'failed' || row.status === 'ai_failed' || row.status === 'upload_failed' || row.status === 'cancelled') && (
+                        <span className="tooltip-wrapper" data-tooltip="Retry Analysis">
+                            <button
+                                onClick={() => handleReanalyze(row.id)}
+                                className="action-btn activate"
+                            >
+                                <RefreshCw size={14} />
+                            </button>
+                        </span>
+                    )}
+
+                    {/* Cancel Button */}
+                    {(row.status === 'analyzing' || row.status === 'ai_queued') && (
+                        <span className="tooltip-wrapper" data-tooltip="Cancel Analysis">
+                            <button
+                                onClick={() => handleCancel(row.id)}
+                                className="action-btn delete"
+                            >
+                                <Ban size={14} />
+                            </button>
+                        </span>
+                    )}
+
                     {!row.isUploading && (
                         <>
-                            <span className="tooltip-wrapper" data-tooltip="View Details">
+                            <span className="tooltip-wrapper" data-tooltip={
+                                row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed'
+                                    ? "Upload in progress or failed"
+                                    : "View Details"
+                            }>
                                 <button
-                                    className="action-btn edit"
-                                    onClick={() => navigate(`/documents/${row.id}`)}
+                                    className={`action-btn edit ${row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed'
+                                        ? 'disabled'
+                                        : ''
+                                        }`}
+                                    onClick={() => {
+                                        if (row.status !== 'queued' && row.status !== 'uploading' && row.status !== 'upload_failed') {
+                                            navigate(`/documents/${row.id}`);
+                                        }
+                                    }}
+                                    disabled={row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed'}
+                                    style={
+                                        row.status === 'queued' || row.status === 'uploading' || row.status === 'upload_failed'
+                                            ? { opacity: 0.5, cursor: 'not-allowed' }
+                                            : {}
+                                    }
                                 >
                                     <Eye size={14} />
                                 </button>
@@ -258,6 +405,22 @@ const DocumentList: React.FC = () => {
                             <span className="tooltip-wrapper" data-tooltip="Download">
                                 <button
                                     className="action-btn activate"
+                                    onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                            const url = await documentService.getDocumentDownloadUrl(row.id);
+                                            const link = window.document.createElement('a');
+                                            link.href = url;
+                                            link.setAttribute('download', row.originalFilename || row.name);
+                                            link.setAttribute('target', '_blank');
+                                            link.setAttribute('rel', 'noopener noreferrer');
+                                            window.document.body.appendChild(link);
+                                            link.click();
+                                            window.document.body.removeChild(link);
+                                        } catch (error) {
+                                            setToast({ message: "Failed to verify download", type: "error" });
+                                        }
+                                    }}
                                 >
                                     <Download size={14} />
                                 </button>
@@ -271,15 +434,18 @@ const DocumentList: React.FC = () => {
                                 </button>
                             </span>
                         </>
-                    )}
-                    {row.isUploading && (
-                        <span className="tooltip-wrapper" data-tooltip="Uploading...">
-                            <button className="action-btn" disabled>
-                                <Clock size={14} />
-                            </button>
-                        </span>
-                    )}
-                </div>
+                    )
+                    }
+                    {
+                        row.isUploading && (
+                            <span className="tooltip-wrapper" data-tooltip="Uploading...">
+                                <button className="action-btn" disabled>
+                                    <Clock size={14} />
+                                </button>
+                            </span>
+                        )
+                    }
+                </div >
             )
         }
     ];
@@ -287,7 +453,10 @@ const DocumentList: React.FC = () => {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>Documents</h1>
+                <h1 className={styles.title}>
+                    <FileText size={20} />
+                    Documents
+                </h1>
                 <button
                     className={styles.uploadButton}
                     onClick={() => navigate('/documents/upload')}
@@ -354,20 +523,38 @@ const DocumentList: React.FC = () => {
             ) : (
                 <Table
                     columns={columns}
-                    data={[
-                        ...uploadingDocs
+                    data={(() => {
+                        const uploading = uploadingDocs
                             .filter((doc: any) => !documents.find(d => String(d.id) === String(doc.documentId)))
                             .map((doc: any) => ({
                                 id: doc.tempId,
                                 name: doc.filename,
+                                originalFilename: doc.filename,
                                 type: doc.filename.split('.').pop()?.toUpperCase() || 'FILE',
                                 size: doc.fileSize / (1024 * 1024),
                                 uploadedAt: doc.createdAt,
                                 status: doc.status,
                                 isUploading: true
-                            })),
-                        ...documents
-                    ]}
+                            }));
+
+                        // Combine and deduplicate by ID just in case
+                        const combined = [...uploading, ...documents];
+                        const uniqueMap = new Map();
+                        combined.forEach(item => {
+                            // If user sees duplicates, it might be due to tempId vs real ID confusion or logic gaps.
+                            // We prefer 'documents' (backend) items over 'uploading' (store) items if possible, 
+                            // but we already filtered uploading above.
+                            // Key issue: if an uploading item has NO documentId yet, it uses tempId.
+                            // If it HAS documentId, we matched it against documents.
+                            // So duplicates might be strictly within 'documents' (unlikely) or 'uploadingDocs' (possible).
+
+                            // Use a composite key or just ensure we don't show same file twice?
+                            // Safest: Map by unique ID.
+                            uniqueMap.set(item.id, item);
+                        });
+
+                        return Array.from(uniqueMap.values());
+                    })()}
                 />
             )}
 
@@ -382,6 +569,14 @@ const DocumentList: React.FC = () => {
                 type="danger"
                 loading={deleting}
             />
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 };

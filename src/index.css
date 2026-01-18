@@ -1,3 +1,6 @@
+/* Import CSS variables */
+@import './styles/tokens/colors.css';
+
 /* Global font styles - Inter for all components except login pages */
 * {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

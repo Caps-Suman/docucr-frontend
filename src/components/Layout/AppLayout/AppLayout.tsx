@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2 } from 'lucide-react';
+import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText } from 'lucide-react';
 import authService from '../../../services/auth.service';
 import Sidebar from '../../Sidebar/Sidebar';
 import './AppLayout.css';
@@ -19,14 +19,26 @@ const AppLayout: React.FC = () => {
 
     const getBreadcrumbs = () => {
         const path = location.pathname;
+
         if (path === '/dashboard') return [{ icon: Home, label: 'Dashboard' }];
         if (path === '/profile') return [{ icon: User, label: 'Profile' }];
         if (path === '/users-permissions') return [{ icon: Shield, label: 'User & Permission' }];
-        if (path === '/documents') return [{ icon: LayoutDashboard, label: 'Documents' }];
-        if (path === '/templates') return [{ icon: LayoutDashboard, label: 'Templates' }];
-        if (path === '/sops') return [{ icon: LayoutDashboard, label: 'SOPs' }];
-        if (path === '/clients') return [{ icon: LayoutDashboard, label: 'Clients' }];
-        if (path === '/settings') return [{ icon: LayoutDashboard, label: 'Settings' }];
+
+        if (path.startsWith('/documents')) {
+            const crumbs = [{ icon: LayoutDashboard, label: 'Documents' }];
+            if (path.includes('/upload')) {
+                crumbs.push({ icon: FileText, label: 'Upload' });
+            } else if (path !== '/documents') {
+                crumbs.push({ icon: FileText, label: 'Document Details' });
+            }
+            return crumbs;
+        }
+
+        if (path.startsWith('/templates')) return [{ icon: LayoutDashboard, label: 'Templates' }];
+        if (path.startsWith('/sops')) return [{ icon: LayoutDashboard, label: 'SOPs' }];
+        if (path.startsWith('/clients')) return [{ icon: LayoutDashboard, label: 'Clients' }];
+        if (path.startsWith('/settings')) return [{ icon: LayoutDashboard, label: 'Settings' }];
+
         return [{ icon: Home, label: 'Dashboard' }];
     };
 
@@ -40,12 +52,12 @@ const AppLayout: React.FC = () => {
     useEffect(() => {
         const currentUser = authService.getUser();
         setUser(currentUser);
-        
+
         // Fetch user's role count
         if (currentUser?.email) {
             fetchUserRoleCount(currentUser.email);
         }
-        
+
         // Apply saved theme on mount
         document.documentElement.classList.toggle('dark', isDarkMode);
     }, [isDarkMode]);
@@ -109,8 +121,8 @@ const AppLayout: React.FC = () => {
                                 <Shield size={16} />
                                 <span>{formatRoleName(user.role.name)}</span>
                                 {userRoleCount > 1 && (
-                                    <button 
-                                        className="role-edit-btn" 
+                                    <button
+                                        className="role-edit-btn"
                                         onClick={() => {
                                             navigate('/login', { state: { showRoleSelection: true } });
                                         }}
@@ -126,8 +138,8 @@ const AppLayout: React.FC = () => {
                             <span>{user?.first_name || user?.email || 'User'}</span>
                         </div>
                         <div className="logout-container" ref={logoutRef}>
-                            <button 
-                                className="logout-btn" 
+                            <button
+                                className="logout-btn"
                                 onClick={() => setShowLogoutTray(!showLogoutTray)}
                             >
                                 <Power size={18} />

@@ -16,6 +16,7 @@ import FormBuilder from './components/FormBuilder/FormBuilder';
 import ClientManagement from './components/ClientManagement/ClientManagement';
 import DocumentTemplate from './components/DocumentTemplate/DocumentTemplate';
 import CreateTemplate from './components/DocumentTemplate/TemplateManagement/CreateTemplate';
+import Settings from './components/Settings/Settings';
 
 const DefaultComponent: React.FC = () => (
   <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -84,7 +85,7 @@ const App: React.FC = () => {
           <Route index element={<ClientManagement />} />
         </Route>
         <Route path="/settings" element={<AppLayout />}>
-          <Route index element={<DefaultComponent />} />
+          <Route index element={<Settings />} />
         </Route>
         <Route path="/profile" element={<AppLayout />}>
           <Route index element={<Profile />} />

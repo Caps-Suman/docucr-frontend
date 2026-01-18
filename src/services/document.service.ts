@@ -22,11 +22,19 @@ export interface DocumentUploadResponse {
 }
 
 class DocumentService {
-    async uploadDocuments(files: File[]): Promise<DocumentUploadResponse[]> {
+    async uploadDocuments(files: File[], aiParams?: { enableAI: boolean; documentTypeId?: string; templateId?: string; formId?: string; customFormData?: any }): Promise<DocumentUploadResponse[]> {
         const formData = new FormData();
         files.forEach(file => {
             formData.append('files', file);
         });
+
+        if (aiParams) {
+            formData.append('enable_ai', String(aiParams.enableAI));
+            if (aiParams.documentTypeId) formData.append('document_type_id', aiParams.documentTypeId);
+            if (aiParams.templateId) formData.append('template_id', aiParams.templateId);
+            if (aiParams.formId) formData.append('form_id', aiParams.formId);
+            if (aiParams.customFormData) formData.append('form_data', JSON.stringify(aiParams.customFormData));
+        }
 
         const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
             method: 'POST',
@@ -41,6 +49,28 @@ class DocumentService {
         }
 
         return response.json();
+    }
+
+    async getDocumentFormData(id: string): Promise<any> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${id}/form-data`);
+        if (!response.ok) {
+            // It's possible there is no form data, handle gracefully or throw?
+            // If 404 on the document itself, throw. If 200 with empty data, return.
+            // Our backend returns {data: {}, form_id: null} if no relation, providing doc exists.
+            throw new Error('Failed to fetch form data');
+        }
+        return response.json();
+    }
+
+    async updateDocumentFormData(id: string, data: any): Promise<void> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${id}/form-data`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update form data');
+        }
     }
 
     async getDocuments(skip: number = 0, limit: number = 100): Promise<Document[]> {
@@ -62,6 +92,25 @@ class DocumentService {
             throw new Error('Failed to delete document');
         }
     }
+    async cancelDocumentAnalysis(documentId: string): Promise<void> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${documentId}/cancel`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to cancel analysis');
+        }
+    }
+
+    async reanalyzeDocument(documentId: string): Promise<void> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${documentId}/reanalyze`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to start re-analysis');
+        }
+    }
 
     createWebSocketConnection(userId: string, onMessage: (data: any) => void): WebSocket {
         const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/api/documents/ws/${userId}`;
@@ -77,6 +126,41 @@ class DocumentService {
         };
 
         return ws;
+    }
+
+    async getDocument(id: string): Promise<any> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${id}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch document details');
+        }
+        return response.json();
+    }
+
+    async getDocumentPreviewUrl(id: string): Promise<string> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${id}/preview-url`);
+        if (!response.ok) {
+            throw new Error('Failed to get preview URL');
+        }
+        const data = await response.json();
+        return data.url;
+    }
+
+    async getDocumentDownloadUrl(id: string): Promise<string> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${id}/download-url`);
+        if (!response.ok) {
+            throw new Error('Failed to get download URL');
+        }
+        const data = await response.json();
+        return data.url;
+    }
+
+    async getDocumentReportUrl(id: string): Promise<string> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${id}/report-url`);
+        if (!response.ok) {
+            throw new Error('Failed to get report URL');
+        }
+        const data = await response.json();
+        return data.url;
     }
 }
 
