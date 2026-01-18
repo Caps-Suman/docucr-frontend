@@ -190,14 +190,14 @@ const DocumentTypeManagement: React.FC = () => {
                             </button>
                         </span>
                     )}
-                    <span className="tooltip-wrapper" data-tooltip="Delete">
+                    {/* <span className="tooltip-wrapper" data-tooltip="Delete">
                         <button
                             className={styles.deleteButton}
                             onClick={() => handleDelete(row)}
                         >
                             <Trash2 size={16} />
                         </button>
-                    </span>
+                    </span> */}
                 </div>
             )
         }

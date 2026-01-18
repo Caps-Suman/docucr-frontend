@@ -158,6 +158,27 @@
     cursor: not-allowed;
 }
 
+.shareButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0f9ff;
+    color: #0c4a6e;
+    border: 1px solid #0ea5e9;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.shareButton:hover {
+    background: #0ea5e9;
+    color: white;
+}
+
 .checkbox {
     width: 16px;
     height: 16px;
@@ -620,6 +641,11 @@
     color: #6366f1;
 }
 
+.iconShared {
+    background-color: #f0f9ff;
+    color: #0ea5e9;
+}
+
 .iconArchived {
     background-color: #f3f4f6;
     color: #6b7280;
@@ -757,6 +783,17 @@
     color: #011926 !important;
 }
 
+:global(.dark) .shareButton {
+    background: #0c4a6e;
+    color: #bae6fd;
+    border-color: #0ea5e9;
+}
+
+:global(.dark) .shareButton:hover {
+    background: #0ea5e9;
+    color: white;
+}
+
 :global(.dark) .iconTotal {
     background-color: #1e3a8a;
     color: #93c5fd;
@@ -775,6 +812,11 @@
 :global(.dark) .iconUploading {
     background-color: #3730a3;
     color: #a5b4fc;
+}
+
+:global(.dark) .iconShared {
+    background-color: #0c4a6e;
+    color: #7dd3fc;
 }
 
 :global(.dark) .iconArchived {

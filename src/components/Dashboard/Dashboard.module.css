@@ -1,0 +1,151 @@
+.dashboardContainer {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.titleSection {
+    margin-bottom: 8px;
+}
+
+.titleSection h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.titleSection p {
+    color: #64748b;
+    margin: 4px 0 0 0;
+    font-size: 14px;
+}
+
+/* KPI Grid */
+.kpiGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.kpiCard {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f1f5f9;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.kpiCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.kpiIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kpiInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.kpiLabel {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+}
+
+.kpiValue {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 1px 0;
+}
+
+/* Actions Card */
+.actionsCard {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f1f5f9;
+}
+
+.actionsCard h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.actionButtons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.actionBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.actionBtn:hover {
+    background: #83cee4;
+}
+
+/* Dark Mode */
+:global(.dark) .kpiCard,
+:global(.dark) .actionsCard {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .titleSection h1 {
+    color: #f9fafb;
+}
+
+:global(.dark) .titleSection p,
+:global(.dark) .kpiLabel {
+    color: #9ca3af;
+}
+
+:global(.dark) .kpiValue,
+:global(.dark) .actionsCard h3 {
+    color: #f9fafb;
+}
+
+:global(.dark) .actionBtn {
+    background: #83cee4;
+    color: #011926;
+    border-color: #a5d8ea;
+}
+
+:global(.dark) .actionBtn:hover {
+    background: #a5d8ea;
+}

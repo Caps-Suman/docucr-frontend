@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Download, Trash2, FileText, Upload, CheckCircle, Clock, UploadCloud, X, Loader2, RefreshCw, Ban, Filter, Archive, ArchiveRestore } from 'lucide-react';
+import { Eye, Download, Trash2, FileText, Upload, CheckCircle, Clock, UploadCloud, X, Loader2, RefreshCw, Ban, Filter, Archive, ArchiveRestore, Share } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Loading from '../../Common/Loading';
 import ConfirmModal from '../../Common/ConfirmModal';
@@ -12,6 +12,7 @@ import documentListConfigService from '../../../services/documentListConfig.serv
 import clientService, { Client } from '../../../services/client.service';
 import documentTypeService, { DocumentType } from '../../../services/documentType.service';
 import { useUploadStore, uploadStore } from '../../../store/uploadStore';
+import ShareDocumentsModal from '../ShareDocumentsModal/ShareDocumentsModal';
 import styles from './DocumentList.module.css';
 import formService from '../../../services/form.service';
 
@@ -58,11 +59,12 @@ const DocumentList: React.FC = () => {
     const [formFields, setFormFields] = useState<any[]>([]);
     const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
     const [isDownloading, setIsDownloading] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     const [stats, setStats] = useState({
         total: 0,
         processed: 0,
         processing: 0,
-        uploading: 0,
+        sharedWithMe: 0,
         archived: 0
     });
 
@@ -885,14 +887,23 @@ const DocumentList: React.FC = () => {
                             )}
                         </button>
                         {selectedDocuments.size > 0 && (
-                            <button
-                                className={styles.downloadButton}
-                                onClick={handleBulkDownload}
-                                disabled={isDownloading}
-                            >
-                                <Download size={16} />
-                                {isDownloading ? 'Downloading...' : `Download ZIP (${selectedDocuments.size})`}
-                            </button>
+                            <>
+                                <button
+                                    className={styles.shareButton}
+                                    onClick={() => setShowShareModal(true)}
+                                >
+                                    <Share size={16} />
+                                    Share ({selectedDocuments.size})
+                                </button>
+                                <button
+                                    className={styles.downloadButton}
+                                    onClick={handleBulkDownload}
+                                    disabled={isDownloading}
+                                >
+                                    <Download size={16} />
+                                    {isDownloading ? 'Downloading...' : `Download ZIP (${selectedDocuments.size})`}
+                                </button>
+                            </>
                         )}
                         <button
                             className={styles.uploadButton}
@@ -988,14 +999,14 @@ const DocumentList: React.FC = () => {
                     </div>
                 </div>
                 <div className={styles.statCard}>
-                    <div className={`${styles.statIcon} ${styles.iconUploading}`}>
-                        <UploadCloud size={16} />
+                    <div className={`${styles.statIcon} ${styles.iconShared}`}>
+                        <Share size={16} />
                     </div>
                     <div className={styles.statInfo}>
                         <span className={styles.statValue}>
-                            {stats.uploading}
+                            {stats.sharedWithMe}
                         </span>
-                        <span className={styles.statLabel}>Uploading</span>
+                        <span className={styles.statLabel}>Shared with Me</span>
                     </div>
                 </div>
                 <div className={styles.statCard}>
@@ -1095,6 +1106,16 @@ const DocumentList: React.FC = () => {
                     onClose={() => setToast(null)}
                 />
             )}
+
+            <ShareDocumentsModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                documentIds={Array.from(selectedDocuments)}
+                onShare={() => {
+                    setToast({ message: 'Documents shared successfully', type: 'success' });
+                    setSelectedDocuments(new Set());
+                }}
+            />
 
             {/* Filter Offcanvas */}
             <div className={`${styles.offcanvas} ${showFilters ? styles.offcanvasOpen : ''}`}>

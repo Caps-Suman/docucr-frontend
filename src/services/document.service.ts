@@ -93,7 +93,7 @@ class DocumentService {
         total: number;
         processed: number;
         processing: number;
-        uploading: number;
+        sharedWithMe: number;
         archived: number;
     }> {
         const response = await apiClient(`${API_BASE_URL}/api/documents/stats`);

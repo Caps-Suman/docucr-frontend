@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import authService from '../services/auth.service';
+import AdminDashboard from '../components/Dashboard/AdminDashboard';
+import UserDashboard from '../components/Dashboard/UserDashboard';
 
 const Home: React.FC = () => {
+    const [userRole, setUserRole] = useState<string | null>(null);
+
+    useEffect(() => {
+        const user = authService.getUser();
+        if (user && user.role) {
+            setUserRole(user.role.name);
+        }
+    }, []);
+
+    const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+
     return (
-        <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>Overview</h1>
-            <div style={{ background: 'white', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <p>Welcome to the dashboard foundation.</p>
-            </div>
+        <div style={{ height: '100%', overflowY: 'auto' }}>
+            {isAdmin ? <AdminDashboard /> : <UserDashboard />}
         </div>
     );
 };

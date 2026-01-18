@@ -1,25 +1,20 @@
-import React, { useState } from 'react';
-import { Webhook, Plus, Trash2, Edit, Save, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Webhook, Plus, Trash2, Edit, Save, X, Loader2 } from 'lucide-react';
 import Toast, { ToastType } from '../../Common/Toast';
+import webhookService, { WebhookConfig } from '../../../services/webhook.service';
 import styles from './WebhookSettings.module.css';
-
-interface WebhookConfig {
-    id: string;
-    name: string;
-    url: string;
-    events: string[];
-    active: boolean;
-}
 
 const WebhookSettings: React.FC = () => {
     const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
+    const [loading, setLoading] = useState(true);
     const [newWebhook, setNewWebhook] = useState<Partial<WebhookConfig>>({
         name: '',
         url: '',
         events: [],
-        active: true
+        is_active: true
     });
-    const [showAddForm, setShowAddForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [showForm, setShowForm] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const availableEvents = [
@@ -29,39 +24,71 @@ const WebhookSettings: React.FC = () => {
         'document.deleted'
     ];
 
-    const handleSave = () => {
+    useEffect(() => {
+        loadWebhooks();
+    }, []);
+
+    const loadWebhooks = async () => {
+        try {
+            const data = await webhookService.getWebhooks();
+            setWebhooks(data);
+        } catch (err) {
+            setToast({ message: 'Failed to load webhooks', type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
         if (!newWebhook.name || !newWebhook.url) {
             setToast({ message: 'Name and URL are required', type: 'error' });
             return;
         }
 
-        const webhook: WebhookConfig = {
-            id: Date.now().toString(),
-            name: newWebhook.name,
-            url: newWebhook.url,
-            events: newWebhook.events || [],
-            active: newWebhook.active || true
-        };
-
-        setWebhooks(prev => [...prev, webhook]);
-        setNewWebhook({ name: '', url: '', events: [], active: true });
-        setShowAddForm(false);
-        setToast({ message: 'Webhook added successfully', type: 'success' });
+        try {
+            if (editingId) {
+                await webhookService.updateWebhook(editingId, newWebhook);
+                setToast({ message: 'Webhook updated successfully', type: 'success' });
+            } else {
+                await webhookService.createWebhook(newWebhook);
+                setToast({ message: 'Webhook added successfully', type: 'success' });
+            }
+            setShowForm(false);
+            setEditingId(null);
+            setNewWebhook({ name: '', url: '', events: [], is_active: true });
+            loadWebhooks();
+        } catch (err) {
+            setToast({ message: 'Failed to save webhook', type: 'error' });
+        }
     };
 
-    const handleDelete = (id: string) => {
-        setWebhooks(prev => prev.filter(w => w.id !== id));
-        setToast({ message: 'Webhook deleted', type: 'success' });
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('Are you sure you want to delete this webhook?')) return;
+        try {
+            await webhookService.deleteWebhook(id);
+            setToast({ message: 'Webhook deleted', type: 'success' });
+            loadWebhooks();
+        } catch (err) {
+            setToast({ message: 'Failed to delete webhook', type: 'error' });
+        }
+    };
+
+    const handleEdit = (webhook: WebhookConfig) => {
+        setNewWebhook(webhook);
+        setEditingId(webhook.id);
+        setShowForm(true);
     };
 
     const toggleEvent = (event: string) => {
         setNewWebhook(prev => ({
             ...prev,
-            events: prev.events?.includes(event) 
+            events: prev.events?.includes(event)
                 ? prev.events.filter(e => e !== event)
                 : [...(prev.events || []), event]
         }));
     };
+
+    if (loading) return <div className={styles.loading}><Loader2 className="animate-spin" /> Loading webhooks...</div>;
 
     return (
         <div className={styles.container}>
@@ -72,18 +99,24 @@ const WebhookSettings: React.FC = () => {
                         Configure webhooks to receive notifications when document events occur.
                     </p>
                 </div>
-                <button 
-                    className={styles.addButton}
-                    onClick={() => setShowAddForm(true)}
-                >
-                    <Plus size={16} />
-                    Add Webhook
-                </button>
+                {!showForm && (
+                    <button
+                        className={styles.addButton}
+                        onClick={() => {
+                            setShowForm(true);
+                            setEditingId(null);
+                            setNewWebhook({ name: '', url: '', events: [], is_active: true });
+                        }}
+                    >
+                        <Plus size={16} />
+                        Add Webhook
+                    </button>
+                )}
             </div>
 
-            {showAddForm && (
+            {showForm && (
                 <div className={styles.addForm}>
-                    <h3>Add New Webhook</h3>
+                    <h3>{editingId ? 'Edit Webhook' : 'Add New Webhook'}</h3>
                     <div className={styles.formGrid}>
                         <div className={styles.formGroup}>
                             <label>Name</label>
@@ -104,7 +137,7 @@ const WebhookSettings: React.FC = () => {
                             />
                         </div>
                     </div>
-                    
+
                     <div className={styles.formGroup}>
                         <label>Events</label>
                         <div className={styles.eventGrid}>
@@ -121,14 +154,25 @@ const WebhookSettings: React.FC = () => {
                         </div>
                     </div>
 
+                    <div className={styles.formGroup}>
+                        <label className={styles.eventCheckbox}>
+                            <input
+                                type="checkbox"
+                                checked={newWebhook.is_active || false}
+                                onChange={(e) => setNewWebhook(prev => ({ ...prev, is_active: e.target.checked }))}
+                            />
+                            Active
+                        </label>
+                    </div>
+
                     <div className={styles.formActions}>
-                        <button className={styles.cancelButton} onClick={() => setShowAddForm(false)}>
+                        <button className={styles.cancelButton} onClick={() => setShowForm(false)}>
                             <X size={16} />
                             Cancel
                         </button>
                         <button className={styles.saveButton} onClick={handleSave}>
                             <Save size={16} />
-                            Save Webhook
+                            {editingId ? 'Update Webhook' : 'Save Webhook'}
                         </button>
                     </div>
                 </div>
@@ -156,13 +200,13 @@ const WebhookSettings: React.FC = () => {
                                 </div>
                             </div>
                             <div className={styles.webhookActions}>
-                                <span className={`${styles.status} ${webhook.active ? styles.active : styles.inactive}`}>
-                                    {webhook.active ? 'Active' : 'Inactive'}
+                                <span className={`${styles.status} ${webhook.is_active ? styles.active : styles.inactive}`}>
+                                    {webhook.is_active ? 'Active' : 'Inactive'}
                                 </span>
-                                <button className={styles.actionButton}>
+                                <button className={styles.actionButton} onClick={() => handleEdit(webhook)}>
                                     <Edit size={16} />
                                 </button>
-                                <button 
+                                <button
                                     className={styles.deleteButton}
                                     onClick={() => handleDelete(webhook.id)}
                                 >

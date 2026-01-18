@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, RefreshCw, Trash2, FileText, Calendar, HardDrive, Maximize2, Loader2, AlertCircle, Edit3, Save, X, Archive, ArchiveRestore } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw, Trash2, FileText, Calendar, HardDrive, Maximize2, Loader2, AlertCircle, Edit3, Save, X, Archive, ArchiveRestore, Share, FileSpreadsheet } from 'lucide-react';
 import documentService from '../../../services/document.service';
 import authService from '../../../services/auth.service';
 import Toast, { ToastType } from '../../Common/Toast';
@@ -9,6 +9,7 @@ import clientService from '../../../services/client.service';
 import documentTypeService from '../../../services/documentType.service';
 import ConfirmModal from '../../Common/ConfirmModal';
 import CommonDropdown from '../../Common/CommonDropdown';
+import ShareDocumentsModal from '../ShareDocumentsModal/ShareDocumentsModal';
 import styles from './DocumentDetail.module.css';
 
 interface DocumentDetailData {
@@ -77,6 +78,7 @@ const DocumentDetail: React.FC = () => {
     const [isReanalyzing, setIsReanalyzing] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     const getBadgeClass = (index: number) => {
         const badgeNumber = index % 20;
@@ -268,82 +270,95 @@ const DocumentDetail: React.FC = () => {
                 </div>
 
                 <div className={styles.headerActions}>
-                    <button
-                        className={`${styles.actionButton} ${isReanalyzing ? 'disabled' : ''}`}
-                        onClick={handleReanalyze}
-                        disabled={isReanalyzing}
-                    >
-                        <RefreshCw size={16} className={isReanalyzing ? styles.animateSpin : ''} />
-                        {isReanalyzing ? 'Re-analyzing...' : 'Re-analyze'}
-                    </button>
-                    <button
-                        className={styles.actionButton}
-                        onClick={async () => {
-                            try {
-                                if (!id) return;
-                                const url = await documentService.getDocumentDownloadUrl(id);
-                                const link = window.document.createElement('a');
-                                link.href = url;
-                                link.setAttribute('download', document.original_filename);
-                                window.document.body.appendChild(link);
-                                link.click();
-                                window.document.body.removeChild(link);
-                            } catch (error) {
-                                setToast({ message: "Failed to verify download", type: "error" });
-                            }
-                        }}
-                    >
-                        <Download size={16} />
-                        Download
-                    </button>
-                    {document.analysis_report_s3_key && (
+                    <span className="tooltip-wrapper" data-tooltip={isReanalyzing ? 'Re-analyzing...' : 'Re-analyze'}>
                         <button
-                            className={`${styles.actionButton} ${styles.primaryAction}`}
+                            className={`${styles.actionButton} ${isReanalyzing ? 'disabled' : ''}`}
+                            onClick={handleReanalyze}
+                            disabled={isReanalyzing}
+                        >
+                            <RefreshCw size={16} className={isReanalyzing ? styles.animateSpin : ''} />
+                        </button>
+                    </span>
+                    <span className="tooltip-wrapper" data-tooltip="Share">
+                        <button
+                            className={styles.actionButton}
+                            onClick={() => setShowShareModal(true)}
+                        >
+                            <Share size={16} />
+                        </button>
+                    </span>
+                    <span className="tooltip-wrapper" data-tooltip="Download">
+                        <button
+                            className={styles.actionButton}
                             onClick={async () => {
                                 try {
                                     if (!id) return;
-                                    const url = await documentService.getDocumentReportUrl(id);
+                                    const url = await documentService.getDocumentDownloadUrl(id);
                                     const link = window.document.createElement('a');
                                     link.href = url;
-                                    // Filename is handled by Content-Disposition, but good to add attribute
-                                    link.setAttribute('download', `analysis_report_${document.filename}.xlsx`);
+                                    link.setAttribute('download', document.original_filename);
                                     window.document.body.appendChild(link);
                                     link.click();
                                     window.document.body.removeChild(link);
                                 } catch (error) {
-                                    setToast({ message: "Failed to download report", type: "error" });
+                                    setToast({ message: "Failed to verify download", type: "error" });
                                 }
                             }}
                         >
                             <Download size={16} />
-                            Report
                         </button>
+                    </span>
+                    {document.analysis_report_s3_key && (
+                        <span className="tooltip-wrapper" data-tooltip="Download Report">
+                            <button
+                                className={`${styles.actionButton} ${styles.primaryAction}`}
+                                onClick={async () => {
+                                    try {
+                                        if (!id) return;
+                                        const url = await documentService.getDocumentReportUrl(id);
+                                        const link = window.document.createElement('a');
+                                        link.href = url;
+                                        link.setAttribute('download', `analysis_report_${document.filename}.xlsx`);
+                                        window.document.body.appendChild(link);
+                                        link.click();
+                                        window.document.body.removeChild(link);
+                                    } catch (error) {
+                                        setToast({ message: "Failed to download report", type: "error" });
+                                    }
+                                }}
+                            >
+                                <FileSpreadsheet size={16} />
+                            </button>
+                        </span>
                     )}
                     {!document.is_archived && (
-                        <button
-                            className={styles.actionButton}
-                            onClick={handleArchive}
-                        >
-                            <Archive size={16} />
-                            Archive
-                        </button>
+                        <span className="tooltip-wrapper" data-tooltip="Archive">
+                            <button
+                                className={styles.actionButton}
+                                onClick={handleArchive}
+                            >
+                                <Archive size={16} />
+                            </button>
+                        </span>
                     )}
                     {document.is_archived && (
-                        <button
-                            className={`${styles.actionButton} ${styles.primaryAction}`}
-                            onClick={handleUnarchive}
-                        >
-                            <ArchiveRestore size={16} />
-                            Unarchive
-                        </button>
+                        <span className="tooltip-wrapper" data-tooltip="Unarchive">
+                            <button
+                                className={`${styles.actionButton} ${styles.primaryAction}`}
+                                onClick={handleUnarchive}
+                            >
+                                <ArchiveRestore size={16} />
+                            </button>
+                        </span>
                     )}
-                    <button
-                        className={`${styles.actionButton} ${styles.deleteAction}`}
-                        onClick={() => setShowDeleteModal(true)}
-                    >
-                        <Trash2 size={16} />
-                        Delete
-                    </button>
+                    <span className="tooltip-wrapper" data-tooltip="Delete">
+                        <button
+                            className={`${styles.actionButton} ${styles.deleteAction}`}
+                            onClick={() => setShowDeleteModal(true)}
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </span>
                 </div>
             </div>
 
@@ -414,6 +429,15 @@ const DocumentDetail: React.FC = () => {
                 />
             )}
 
+
+            <ShareDocumentsModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                documentIds={id ? [id] : []}
+                onShare={() => {
+                    setToast({ message: 'Document shared successfully', type: 'success' });
+                }}
+            />
 
             <ConfirmModal
                 isOpen={showDeleteModal}
