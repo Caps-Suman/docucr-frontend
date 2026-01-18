@@ -103,8 +103,8 @@ const UserModal: React.FC<UserModalProps> = ({
         
         if (middleName && middleName.length > 50) newErrors.middleName = 'Middle name cannot exceed 50 characters';
         
-        if (!initialData && !password.trim()) newErrors.password = 'Password is required';
-        else if (!initialData && password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+        if (!initialData?.id && !password.trim()) newErrors.password = 'Password is required';
+        else if (!initialData?.id && password.length < 6) newErrors.password = 'Password must be at least 6 characters';
         
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -139,7 +139,7 @@ const UserModal: React.FC<UserModalProps> = ({
             supervisor_id: selectedSupervisor || undefined
         };
         
-        if (!initialData) {
+        if (!initialData?.id) {
             data.password = password;
         }
         
@@ -245,7 +245,7 @@ const UserModal: React.FC<UserModalProps> = ({
                                         />
                                         {errors.lastName && <span className={styles.errorText}>{errors.lastName}</span>}
                                     </div>
-                                    {!initialData && (
+                                    {!initialData?.id && (
                                         <div className={styles.formGroup}>
                                             <label className={styles.label}>Password *</label>
                                             <input

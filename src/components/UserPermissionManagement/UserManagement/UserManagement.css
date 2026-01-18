@@ -20,6 +20,43 @@
     gap: 12px;
 }
 
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.stat-card.selected {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Specific border colors for selected state */
+.stat-card.blue.selected {
+    border: 2px solid #93c5fd;
+}
+
+/* blue-300 */
+.stat-card.green.selected {
+    border: 2px solid #6ee7b7;
+}
+
+/* emerald-300 */
+.stat-card.red.selected {
+    border: 2px solid #fca5a5;
+}
+
+/* red-300 */
+.stat-card.orange.selected {
+    border: 2px solid #fdba74;
+}
+
+/* orange-300 */
+.stat-card.purple.selected {
+    border: 2px solid #c4b5fd;
+}
+
+/* violet-300 */
+
 .stat-icon {
     width: 32px;
     height: 32px;
@@ -150,11 +187,9 @@
     background-color: #fee2e2;
 }
 
-/* Dark mode styles */
-.dark .management-content {
-    /* No specific styles needed */
-}
 
+
+/* Dark mode styles */
 .dark .stat-card {
     background: #1f2937;
     border-color: #374151;

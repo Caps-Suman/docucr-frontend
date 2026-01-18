@@ -20,6 +20,47 @@
     gap: 12px;
 }
 
+.statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.statCard.selected {
+    /* ring: 2px solid #3b82f6; /* Blue ring */
+    /* 'ring' is not a standard CSS property, assuming it's a placeholder for border or box-shadow */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 2px solid currentColor;
+    /* Uses the color of the text/icon if possible, or explicit color */
+}
+
+/* Specific border colors for selected state */
+.statCard.blue.selected {
+    border: 2px solid #93c5fd;
+}
+
+/* blue-300 */
+.statCard.green.selected {
+    border: 2px solid #6ee7b7;
+}
+
+/* emerald-300 */
+.statCard.red.selected {
+    border: 2px solid #fca5a5;
+}
+
+/* red-300 */
+.statCard.orange.selected {
+    border: 2px solid #fdba74;
+}
+
+/* orange-300 */
+.statCard.purple.selected {
+    border: 2px solid #c4b5fd;
+}
+
+/* violet-300 */
+
 .statIcon {
     width: 32px;
     height: 32px;

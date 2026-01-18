@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Download, Trash2, FileText, Upload, CheckCircle, Clock, UploadCloud, X, Loader2, RefreshCw, Ban } from 'lucide-react';
+import { Eye, Download, Trash2, FileText, Upload, CheckCircle, Clock, UploadCloud, X, Loader2, RefreshCw, Ban, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import Loading from '../../Common/Loading';
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
+import CommonDropdown from '../../Common/CommonDropdown';
 import documentService from '../../../services/document.service';
 import authService from '../../../services/auth.service';
 import documentListConfigService from '../../../services/documentListConfig.service';
@@ -11,6 +14,7 @@ import clientService, { Client } from '../../../services/client.service';
 import documentTypeService, { DocumentType } from '../../../services/documentType.service';
 import { useUploadStore, uploadStore } from '../../../store/uploadStore';
 import styles from './DocumentList.module.css';
+import formService from '../../../services/form.service';
 
 interface DocumentListItem {
     id: string;
@@ -40,17 +44,77 @@ const DocumentList: React.FC = () => {
     const wsRef = useRef<WebSocket | null>(null);
     const uploadingDocs = useUploadStore().uploadingDocs;
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState<Record<string, any>>({
+        status: '',
+        dateFrom: null,
+        dateTo: null
+    });
+    const [activeFilters, setActiveFilters] = useState<Record<string, any>>({
+        status: '',
+        dateFrom: null,
+        dateTo: null
+    });
+    const [formFields, setFormFields] = useState<any[]>([]);
+
+    const activeFilterCount = Object.entries(activeFilters).filter(([key, value]) => {
+        if (key === 'dateFrom' || key === 'dateTo') {
+            return value !== null;
+        }
+        return value !== '' && value !== null && value !== undefined;
+    }).length;
+
+    const handleApplyFilters = () => {
+        setActiveFilters(filters);
+        setShowFilters(false);
+    };
+
+    const handleResetFilters = () => {
+        const resetState: Record<string, any> = { status: '', dateFrom: null, dateTo: null };
+        // Reset all dynamic form fields
+        columnConfig.filter(col => !col.isSystem && col.id.startsWith('form_')).forEach(col => {
+            resetState[col.id] = '';
+        });
+        setFilters(resetState);
+        setActiveFilters(resetState);
+    };
+
+
 
     useEffect(() => {
         loadDocuments();
         setupWebSocket();
+        loadMetadata();
 
         return () => {
             if (wsRef.current) {
                 wsRef.current.close();
             }
         };
-    }, []);
+    }, [activeFilters]);
+
+    const loadMetadata = async () => {
+        try {
+            const [clientsRes, docTypesRes, activeFormRes] = await Promise.all([
+                clientService.getClients(1, 1000).catch(() => ({ clients: [] })),
+                documentTypeService.getDocumentTypes(1, 1000).catch(() => []),
+                authService.getUser()?.role?.name !== 'super_admin' ? formService.getActiveForm().catch(() => null) : Promise.resolve(null)
+            ]);
+
+            // Handle different response formats safely
+            const clientList = Array.isArray(clientsRes) ? clientsRes : (clientsRes as any).clients || [];
+            const typeList = Array.isArray(docTypesRes) ? docTypesRes : (docTypesRes as any).document_types || [];
+
+            setClients(clientList);
+            setDocumentTypes(typeList);
+
+            if (activeFormRes && activeFormRes.fields) {
+                setFormFields(activeFormRes.fields);
+            }
+        } catch (err) {
+            console.error('Failed to load metadata for labels:', err);
+        }
+    };
 
     // Cleanup upload store for documents that are already present in the backend list
     useEffect(() => {
@@ -68,7 +132,25 @@ const DocumentList: React.FC = () => {
     }, [documents, uploadingDocs]);
     const loadDocuments = async () => {
         try {
-            const docs = await documentService.getDocuments();
+            setLoading(true);
+
+            // Prepare filters
+            const formFilters: Record<string, any> = {};
+            Object.entries(activeFilters).forEach(([key, value]) => {
+                if (key.startsWith('form_') && value) {
+                    formFilters[key.replace('form_', '')] = value;
+                }
+            });
+
+            const serviceFilters = {
+                status: activeFilters.status ? activeFilters.status.toUpperCase() : undefined,
+                dateFrom: activeFilters.dateFrom ? activeFilters.dateFrom.toISOString().split('T')[0] : undefined,
+                dateTo: activeFilters.dateTo ? activeFilters.dateTo.toISOString().split('T')[0] : undefined,
+                formFilters: Object.keys(formFilters).length > 0 ? formFilters : undefined
+            };
+
+            const docs = await documentService.getDocuments(serviceFilters);
+
             const formattedDocs = docs.map(doc => ({
                 id: doc.id,
                 name: doc.filename,
@@ -109,22 +191,6 @@ const DocumentList: React.FC = () => {
                     { id: 'status', label: 'Status', isSystem: true },
                     { id: 'actions', label: 'Actions', isSystem: true }
                 ]);
-            }
-
-            try {
-                const [clientsRes, docTypesRes] = await Promise.all([
-                    clientService.getClients(1, 1000).catch(() => ({ clients: [] })),
-                    documentTypeService.getDocumentTypes(1, 1000).catch(() => [])
-                ]);
-
-                // Handle different response formats safely
-                const clientList = Array.isArray(clientsRes) ? clientsRes : (clientsRes as any).clients || [];
-                const typeList = Array.isArray(docTypesRes) ? docTypesRes : (docTypesRes as any).document_types || [];
-
-                setClients(clientList);
-                setDocumentTypes(typeList);
-            } catch (err) {
-                console.error('Failed to load metadata for labels:', err);
             }
 
             setDocuments(prevNodes => {
@@ -605,13 +671,25 @@ const DocumentList: React.FC = () => {
                         </span>
                     </div>
                 </div>
-                <button
-                    className={styles.uploadButton}
-                    onClick={() => navigate('/documents/upload')}
-                >
-                    <Upload size={16} />
-                    Upload Document
-                </button>
+                <div className={styles.headerButtons}>
+                    <button
+                        className={styles.filterButton}
+                        onClick={() => setShowFilters(true)}
+                    >
+                        <Filter size={16} />
+                        Filters
+                        {activeFilterCount > 0 && (
+                            <span className={styles.filterBadge}>{activeFilterCount}</span>
+                        )}
+                    </button>
+                    <button
+                        className={styles.uploadButton}
+                        onClick={() => navigate('/documents/upload')}
+                    >
+                        <Upload size={16} />
+                        Upload Document
+                    </button>
+                </div>
             </div>
 
             <div className={styles.stats}>
@@ -703,8 +781,10 @@ const DocumentList: React.FC = () => {
                                 });
 
                                 const finalData = Array.from(uniqueMap.values());
+                                // Use finalData directly since filtering is now done on backend
+                                const filteredData = finalData;
 
-                                return finalData.map((row: any, index: number) => (
+                                return filteredData.map((row: any, index: number) => (
                                     <tr key={row.id || index}>
                                         {columns.map((column: any) => (
                                             <td key={column.key}>
@@ -741,6 +821,155 @@ const DocumentList: React.FC = () => {
                     onClose={() => setToast(null)}
                 />
             )}
+
+            {/* Filter Offcanvas */}
+            <div className={`${styles.offcanvas} ${showFilters ? styles.offcanvasOpen : ''}`}>
+                <div className={styles.offcanvasOverlay} onClick={() => setShowFilters(false)} />
+                <div className={styles.offcanvasContent}>
+                    <div className={styles.offcanvasHeader}>
+                        <h3>Filters</h3>
+                        <button className={styles.closeButton} onClick={() => setShowFilters(false)}>
+                            <X size={20} />
+                        </button>
+                    </div>
+                    <div className={styles.offcanvasBody}>
+                        <div className={styles.filterGroup}>
+                            <label>Status</label>
+                            <CommonDropdown
+                                value={filters.status}
+                                onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                                options={[
+                                    { value: '', label: 'All Statuses' },
+                                    { value: 'completed', label: 'Completed' },
+                                    { value: 'uploaded', label: 'Uploaded' },
+                                    { value: 'processing', label: 'Processing' },
+                                    { value: 'uploading', label: 'Uploading' },
+                                    { value: 'queued', label: 'Queued' },
+                                    { value: 'ai_queued', label: 'AI Queued' },
+                                    { value: 'analyzing', label: 'Analyzing' },
+                                    { value: 'failed', label: 'Failed' },
+                                    { value: 'ai_failed', label: 'AI Failed' },
+                                    { value: 'upload_failed', label: 'Upload Failed' },
+                                    { value: 'cancelled', label: 'Cancelled' }
+                                ]}
+                                size="md"
+                            />
+                        </div>
+                        <div className={styles.filterGroup}>
+                            <div className={styles.dateRow}>
+                                <div className={styles.dateField}>
+                                    <label>From</label>
+                                    <DatePicker
+                                        selected={filters.dateFrom}
+                                        onChange={(date: Date | null) => setFilters(prev => ({ ...prev, dateFrom: date }))}
+                                        className={styles.filterInput}
+                                        placeholderText="Select from date"
+                                        dateFormat="MMM d, yyyy"
+                                        isClearable
+                                        popperPlacement="bottom-start"
+                                    />
+                                </div>
+                                <div className={styles.dateField}>
+                                    <label>To</label>
+                                    <DatePicker
+                                        selected={filters.dateTo}
+                                        onChange={(date: Date | null) => setFilters(prev => ({ ...prev, dateTo: date }))}
+                                        className={styles.filterInput}
+                                        placeholderText="Select to date"
+                                        dateFormat="MMM d, yyyy"
+                                        isClearable
+                                        minDate={filters.dateFrom}
+                                        popperPlacement="bottom-start"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Dynamic Form Field Filters */}
+                        {columnConfig.filter(col => !col.isSystem && col.id.startsWith('form_')).map(col => {
+                            const fieldId = col.id.replace('form_', '');
+                            const isClientField = col.label.toLowerCase() === 'client';
+                            const isDocTypeField = col.label.toLowerCase().includes('document type');
+
+                            // Find field definition to check type and options
+                            const fieldDef = formFields.find(f => f.id === fieldId) || {};
+                            const isDateField = fieldDef.field_type === 'date' || col.type === 'date';
+                            const isDropdown = fieldDef.field_type === 'select' || fieldDef.field_type === 'dropdown' || col.type === 'select' || isClientField || isDocTypeField;
+
+                            let options: Array<{ value: string, label: string }> = [];
+
+                            if (isClientField) {
+                                options = clients.map(c => ({
+                                    value: c.id,
+                                    label: c.business_name || `${c.first_name} ${c.last_name}`
+                                }));
+                            } else if (isDocTypeField) {
+                                options = documentTypes.map(t => ({
+                                    value: t.id,
+                                    label: t.name
+                                }));
+                            } else if (isDropdown && fieldDef.options) {
+                                // Assume options are strings or {value, label} depending on backend
+                                // Based on formService, options is string[]? Let's assume string[] for now
+                                options = (fieldDef.options || []).map((opt: any) => ({
+                                    value: opt,
+                                    label: opt
+                                }));
+                            }
+
+                            return (
+                                <div className={styles.filterGroup} key={col.id}>
+                                    <label>{col.label}</label>
+
+                                    {isDateField ? (
+                                        <DatePicker
+                                            selected={filters[col.id] && typeof filters[col.id] === 'string' ? new Date(filters[col.id]) : filters[col.id]}
+                                            onChange={(date: Date | null) => setFilters(prev => ({ ...prev, [col.id]: date }))}
+                                            className={styles.filterInput}
+                                            placeholderText={`Select ${col.label.toLowerCase()}`}
+                                            dateFormat="MMM d, yyyy"
+                                            isClearable
+                                            popperPlacement="bottom-start"
+                                        />
+                                    ) : isDropdown ? (
+                                        <CommonDropdown
+                                            value={filters[col.id] || ''}
+                                            onChange={(value) => setFilters(prev => ({ ...prev, [col.id]: value }))}
+                                            options={[
+                                                { value: '', label: `All ${col.label}s` },
+                                                ...options
+                                            ]}
+                                            size="md"
+                                        />
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            className={styles.filterInput}
+                                            value={filters[col.id] || ''}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, [col.id]: e.target.value }))}
+                                            placeholder={`Filter by ${col.label}`}
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className={styles.offcanvasFooter}>
+                        <button
+                            className={styles.resetButton}
+                            onClick={handleResetFilters}
+                        >
+                            Reset
+                        </button>
+                        <button
+                            className={styles.applyButton}
+                            onClick={handleApplyFilters}
+                        >
+                            Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

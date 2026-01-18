@@ -51,6 +51,42 @@ class DocumentService {
         return response.json();
     }
 
+    async getDocuments(filterParams?: {
+        status?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        search?: string;
+        formFilters?: Record<string, any>;
+        skip?: number;
+        limit?: number;
+    }): Promise<Document[]> {
+        let url = `${API_BASE_URL}/api/documents/`;
+        const params = new URLSearchParams();
+
+        if (filterParams) {
+            if (filterParams.status) params.append('status_id', filterParams.status);
+            if (filterParams.dateFrom) params.append('date_from', filterParams.dateFrom);
+            if (filterParams.dateTo) params.append('date_to', filterParams.dateTo);
+            if (filterParams.search) params.append('search_query', filterParams.search);
+            if (filterParams.formFilters && Object.keys(filterParams.formFilters).length > 0) {
+                params.append('form_filters', JSON.stringify(filterParams.formFilters));
+            }
+            if (filterParams.skip !== undefined) params.append('skip', String(filterParams.skip));
+            if (filterParams.limit !== undefined) params.append('limit', String(filterParams.limit));
+        }
+
+        const queryString = params.toString();
+        if (queryString) {
+            url += `?${queryString}`;
+        }
+
+        const response = await apiClient(url);
+        if (!response.ok) {
+            throw new Error('Failed to fetch documents');
+        }
+        return response.json();
+    }
+
     async getDocumentFormData(id: string): Promise<any> {
         const response = await apiClient(`${API_BASE_URL}/api/documents/${id}/form-data`);
         if (!response.ok) {
@@ -73,15 +109,7 @@ class DocumentService {
         }
     }
 
-    async getDocuments(skip: number = 0, limit: number = 100): Promise<Document[]> {
-        const response = await apiClient(`${API_BASE_URL}/api/documents/?skip=${skip}&limit=${limit}`);
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch documents');
-        }
-
-        return response.json();
-    }
 
     async deleteDocument(documentId: string): Promise<void> {
         const response = await apiClient(`${API_BASE_URL}/api/documents/${documentId}`, {

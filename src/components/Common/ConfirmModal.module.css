@@ -28,6 +28,7 @@
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -59,6 +60,11 @@
 .iconDanger {
   background-color: #fee2e2;
   color: #ef4444;
+}
+
+.iconInfo {
+  background-color: #e0f2fe;
+  color: #0ea5e9;
 }
 
 .closeButton {
@@ -145,6 +151,15 @@
   background-color: #dc2626;
 }
 
+.confirmButtonInfo {
+  background-color: #0ea5e9;
+  color: white;
+}
+
+.confirmButtonInfo:hover {
+  background-color: #0284c7;
+}
+
 /* Dark mode */
 :global(.dark) .content {
   background: #1f2937;
@@ -158,6 +173,11 @@
 :global(.dark) .iconDanger {
   background-color: #7f1d1d;
   color: #f87171;
+}
+
+:global(.dark) .iconInfo {
+  background-color: #0c4a6e;
+  color: #38bdf8;
 }
 
 :global(.dark) .closeButton {

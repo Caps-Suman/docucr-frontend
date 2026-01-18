@@ -17,6 +17,12 @@ export interface Client {
     updated_at: string | null;
 }
 
+export interface ClientStats {
+    total_clients: number;
+    active_clients: number;
+    inactive_clients: number;
+}
+
 export interface ClientListResponse {
     clients: Client[];
     total: number;
@@ -36,14 +42,21 @@ export interface ClientCreateData {
     description?: string;
 }
 
-export interface ClientUpdateData extends ClientCreateData {}
+export interface ClientUpdateData extends ClientCreateData { }
 
 const clientService = {
-    getClients: async (page: number = 1, pageSize: number = 10, search?: string): Promise<ClientListResponse> => {
+    getClients: async (page: number = 1, pageSize: number = 10, search?: string, statusId?: string): Promise<ClientListResponse> => {
         const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
         if (search) params.append('search', search);
+        if (statusId) params.append('status_id', statusId);
         const response = await apiClient(`${API_URL}/api/clients?${params}`);
         if (!response.ok) throw new Error('Failed to fetch clients');
+        return response.json();
+    },
+
+    getClientStats: async (): Promise<ClientStats> => {
+        const response = await apiClient(`${API_URL}/api/clients/stats`);
+        if (!response.ok) throw new Error('Failed to fetch client stats');
         return response.json();
     },
 
@@ -75,16 +88,6 @@ const clientService = {
             throw new Error(error.detail || 'Failed to update client');
         }
         return response.json();
-    },
-
-    deleteClient: async (id: string): Promise<void> => {
-        const response = await apiClient(`${API_URL}/api/clients/${id}`, {
-            method: 'DELETE'
-        });
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Failed to delete client');
-        }
     },
 
     activateClient: async (id: string): Promise<Client> => {

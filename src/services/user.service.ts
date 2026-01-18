@@ -52,9 +52,10 @@ export interface UserUpdateData {
 }
 
 const userService = {
-    getUsers: async (page: number = 1, pageSize: number = 10, search?: string): Promise<UserListResponse> => {
+    getUsers: async (page: number = 1, pageSize: number = 10, search?: string, statusId?: string): Promise<UserListResponse> => {
         const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
         if (search) params.append('search', search);
+        if (statusId) params.append('status_id', statusId);
         const response = await apiClient(`${API_URL}/api/users?${params}`);
         if (!response.ok) throw new Error('Failed to fetch users');
         return response.json();
@@ -96,14 +97,26 @@ const userService = {
         return response.json();
     },
 
-    deleteUser: async (id: string): Promise<void> => {
-        const response = await apiClient(`${API_URL}/api/users/${id}`, {
-            method: 'DELETE'
+    activateUser: async (id: string): Promise<User> => {
+        const response = await apiClient(`${API_URL}/api/users/${id}/activate`, {
+            method: 'POST'
         });
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || 'Failed to delete user');
+            throw new Error(error.detail || 'Failed to activate user');
         }
+        return response.json();
+    },
+
+    deactivateUser: async (id: string): Promise<User> => {
+        const response = await apiClient(`${API_URL}/api/users/${id}/deactivate`, {
+            method: 'POST'
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to deactivate user');
+        }
+        return response.json();
     }
 };
 

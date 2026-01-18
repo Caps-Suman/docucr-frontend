@@ -38,11 +38,23 @@ export interface RoleStats {
 }
 
 class RoleService {
-  async getRoles(page: number = 1, pageSize: number = 10): Promise<RoleListResponse> {
-    const response = await apiClient(`${API_BASE_URL}/api/roles?page=${page}&page_size=${pageSize}`);
+  async getRoles(page: number = 1, pageSize: number = 10, statusId?: string): Promise<RoleListResponse> {
+    const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
+    if (statusId) params.append('status_id', statusId);
+    const response = await apiClient(`${API_BASE_URL}/api/roles?${params}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch roles');
+    }
+
+    return response.json();
+  }
+
+  async getAssignableRoles(page: number = 1, pageSize: number = 10): Promise<RoleListResponse> {
+    const response = await apiClient(`${API_BASE_URL}/api/roles/assignable?page=${page}&page_size=${pageSize}`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch assignable roles');
     }
 
     return response.json();

@@ -25,12 +25,15 @@ const RoleManagement: React.FC = () => {
     const [privileges, setPrivileges] = useState<Privilege[]>([]);
     const [statuses, setStatuses] = useState<Status[]>([]);
     const [activeStatusId, setActiveStatusId] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; role: Role | null }>({ isOpen: false, role: null });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+
     useEffect(() => {
         loadData();
-    }, [currentPage, itemsPerPage]);
+    }, [currentPage, itemsPerPage, statusFilter]);
 
     useEffect(() => {
         loadModulesAndPrivileges();
@@ -67,7 +70,7 @@ const RoleManagement: React.FC = () => {
         try {
             setLoading(true);
             const [rolesData, statsData] = await Promise.all([
-                roleService.getRoles(currentPage + 1, itemsPerPage),
+                roleService.getRoles(currentPage + 1, itemsPerPage, statusFilter || undefined),
                 roleService.getRoleStats()
             ]);
             setRoles(rolesData.roles);
@@ -77,6 +80,7 @@ const RoleManagement: React.FC = () => {
             console.error('Failed to load roles:', error);
         } finally {
             setLoading(false);
+            setIsInitialLoading(false);
         }
     };
 
@@ -102,17 +106,17 @@ const RoleManagement: React.FC = () => {
     const handleModalSubmit = async (data: { name: string; description: string; modules: Array<{ module_id: string; privilege_id: string }> }) => {
         try {
             if (editingRole) {
-                await roleService.updateRole(editingRole.id, { 
-                    name: data.name, 
+                await roleService.updateRole(editingRole.id, {
+                    name: data.name,
                     description: data.description,
-                    modules: data.modules 
+                    modules: data.modules
                 });
                 setToast({ message: 'Role updated successfully', type: 'success' });
             } else {
-                await roleService.createRole({ 
-                    name: data.name, 
+                await roleService.createRole({
+                    name: data.name,
                     description: data.description,
-                    modules: data.modules 
+                    modules: data.modules
                 });
                 setToast({ message: 'Role created successfully', type: 'success' });
             }
@@ -157,17 +161,58 @@ const RoleManagement: React.FC = () => {
         }
     };
 
-    const roleStats = [
-        { title: 'Total Roles', value: stats?.total_roles.toString() || '0', icon: Shield, color: 'blue' },
-        { title: 'Active Roles', value: stats?.active_roles.toString() || '0', icon: UserCheck, color: 'green' },
-        { title: 'Inactive Roles', value: stats?.inactive_roles.toString() || '0', icon: UserX, color: 'orange' }
-    ];
+    const handleStatClick = (type: 'total' | 'active' | 'inactive') => {
+        if (type === 'total') {
+            setStatusFilter(null);
+        } else if (type === 'active') {
+            const activeStatus = statuses.find(s => s.name === 'ACTIVE');
+            setStatusFilter(activeStatus?.id || null);
+        } else if (type === 'inactive') {
+            const inactiveStatus = statuses.find(s => s.name === 'INACTIVE');
+            setStatusFilter(inactiveStatus?.id || null);
+        }
+        setCurrentPage(0);
+    };
+
+    const roleStats: Array<{
+        title: string;
+        value: string;
+        icon: any;
+        color: string;
+        onClick?: () => void;
+        active: boolean;
+    }> = [
+            {
+                title: 'Total Roles',
+                value: stats?.total_roles.toString() || '0',
+                icon: Shield,
+                color: 'blue',
+                onClick: () => handleStatClick('total'),
+                active: statusFilter === null
+            },
+            {
+                title: 'Active Roles',
+                value: stats?.active_roles.toString() || '0',
+                icon: UserCheck,
+                color: 'green',
+                onClick: () => handleStatClick('active'),
+                active: statusFilter === activeStatusId
+            },
+            {
+                title: 'Inactive Roles',
+                value: stats?.inactive_roles.toString() || '0',
+                icon: UserX,
+                color: 'orange',
+                onClick: () => handleStatClick('inactive'),
+                active: !!(statusFilter && statusFilter !== activeStatusId)
+            }
+        ];
 
     const roleColumns = [
         { key: 'name', header: 'Role Name' },
         { key: 'description', header: 'Description' },
-        { 
-            key: 'status_id', 
+        {
+            key: 'status_id',
             header: 'Status',
             render: (value: string | null, row: Role) => {
                 const isActive = value === activeStatusId;
@@ -207,7 +252,7 @@ const RoleManagement: React.FC = () => {
         }
     ];
 
-    if (loading) {
+    if (isInitialLoading) {
         return <Loading message="Loading roles..." />;
     }
 
@@ -215,7 +260,12 @@ const RoleManagement: React.FC = () => {
         <div className="management-content">
             <div className="stats-grid">
                 {roleStats.map((stat, index) => (
-                    <div key={index} className={`stat-card ${stat.color}`}>
+                    <div
+                        key={index}
+                        className={`stat-card ${stat.color} ${stat.onClick ? 'clickable' : ''} ${stat.active ? 'selected' : ''}`}
+                        onClick={stat.onClick}
+                        style={{ cursor: stat.onClick ? 'pointer' : 'default' }}
+                    >
                         <div className="stat-icon">
                             <stat.icon size={16} />
                         </div>
@@ -227,7 +277,7 @@ const RoleManagement: React.FC = () => {
                 ))}
             </div>
 
-            <div className="table-section">
+            <div className="table-section" style={{ position: 'relative' }}>
                 <div className="table-header">
                     <h2>
                         <Shield size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
@@ -237,12 +287,28 @@ const RoleManagement: React.FC = () => {
                         Add Role
                     </button>
                 </div>
-                <Table 
+                <Table
                     columns={roleColumns}
                     data={roles}
                 />
+                {loading && !isInitialLoading && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(255, 255, 255, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10
+                    }}>
+                        <Loading message="Updating..." />
+                    </div>
+                )}
             </div>
-            
+
             <CommonPagination
                 show={totalRoles > itemsPerPage}
                 pageCount={Math.ceil(totalRoles / itemsPerPage)}
@@ -255,7 +321,7 @@ const RoleManagement: React.FC = () => {
                     setCurrentPage(0);
                 }}
             />
-            
+
             <RoleModal
                 isOpen={isModalOpen}
                 onClose={handleModalClose}
@@ -265,20 +331,20 @@ const RoleManagement: React.FC = () => {
                 modules={modules}
                 privileges={privileges}
             />
-            
+
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ isOpen: false, role: null })}
                 onConfirm={handleConfirmDeactivate}
                 title="Deactivate Role"
-                message={confirmModal.role?.users_count ? 
+                message={confirmModal.role?.users_count ?
                     `Deactivating this role will also affect ${confirmModal.role.users_count} user(s) assigned to it. Are you sure you want to continue?` :
                     `Are you sure you want to deactivate this role?`
                 }
                 confirmText="Deactivate"
                 type="warning"
             />
-            
+
             {toast && (
                 <Toast
                     message={toast.message}

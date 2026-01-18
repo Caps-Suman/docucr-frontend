@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Trash2 } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle } from 'lucide-react';
 import Table from '../../Table/Table';
 import CommonPagination from '../../Common/CommonPagination';
 import Loading from '../../Common/Loading';
@@ -10,6 +10,8 @@ import userService, { User, UserStats } from '../../../services/user.service';
 import roleService from '../../../services/role.service';
 import statusService, { Status } from '../../../services/status.service';
 import './UserManagement.css';
+import ClientModal from '../../ClientManagement/ClientModal';
+import clientService from '../../../services/client.service';
 
 const UserManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(0);
@@ -20,16 +22,24 @@ const UserManagement: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
     const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
     const [statuses, setStatuses] = useState<Status[]>([]);
     const [activeStatusId, setActiveStatusId] = useState<string>('');
-    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; user: User | null; action: 'delete' | 'toggle' }>({ isOpen: false, user: null, action: 'delete' });
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; user: User | null; action: 'toggle' }>({ isOpen: false, user: null, action: 'toggle' });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+
+    // Cross-creation state
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [crossCreationData, setCrossCreationData] = useState<any>(null);
+    const [showCrossCreationConfirm, setShowCrossCreationConfirm] = useState(false);
+
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     useEffect(() => {
         loadData();
-    }, [currentPage, itemsPerPage]);
+    }, [currentPage, itemsPerPage, statusFilter]);
 
     useEffect(() => {
         loadRoles();
@@ -49,7 +59,7 @@ const UserManagement: React.FC = () => {
 
     const loadRoles = async () => {
         try {
-            const rolesData = await roleService.getRoles(1, 100);
+            const rolesData = await roleService.getAssignableRoles(1, 100);
             setRoles(rolesData.roles.map(r => ({ id: r.id, name: r.name })));
         } catch (error) {
             console.error('Failed to load roles:', error);
@@ -60,13 +70,13 @@ const UserManagement: React.FC = () => {
         try {
             setLoading(true);
             const [usersData, statsData] = await Promise.all([
-                userService.getUsers(currentPage + 1, itemsPerPage),
+                userService.getUsers(currentPage + 1, itemsPerPage, undefined, statusFilter || undefined),
                 userService.getUserStats()
             ]);
             setUsers(usersData.users);
             setTotalUsers(usersData.total);
             setStats(statsData);
-            
+
             // Load supervisors (all users except current)
             const allUsers = await userService.getUsers(1, 1000);
             setSupervisors(allUsers.users.map(u => ({
@@ -78,6 +88,7 @@ const UserManagement: React.FC = () => {
             setToast({ message: 'Failed to load users', type: 'error' });
         } finally {
             setLoading(false);
+            setIsInitialLoading(false);
         }
     };
 
@@ -100,17 +111,49 @@ const UserManagement: React.FC = () => {
         setEditingUser(null);
     };
 
+
+
+    const handleClientModalSubmit = async (data: any) => {
+        try {
+            const payload = { ...data, user_id: crossCreationData?.user_id };
+            await clientService.createClient(payload);
+            setToast({ message: 'Client created successfully', type: 'success' });
+            setIsClientModalOpen(false);
+            setCrossCreationData(null);
+        } catch (error: any) {
+            console.error('Failed to create client:', error);
+            setToast({ message: error?.message || 'Failed to create client', type: 'error' });
+        }
+    };
+
+    const handleCrossCreationConfirm = () => {
+        setShowCrossCreationConfirm(false);
+        setIsClientModalOpen(true);
+    };
+
     const handleModalSubmit = async (data: any) => {
         try {
             if (editingUser) {
                 await userService.updateUser(editingUser.id, data);
                 setToast({ message: 'User updated successfully', type: 'success' });
+                handleModalClose();
+                loadData();
             } else {
-                await userService.createUser(data);
+                const newUser = await userService.createUser(data);
                 setToast({ message: 'User created successfully', type: 'success' });
+                handleModalClose();
+                loadData();
+
+                // Setup and show cross-creation confirmation
+                setCrossCreationData({
+                    user_id: newUser.id,
+                    first_name: data.first_name,
+                    middle_name: data.middle_name,
+                    last_name: data.last_name,
+                    description: `Linked user: ${data.username}`
+                });
+                setShowCrossCreationConfirm(true);
             }
-            handleModalClose();
-            loadData();
         } catch (error: any) {
             console.error('Failed to save user:', error);
             const errorMessage = error?.message || 'Failed to save user';
@@ -126,27 +169,17 @@ const UserManagement: React.FC = () => {
         setConfirmModal({ isOpen: true, user, action: 'toggle' });
     };
 
-    const handleDelete = (user: User) => {
-        if (user.is_superuser) {
-            setToast({ message: 'Cannot delete superuser', type: 'warning' });
-            return;
-        }
-        setConfirmModal({ isOpen: true, user, action: 'delete' });
-    };
-
     const handleConfirmAction = async () => {
         if (!confirmModal.user) return;
-        
+
         try {
-            if (confirmModal.action === 'delete') {
-                await userService.deleteUser(confirmModal.user.id);
-                setToast({ message: 'User deleted successfully', type: 'success' });
+            const isActive = confirmModal.user.status_id === activeStatusId;
+            if (isActive) {
+                await userService.deactivateUser(confirmModal.user.id);
+                setToast({ message: 'User deactivated successfully', type: 'success' });
             } else {
-                const isActive = confirmModal.user.status_id === activeStatusId;
-                const inactiveStatus = statuses.find(s => s.name === 'INACTIVE');
-                const newStatusId = isActive ? (inactiveStatus?.id || '') : activeStatusId;
-                await userService.updateUser(confirmModal.user.id, { status_id: newStatusId });
-                setToast({ message: `User ${isActive ? 'deactivated' : 'activated'} successfully`, type: 'success' });
+                await userService.activateUser(confirmModal.user.id);
+                setToast({ message: 'User activated successfully', type: 'success' });
             }
             loadData();
         } catch (error: any) {
@@ -154,30 +187,64 @@ const UserManagement: React.FC = () => {
             const errorMessage = error?.message || 'Failed to perform action';
             setToast({ message: errorMessage, type: 'error' });
         } finally {
-            setConfirmModal({ isOpen: false, user: null, action: 'delete' });
+            setConfirmModal({ isOpen: false, user: null, action: 'toggle' });
         }
     };
 
+    const handleStatClick = (type: 'total' | 'active' | 'inactive') => {
+        if (type === 'total') {
+            setStatusFilter(null);
+        } else if (type === 'active') {
+            const activeStatus = statuses.find(s => s.name === 'ACTIVE');
+            setStatusFilter(activeStatus?.id || null);
+        } else if (type === 'inactive') {
+            const inactiveStatus = statuses.find(s => s.name === 'INACTIVE');
+            setStatusFilter(inactiveStatus?.id || null);
+        }
+        setCurrentPage(0);
+    };
+
     const userStats = [
-        { title: 'Total Users', value: stats?.total_users.toString() || '0', icon: Users, color: 'blue' },
-        { title: 'Active Users', value: stats?.active_users.toString() || '0', icon: UserCheck, color: 'green' },
-        { title: 'Inactive Users', value: stats?.inactive_users.toString() || '0', icon: UserX, color: 'red' },
-        { title: 'Admin Users', value: stats?.admin_users.toString() || '0', icon: Shield, color: 'purple' }
+        {
+            title: 'Total Users',
+            value: stats?.total_users.toString() || '0',
+            icon: Users,
+            color: 'blue',
+            onClick: () => handleStatClick('total'),
+            active: statusFilter === null
+        },
+        {
+            title: 'Active Users',
+            value: stats?.active_users.toString() || '0',
+            icon: UserCheck,
+            color: 'green',
+            onClick: () => handleStatClick('active'),
+            active: statusFilter === activeStatusId
+        },
+        {
+            title: 'Inactive Users',
+            value: stats?.inactive_users.toString() || '0',
+            icon: UserX,
+            color: 'red',
+            onClick: () => handleStatClick('inactive'),
+            active: !!(statusFilter && statusFilter !== activeStatusId)
+        },
+        { title: 'Admin Users', value: stats?.admin_users.toString() || '0', icon: Shield, color: 'purple', onClick: undefined, active: false }
     ];
 
     const userColumns = [
-        { 
-            key: 'name', 
+        {
+            key: 'name',
             header: 'Name',
             render: (_: any, row: User) => `${row.first_name} ${row.last_name}`
         },
         { key: 'email', header: 'Email' },
         { key: 'username', header: 'Username' },
-        { 
-            key: 'phone', 
+        {
+            key: 'phone',
             header: 'Phone',
             render: (_: any, row: User) => {
-                const phone = (row as any).phone_country_code && (row as any).phone_number 
+                const phone = (row as any).phone_country_code && (row as any).phone_number
                     ? `${(row as any).phone_country_code}-${(row as any).phone_number}`
                     : null;
                 return phone ? (
@@ -187,8 +254,8 @@ const UserManagement: React.FC = () => {
                 );
             }
         },
-        { 
-            key: 'roles', 
+        {
+            key: 'roles',
             header: 'Roles',
             render: (roles: Array<{ id: string; name: string }>) => {
                 if (roles.length === 0) return 'No roles';
@@ -196,8 +263,8 @@ const UserManagement: React.FC = () => {
                 return `${roles[0].name} +${roles.length - 1}`;
             }
         },
-        { 
-            key: 'status_id', 
+        {
+            key: 'status_id',
             header: 'Status',
             render: (value: string | null, row: User) => {
                 const isActive = value === activeStatusId;
@@ -227,21 +294,12 @@ const UserManagement: React.FC = () => {
                             {row.status_id === activeStatusId ? <StopCircle size={14} /> : <PlayCircle size={14} />}
                         </button>
                     </span>
-                    <span className="tooltip-wrapper" data-tooltip={row.is_superuser ? 'Cannot delete superuser' : 'Delete'}>
-                        <button
-                            className="action-btn delete"
-                            onClick={() => handleDelete(row)}
-                            style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer' }}
-                        >
-                            <Trash2 size={14} />
-                        </button>
-                    </span>
                 </div>
             )
         }
     ];
 
-    if (loading) {
+    if (isInitialLoading) {
         return <Loading message="Loading users..." />;
     }
 
@@ -249,7 +307,12 @@ const UserManagement: React.FC = () => {
         <div className="management-content">
             <div className="stats-grid">
                 {userStats.map((stat, index) => (
-                    <div key={index} className={`stat-card ${stat.color}`}>
+                    <div
+                        key={index}
+                        className={`stat-card ${stat.color} ${stat.onClick ? 'clickable' : ''} ${stat.active ? 'selected' : ''}`}
+                        onClick={stat.onClick}
+                        style={{ cursor: stat.onClick ? 'pointer' : 'default' }}
+                    >
                         <div className="stat-icon">
                             <stat.icon size={16} />
                         </div>
@@ -261,7 +324,7 @@ const UserManagement: React.FC = () => {
                 ))}
             </div>
 
-            <div className="table-section">
+            <div className="table-section" style={{ position: 'relative' }}>
                 <div className="table-header">
                     <h2>
                         <Users size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
@@ -271,12 +334,28 @@ const UserManagement: React.FC = () => {
                         Add User
                     </button>
                 </div>
-                <Table 
+                <Table
                     columns={userColumns}
                     data={users}
                 />
+                {loading && !isInitialLoading && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(255, 255, 255, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10
+                    }}>
+                        <Loading message="Updating..." />
+                    </div>
+                )}
             </div>
-            
+
             <CommonPagination
                 show={totalUsers > itemsPerPage}
                 pageCount={Math.ceil(totalUsers / itemsPerPage)}
@@ -289,7 +368,7 @@ const UserManagement: React.FC = () => {
                     setCurrentPage(0);
                 }}
             />
-            
+
             <UserModal
                 isOpen={isModalOpen}
                 onClose={handleModalClose}
@@ -308,20 +387,17 @@ const UserManagement: React.FC = () => {
                 roles={roles}
                 supervisors={supervisors.filter(s => s.id !== editingUser?.id)}
             />
-            
+
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
-                onClose={() => setConfirmModal({ isOpen: false, user: null, action: 'delete' })}
+                onClose={() => setConfirmModal({ isOpen: false, user: null, action: 'toggle' })}
                 onConfirm={handleConfirmAction}
-                title={confirmModal.action === 'delete' ? 'Delete User' : (confirmModal.user?.status_id === activeStatusId ? 'Deactivate User' : 'Activate User')}
-                message={confirmModal.action === 'delete' 
-                    ? 'Are you sure you want to delete this user? This action cannot be undone.'
-                    : `Are you sure you want to ${confirmModal.user?.status_id === activeStatusId ? 'deactivate' : 'activate'} this user?`
-                }
-                confirmText={confirmModal.action === 'delete' ? 'Delete' : (confirmModal.user?.status_id === activeStatusId ? 'Deactivate' : 'Activate')}
-                type={confirmModal.action === 'delete' ? 'danger' : 'warning'}
+                title={confirmModal.user?.status_id === activeStatusId ? 'Deactivate User' : 'Activate User'}
+                message={`Are you sure you want to ${confirmModal.user?.status_id === activeStatusId ? 'deactivate' : 'activate'} this user?`}
+                confirmText={confirmModal.user?.status_id === activeStatusId ? 'Deactivate' : 'Activate'}
+                type="warning"
             />
-            
+
             {toast && (
                 <Toast
                     message={toast.message}
@@ -329,6 +405,24 @@ const UserManagement: React.FC = () => {
                     onClose={() => setToast(null)}
                 />
             )}
+
+            <ConfirmModal
+                isOpen={showCrossCreationConfirm}
+                onClose={() => setShowCrossCreationConfirm(false)}
+                onConfirm={handleCrossCreationConfirm}
+                title="Create Linked Client"
+                message="User created successfully. Do you want to create a linked Client entity for this user?"
+                confirmText="Yes, Create Client"
+                type="info"
+            />
+
+            <ClientModal
+                isOpen={isClientModalOpen}
+                onClose={() => setIsClientModalOpen(false)}
+                onSubmit={handleClientModalSubmit}
+                initialData={crossCreationData}
+                title="Create Linked Client"
+            />
         </div>
     );
 };

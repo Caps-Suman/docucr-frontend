@@ -124,6 +124,396 @@
     background: #83cee4;
 }
 
+.headerButtons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.filterButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    color: #475569;
+    border: 1px solid #f1f5f9;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    position: relative;
+}
+
+.filterButton:hover {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.filterBadge {
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    border-radius: 12px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 18px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* Offcanvas Styles */
+.offcanvas {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.offcanvasOpen {
+    pointer-events: all;
+    opacity: 1;
+}
+
+.offcanvasOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+}
+
+.offcanvasContent {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 400px;
+    height: 100%;
+    background: white;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #f1f5f9;
+}
+
+.offcanvasOpen .offcanvasContent {
+    transform: translateX(0);
+}
+
+.offcanvasHeader {
+    padding: 20px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #e2f3f9;
+}
+
+.offcanvasHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.closeButton:hover {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.offcanvasBody {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.offcanvasFooter {
+    padding: 20px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    background: white;
+}
+
+.resetButton {
+    background: white;
+    color: #64748b;
+    border: 1px solid #f1f5f9;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.resetButton:hover {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.applyButton {
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.applyButton:hover {
+    background: #83cee4;
+}
+
+.filterGroup {
+    margin-bottom: 16px;
+}
+
+.filterGroup label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px;
+}
+
+.filterSelect,
+.filterInput {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #f1f5f9;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    color: #1e293b;
+    transition: all 0.2s;
+    margin-bottom: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dateRow {
+    display: flex;
+    gap: 8px;
+}
+
+.dateField {
+    flex: 1;
+}
+
+.dateField label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px;
+}
+
+.dateRow .filterInput {
+    margin-bottom: 0;
+}
+
+.filterSelect:focus,
+.filterInput:focus {
+    outline: none;
+    border-color: #83cee4;
+    box-shadow: 0 0 0 3px rgba(131, 206, 228, 0.1);
+}
+
+/* Dark mode offcanvas */
+:global(.dark) .filterButton {
+    background: #1f2937;
+    color: #d1d5db;
+    border-color: #374151;
+}
+
+:global(.dark) .filterButton:hover {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+:global(.dark) .filterBadge {
+    background: #83cee4;
+    color: #011926;
+    border-color: #a5d8ea;
+}
+
+:global(.dark) .offcanvasContent {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .offcanvasHeader {
+    background: #83cee4;
+    border-color: #374151;
+}
+
+:global(.dark) .offcanvasHeader h3 {
+    color: #f9fafb;
+}
+
+:global(.dark) .closeButton {
+    color: #9ca3af;
+}
+
+:global(.dark) .closeButton:hover {
+    background: #374151;
+    color: #d1d5db;
+}
+
+:global(.dark) .filterGroup label {
+    color: #f9fafb;
+}
+
+:global(.dark) .filterSelect,
+:global(.dark) .filterInput {
+    background: #374151;
+    border-color: #4b5563;
+    color: #d1d5db;
+}
+
+:global(.dark) .filterSelect:focus,
+:global(.dark) .filterInput:focus {
+    border-color: #83cee4;
+}
+
+:global(.react-datepicker-popper) {
+    z-index: 9999 !important;
+}
+
+:global(.react-datepicker-popper[data-placement^="bottom"]) {
+    margin-top: 4px;
+}
+
+:global(.react-datepicker-popper[data-placement^="top"]) {
+    margin-bottom: 4px;
+}
+
+/* Ensure datepicker doesn't get cut off in offcanvas */
+:global(.react-datepicker-popper--right) {
+    transform: translateX(-20px) !important;
+}
+
+/* React DatePicker Styling */
+:global(.react-datepicker-wrapper) {
+    width: 100%;
+}
+
+:global(.react-datepicker__input-container input) {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #f1f5f9;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    color: #1e293b;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+:global(.react-datepicker__input-container input:focus) {
+    outline: none;
+    border-color: #83cee4;
+    box-shadow: 0 0 0 3px rgba(131, 206, 228, 0.1);
+}
+
+:global(.dark .react-datepicker__input-container input) {
+    background: #374151;
+    border-color: #4b5563;
+    color: #d1d5db;
+}
+
+:global(.dark .react-datepicker__input-container input:focus) {
+    border-color: #83cee4;
+}
+
+:global(.react-datepicker) {
+    border: 1px solid #f1f5f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    font-family: inherit;
+}
+
+:global(.dark .react-datepicker) {
+    background: #1f2937;
+    border-color: #374151;
+    color: #d1d5db;
+}
+
+:global(.react-datepicker__header) {
+    background: #e2f3f9;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+:global(.dark .react-datepicker__header) {
+    background: #83cee4;
+    border-color: #374151;
+}
+
+:global(.react-datepicker__day--selected) {
+    background-color: #83cee4;
+    color: #011926;
+}
+
+:global(.react-datepicker__day:hover) {
+    background-color: #e2f3f9;
+}
+
+:global(.dark) .offcanvasFooter {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .resetButton {
+    background: #374151;
+    color: #d1d5db;
+    border-color: #4b5563;
+}
+
+:global(.dark) .resetButton:hover {
+    background: #4b5563;
+    border-color: #6b7280;
+}
+
+:global(.dark) .applyButton {
+    background: #83cee4;
+    color: #011926;
+    border-color: #a5d8ea;
+}
+
+:global(.dark) .applyButton:hover {
+    background: #a5d8ea;
+}
+
 .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
