@@ -56,6 +56,8 @@ const DocumentList: React.FC = () => {
         dateTo: null
     });
     const [formFields, setFormFields] = useState<any[]>([]);
+    const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
+    const [isDownloading, setIsDownloading] = useState(false);
     const [stats, setStats] = useState({
         total: 0,
         processed: 0,
@@ -79,8 +81,8 @@ const DocumentList: React.FC = () => {
     const handleResetFilters = () => {
         const resetState: Record<string, any> = { status: '', dateFrom: null, dateTo: null };
         // Reset all dynamic form fields
-        columnConfig.filter(col => !col.isSystem && col.id.startsWith('form_')).forEach(col => {
-            resetState[col.id] = '';
+        formFields.forEach(field => {
+            resetState[`form_${field.id}`] = '';
         });
         setFilters(resetState);
         setActiveFilters(resetState);
@@ -380,6 +382,85 @@ const DocumentList: React.FC = () => {
         }
     };
 
+    const handleBulkDownload = async () => {
+        if (selectedDocuments.size === 0) return;
+        
+        setIsDownloading(true);
+        try {
+            console.log('Starting bulk download for', selectedDocuments.size, 'documents');
+            
+            const JSZip = (await import('jszip')).default;
+            const zip = new JSZip();
+            
+            const selectedDocs = documents.filter(doc => selectedDocuments.has(doc.id));
+            // console.log('Selected documents:', selectedDocs.map(d => d.name));
+            
+            // Download all files and add to ZIP
+            for (const doc of selectedDocs) {
+                try {
+                    console.log('Processing document:', doc.name);
+                    
+                    // Create folder for each document
+                    const folderName = `${doc.name.replace(/\.[^/.]+$/, '')}_${doc.id}`;
+                    const docFolder = zip.folder(folderName);
+                    
+                    // Download main document
+                    const docUrl = await documentService.getDocumentDownloadUrl(doc.id);
+                    const docResponse = await fetch(docUrl);
+                    
+                    if (docResponse.ok) {
+                        const docBlob = await docResponse.blob();
+                        docFolder?.file(doc.originalFilename || doc.name, docBlob);
+                        console.log('Added document to folder:', doc.name);
+                    }
+                    
+                    // Try to download report file
+                    try {
+                        const reportUrl = await documentService.getDocumentReportUrl(doc.id);
+                        const reportResponse = await fetch(reportUrl);
+                        
+                        if (reportResponse.ok) {
+                            const reportBlob = await reportResponse.blob();
+                            const reportFileName = `analysis_report_${doc.name.replace(/\.[^/.]+$/, '')}.xlsx`;
+                            docFolder?.file(reportFileName, reportBlob);
+                            console.log('Added report to folder:', reportFileName);
+                        }
+                    } catch (reportError) {
+                        console.log('No report available for:', doc.name);
+                    }
+                    
+                } catch (error) {
+                    console.error(`Failed to process ${doc.name}:`, error);
+                }
+            }
+            
+            console.log('Generating ZIP...');
+            // Generate ZIP and download
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            console.log('ZIP generated, size:', zipBlob.size);
+            
+            const zipUrl = URL.createObjectURL(zipBlob);
+            
+            const link = document.createElement('a');
+            link.href = zipUrl;
+            link.download = `docucr_docs_${new Date().toISOString().split('T')[0]}.zip`;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            URL.revokeObjectURL(zipUrl);
+            
+            setToast({ message: `Downloaded ${selectedDocuments.size} documents as ZIP`, type: 'success' });
+            setSelectedDocuments(new Set());
+        } catch (error) {
+            console.error('Bulk download error:', error);
+            setToast({ message: 'Failed to create ZIP file: ' + (error instanceof Error ? error.message : 'Unknown error'), type: 'error' });
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     const handleReanalyze = async (id: string) => {
         try {
             await documentService.reanalyzeDocument(id);
@@ -388,6 +469,25 @@ const DocumentList: React.FC = () => {
             console.error(error);
             setToast({ message: 'Failed to restart analysis', type: 'error' });
         }
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            const allIds = documents.filter(doc => !doc.isUploading).map(doc => doc.id);
+            setSelectedDocuments(new Set(allIds));
+        } else {
+            setSelectedDocuments(new Set());
+        }
+    };
+
+    const handleSelectDocument = (docId: string, checked: boolean) => {
+        const newSelected = new Set(selectedDocuments);
+        if (checked) {
+            newSelected.add(docId);
+        } else {
+            newSelected.delete(docId);
+        }
+        setSelectedDocuments(newSelected);
     };
 
 
@@ -425,9 +525,34 @@ const DocumentList: React.FC = () => {
     const columns = React.useMemo(() => {
         if (columnConfig.length === 0) return [];
 
-        const systemIds = ['name', 'type', 'size', 'uploadedAt', 'status', 'actions'];
+        const systemIds = ['select', 'name', 'type', 'size', 'uploadedAt', 'status', 'actions'];
 
-        return columnConfig.map(col => {
+        const baseColumns = [
+            {
+                key: 'select',
+                header: (
+                    <input
+                        type="checkbox"
+                        checked={documents.filter(d => !d.isUploading).length > 0 && documents.filter(d => !d.isUploading).every(d => selectedDocuments.has(d.id))}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className={styles.checkbox}
+                    />
+                ),
+                render: (_: any, row: DocumentListItem) => (
+                    row.isUploading ? null : (
+                        <input
+                            type="checkbox"
+                            checked={selectedDocuments.has(row.id)}
+                            onChange={(e) => handleSelectDocument(row.id, e.target.checked)}
+                            className={styles.checkbox}
+                        />
+                    )
+                ),
+                isSystem: true
+            }
+        ];
+
+        return [...baseColumns, ...columnConfig.map(col => {
             const isSystem = col.isSystem || systemIds.includes(col.id);
             if (isSystem) {
                 switch (col.id) {
@@ -737,18 +862,48 @@ const DocumentList: React.FC = () => {
                     }
                 };
             }
-        });
-    }, [columnConfig, navigate, clients, documentTypes, formFields, loading]);
+        })];
+    }, [columnConfig, navigate, clients, documentTypes, formFields, loading, selectedDocuments, documents]);
 
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <div>
+                <div className={styles.titleRow}>
                     <h1 className={styles.title}>
                         <FileText size={20} />
                         Documents
                     </h1>
-                    <div className={styles.statusLegend}>
+                    <div className={styles.headerButtons}>
+                        <button
+                            className={styles.filterButton}
+                            onClick={() => setShowFilters(true)}
+                        >
+                            <Filter size={16} />
+                            Filters
+                            {activeFilterCount > 0 && (
+                                <span className={styles.filterBadge}>{activeFilterCount}</span>
+                            )}
+                        </button>
+                        {selectedDocuments.size > 0 && (
+                            <button
+                                className={styles.downloadButton}
+                                onClick={handleBulkDownload}
+                                disabled={isDownloading}
+                            >
+                                <Download size={16} />
+                                {isDownloading ? 'Downloading...' : `Download ZIP (${selectedDocuments.size})`}
+                            </button>
+                        )}
+                        <button
+                            className={styles.uploadButton}
+                            onClick={() => navigate('/documents/upload')}
+                        >
+                            <Upload size={16} />
+                            Upload Document
+                        </button>
+                    </div>
+                </div>
+                <div className={styles.statusLegend}>
                         <span className={styles.legendItem}>
                             <CheckCircle size={12} className={`${styles.legendIcon} ${styles.colorSuccess}`} />
                             <span>Completed: Finished analysis</span>
@@ -799,26 +954,6 @@ const DocumentList: React.FC = () => {
                         </span>
                     </div>
                 </div>
-                <div className={styles.headerButtons}>
-                    <button
-                        className={styles.filterButton}
-                        onClick={() => setShowFilters(true)}
-                    >
-                        <Filter size={16} />
-                        Filters
-                        {activeFilterCount > 0 && (
-                            <span className={styles.filterBadge}>{activeFilterCount}</span>
-                        )}
-                    </button>
-                    <button
-                        className={styles.uploadButton}
-                        onClick={() => navigate('/documents/upload')}
-                    >
-                        <Upload size={16} />
-                        Upload Document
-                    </button>
-                </div>
-            </div>
 
             <div className={styles.stats}>
                 <div className={styles.statCard}>
@@ -1020,15 +1155,12 @@ const DocumentList: React.FC = () => {
                         </div>
 
                         {/* Dynamic Form Field Filters */}
-                        {columnConfig.filter(col => !col.isSystem && col.id.startsWith('form_')).map(col => {
-                            const fieldId = col.id.replace('form_', '');
-                            const isClientField = col.label.toLowerCase() === 'client';
-                            const isDocTypeField = col.label.toLowerCase().includes('document type');
-
-                            // Find field definition to check type and options
-                            const fieldDef = formFields.find(f => f.id === fieldId) || {};
-                            const isDateField = fieldDef.field_type === 'date' || col.type === 'date';
-                            const isDropdown = fieldDef.field_type === 'select' || fieldDef.field_type === 'dropdown' || col.type === 'select' || isClientField || isDocTypeField;
+                        {formFields.map(field => {
+                            const isClientField = field.field_type === 'client_dropdown' || field.label.toLowerCase().includes('client');
+                            const isDocTypeField = field.field_type === 'document_type_dropdown' || field.label.toLowerCase().includes('document type');
+                            const isDateField = field.field_type === 'date';
+                            const isDropdown = field.field_type === 'select' || field.field_type === 'dropdown' || isClientField || isDocTypeField;
+                            const filterKey = `form_${field.id}`;
 
                             let options: Array<{ value: string, label: string }> = [];
 
@@ -1042,33 +1174,33 @@ const DocumentList: React.FC = () => {
                                     value: t.id,
                                     label: t.name
                                 }));
-                            } else if (isDropdown && fieldDef.options) {
-                                // Assume options are strings or {value, label} depending on backend
-                                // Based on formService, options is string[]? Let's assume string[] for now
-                                options = (fieldDef.options || []).map((opt: any) => ({
-                                    value: opt,
-                                    label: opt
-                                }));
+                            } else if (isDropdown && field.options) {
+                                options = (field.options || []).map((opt: any) => {
+                                    if (typeof opt === 'string') {
+                                        return { value: opt, label: opt };
+                                    }
+                                    return { value: opt.value || opt, label: opt.label || opt };
+                                });
                             }
 
                             return (
-                                <div className={styles.filterGroup} key={col.id}>
-                                    <label>{col.label}</label>
+                                <div className={styles.filterGroup} key={filterKey}>
+                                    <label>{field.label}</label>
 
                                     {isDateField ? (
                                         <CommonDatePicker
-                                            selected={filters[col.id] && typeof filters[col.id] === 'string' ? new Date(filters[col.id]) : filters[col.id]}
-                                            onChange={(date: Date | null) => setFilters(prev => ({ ...prev, [col.id]: date }))}
+                                            selected={filters[filterKey] && typeof filters[filterKey] === 'string' ? new Date(filters[filterKey]) : filters[filterKey]}
+                                            onChange={(date: Date | null) => setFilters(prev => ({ ...prev, [filterKey]: date }))}
                                             className={styles.filterInput}
-                                            placeholderText={`Select ${col.label.toLowerCase()}`}
+                                            placeholderText={`Select ${field.label.toLowerCase()}`}
                                             dateOnly={true}
                                         />
                                     ) : isDropdown ? (
                                         <CommonDropdown
-                                            value={filters[col.id] || ''}
-                                            onChange={(value) => setFilters(prev => ({ ...prev, [col.id]: value }))}
+                                            value={filters[filterKey] || ''}
+                                            onChange={(value) => setFilters(prev => ({ ...prev, [filterKey]: value }))}
                                             options={[
-                                                { value: '', label: `All ${col.label}s` },
+                                                { value: '', label: `All ${field.label}s` },
                                                 ...options
                                             ]}
                                             size="md"
@@ -1077,9 +1209,9 @@ const DocumentList: React.FC = () => {
                                         <input
                                             type="text"
                                             className={styles.filterInput}
-                                            value={filters[col.id] || ''}
-                                            onChange={(e) => setFilters(prev => ({ ...prev, [col.id]: e.target.value }))}
-                                            placeholder={`Filter by ${col.label}`}
+                                            value={filters[filterKey] || ''}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, [filterKey]: e.target.value }))}
+                                            placeholder={`Filter by ${field.label}`}
                                         />
                                     )}
                                 </div>
