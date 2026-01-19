@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: any) => void }> = [];
@@ -66,7 +66,7 @@ export const apiClient = async (url: string, options: RequestInit = {}): Promise
       const newToken = await refreshToken();
       processQueue(null, newToken);
       isRefreshing = false;
-      
+
       const newHeaders = { ...headers, 'Authorization': `Bearer ${newToken}` };
       response = await fetch(url, { ...options, headers: newHeaders });
     } catch (error) {
