@@ -1,0 +1,508 @@
+.container {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.backButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.backButton:hover {
+    background-color: #f1f5f9;
+    color: #1e293b;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+    color: #1e293b;
+}
+
+/* Main Layout - 60/40 Split */
+.mainLayout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.leftSection {
+    flex: 0 0 59%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.rightSection {
+    flex: 0 0 39%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.section {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sectionTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    /* margin: 0 0 16px 0; */
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.uploadButtonTop {
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.uploadButtonTop:hover {
+    background: #83cee4;
+}
+
+.uploadButtonTop:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.dropZone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 60px 20px;
+    text-align: center;
+    background: #f8fafc;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.dropZone.active {
+    border-color: #83cee4;
+    background: #f0f9ff;
+}
+
+.uploadIcon {
+    color: #64748b;
+    margin-bottom: 16px;
+}
+
+.dropText {
+    font-size: 18px;
+    color: #475569;
+    margin: 0 0 8px 0;
+}
+
+.orText {
+    color: #94a3b8;
+    margin: 16px 0;
+}
+
+.browseButton {
+    display: inline-block;
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.browseButton:hover {
+    background: #83cee4;
+}
+
+.fileInput {
+    display: none;
+}
+
+.fileList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fileItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.fileName {
+    flex: 1;
+    font-weight: 400;
+    color: #1e293b;
+    font-size: 13px;
+}
+
+.fileSize {
+    color: #64748b;
+    font-size: 14px;
+}
+
+.removeButton {
+    background: #fef2f2;
+    color: #ef4444;
+    border: none;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.removeButton:hover {
+    background: #fee2e2;
+}
+
+/* Form Styling */
+.formContainer {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.formHeader {
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.formTitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+}
+
+.formDescription {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.formFields {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.required {
+    color: #ef4444;
+    margin-left: 4px;
+}
+
+.formInput {
+    padding: 12px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+    background: white;
+}
+
+.formInput:focus {
+    outline: none;
+    border-color: #83cee4;
+    box-shadow: 0 0 0 3px rgba(131, 206, 228, 0.1);
+}
+
+.formInput.error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.errorMessage {
+    color: #ef4444;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.checkboxGroup,
+.radioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 0;
+}
+
+.checkboxLabel,
+.radioLabel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #374151;
+    cursor: pointer;
+    padding: 6px 0;
+}
+
+.checkboxLabel input,
+.radioLabel input {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.noFormMessage {
+    color: #64748b;
+    font-style: italic;
+    text-align: center;
+    padding: 40px 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px dashed #cbd5e1;
+}
+
+.loadingState {
+    text-align: center;
+    padding: 40px 20px;
+    color: #64748b;
+}
+
+.uploadSection {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.uploadButton {
+    width: 100%;
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.uploadButton:hover {
+    background: #83cee4;
+}
+
+.uploadButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .mainLayout {
+        flex-direction: column;
+    }
+    
+    .leftSection,
+    .rightSection {
+        flex: none;
+        width: 100%;
+    }
+}
+
+/* Dark mode */
+:global(.dark) .backButton {
+    color: #d1d5db;
+}
+
+:global(.dark) .backButton:hover {
+    background-color: #374151;
+    color: #f9fafb;
+}
+
+:global(.dark) .title {
+    color: #f9fafb;
+}
+
+:global(.dark) .section {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .sectionTitle {
+    color: #f9fafb;
+}
+
+:global(.dark) .uploadButtonTop {
+    color: #011926 !important;
+}
+
+:global(.dark) .uploadButtonTop svg {
+    color: #011926 !important;
+}
+
+:global(.dark) .dropZone {
+    border-color: #4b5563;
+    background: #374151;
+}
+
+:global(.dark) .dropZone.active {
+    border-color: #83cee4;
+    background: #1e3a8a;
+}
+
+:global(.dark) .uploadIcon {
+    color: #d1d5db;
+}
+
+:global(.dark) .dropText {
+    color: #f9fafb;
+}
+
+:global(.dark) .orText {
+    color: #9ca3af;
+}
+
+:global(.dark) .browseButton {
+    color: #011926 !important;
+}
+
+:global(.dark) .fileItem {
+    background: #374151;
+}
+
+:global(.dark) .fileName {
+    color: #f9fafb;
+}
+
+:global(.dark) .fileSize {
+    color: #d1d5db;
+}
+
+:global(.dark) .removeButton {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+:global(.dark) .removeButton:hover {
+    background: #991b1b;
+}
+
+:global(.dark) .formContainer {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .formTitle {
+    color: #f9fafb;
+}
+
+:global(.dark) .formDescription {
+    color: #d1d5db;
+}
+
+:global(.dark) .formHeader {
+    border-color: #4b5563;
+}
+
+:global(.dark) .label {
+    color: #f3f4f6;
+}
+
+:global(.dark) .formInput {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+:global(.dark) .formInput:focus {
+    border-color: #83cee4;
+    box-shadow: 0 0 0 3px rgba(131, 206, 228, 0.2);
+}
+
+:global(.dark) .checkboxLabel,
+:global(.dark) .radioLabel {
+    color: #f3f4f6;
+}
+
+:global(.dark) .noFormMessage {
+    color: #d1d5db;
+    background: #374151;
+    border-color: #4b5563;
+}
+
+:global(.dark) .loadingState {
+    color: #d1d5db;
+}
+
+:global(.dark) .uploadSection {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .uploadButton {
+    color: #011926 !important;
+}
+
+:global(.dark) .uploadButton svg {
+    color: #011926 !important;
+}

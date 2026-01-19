@@ -1,3 +1,5 @@
+import apiClient from '../utils/apiClient';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export interface Module {
@@ -20,13 +22,21 @@ export interface ModulesResponse {
 
 class ModulesService {
   async getUserModules(email: string): Promise<Module[]> {
-    const response = await fetch(`${API_BASE_URL}/api/modules/user-modules?email=${encodeURIComponent(email)}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await apiClient(`${API_BASE_URL}/api/modules/user-modules?email=${encodeURIComponent(email)}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch user modules');
+    }
+
+    const data: ModulesResponse = await response.json();
+    return data.modules;
+  }
+
+  async getAllModules(): Promise<Module[]> {
+    const response = await apiClient(`${API_BASE_URL}/api/modules`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch modules');
     }
 
     const data: ModulesResponse = await response.json();
@@ -48,4 +58,5 @@ class ModulesService {
   }
 }
 
-export default new ModulesService();
+const modulesService = new ModulesService();
+export default modulesService;

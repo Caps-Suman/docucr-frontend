@@ -1,0 +1,88 @@
+/* Base Button Styles */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--padding-md) var(--space-5);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  user-select: none;
+  outline: none;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Size Variants */
+.small {
+  padding: var(--padding-sm) var(--space-3);
+  font-size: 0.75rem;
+}
+
+.medium {
+  padding: var(--padding-md) var(--space-4);
+  font-size: 0.875rem;
+}
+
+.large {
+  padding: var(--padding-lg) var(--space-6);
+  font-size: 1rem;
+}
+
+/* Color Variants */
+.primary {
+  background-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.secondary {
+  background-color: var(--color-white);
+  color: var(--text-secondary);
+  border: 1px solid var(--color-gray-200);
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: var(--color-gray-50);
+}
+
+.danger {
+  background-color: var(--color-error);
+  color: var(--color-white);
+}
+
+.danger:hover:not(:disabled) {
+  background-color: var(--color-error-dark);
+}
+
+.success {
+  background-color: var(--color-success);
+  color: var(--color-white);
+}
+
+.success:hover:not(:disabled) {
+  background-color: var(--color-success-dark);
+}
+
+/* Icon Button */
+.iconOnly {
+  padding: var(--padding-md);
+  width: auto;
+  aspect-ratio: 1;
+}
+
+/* Full Width */
+.fullWidth {
+  width: 100%;
+}

@@ -1,0 +1,478 @@
+.managementContent {
+    padding: 15px;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.statCard {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.statCard.selected {
+    /* ring: 2px solid #3b82f6; /* Blue ring */
+    /* 'ring' is not a standard CSS property, assuming it's a placeholder for border or box-shadow */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 2px solid currentColor;
+    /* Uses the color of the text/icon if possible, or explicit color */
+}
+
+/* Specific border colors for selected state */
+.statCard.blue.selected {
+    border: 2px solid #93c5fd;
+}
+
+/* blue-300 */
+.statCard.green.selected {
+    border: 2px solid #6ee7b7;
+}
+
+/* emerald-300 */
+.statCard.red.selected {
+    border: 2px solid #fca5a5;
+}
+
+/* red-300 */
+.statCard.orange.selected {
+    border: 2px solid #fdba74;
+}
+
+/* orange-300 */
+.statCard.purple.selected {
+    border: 2px solid #c4b5fd;
+}
+
+/* violet-300 */
+
+.statIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.statCard.blue .statIcon {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+.statCard.green .statIcon {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.statCard.red .statIcon {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.statContent h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 1px 0;
+}
+
+.statContent p {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+}
+
+.tableSection {
+    margin-top: 15px;
+}
+
+.tableHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.tableHeader h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.addBtn {
+    background-color: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.assignBtn {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.assignBtn:hover {
+    background: #059669;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.assignModal {
+    background: white;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90vw;
+}
+
+.assignModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.assignModalHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.assignModalHeader button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.assignModalBody {
+    padding: 20px;
+}
+
+.assignModalBody label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.assignModalBody p {
+    margin: 16px 0 0 0;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.assignModalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.cancelButton {
+    padding: 8px 16px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #6b7280;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.cancelButton:hover {
+    background: #f9fafb;
+}
+
+.assignButton {
+    padding: 8px 16px;
+    border: none;
+    background: #10b981;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.assignButton:hover:not(:disabled) {
+    background: #059669;
+}
+
+.assignButton:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+}
+
+.usersModal {
+    background: white;
+    border-radius: 8px;
+    width: 300px;
+    max-width: 90vw;
+}
+
+.usersModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.usersModalHeader h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.usersModalHeader button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.usersModalBody {
+    padding: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.userItem {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.userItem:last-child {
+    border-bottom: none;
+}
+
+.userName {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.userUsername {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.addBtn:hover {
+    background-color: #83cee4;
+}
+
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.statusBadge.active {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.statusBadge.inactive {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.actionBtn {
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.actionBtn.edit {
+    color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.actionBtn.edit:hover {
+    background-color: #dbeafe;
+}
+
+.actionBtn.activate {
+    color: #22c55e;
+    background-color: #f0fdf4;
+}
+
+.actionBtn.activate:hover {
+    background-color: #dcfce7;
+}
+
+.actionBtn.deactivate {
+    color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.actionBtn.deactivate:hover {
+    background-color: #fee2e2;
+}
+
+.actionBtn.createUser {
+    color: #8b5cf6;
+    background-color: #f3f4f6;
+}
+
+.actionBtn.createUser:hover {
+    background-color: #e5e7eb;
+}
+
+.actionBtn.delete {
+    color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.actionBtn.delete:hover {
+    background-color: #fee2e2;
+}
+
+/* Dark mode styles */
+:global(.dark) .statCard {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+}
+
+:global(.dark) .statContent h3 {
+    color: #f9fafb;
+}
+
+:global(.dark) .statContent p {
+    color: #d1d5db;
+}
+
+:global(.dark) .statCard.blue .statIcon {
+    background-color: #1e3a8a;
+    color: #93c5fd;
+}
+
+:global(.dark) .statCard.green .statIcon {
+    background-color: #14532d;
+    color: #86efac;
+}
+
+:global(.dark) .statCard.red .statIcon {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+:global(.dark) .tableHeader h2 {
+    color: #f9fafb;
+}
+
+:global(.dark) .addBtn {
+    background-color: #7dd0e9;
+    color: #011926;
+}
+
+:global(.dark) .addBtn:hover {
+    background-color: #83cee4;
+}
+
+:global(.dark) .statusBadge.active {
+    background-color: #064e3b;
+    color: #6ee7b7;
+}
+
+:global(.dark) .statusBadge.inactive {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+:global(.dark) .actionBtn.edit {
+    color: #60a5fa;
+    background-color: #1e3a8a;
+}
+
+:global(.dark) .actionBtn.edit:hover {
+    background-color: #1e40af;
+}
+
+:global(.dark) .actionBtn.activate {
+    color: #4ade80;
+    background-color: #14532d;
+}
+
+:global(.dark) .actionBtn.activate:hover {
+    background-color: #166534;
+}
+
+:global(.dark) .actionBtn.deactivate {
+    color: #f87171;
+    background-color: #7f1d1d;
+}
+
+:global(.dark) .actionBtn.deactivate:hover {
+    background-color: #991b1b;
+}
+
+:global(.dark) .actionBtn.createUser {
+    color: #a78bfa;
+    background-color: #374151;
+}
+
+:global(.dark) .actionBtn.createUser:hover {
+    background-color: #4b5563;
+}
+
+:global(.dark) .actionBtn.delete {
+    color: #f87171;
+    background-color: #7f1d1d;
+}
+
+:global(.dark) .actionBtn.delete:hover {
+    background-color: #991b1b;
+}

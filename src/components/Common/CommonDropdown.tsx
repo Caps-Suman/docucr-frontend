@@ -30,20 +30,24 @@ const CommonDropdown: React.FC<CommonDropdownProps> = ({
     const customStyles: StylesConfig = {
         control: (provided, state) => ({
             ...provided,
-            minHeight: size === 'sm' ? '28px' : '36px',
-            height: size === 'sm' ? '28px' : '36px',
+            minHeight: size === 'sm' ? '28px' : '38px',
+            height: size === 'sm' ? '28px' : '38px',
             fontSize: size === 'sm' ? '11px' : '13px',
-            border: '1px solid #e2e8f0',
-            borderRadius: '4px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
             boxShadow: 'none',
             '&:hover': {
                 borderColor: '#cbd5e1'
+            },
+            '&:focus-within': {
+                borderColor: '#83cee4',
+                boxShadow: '0 0 0 3px rgba(131, 206, 228, 0.1)'
             }
         }),
         valueContainer: (provided) => ({
             ...provided,
-            height: size === 'sm' ? '28px' : '36px',
-            padding: '0 6px'
+            height: size === 'sm' ? '28px' : '38px',
+            padding: '0 12px'
         }),
         input: (provided) => ({
             ...provided,
@@ -54,13 +58,18 @@ const CommonDropdown: React.FC<CommonDropdownProps> = ({
         }),
         indicatorsContainer: (provided) => ({
             ...provided,
-            height: size === 'sm' ? '28px' : '36px'
+            height: size === 'sm' ? '28px' : '38px'
         }),
         menu: (provided) => ({
             ...provided,
             borderRadius: '6px',
             border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            zIndex: 9999
+        }),
+        menuPortal: (provided) => ({
+            ...provided,
+            zIndex: 9999
         }),
         menuList: (provided) => ({
             ...provided,
@@ -90,6 +99,8 @@ const CommonDropdown: React.FC<CommonDropdownProps> = ({
             isSearchable={isSearchable}
             className={className}
             menuPlacement={menuPlacement}
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
             placeholder={placeholder}
         />
     );

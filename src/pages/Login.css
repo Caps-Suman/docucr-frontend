@@ -251,10 +251,19 @@
   color: #000000;
   text-decoration: none;
   font-weight: 500;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
 }
 
 .forgot-link:hover {
   text-decoration: underline;
+}
+
+.forgot-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-primary {
@@ -348,6 +357,61 @@
 
 .toggle-btn:hover {
   text-decoration: underline;
+}
+
+/* Role Selection Styles */
+.role-selection-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.role-icon {
+  display: inline-block;
+}
+
+.roles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.role-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: white;
+  border: 2px solid #d0d0d0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.role-card:hover {
+  border-color: #83cee4;
+  background: #f0f9fc;
+}
+
+.role-card.selected {
+  border-color: #83cee4;
+  background: #e2f3f9;
+}
+
+.role-card-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #011926;
+}
+
+.role-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.selected-icon {
+  color: #83cee4;
 }
 
 @media (max-width: 968px) {
