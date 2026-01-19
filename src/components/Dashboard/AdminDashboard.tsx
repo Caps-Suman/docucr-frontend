@@ -97,6 +97,7 @@ const AdminDashboard: React.FC = () => {
                     <button 
                         className={styles.actionBtn}
                         onClick={() => navigate('/user-management')}
+                        disabled
                     >
                         <Users size={16} />
                         Manage Users
@@ -104,6 +105,7 @@ const AdminDashboard: React.FC = () => {
                     <button 
                         className={styles.actionBtn}
                         onClick={() => navigate('/document-types')}
+                        disabled
                     >
                         <FileText size={16} />
                         Document Types
@@ -111,6 +113,7 @@ const AdminDashboard: React.FC = () => {
                     <button 
                         className={styles.actionBtn}
                         onClick={() => navigate('/settings')}
+                        disabled
                     >
                         <Settings size={16} />
                         Settings
