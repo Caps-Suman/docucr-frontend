@@ -6,7 +6,7 @@ echo "Deploying Docu-CR Frontend"
 echo "=========================================="
 echo ""
 
-BACKEND_URL="${1:-https://docucrapi.medeye360.com/api/v1}"
+BACKEND_URL="${1:-https://docucrapi.medeye360.com}"
 REGION="us-east-1"
 BUCKET_NAME="docucr.medeye360.com"
 
@@ -18,9 +18,17 @@ echo ""
 
 cd "$(dirname "$0")/.."
 
+# Temporarily hide .env.local so it doesn't override production settings
+if [ -f .env.local ]; then
+  echo "Temporarily moving .env.local to .env.local.bak to ensure clean production build..."
+  mv .env.local .env.local.bak
+  trap 'mv .env.local.bak .env.local' EXIT
+fi
+
 # Create .env.production
 echo "Creating .env.production..."
 cat > .env.production << EOF
+REACT_APP_API_URL=${BACKEND_URL}
 VITE_API_URL=${BACKEND_URL}
 EOF
 
@@ -50,13 +58,13 @@ echo ""
 
 # Upload to S3
 echo "Uploading to S3..."
-aws s3 sync dist/ s3://${BUCKET_NAME}/ \
+aws s3 sync build/ s3://${BUCKET_NAME}/ \
   --delete \
   --region ${REGION} \
   --cache-control "public, max-age=31536000, immutable" \
   --exclude "index.html"
 
-aws s3 cp dist/index.html s3://${BUCKET_NAME}/index.html \
+aws s3 cp build/index.html s3://${BUCKET_NAME}/index.html \
   --region ${REGION} \
   --cache-control "no-cache"
 

@@ -16,25 +16,30 @@ interface FormErrors {
   email?: string;
   password?: string;
   submit?: string;
+  otp?: string;
+  confirmPassword?: string;
 }
 
 const Login: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isOtpSent, setIsOtpSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showRoleSelection, setShowRoleSelection] = useState(false);
   const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedRole, setSelectedRole] = useState('');
   const [userInfo, setUserInfo] = useState<any>(null);
   const [tempToken, setTempToken] = useState<string>('');
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<FormData & { otp?: string; confirmPassword?: string }>({
     email: '',
     password: '',
     firstName: '',
     lastName: '',
-    rememberMe: false
+    rememberMe: false,
+    otp: '',
+    confirmPassword: ''
   });
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [errors, setErrors] = useState<FormErrors & { otp?: string; confirmPassword?: string }>({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
@@ -95,6 +100,20 @@ const Login: React.FC = () => {
       newErrors.password = 'Password must be at least 8 characters';
     }
 
+    if (isForgotPassword && isOtpSent) {
+      if (!formData.otp) newErrors.otp = 'OTP is required';
+
+      if (!formData.password) {
+        newErrors.password = 'New Password is required';
+      } else if (!validatePassword(formData.password)) {
+        newErrors.password = 'Password must be at least 8 characters';
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -109,8 +128,27 @@ const Login: React.FC = () => {
 
     try {
       if (isForgotPassword) {
-        const data = await authService.forgotPassword({ email: formData.email });
-        setMessage(data.message || 'OTP sent to your email. Please check your inbox.');
+        if (isOtpSent) {
+          // Verify OTP and Reset Password
+          const data = await authService.resetPassword({
+            email: formData.email,
+            otp: formData.otp || '',
+            new_password: formData.password
+          });
+          setMessage(data.message || 'Password reset successfully');
+          // Reset State after success
+          setTimeout(() => {
+            setIsForgotPassword(false);
+            setIsOtpSent(false);
+            // Clear form
+            setFormData(prev => ({ ...prev, password: '', otp: '', confirmPassword: '' }));
+          }, 2000);
+        } else {
+          // Send OTP
+          const data = await authService.forgotPassword({ email: formData.email });
+          setMessage(data.message || 'OTP sent to your email. Please check your inbox.');
+          setIsOtpSent(true);
+        }
       } else {
         const data = await authService.login({
           email: formData.email,
@@ -299,9 +337,54 @@ const Login: React.FC = () => {
                   onChange={handleChange}
                   className={errors.email ? 'error' : ''}
                   required
+                  disabled={isOtpSent} // Disable email when entering OTP
+                  style={isOtpSent ? { backgroundColor: '#f0f0f0', cursor: 'not-allowed' } : {}}
                 />
                 {errors.email && <span className="error-text">{errors.email}</span>}
               </div>
+
+              {isForgotPassword && isOtpSent && (
+                <>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      name="otp"
+                      placeholder="Enter OTP"
+                      value={formData.otp}
+                      onChange={handleChange}
+                      className={errors.otp ? 'error' : ''}
+                      required
+                    />
+                    {errors.otp && <span className="error-text">{errors.otp}</span>}
+                  </div>
+
+                  <div className="form-group">
+                    <input
+                      type="password"
+                      name="password"
+                      placeholder="New Password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={errors.password ? 'error' : ''}
+                      required
+                    />
+                    {errors.password && <span className="error-text">{errors.password}</span>}
+                  </div>
+
+                  <div className="form-group">
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      placeholder="Confirm New Password"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className={errors.confirmPassword ? 'error' : ''}
+                      required
+                    />
+                    {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
+                  </div>
+                </>
+              )}
 
               {!isForgotPassword && (
                 <div className="form-group">
@@ -352,7 +435,7 @@ const Login: React.FC = () => {
               )}
 
               <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Please wait...' : (isForgotPassword ? 'Send Reset Link' : 'Sign In')}
+                {loading ? 'Please wait...' : (isForgotPassword ? (isOtpSent ? 'Reset Password' : 'Send Reset Link') : 'Sign In')}
               </button>
             </form>
 
@@ -362,7 +445,9 @@ const Login: React.FC = () => {
                 <button
                   onClick={() => {
                     setIsForgotPassword(false);
+                    setIsOtpSent(false);
                     setIsSignUp(false);
+                    setMessage('');
                   }}
                   className="toggle-btn"
                 >

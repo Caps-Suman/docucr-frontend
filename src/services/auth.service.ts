@@ -37,6 +37,12 @@ export interface ApiError {
   error: string;
 }
 
+export interface ResetPasswordRequest {
+  email: string;
+  otp: string;
+  new_password: string;
+}
+
 class AuthService {
   async login(data: LoginRequest): Promise<LoginResponse> {
     const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -46,17 +52,17 @@ class AuthService {
     });
 
     if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.error || 'Login failed');
+      const error: any = await response.json();
+      throw new Error(error.error || error.detail || 'Login failed');
     }
 
     const result = await response.json();
-    
+
     // Save user ID if available
     if (result.user?.id) {
       this.saveUserId(result.user.id);
     }
-    
+
     return result;
   }
 
@@ -64,7 +70,7 @@ class AuthService {
     const token = tempToken || this.getToken();
     const response = await fetch(`${API_BASE_URL}/api/auth/select-role`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` })
       },
@@ -77,12 +83,12 @@ class AuthService {
     }
 
     const result = await response.json();
-    
+
     // Save user ID if available
     if (result.user?.id) {
       this.saveUserId(result.user.id);
     }
-    
+
     return result;
   }
 
@@ -94,8 +100,23 @@ class AuthService {
     });
 
     if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.error || 'Failed to send reset email');
+      const error: any = await response.json();
+      throw new Error(error.error || error.detail || 'Failed to send reset email');
+    }
+
+    return response.json();
+  }
+
+  async resetPassword(data: ResetPasswordRequest): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error: any = await response.json();
+      throw new Error(error.error || error.detail || 'Failed to reset password');
     }
 
     return response.json();
