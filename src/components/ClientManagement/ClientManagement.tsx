@@ -17,7 +17,7 @@ import styles from './ClientManagement.module.css';
 
 const ClientManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(0);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
     const [clients, setClients] = useState<Client[]>([]);
     const [totalClients, setTotalClients] = useState(0);
     const [stats, setStats] = useState<ClientStats | null>(null);
@@ -28,7 +28,7 @@ const ClientManagement: React.FC = () => {
     const [users, setUsers] = useState<Array<{ id: string; name: string; roles: string }>>([]);
     const [selectedUserId, setSelectedUserId] = useState<string>('');
     const [showUsersModal, setShowUsersModal] = useState(false);
-    const [clientUsers, setClientUsers] = useState<Array<{id: string; username: string; name: string}>>([]);
+    const [clientUsers, setClientUsers] = useState<Array<{ id: string; username: string; name: string }>>([]);
 
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -307,8 +307,8 @@ const ClientManagement: React.FC = () => {
                 }
                 return (
                     <span>
-                        {value[0]} 
-                        <button 
+                        {value[0]}
+                        <button
                             onClick={() => handleShowClientUsers(row.id)}
                             style={{
                                 marginLeft: '8px',
@@ -347,8 +347,8 @@ const ClientManagement: React.FC = () => {
                     </span>
                     {!row.is_user && (
                         <span className="tooltip-wrapper" data-tooltip="Create User">
-                            <button 
-                                className={`${styles.actionBtn} ${styles.createUser}`} 
+                            <button
+                                className={`${styles.actionBtn} ${styles.createUser}`}
                                 onClick={() => {
                                     setCrossCreationData({
                                         client_id: row.id,
@@ -448,7 +448,7 @@ const ClientManagement: React.FC = () => {
                         </h2>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                             {selectedClients.length > 0 && (
-                                <button 
+                                <button
                                     className={styles.assignBtn}
                                     onClick={() => {
                                         loadUserFormData().then(() => setShowAssignModal(true));
@@ -512,7 +512,7 @@ const ClientManagement: React.FC = () => {
                     </h2>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         {selectedClients.length > 0 && (
-                            <button 
+                            <button
                                 className={styles.assignBtn}
                                 onClick={() => {
                                     loadUserFormData().then(() => setShowAssignModal(true));
@@ -575,7 +575,7 @@ const ClientManagement: React.FC = () => {
             </div>
 
             <CommonPagination
-                show={totalClients > itemsPerPage}
+                show={totalClients > 0}
                 pageCount={Math.ceil(totalClients / itemsPerPage)}
                 currentPage={currentPage}
                 totalItems={totalClients}
@@ -664,13 +664,13 @@ const ClientManagement: React.FC = () => {
                             />
                             <p>{selectedClients.length} client(s) will be assigned to the selected user.</p>
                             <div className={styles.assignModalActions}>
-                                <button 
+                                <button
                                     className={styles.cancelButton}
                                     onClick={() => setShowAssignModal(false)}
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     className={styles.assignButton}
                                     onClick={() => handleAssignClients(selectedUserId)}
                                     disabled={!selectedUserId}
