@@ -17,6 +17,8 @@ import ClientManagement from './components/ClientManagement/ClientManagement';
 import DocumentTemplate from './components/DocumentTemplate/DocumentTemplate';
 import CreateTemplate from './components/DocumentTemplate/TemplateManagement/CreateTemplate';
 import Settings from './components/Settings/Settings';
+import ComingSoon from './components/Common/ComingSoon';
+import { FileSearch } from 'lucide-react';
 
 const DefaultComponent: React.FC = () => (
   <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -79,7 +81,13 @@ const App: React.FC = () => {
           <Route path="edit/:id" element={<CreateTemplate />} />
         </Route>
         <Route path="/sops" element={<AppLayout />}>
-          <Route index element={<DefaultComponent />} />
+          <Route index element={
+            <ComingSoon
+              title="SOP Module"
+              description="Standard Operating Procedures (SOPs) are currently under development to help you manage your document workflows more effectively."
+              icon={<FileSearch size={48} />}
+            />
+          } />
         </Route>
         <Route path="/clients" element={<AppLayout />}>
           <Route index element={<ClientManagement />} />

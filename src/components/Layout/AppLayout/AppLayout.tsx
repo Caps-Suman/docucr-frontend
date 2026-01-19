@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText } from 'lucide-react';
+import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit } from 'lucide-react';
 import authService from '../../../services/auth.service';
 import Sidebar from '../../Sidebar/Sidebar';
 import './AppLayout.css';
@@ -20,12 +20,12 @@ const AppLayout: React.FC = () => {
     const getBreadcrumbs = () => {
         const path = location.pathname;
 
-        if (path === '/dashboard') return [{ icon: Home, label: 'Dashboard' }];
+        if (path === '/dashboard') return [{ icon: LayoutDashboard, label: 'Dashboard' }];
         if (path === '/profile') return [{ icon: User, label: 'Profile' }];
         if (path === '/users-permissions') return [{ icon: Shield, label: 'User & Permission' }];
 
         if (path.startsWith('/documents')) {
-            const crumbs = [{ icon: LayoutDashboard, label: 'Documents' }];
+            const crumbs = [{ icon: FileText, label: 'Documents' }];
             if (path.includes('/upload')) {
                 crumbs.push({ icon: FileText, label: 'Upload' });
             } else if (path !== '/documents') {
@@ -34,12 +34,13 @@ const AppLayout: React.FC = () => {
             return crumbs;
         }
 
-        if (path.startsWith('/templates')) return [{ icon: LayoutDashboard, label: 'Templates' }];
-        if (path.startsWith('/sops')) return [{ icon: LayoutDashboard, label: 'SOPs' }];
-        if (path.startsWith('/clients')) return [{ icon: LayoutDashboard, label: 'Clients' }];
-        if (path.startsWith('/settings')) return [{ icon: LayoutDashboard, label: 'Settings' }];
+        if (path.startsWith('/templates')) return [{ icon: Layout, label: 'Templates' }];
+        if (path.startsWith('/sops')) return [{ icon: BookOpen, label: 'SOPs' }];
+        if (path.startsWith('/clients')) return [{ icon: Users, label: 'Clients' }];
+        if (path.startsWith('/settings')) return [{ icon: Settings, label: 'Settings' }];
+        if (path.startsWith('/forms')) return [{ icon: FileEdit, label: 'Form Management' }];
 
-        return [{ icon: Home, label: 'Dashboard' }];
+        return [{ icon: LayoutDashboard, label: 'Dashboard' }];
     };
 
     const formatRoleName = (name: string) => {
