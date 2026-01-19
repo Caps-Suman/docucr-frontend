@@ -21,8 +21,8 @@
     "zustand": "^5.0.10"
   },
   "scripts": {
-    "dev": "PORT=4200 react-scripts start",
-    "start": "PORT=4200 react-scripts start",
+    "dev": "cross-env PORT=4200 react-scripts start",
+    "start": "cross-env PORT=4200 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -45,6 +45,7 @@
     ]
   },
   "devDependencies": {
-    "@types/jszip": "^3.4.1"
+    "@types/jszip": "^3.4.1",
+    "cross-env": "^10.1.0"
   }
 }
