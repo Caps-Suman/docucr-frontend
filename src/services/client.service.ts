@@ -47,7 +47,7 @@ export interface ClientCreateData {
 export interface ClientUpdateData extends ClientCreateData { }
 
 const clientService = {
-    getClients: async (page: number = 1, pageSize: number = 10, search?: string, statusId?: string): Promise<ClientListResponse> => {
+    getClients: async (page: number = 1, pageSize: number = 25, search?: string, statusId?: string): Promise<ClientListResponse> => {
         const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
         if (search) params.append('search', search);
         if (statusId) params.append('status_id', statusId);
@@ -122,7 +122,7 @@ const clientService = {
         return response.json();
     },
 
-    getClientUsers: async (clientId: string): Promise<Array<{id: string; username: string; name: string}>> => {
+    getClientUsers: async (clientId: string): Promise<Array<{ id: string; username: string; name: string }>> => {
         const response = await apiClient(`${API_URL}/api/clients/${clientId}/users`);
         if (!response.ok) throw new Error('Failed to fetch client users');
         return response.json();

@@ -15,7 +15,7 @@ import clientService from '../../../services/client.service';
 
 const UserManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(0);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
     const [users, setUsers] = useState<User[]>([]);
     const [stats, setStats] = useState<UserStats | null>(null);
     const [totalUsers, setTotalUsers] = useState(0);
@@ -344,7 +344,7 @@ const UserManagement: React.FC = () => {
             </div>
 
             <CommonPagination
-                show={totalUsers > itemsPerPage}
+                show={totalUsers > 0}
                 pageCount={Math.ceil(totalUsers / itemsPerPage)}
                 currentPage={currentPage}
                 totalItems={totalUsers}

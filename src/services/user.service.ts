@@ -53,7 +53,7 @@ export interface UserUpdateData {
 }
 
 const userService = {
-    getUsers: async (page: number = 1, pageSize: number = 10, search?: string, statusId?: string): Promise<UserListResponse> => {
+    getUsers: async (page: number = 1, pageSize: number = 25, search?: string, statusId?: string): Promise<UserListResponse> => {
         const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
         if (search) params.append('search', search);
         if (statusId) params.append('status_id', statusId);
