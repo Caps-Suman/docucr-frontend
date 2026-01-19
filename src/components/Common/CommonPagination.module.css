@@ -1,14 +1,18 @@
-/* Pagination Container */
 .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 0;
-  border-top: 1px solid #e2e8f0;
+  padding: 8px 16px;
   background: white;
-  position: sticky;
-  bottom: 0;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
   z-index: 100;
+  transition: all 0.3s ease;
+  height: 45px;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Left Section */
@@ -104,23 +108,23 @@
     gap: 12px;
     align-items: stretch;
   }
-  
+
   .left {
     justify-content: space-between;
   }
-  
+
   .center {
     justify-content: center;
   }
-  
+
   .info {
     font-size: 11px;
   }
-  
+
   .itemsPerPageLabel {
     font-size: 11px;
   }
-  
+
   :global(.pagination-link) {
     min-width: 28px;
     height: 28px;

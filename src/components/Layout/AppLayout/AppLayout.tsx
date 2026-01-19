@@ -158,6 +158,7 @@ const AppLayout: React.FC = () => {
                 <main className="app-main">
                     <Outlet />
                 </main>
+                <div id="pagination-target"></div>
             </div>
         </div>
     );

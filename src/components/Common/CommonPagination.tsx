@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { createPortal } from 'react-dom';
 import ReactPaginate from 'react-paginate';
 import Select from 'react-select';
 import styles from './CommonPagination.module.css';
@@ -22,24 +23,10 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
     itemsPerPage = 10,
     onItemsPerPageChange
 }) => {
-    useEffect(() => {
-        const appMain = document.querySelector('.app-main');
-        if (appMain) {
-            if (show && pageCount > 1) {
-                appMain.classList.add('with-pagination');
-            } else {
-                appMain.classList.remove('with-pagination');
-            }
-        }
-        return () => {
-            const appMain = document.querySelector('.app-main');
-            if (appMain) {
-                appMain.classList.remove('with-pagination');
-            }
-        };
-    }, [show, pageCount]);
+    // Simplified portal target lookup
+    const target = document.getElementById('pagination-target');
 
-    if (!show || pageCount <= 1) return null;
+    if (!show || !target) return null;
 
     const startItem = currentPage * itemsPerPage + 1;
     const endItem = Math.min((currentPage + 1) * itemsPerPage, totalItems || 0);
@@ -47,6 +34,7 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
     const itemsPerPageOptions = [
         { value: 10, label: '10' },
         { value: 20, label: '20' },
+        { value: 25, label: '25' },
         { value: 40, label: '40' },
         { value: 60, label: '60' },
         { value: 80, label: '80' },
@@ -107,7 +95,7 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
         })
     };
 
-    return (
+    return createPortal(
         <div className={styles.container}>
             <div className={styles.left}>
                 {totalItems && (
@@ -130,28 +118,31 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
                     </div>
                 )}
             </div>
-            
-            <div className={styles.center}>
-                <ReactPaginate
-                    pageCount={pageCount}
-                    pageRangeDisplayed={3}
-                    marginPagesDisplayed={1}
-                    onPageChange={onPageChange}
-                    forcePage={currentPage}
-                    containerClassName="pagination"
-                    pageClassName="pagination-item"
-                    pageLinkClassName="pagination-link"
-                    activeClassName="pagination-active"
-                    previousClassName="pagination-item"
-                    nextClassName="pagination-item"
-                    previousLinkClassName="pagination-link"
-                    nextLinkClassName="pagination-link"
-                    disabledClassName="pagination-disabled"
-                    previousLabel="‹"
-                    nextLabel="›"
-                />
-            </div>
-        </div>
+
+            {pageCount > 0 && (
+                <div className={styles.center}>
+                    <ReactPaginate
+                        pageCount={pageCount}
+                        pageRangeDisplayed={3}
+                        marginPagesDisplayed={1}
+                        onPageChange={onPageChange}
+                        forcePage={currentPage}
+                        containerClassName="pagination"
+                        pageClassName="pagination-item"
+                        pageLinkClassName="pagination-link"
+                        activeClassName="pagination-active"
+                        previousClassName="pagination-item"
+                        nextClassName="pagination-item"
+                        previousLinkClassName="pagination-link"
+                        nextLinkClassName="pagination-link"
+                        disabledClassName="pagination-disabled"
+                        previousLabel="‹"
+                        nextLabel="›"
+                    />
+                </div>
+            )}
+        </div>,
+        target
     );
 };
 

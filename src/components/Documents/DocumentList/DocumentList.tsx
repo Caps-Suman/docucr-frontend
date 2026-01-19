@@ -15,6 +15,7 @@ import { useUploadStore, uploadStore } from '../../../store/uploadStore';
 import ShareDocumentsModal from '../ShareDocumentsModal/ShareDocumentsModal';
 import styles from './DocumentList.module.css';
 import formService from '../../../services/form.service';
+import CommonPagination from '../../Common/CommonPagination';
 
 interface DocumentListItem {
     id: string;
@@ -67,6 +68,9 @@ const DocumentList: React.FC = () => {
         sharedWithMe: 0,
         archived: 0
     });
+    const [currentPage, setCurrentPage] = useState(0);
+    const [pageSize, setPageSize] = useState(25);
+    const [totalDocuments, setTotalDocuments] = useState(0);
 
     const activeFilterCount = Object.entries(activeFilters).filter(([key, value]) => {
         if (key === 'dateFrom' || key === 'dateTo') {
@@ -77,6 +81,7 @@ const DocumentList: React.FC = () => {
 
     const handleApplyFilters = () => {
         setActiveFilters(filters);
+        setCurrentPage(0);
         setShowFilters(false);
     };
 
@@ -88,6 +93,7 @@ const DocumentList: React.FC = () => {
         });
         setFilters(resetState);
         setActiveFilters(resetState);
+        setCurrentPage(0);
     };
 
 
@@ -113,7 +119,7 @@ const DocumentList: React.FC = () => {
                 wsRef.current.close();
             }
         };
-    }, [activeFilters, clients, documentTypes]);
+    }, [activeFilters, clients, documentTypes, currentPage, pageSize]);
 
     const loadMetadata = async () => {
         try {
@@ -188,10 +194,14 @@ const DocumentList: React.FC = () => {
                 status: activeFilters.status ? activeFilters.status.toUpperCase() : undefined,
                 dateFrom: activeFilters.dateFrom ? activeFilters.dateFrom.toISOString().split('T')[0] : undefined,
                 dateTo: activeFilters.dateTo ? activeFilters.dateTo.toISOString().split('T')[0] : undefined,
-                formFilters: Object.keys(formFilters).length > 0 ? formFilters : undefined
+                formFilters: Object.keys(formFilters).length > 0 ? formFilters : undefined,
+                skip: currentPage * pageSize,
+                limit: pageSize
             };
 
-            const docs = await documentService.getDocuments(serviceFilters);
+            const response = await documentService.getDocuments(serviceFilters);
+            const docs = response.documents;
+            setTotalDocuments(response.total);
 
             const formattedDocs = docs.map(doc => ({
                 id: doc.id,
@@ -386,41 +396,41 @@ const DocumentList: React.FC = () => {
 
     const handleBulkDownload = async () => {
         if (selectedDocuments.size === 0) return;
-        
+
         setIsDownloading(true);
         try {
             console.log('Starting bulk download for', selectedDocuments.size, 'documents');
-            
+
             const JSZip = (await import('jszip')).default;
             const zip = new JSZip();
-            
+
             const selectedDocs = documents.filter(doc => selectedDocuments.has(doc.id));
             // console.log('Selected documents:', selectedDocs.map(d => d.name));
-            
+
             // Download all files and add to ZIP
             for (const doc of selectedDocs) {
                 try {
                     console.log('Processing document:', doc.name);
-                    
+
                     // Create folder for each document
                     const folderName = `${doc.name.replace(/\.[^/.]+$/, '')}_${doc.id}`;
                     const docFolder = zip.folder(folderName);
-                    
+
                     // Download main document
                     const docUrl = await documentService.getDocumentDownloadUrl(doc.id);
                     const docResponse = await fetch(docUrl);
-                    
+
                     if (docResponse.ok) {
                         const docBlob = await docResponse.blob();
                         docFolder?.file(doc.originalFilename || doc.name, docBlob);
                         console.log('Added document to folder:', doc.name);
                     }
-                    
+
                     // Try to download report file
                     try {
                         const reportUrl = await documentService.getDocumentReportUrl(doc.id);
                         const reportResponse = await fetch(reportUrl);
-                        
+
                         if (reportResponse.ok) {
                             const reportBlob = await reportResponse.blob();
                             const reportFileName = `analysis_report_${doc.name.replace(/\.[^/.]+$/, '')}.xlsx`;
@@ -430,19 +440,19 @@ const DocumentList: React.FC = () => {
                     } catch (reportError) {
                         console.log('No report available for:', doc.name);
                     }
-                    
+
                 } catch (error) {
                     console.error(`Failed to process ${doc.name}:`, error);
                 }
             }
-            
+
             console.log('Generating ZIP...');
             // Generate ZIP and download
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             console.log('ZIP generated, size:', zipBlob.size);
-            
+
             const zipUrl = URL.createObjectURL(zipBlob);
-            
+
             const link = document.createElement('a');
             link.href = zipUrl;
             link.download = `docucr_docs_${new Date().toISOString().split('T')[0]}.zip`;
@@ -450,9 +460,9 @@ const DocumentList: React.FC = () => {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             URL.revokeObjectURL(zipUrl);
-            
+
             setToast({ message: `Downloaded ${selectedDocuments.size} documents as ZIP`, type: 'success' });
             setSelectedDocuments(new Set());
         } catch (error) {
@@ -915,56 +925,56 @@ const DocumentList: React.FC = () => {
                     </div>
                 </div>
                 <div className={styles.statusLegend}>
-                        <span className={styles.legendItem}>
-                            <CheckCircle size={12} className={`${styles.legendIcon} ${styles.colorSuccess}`} />
-                            <span>Completed: Finished analysis</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <CheckCircle size={12} className={`${styles.legendIcon} ${styles.colorUploaded}`} />
-                            <span>Uploaded: File ready for AI</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <Clock size={12} className={`${styles.legendIcon} ${styles.colorQueued}`} />
-                            <span>Queued: Waiting to start</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <Clock size={12} className={`${styles.legendIcon} ${styles.colorProcessing}`} />
-                            <span>Processing: Being analyzed</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <Loader2 size={12} className={`${styles.legendIcon} ${styles.colorAnalyzing} ${styles.animateSpin}`} />
-                            <span>Analyzing: AI processing</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <Clock size={12} className={`${styles.legendIcon} ${styles.colorAIQueued}`} />
-                            <span>AI Queued: Waiting for AI</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <UploadCloud size={12} className={`${styles.legendIcon} ${styles.colorUploading}`} />
-                            <span>Uploading: File transfer</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <X size={12} className={`${styles.legendIcon} ${styles.colorFailed}`} />
-                            <span>Failed: General error</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <X size={12} className={`${styles.legendIcon} ${styles.colorAIFailed}`} />
-                            <span>AI Failed: Analysis error</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <X size={12} className={`${styles.legendIcon} ${styles.colorUploadFailed}`} />
-                            <span>Upload Failed: Network error</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <Ban size={12} className={`${styles.legendIcon} ${styles.colorCancelled}`} />
-                            <span>Cancelled: Manually stopped</span>
-                        </span>
-                        <span className={styles.legendItem}>
-                            <Archive size={12} className={`${styles.legendIcon} ${styles.colorArchived}`} />
-                            <span>Archived: Document archived</span>
-                        </span>
-                    </div>
+                    <span className={styles.legendItem}>
+                        <CheckCircle size={12} className={`${styles.legendIcon} ${styles.colorSuccess}`} />
+                        <span>Completed: Finished analysis</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <CheckCircle size={12} className={`${styles.legendIcon} ${styles.colorUploaded}`} />
+                        <span>Uploaded: File ready for AI</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <Clock size={12} className={`${styles.legendIcon} ${styles.colorQueued}`} />
+                        <span>Queued: Waiting to start</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <Clock size={12} className={`${styles.legendIcon} ${styles.colorProcessing}`} />
+                        <span>Processing: Being analyzed</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <Loader2 size={12} className={`${styles.legendIcon} ${styles.colorAnalyzing} ${styles.animateSpin}`} />
+                        <span>Analyzing: AI processing</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <Clock size={12} className={`${styles.legendIcon} ${styles.colorAIQueued}`} />
+                        <span>AI Queued: Waiting for AI</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <UploadCloud size={12} className={`${styles.legendIcon} ${styles.colorUploading}`} />
+                        <span>Uploading: File transfer</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <X size={12} className={`${styles.legendIcon} ${styles.colorFailed}`} />
+                        <span>Failed: General error</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <X size={12} className={`${styles.legendIcon} ${styles.colorAIFailed}`} />
+                        <span>AI Failed: Analysis error</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <X size={12} className={`${styles.legendIcon} ${styles.colorUploadFailed}`} />
+                        <span>Upload Failed: Network error</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <Ban size={12} className={`${styles.legendIcon} ${styles.colorCancelled}`} />
+                        <span>Cancelled: Manually stopped</span>
+                    </span>
+                    <span className={styles.legendItem}>
+                        <Archive size={12} className={`${styles.legendIcon} ${styles.colorArchived}`} />
+                        <span>Archived: Document archived</span>
+                    </span>
                 </div>
+            </div>
 
             <div className={styles.stats}>
                 <div className={styles.statCard}>
@@ -1086,6 +1096,19 @@ const DocumentList: React.FC = () => {
                     </table>
                 </div>
             )}
+
+            <CommonPagination
+                show={totalDocuments > 0}
+                pageCount={Math.ceil(totalDocuments / pageSize)}
+                currentPage={currentPage}
+                onPageChange={({ selected }) => setCurrentPage(selected)}
+                totalItems={totalDocuments}
+                itemsPerPage={pageSize}
+                onItemsPerPageChange={(newSize) => {
+                    setPageSize(newSize);
+                    setCurrentPage(0);
+                }}
+            />
 
             <ConfirmModal
                 isOpen={showDeleteModal}

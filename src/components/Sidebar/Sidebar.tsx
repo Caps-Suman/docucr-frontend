@@ -16,9 +16,11 @@ import modulesService, { Module } from '../../services/modules.service';
 import authService from '../../services/auth.service';
 import styles from './Sidebar.module.css';
 
-interface SidebarProps { }
+interface SidebarProps {
+    onCollapseChange?: (collapsed: boolean) => void;
+}
 
-const Sidebar: React.FC<SidebarProps> = () => {
+const Sidebar: React.FC<SidebarProps> = ({ onCollapseChange }) => {
     const [collapsed, setCollapsed] = useState(false);
     const [modules, setModules] = useState<Module[]>([]);
     const [loading, setLoading] = useState(true);
@@ -54,7 +56,9 @@ const Sidebar: React.FC<SidebarProps> = () => {
     };
 
     const toggleCollapse = () => {
-        setCollapsed(!collapsed);
+        const newCollapsed = !collapsed;
+        setCollapsed(newCollapsed);
+        onCollapseChange?.(newCollapsed);
     };
 
     const getModulesByCategory = () => {

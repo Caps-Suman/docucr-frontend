@@ -61,7 +61,7 @@ class DocumentService {
         formFilters?: Record<string, any>;
         skip?: number;
         limit?: number;
-    }): Promise<Document[]> {
+    }): Promise<{ documents: Document[], total: number }> {
         let url = `${API_BASE_URL}/api/documents/`;
         const params = new URLSearchParams();
 
@@ -86,7 +86,11 @@ class DocumentService {
         if (!response.ok) {
             throw new Error('Failed to fetch documents');
         }
-        return response.json();
+        const data = await response.json();
+        return {
+            documents: data.documents,
+            total: data.total
+        };
     }
 
     async getStats(): Promise<{
