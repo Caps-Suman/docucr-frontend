@@ -16,7 +16,7 @@ import modulesService, { Module } from '../../services/modules.service';
 import authService from '../../services/auth.service';
 import styles from './Sidebar.module.css';
 
-interface SidebarProps {}
+interface SidebarProps { }
 
 const Sidebar: React.FC<SidebarProps> = () => {
     const [collapsed, setCollapsed] = useState(false);
@@ -65,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
         const icon = iconMap[module.icon] || <FileText size={20} />;
 
         return (
-            <NavLink 
+            <NavLink
                 key={module.id}
                 to={module.route}
                 className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
@@ -103,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
                         <div className={styles.logoIcon}>
                             <ArrowRightLeft size={18} />
                         </div>
-                        {!collapsed && <span>docucr</span>}
+                        {!collapsed && <span className="brand-font">docucr</span>}
                     </div>
                 </div>
                 <div className={styles.nav}>
@@ -132,7 +132,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
                             <div className={styles.logoIcon}>
                                 d
                             </div>
-                            <span>docucr</span>
+                            <span className="brand-font">docucr</span>
                         </div>
                         <button className={styles.collapseBtn} onClick={toggleCollapse}>
                             <LogOut size={16} style={{ transform: 'rotate(180deg)' }} />
@@ -145,10 +145,10 @@ const Sidebar: React.FC<SidebarProps> = () => {
             <div className={styles.nav}>
                 {/* Main modules */}
                 {renderCategorySection('main', modulesByCategory.main || [])}
-                
+
                 {/* Admin modules */}
                 {renderCategorySection('admin', modulesByCategory.admin || [])}
-                
+
                 {/* User modules */}
                 {renderCategorySection('user', modulesByCategory.user || [])}
             </div>

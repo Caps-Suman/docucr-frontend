@@ -17,6 +17,7 @@ import ClientManagement from './components/ClientManagement/ClientManagement';
 import DocumentTemplate from './components/DocumentTemplate/DocumentTemplate';
 import CreateTemplate from './components/DocumentTemplate/TemplateManagement/CreateTemplate';
 import Settings from './components/Settings/Settings';
+import PublicShare from './pages/PublicShare';
 import ComingSoon from './components/Common/ComingSoon';
 import { FileSearch } from 'lucide-react';
 
@@ -62,6 +63,9 @@ const App: React.FC = () => {
           </>
         } />
         <Route path="/role-selection" element={<RoleSelection />} />
+
+        {/* Public Sharing Route */}
+        <Route path="/public/share/:token" element={<PublicShare />} />
 
         {/* Direct module routes */}
         <Route path="/dashboard" element={<AppLayout />}>

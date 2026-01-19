@@ -82,19 +82,19 @@ const Login: React.FC = () => {
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    
+
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!validateEmail(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
-    
+
     if (!isForgotPassword && !formData.password) {
       newErrors.password = 'Password is required';
     } else if (!isForgotPassword && !validatePassword(formData.password)) {
       newErrors.password = 'Password must be at least 8 characters';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -102,11 +102,11 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage('');
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
-    
+
     try {
       if (isForgotPassword) {
         const data = await authService.forgotPassword({ email: formData.email });
@@ -117,7 +117,7 @@ const Login: React.FC = () => {
           password: formData.password,
           remember_me: formData.rememberMe
         });
-        
+
         // Check if role selection is required
         if (data.requires_role_selection && data.roles) {
           setRoles(data.roles);
@@ -175,9 +175,9 @@ const Login: React.FC = () => {
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData({ 
-      ...formData, 
-      [name]: type === 'checkbox' ? checked : value 
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
     });
     if (errors[name as keyof FormErrors]) {
       setErrors({ ...errors, [name]: '' });
@@ -189,7 +189,7 @@ const Login: React.FC = () => {
       <div className="login-left">
         <div className="brand-container">
           <div className="brand">
-            <h1>docucr</h1>
+            <h1 className="brand-font">docucr</h1>
           </div>
         </div>
       </div>
@@ -253,124 +253,124 @@ const Login: React.FC = () => {
           </div>
         ) : (
           <div className="login-form-wrapper">
-          <h2>
-            {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Sign In'}
-          </h2>
-          <p className="subtitle">
-            {isForgotPassword
-              ? 'Enter your email to receive reset instructions'
-              : isSignUp
-                ? 'Sign up to get started'
-                : 'Enter your credentials to continue'}
-          </p>
+            <h2>
+              {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Sign In'}
+            </h2>
+            <p className="subtitle">
+              {isForgotPassword
+                ? 'Enter your email to receive reset instructions'
+                : isSignUp
+                  ? 'Sign up to get started'
+                  : 'Enter your credentials to continue'}
+            </p>
 
-          <form onSubmit={handleSubmit}>
-            {!isForgotPassword && isSignUp && (
-              <div className="form-row">
-                <div className="form-group">
-                  <input
-                    type="text"
-                    name="firstName"
-                    placeholder="First Name"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    required
-                  />
+            <form onSubmit={handleSubmit}>
+              {!isForgotPassword && isSignUp && (
+                <div className="form-row">
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      name="firstName"
+                      placeholder="First Name"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      name="lastName"
+                      placeholder="Last Name"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <input
-                    type="text"
-                    name="lastName"
-                    placeholder="Last Name"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-              </div>
-            )}
+              )}
 
-            <div className="form-group">
-              <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={handleChange}
-                className={errors.email ? 'error' : ''}
-                required
-              />
-              {errors.email && <span className="error-text">{errors.email}</span>}
-            </div>
-
-            {!isForgotPassword && (
               <div className="form-group">
-                <div className="password-input-container">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={errors.password ? 'error' : ''}
-                    required
-                  />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={errors.email ? 'error' : ''}
+                  required
+                />
+                {errors.email && <span className="error-text">{errors.email}</span>}
+              </div>
+
+              {!isForgotPassword && (
+                <div className="form-group">
+                  <div className="password-input-container">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      placeholder="Password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={errors.password ? 'error' : ''}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  {errors.password && <span className="error-text">{errors.password}</span>}
+                </div>
+              )}
+
+              {errors.submit && <div className="error-message">{errors.submit}</div>}
+              {message && <div className="success-message">{message}</div>}
+
+              {!isForgotPassword && !isSignUp && (
+                <div className="form-options">
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      name="rememberMe"
+                      checked={formData.rememberMe}
+                      onChange={handleChange}
+                    />
+                    <span>Remember me</span>
+                  </label>
                   <button
                     type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
+                    className="forgot-link"
+                    onClick={() => setIsForgotPassword(true)}
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    Forgot Password?
                   </button>
                 </div>
-                {errors.password && <span className="error-text">{errors.password}</span>}
-              </div>
-            )}
+              )}
 
-            {errors.submit && <div className="error-message">{errors.submit}</div>}
-            {message && <div className="success-message">{message}</div>}
-
-            {!isForgotPassword && !isSignUp && (
-              <div className="form-options">
-                <label className="checkbox">
-                  <input 
-                    type="checkbox" 
-                    name="rememberMe"
-                    checked={formData.rememberMe}
-                    onChange={handleChange}
-                  />
-                  <span>Remember me</span>
-                </label>
-                <button
-                  type="button"
-                  className="forgot-link"
-                  onClick={() => setIsForgotPassword(true)}
-                >
-                  Forgot Password?
-                </button>
-              </div>
-            )}
-
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Please wait...' : (isForgotPassword ? 'Send Reset Link' : 'Sign In')}
-            </button>
-          </form>
-
-          {isForgotPassword && (
-            <p className="toggle-text">
-              Remember your password?
-              <button
-                onClick={() => {
-                  setIsForgotPassword(false);
-                  setIsSignUp(false);
-                }}
-                className="toggle-btn"
-              >
-                Sign In
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {loading ? 'Please wait...' : (isForgotPassword ? 'Send Reset Link' : 'Sign In')}
               </button>
-            </p>
-          )}
-        </div>
+            </form>
+
+            {isForgotPassword && (
+              <p className="toggle-text">
+                Remember your password?
+                <button
+                  onClick={() => {
+                    setIsForgotPassword(false);
+                    setIsSignUp(false);
+                  }}
+                  className="toggle-btn"
+                >
+                  Sign In
+                </button>
+              </p>
+            )}
+          </div>
         )}
       </div>
     </div>

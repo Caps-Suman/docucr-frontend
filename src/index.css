@@ -19,6 +19,11 @@
   font-family: 'Comfortaa', cursive !important;
 }
 
+/* Global branding font */
+.brand-font {
+  font-family: 'Comfortaa', cursive !important;
+}
+
 /* Ensure sidebar and dashboard use Inter */
 [class*="sidebar"],
 [class*="sidebar"] *,
