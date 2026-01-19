@@ -49,8 +49,8 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
       ease: number;
 
       constructor(x: number, y: number) {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
+        this.x = Math.random() * canvas!.width;
+        this.y = Math.random() * canvas!.height;
         this.targetX = x;
         this.targetY = y;
         this.size = Math.random() * 2 + 1;
@@ -68,10 +68,10 @@ const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
       }
 
       draw() {
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx!.fillStyle = this.color;
+        ctx!.beginPath();
+        ctx!.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx!.fill();
       }
     }
 
