@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit } from 'lucide-react';
 import authService from '../../../services/auth.service';
+import modulesService from '../../../services/modules.service';
 import Sidebar from '../../Sidebar/Sidebar';
 import './AppLayout.css';
 
@@ -11,6 +12,7 @@ const AppLayout: React.FC = () => {
     const [showLogoutTray, setShowLogoutTray] = useState(false);
     const [user, setUser] = useState<any>(null);
     const [userRoleCount, setUserRoleCount] = useState(0);
+    const [hasModuleAccess, setHasModuleAccess] = useState(true);
     const [isDarkMode, setIsDarkMode] = useState(() => {
         const saved = localStorage.getItem('theme');
         return saved === 'dark';
@@ -19,13 +21,31 @@ const AppLayout: React.FC = () => {
 
     const getBreadcrumbs = () => {
         const path = location.pathname;
+        const crumbs: { icon: any, label: string }[] = [];
 
-        if (path === '/dashboard') return [{ icon: LayoutDashboard, label: 'Dashboard' }];
-        if (path === '/profile') return [{ icon: User, label: 'Profile' }];
-        if (path === '/users-permissions') return [{ icon: Shield, label: 'User & Permission' }];
+        // Always start with Home icon (root)
+        // User asked to "start from home icon"
+        crumbs.push({ icon: Home, label: '' });
+
+        if (path === '/dashboard' || path === '/') {
+            // Only show Dashboard label if user has access
+            if (hasModuleAccess) {
+                crumbs.push({ icon: LayoutDashboard, label: 'Dashboard' });
+            }
+            return crumbs;
+        }
+
+        if (path === '/profile') {
+            crumbs.push({ icon: User, label: 'Profile' });
+            return crumbs;
+        }
+        if (path === '/users-permissions') {
+            crumbs.push({ icon: Shield, label: 'User & Permission' });
+            return crumbs;
+        }
 
         if (path.startsWith('/documents')) {
-            const crumbs = [{ icon: FileText, label: 'Documents' }];
+            crumbs.push({ icon: FileText, label: 'Documents' });
             if (path.includes('/upload')) {
                 crumbs.push({ icon: FileText, label: 'Upload' });
             } else if (path !== '/documents') {
@@ -34,13 +54,17 @@ const AppLayout: React.FC = () => {
             return crumbs;
         }
 
-        if (path.startsWith('/templates')) return [{ icon: Layout, label: 'Templates' }];
-        if (path.startsWith('/sops')) return [{ icon: BookOpen, label: 'SOPs' }];
-        if (path.startsWith('/clients')) return [{ icon: Users, label: 'Clients' }];
-        if (path.startsWith('/settings')) return [{ icon: Settings, label: 'Settings' }];
-        if (path.startsWith('/forms')) return [{ icon: FileEdit, label: 'Form Management' }];
+        if (path.startsWith('/templates')) { crumbs.push({ icon: Layout, label: 'Templates' }); return crumbs; }
+        if (path.startsWith('/sops')) { crumbs.push({ icon: BookOpen, label: 'SOPs' }); return crumbs; }
+        if (path.startsWith('/clients')) { crumbs.push({ icon: Users, label: 'Clients' }); return crumbs; }
+        if (path.startsWith('/settings')) { crumbs.push({ icon: Settings, label: 'Settings' }); return crumbs; }
+        if (path.startsWith('/forms')) { crumbs.push({ icon: FileEdit, label: 'Form Management' }); return crumbs; }
 
-        return [{ icon: LayoutDashboard, label: 'Dashboard' }];
+        // Fallback
+        if (hasModuleAccess) {
+            crumbs.push({ icon: LayoutDashboard, label: 'Dashboard' });
+        }
+        return crumbs;
     };
 
     const formatRoleName = (name: string) => {
@@ -54,14 +78,23 @@ const AppLayout: React.FC = () => {
         const currentUser = authService.getUser();
         setUser(currentUser);
 
-        // Fetch user's role count
         if (currentUser?.email) {
             fetchUserRoleCount(currentUser.email);
+            checkModuleAccess(currentUser.email);
         }
 
         // Apply saved theme on mount
         document.documentElement.classList.toggle('dark', isDarkMode);
     }, [isDarkMode]);
+
+    const checkModuleAccess = async (email: string) => {
+        try {
+            const modules = await modulesService.getUserModules(email);
+            setHasModuleAccess(modules.length > 0);
+        } catch (error) {
+            console.error('Failed to check module access', error);
+        }
+    };
 
     const fetchUserRoleCount = async (email: string) => {
         try {
@@ -109,7 +142,7 @@ const AppLayout: React.FC = () => {
                             <React.Fragment key={index}>
                                 {index > 0 && <ChevronRight size={14} />}
                                 <crumb.icon size={14} />
-                                <span>{crumb.label}</span>
+                                {crumb.label && <span>{crumb.label}</span>}
                             </React.Fragment>
                         ))}
                     </div>

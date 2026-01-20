@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key } from 'lucide-react';
 import Table from '../../Table/Table';
 import CommonPagination from '../../Common/CommonPagination';
 import Loading from '../../Common/Loading';
 import UserModal from './UserModal';
+import ChangePasswordModal from './ChangePasswordModal';
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
 import userService, { User, UserStats } from '../../../services/user.service';
@@ -22,6 +23,7 @@ const UserManagement: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [changePasswordUser, setChangePasswordUser] = useState<User | null>(null);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
     const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
@@ -88,6 +90,46 @@ const UserManagement: React.FC = () => {
         }
         setEditingUser(user);
         setIsModalOpen(true);
+    };
+
+    const handleChangePassword = (user: User) => {
+        if (user.is_superuser) {
+            setToast({ message: 'Cannot change password for super admin', type: 'warning' });
+            return;
+        }
+        setChangePasswordUser(user);
+    };
+
+    const handlePasswordSubmit = async (password: string) => {
+        if (!changePasswordUser) return;
+        try {
+            // Check if userService has changePassword, if not, we need to add it or use raw fetch
+            // Ideally we add it to userService.ts, but for now I'll use fetch here if needed or assume user service update
+            // Let's check userService.ts content... waiting... I can't check it right now easily inside replace.
+            // I'll assume I need to ADD it to userService.ts differently or use direct fetch.
+            // Using direct fetch for safety since I didn't update frontend service yet.
+
+            const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/users/${changePasswordUser.id}/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                },
+                body: JSON.stringify({ new_password: password })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to change password');
+            }
+
+            setToast({ message: 'Password changed successfully', type: 'success' });
+            setChangePasswordUser(null);
+        } catch (error: any) {
+            console.error('Failed to change password:', error);
+            setToast({ message: error.message || 'Failed to change password', type: 'error' });
+            throw error; // Re-throw to let modal handle it if needed
+        }
     };
 
     const handleAddNew = () => {
@@ -272,6 +314,15 @@ const UserManagement: React.FC = () => {
                             <Edit2 size={14} />
                         </button>
                     </span>
+                    <span className="tooltip-wrapper" data-tooltip={row.is_superuser ? 'Cannot change password' : 'Change Password'}>
+                        <button
+                            className="action-btn edit"
+                            onClick={() => handleChangePassword(row)}
+                            style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer', color: '#f59e0b', background: '#fef3c7' }}
+                        >
+                            <Key size={14} />
+                        </button>
+                    </span>
                     <span className="tooltip-wrapper" data-tooltip={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
                         <button
                             className={`action-btn ${row.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'}`}
@@ -373,6 +424,13 @@ const UserManagement: React.FC = () => {
                 title={editingUser ? 'Edit User' : 'Add New User'}
                 roles={roles}
                 supervisors={supervisors.filter(s => s.id !== editingUser?.id)}
+            />
+
+            <ChangePasswordModal
+                isOpen={!!changePasswordUser}
+                onClose={() => setChangePasswordUser(null)}
+                onSubmit={handlePasswordSubmit}
+                username={changePasswordUser?.username || ''}
             />
 
             <ConfirmModal

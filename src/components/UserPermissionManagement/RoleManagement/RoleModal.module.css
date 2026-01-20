@@ -141,9 +141,16 @@
 }
 
 .moduleList {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .moduleList {
+    grid-template-columns: 1fr;
+  }
 }
 
 .moduleItem {

@@ -147,6 +147,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onCollapseChange }) => {
 
             {/* Navigation */}
             <div className={styles.nav}>
+                {modules.length === 0 && !loading && (
+                    <div style={{
+                        padding: '24px 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#6b7280',
+                        fontSize: '13px',
+                        textAlign: 'center'
+                    }}>
+                        <Shield size={24} style={{ marginBottom: collapsed ? '0' : '8px', opacity: 0.5 }} />
+                        {!collapsed && <div>No modules assigned</div>}
+                    </div>
+                )}
+
                 {/* Main modules */}
                 {renderCategorySection('main', modulesByCategory.main || [])}
 
