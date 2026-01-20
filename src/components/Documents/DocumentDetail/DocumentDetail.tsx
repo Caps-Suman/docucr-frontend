@@ -154,7 +154,7 @@ const DocumentDetail: React.FC = () => {
                 wsRef.current.close();
             }
         };
-    }, [id]);
+    },);
 
     const setupWebSocket = () => {
         const user = authService.getUser();
