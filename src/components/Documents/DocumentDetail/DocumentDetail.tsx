@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, RefreshCw, Trash2, FileText, Calendar, HardDrive, Maximize2, Loader2, AlertCircle, Edit3, Save, X, Archive, ArchiveRestore, Share, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw, Trash2, FileText, Calendar, HardDrive, Maximize2, Loader2, AlertCircle, Edit3, Save, X, Archive, ArchiveRestore, Share, FileSpreadsheet, Printer } from 'lucide-react';
 import documentService from '../../../services/document.service';
 import authService from '../../../services/auth.service';
 import Toast, { ToastType } from '../../Common/Toast';
@@ -10,6 +10,7 @@ import documentTypeService from '../../../services/documentType.service';
 import ConfirmModal from '../../Common/ConfirmModal';
 import CommonDropdown from '../../Common/CommonDropdown';
 import ShareDocumentsModal from '../ShareDocumentsModal/ShareDocumentsModal';
+import PrintModal from './PrintModal';
 import styles from './DocumentDetail.module.css';
 
 interface DocumentDetailData {
@@ -79,6 +80,7 @@ const DocumentDetail: React.FC = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
+    const [showPrintModal, setShowPrintModal] = useState(false);
 
     const getBadgeClass = (index: number) => {
         const badgeNumber = index % 20;
@@ -279,6 +281,14 @@ const DocumentDetail: React.FC = () => {
                             <RefreshCw size={16} className={isReanalyzing ? styles.animateSpin : ''} />
                         </button>
                     </span>
+                    <span className="tooltip-wrapper" data-tooltip="Print">
+                        <button
+                            className={styles.actionButton}
+                            onClick={() => setShowPrintModal(true)}
+                        >
+                            <Printer size={16} />
+                        </button>
+                    </span>
                     <span className="tooltip-wrapper" data-tooltip="Share">
                         <button
                             className={styles.actionButton}
@@ -429,6 +439,13 @@ const DocumentDetail: React.FC = () => {
                 />
             )}
 
+            <PrintModal
+                isOpen={showPrintModal}
+                onClose={() => setShowPrintModal(false)}
+                documentId={Number(id)}
+                documentName={document.filename}
+                onSuccess={() => setToast({ message: "Document sent to printer", type: "success" })}
+            />
 
             <ShareDocumentsModal
                 isOpen={showShareModal}

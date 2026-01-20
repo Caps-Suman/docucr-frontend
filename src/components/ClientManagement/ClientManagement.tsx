@@ -65,8 +65,10 @@ const ClientManagement: React.FC = () => {
                 name: `${u.first_name} ${u.last_name} (${u.username})`,
                 roles: u.roles.map(r => r.name).join(', ') || 'No roles'
             })));
+            return { roles: rolesData.roles };
         } catch (error) {
             console.error('Failed to load user form data:', error);
+            return null;
         }
     };
 
@@ -128,7 +130,20 @@ const ClientManagement: React.FC = () => {
 
     const handleCrossCreationConfirm = async () => {
         setShowCrossCreationConfirm(false);
-        await loadUserFormData();
+        const data = await loadUserFormData();
+
+        let initialRoles: any[] = [];
+        if (data && data.roles) {
+            const clientRole = data.roles.find((r: any) => r.name.toUpperCase() === 'CLIENT');
+            if (clientRole) {
+                initialRoles = [{ id: clientRole.id, name: clientRole.name }];
+            }
+        }
+
+        setCrossCreationData((prev: any) => ({
+            ...prev,
+            roles: initialRoles
+        }));
         setIsUserModalOpen(true);
     };
 
@@ -349,7 +364,16 @@ const ClientManagement: React.FC = () => {
                         <span className="tooltip-wrapper" data-tooltip="Create User">
                             <button
                                 className={`${styles.actionBtn} ${styles.createUser}`}
-                                onClick={() => {
+                                onClick={async () => {
+                                    const data = await loadUserFormData();
+                                    let initialRoles: any[] = [];
+                                    if (data && data.roles) {
+                                        const clientRole = data.roles.find((r: any) => r.name.toUpperCase() === 'CLIENT');
+                                        if (clientRole) {
+                                            initialRoles = [{ id: clientRole.id, name: clientRole.name }];
+                                        }
+                                    }
+
                                     setCrossCreationData({
                                         client_id: row.id,
                                         email: '',
@@ -357,10 +381,10 @@ const ClientManagement: React.FC = () => {
                                         first_name: row.first_name || '',
                                         middle_name: row.middle_name || '',
                                         last_name: row.last_name || '',
-                                        roles: [],
+                                        roles: initialRoles,
                                         supervisor_id: undefined
                                     });
-                                    loadUserFormData().then(() => setIsUserModalOpen(true));
+                                    setIsUserModalOpen(true);
                                 }}
                             >
                                 <UserCheck size={14} />
@@ -374,8 +398,8 @@ const ClientManagement: React.FC = () => {
                         >
                             {row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />}
                         </button>
-                    </span>
-                </div>
+                    </span >
+                </div >
             )
         }
     ];
@@ -628,6 +652,7 @@ const ClientManagement: React.FC = () => {
                     [crossCreationData.first_name, crossCreationData.middle_name, crossCreationData.last_name]
                         .filter(Boolean).join(' ') || 'Unknown Client'
                 ) : undefined}
+                isClientUser={true}
             />
 
             {showAssignModal && (
