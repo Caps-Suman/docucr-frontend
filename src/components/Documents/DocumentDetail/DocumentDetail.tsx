@@ -88,21 +88,73 @@ const DocumentDetail: React.FC = () => {
     };
 
     useEffect(() => {
-        if (id) {
-            fetchDocumentDetails();
-            fetchPreview();
-            setupWebSocket();
-        }
+        let activeUrl: string | null = null;
+
+        const loadData = async () => {
+            if (id) {
+                await fetchDocumentDetails();
+
+                try {
+                    const url = await documentService.getDocumentPreviewUrl(id);
+                    // Try to fetch as blob to avoid black screen / iframe issues
+                    try {
+                        const response = await fetch(url);
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            activeUrl = blobUrl;
+                            setPreviewUrl(blobUrl);
+                        } else {
+                            setPreviewUrl(url);
+                        }
+                    } catch (e) {
+                        // Likely CORS, fallback to direct S3 URL
+                        console.warn("Blob fetch failed, using direct URL", e);
+                        setPreviewUrl(url);
+                    }
+                } catch (err) {
+                    console.error("Preview fetch failed", err);
+                    setError("Failed to load document preview");
+                }
+
+                setupWebSocket();
+            }
+        };
+
+        loadData();
+
         return () => {
             // Cleanup blob URL
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
+            if (activeUrl && activeUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(activeUrl);
             }
             if (wsRef.current) {
                 wsRef.current.close();
             }
         };
     }, [id]);
+
+    const fetchDocumentDetails = async () => {
+        try {
+            if (!id) return;
+            const data = await documentService.getDocument(id);
+            setDocument(data);
+
+            // Sync re-analyzing state with status
+            if (data.statusCode === 'ANALYZING' || data.statusCode === 'AI_QUEUED') {
+                setIsReanalyzing(true);
+            } else {
+                setIsReanalyzing(false);
+            }
+        } catch (err) {
+            console.error(err);
+            setError("Failed to load document details");
+        } finally {
+            setLoading(false);
+        }
+    };
+    // fetchPreview removed as it is merged into the effect to handle cleanup properly
+
 
     const setupWebSocket = () => {
         const user = authService.getUser();
@@ -134,37 +186,6 @@ const DocumentDetail: React.FC = () => {
                 });
             }
         });
-    };
-
-    const fetchDocumentDetails = async () => {
-        try {
-            if (!id) return;
-            const data = await documentService.getDocument(id);
-            setDocument(data);
-
-            // Sync re-analyzing state with status
-            if (data.statusCode === 'ANALYZING' || data.statusCode === 'AI_QUEUED') {
-                setIsReanalyzing(true);
-            } else {
-                setIsReanalyzing(false);
-            }
-        } catch (err) {
-            console.error(err);
-            setError("Failed to load document details");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchPreview = async () => {
-        try {
-            if (!id) return;
-            const url = await documentService.getDocumentPreviewUrl(id);
-            setPreviewUrl(url);
-        } catch (err) {
-            console.error("Preview fetch failed", err);
-            setError("Failed to load document preview");
-        }
     };
 
     const handleReanalyze = async () => {
@@ -414,9 +435,12 @@ const DocumentDetail: React.FC = () => {
                         {previewUrl ? (
                             document.content_type === 'application/pdf' ? (
                                 <iframe
+                                    key={previewUrl}
                                     src={previewUrl}
                                     className={styles.pdfFrame}
                                     title="Document Preview"
+                                    width="100%"
+                                    height="100%"
                                 />
                             ) : (
                                 <img src={previewUrl} className={styles.previewImage} alt="Preview" />
