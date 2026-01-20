@@ -1,3 +1,5 @@
+import authService from '../services/auth.service';
+
 export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 let isRefreshing = false;
@@ -14,34 +16,8 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-const refreshToken = async (): Promise<string> => {
-  const refresh = localStorage.getItem('refresh_token');
-  if (!refresh) {
-    throw new Error('No refresh token');
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${refresh}` }
-  });
-
-  if (!response.ok) {
-    throw new Error('Token refresh failed');
-  }
-
-  const data = await response.json();
-  if (data.access_token) {
-    localStorage.setItem('access_token', data.access_token);
-    if (data.refresh_token) {
-      localStorage.setItem('refresh_token', data.refresh_token);
-    }
-    return data.access_token;
-  }
-  throw new Error('No access token in response');
-};
-
 export const apiClient = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  const token = localStorage.getItem('access_token');
+  const token = authService.getToken();
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -63,7 +39,7 @@ export const apiClient = async (url: string, options: RequestInit = {}): Promise
     isRefreshing = true;
 
     try {
-      const newToken = await refreshToken();
+      const newToken = await authService.refreshAccessToken();
       processQueue(null, newToken);
       isRefreshing = false;
 
@@ -72,9 +48,7 @@ export const apiClient = async (url: string, options: RequestInit = {}): Promise
     } catch (error) {
       processQueue(error, null);
       isRefreshing = false;
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
+      authService.logout();
       window.location.href = '/login';
       throw error;
     }
