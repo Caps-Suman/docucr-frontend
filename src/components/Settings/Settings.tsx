@@ -25,13 +25,13 @@ const Settings: React.FC = () => {
                     <Webhook size={16} />
                     Webhook Settings
                 </button>
-                <button
+                {/* <button
                     className={`${styles.tab} ${activeTab === 'printer-settings' ? styles.active : ''}`}
                     onClick={() => setActiveTab('printer-settings')}
                 >
                     <Printer size={16} />
                     Printer Configuration
-                </button>
+                </button> */}
             </div>
 
             <div className={styles['tab-content']}>

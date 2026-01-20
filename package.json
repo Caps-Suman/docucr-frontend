@@ -10,6 +10,8 @@
     "@types/react-router-dom": "^5.3.3",
     "jszip": "^3.10.1",
     "lucide-react": "^0.562.0",
+    "primeicons": "^7.0.0",
+    "primereact": "^10.9.7",
     "react": "^18.2.0",
     "react-datepicker": "^9.1.0",
     "react-dom": "^18.2.0",

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, ChevronLeft } from 'lucide-react';
-import Select from 'react-select';
+import Select, { MultiValue } from 'react-select'; // Import MultiValue
 import { getCustomSelectStyles } from '../../../styles/selectStyles';
 import styles from './RoleModal.module.css';
 
@@ -19,11 +19,11 @@ interface RoleModalProps {
     privileges?: Array<{ id: string; name: string }>;
 }
 
-const RoleModal: React.FC<RoleModalProps> = ({ 
-    isOpen, 
-    onClose, 
-    onSubmit, 
-    initialData, 
+const RoleModal: React.FC<RoleModalProps> = ({
+    isOpen,
+    onClose,
+    onSubmit,
+    initialData,
     title,
     modules = [],
     privileges = []
@@ -31,7 +31,8 @@ const RoleModal: React.FC<RoleModalProps> = ({
     const [step, setStep] = useState(1);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [selectedModules, setSelectedModules] = useState<Record<string, string>>({});
+    // Changed to store array of strings for multi-select
+    const [selectedModules, setSelectedModules] = useState<Record<string, string[]>>({});
     const [errors, setErrors] = useState<{ name?: string; description?: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,9 +61,13 @@ const RoleModal: React.FC<RoleModalProps> = ({
             });
             if (response.ok) {
                 const data = await response.json();
-                const moduleMap: Record<string, string> = {};
+                const moduleMap: Record<string, string[]> = {};
+                // Group privileges by module_id
                 data.modules.forEach((m: any) => {
-                    moduleMap[m.module_id] = m.privilege_id;
+                    if (!moduleMap[m.module_id]) {
+                        moduleMap[m.module_id] = [];
+                    }
+                    moduleMap[m.module_id].push(m.privilege_id);
                 });
                 setSelectedModules(moduleMap);
             }
@@ -115,10 +120,11 @@ const RoleModal: React.FC<RoleModalProps> = ({
         setStep(1);
     };
 
-    const handleModulePrivilegeChange = (moduleId: string, privilegeId: string) => {
+    // Updated to handle array updates
+    const handleModulePrivilegeChange = (moduleId: string, privilegeIds: string[]) => {
         setSelectedModules(prev => ({
             ...prev,
-            [moduleId]: privilegeId
+            [moduleId]: privilegeIds
         }));
     };
 
@@ -130,10 +136,18 @@ const RoleModal: React.FC<RoleModalProps> = ({
             setStep(1);
             return;
         }
-        const modulePermissions = Object.entries(selectedModules).map(([module_id, privilege_id]) => ({
-            module_id,
-            privilege_id
-        }));
+
+        // Flatten the map into ModulePermission[]
+        const modulePermissions: ModulePermission[] = [];
+        Object.entries(selectedModules).forEach(([module_id, privilege_ids]) => {
+            privilege_ids.forEach(privilege_id => {
+                modulePermissions.push({
+                    module_id,
+                    privilege_id
+                });
+            });
+        });
+
         setIsSubmitting(true);
         try {
             await onSubmit({ name: name.trim(), description: description.trim(), modules: modulePermissions });
@@ -209,34 +223,43 @@ const RoleModal: React.FC<RoleModalProps> = ({
                                 ) : (
                                     <div className={styles.moduleList}>
                                         {modules.map(module => {
-                                            const privilegeOptions = [
-                                                { value: '', label: 'No Access', description: 'No permissions' },
-                                                ...privileges.map(p => {
-                                                    let description = '';
-                                                    const name = p.name.toLowerCase();
-                                                    if (name.includes('read')) description = 'View only';
-                                                    else if (name.includes('write') || name.includes('create')) description = 'View & Create';
-                                                    else if (name.includes('update') || name.includes('edit')) description = 'View, Create & Edit';
-                                                    else if (name.includes('delete')) description = 'Full access';
-                                                    else if (name.includes('manage') || name.includes('admin')) description = 'Complete control';
-                                                    else description = 'Access granted';
-                                                    return { value: p.id, label: p.name, description };
-                                                })
-                                            ];
-                                            const selectedValue = privilegeOptions.find(opt => opt.value === (selectedModules[module.id] || ''));
-                                            
+                                            const privilegeOptions = privileges.map(p => {
+                                                let description = '';
+                                                const name = p.name.toLowerCase();
+                                                if (name.includes('read')) description = 'View only';
+                                                else if (name.includes('create')) description = 'Create new records';
+                                                else if (name.includes('update')) description = 'Edit existing records';
+                                                else if (name.includes('delete')) description = 'Delete records';
+                                                else if (name.includes('export')) description = 'Export data';
+                                                else if (name.includes('import')) description = 'Import data';
+                                                else if (name.includes('approve')) description = 'Approve workflows';
+                                                else if (name.includes('manage')) description = 'Full control';
+                                                else description = 'Access granted';
+                                                return { value: p.id, label: p.name, description };
+                                            });
+
+                                            // Filter selected options based on state
+                                            const currentSelections = selectedModules[module.id] || [];
+                                            const selectedOptions = privilegeOptions.filter(opt => currentSelections.includes(opt.value));
+
                                             return (
                                                 <div key={module.id} className={styles.moduleItem}>
                                                     <label className={styles.moduleLabel}>{module.label}</label>
                                                     <Select
-                                                        value={selectedValue}
-                                                        onChange={(option) => option && handleModulePrivilegeChange(module.id, option.value)}
+                                                        isMulti
+                                                        value={selectedOptions}
+                                                        onChange={(newValue) => {
+                                                            // MultiValue<Option>
+                                                            const ids = newValue.map((v: any) => v.value);
+                                                            handleModulePrivilegeChange(module.id, ids);
+                                                        }}
                                                         options={privilegeOptions}
                                                         className="privilege-select-custom"
                                                         classNamePrefix="privilege"
                                                         isSearchable={false}
                                                         menuPortalTarget={document.body}
                                                         menuPosition="fixed"
+                                                        placeholder="Select privileges..."
                                                         formatOptionLabel={(option: any) => (
                                                             <div>
                                                                 <div style={{ fontWeight: 500 }}>{option.label}</div>
@@ -258,6 +281,10 @@ const RoleModal: React.FC<RoleModalProps> = ({
                                                             menuPortal: (base) => ({
                                                                 ...base,
                                                                 zIndex: 10000
+                                                            }),
+                                                            multiValueLabel: (base) => ({
+                                                                ...base,
+                                                                fontSize: '12px',
                                                             })
                                                         }}
                                                     />
@@ -280,9 +307,9 @@ const RoleModal: React.FC<RoleModalProps> = ({
                             Cancel
                         </button>
                         {step === 1 ? (
-                            <button 
-                                type="button" 
-                                className={styles.nextButton} 
+                            <button
+                                type="button"
+                                className={styles.nextButton}
                                 onClick={(e) => { e.preventDefault(); handleNext(); }}
                                 disabled={!name.trim() || !!errors.name}
                             >
