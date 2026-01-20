@@ -35,7 +35,7 @@ interface UserModalProps {
     clientName?: string;
 }
 
-const UserModal: React.FC<UserModalProps> = ({
+const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
     isOpen,
     onClose,
     onSubmit,
@@ -43,7 +43,8 @@ const UserModal: React.FC<UserModalProps> = ({
     title,
     roles = [],
     supervisors = [],
-    clientName
+    clientName,
+    isClientUser
 }) => {
     const [step, setStep] = useState(1);
     const [email, setEmail] = useState('');
@@ -89,29 +90,29 @@ const UserModal: React.FC<UserModalProps> = ({
 
     const validateStep1 = () => {
         const newErrors: { [key: string]: string } = {};
-        
+
         if (!email.trim()) newErrors.email = 'Email is required';
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Invalid email format';
-        
+
         if (!username.trim()) newErrors.username = 'Username is required';
         else if (username.length < 3) newErrors.username = 'Username must be at least 3 characters';
         else if (username.length > 50) newErrors.username = 'Username cannot exceed 50 characters';
-        
+
         if (!firstName.trim()) newErrors.firstName = 'First name is required';
         else if (firstName.length > 50) newErrors.firstName = 'First name cannot exceed 50 characters';
-        
+
         if (!lastName.trim()) newErrors.lastName = 'Last name is required';
         else if (lastName.length > 50) newErrors.lastName = 'Last name cannot exceed 50 characters';
-        
+
         if (middleName && middleName.length > 50) newErrors.middleName = 'Middle name cannot exceed 50 characters';
-        
+
         if (!initialData?.id && !password.trim()) newErrors.password = 'Password is required';
         else if (!initialData?.id && password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-        
+
         if (phoneNumber && !/^\d{10,15}$/.test(phoneNumber)) {
             newErrors.phoneNumber = 'Phone number must be 10-15 digits';
         }
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -132,7 +133,7 @@ const UserModal: React.FC<UserModalProps> = ({
             setStep(1);
             return;
         }
-        
+
         const data: any = {
             email: email.trim(),
             username: username.trim(),
@@ -144,11 +145,11 @@ const UserModal: React.FC<UserModalProps> = ({
             role_ids: selectedRoles,
             supervisor_id: selectedSupervisor || undefined
         };
-        
+
         if (!initialData?.id) {
             data.password = password;
         }
-        
+
         setIsSubmitting(true);
         try {
             await onSubmit(data);
@@ -174,7 +175,7 @@ const UserModal: React.FC<UserModalProps> = ({
             <div className={styles.content} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.header}>
                     <h2>
-                        {title} - Step {step} of 2
+                        {title} {isClientUser ? '' : `- Step ${step} of 2`}
                         {clientName && (
                             <div style={{ fontSize: '14px', fontWeight: 'normal', color: '#6b7280', marginTop: '4px' }}>
                                 For client: {clientName}
@@ -187,7 +188,7 @@ const UserModal: React.FC<UserModalProps> = ({
                 </div>
                 <form className={styles.form} onSubmit={handleSubmit}>
                     <div className={styles.formContent}>
-                        {step === 1 && (
+                        {(step === 1 || isClientUser) && (
                             <>
                                 <div className={styles.formRow}>
                                     <div className={styles.formGroup}>
@@ -316,7 +317,7 @@ const UserModal: React.FC<UserModalProps> = ({
                             </>
                         )}
 
-                        {step === 2 && (
+                        {step === 2 && !isClientUser && (
                             <>
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Roles</label>
@@ -372,7 +373,7 @@ const UserModal: React.FC<UserModalProps> = ({
                     </div>
 
                     <div className={styles.actions}>
-                        {step === 2 && (
+                        {step === 2 && !isClientUser && (
                             <button type="button" className={styles.backButton} onClick={handleBack}>
                                 <ChevronLeft size={16} /> Back
                             </button>
@@ -380,7 +381,7 @@ const UserModal: React.FC<UserModalProps> = ({
                         <button type="button" className={styles.cancelButton} onClick={onClose}>
                             Cancel
                         </button>
-                        {step === 1 ? (
+                        {step === 1 && !isClientUser ? (
                             <button type="button" className={styles.nextButton} onClick={(e) => { e.preventDefault(); handleNext(); }}>
                                 Next <ChevronRight size={16} />
                             </button>

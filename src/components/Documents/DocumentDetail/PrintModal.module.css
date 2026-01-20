@@ -1,0 +1,346 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.content {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.closeButton:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+}
+
+.body {
+    padding: 24px;
+}
+
+.docName {
+    margin-top: 0;
+    margin-bottom: 24px;
+    color: #4b5563;
+    font-size: 14px;
+}
+
+.sectionTitle {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #6b7280;
+    gap: 12px;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    color: #6b7280;
+    border: 1px dashed #e5e7eb;
+}
+
+.emptyState p {
+    margin: 12px 0 4px 0;
+    font-weight: 500;
+    color: #374151;
+}
+
+.hint {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.optionsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.input {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input:focus {
+    border-color: var(--color-primary);
+}
+
+.toggleGroup {
+    display: flex;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.toggleOption {
+    flex: 1;
+    padding: 8px;
+    font-size: 13px;
+    text-align: center;
+    background: white;
+    cursor: pointer;
+    border-right: 1px solid #d1d5db;
+    color: #4b5563;
+    transition: all 0.2s;
+}
+
+.toggleOption:last-child {
+    border-right: none;
+}
+
+.toggleOption:hover {
+    background-color: #f9fafb;
+}
+
+.toggleOption.active {
+    background-color: var(--color-primary-light);
+    /* color: var(--color-primary); */
+    font-weight: 600;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #374151;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.printerList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.printerItem {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.printerItem:hover {
+    border-color: var(--color-primary-light);
+    background-color: #f0fdfa;
+}
+
+.printerItem.selected {
+    border-color: var(--color-primary);
+    background-color: #f0fdfa;
+}
+
+.printerIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background-color: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    margin-right: 12px;
+}
+
+.selected .printerIcon {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.printerInfo {
+    flex: 1;
+}
+
+.printerName {
+    font-weight: 500;
+    color: #111827;
+    margin-bottom: 2px;
+}
+
+.printerMeta {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.selectionIndicator {
+    color: var(--color-primary);
+    width: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.errorText {
+    margin-top: 16px;
+    color: #ef4444;
+    font-size: 14px;
+    padding: 8px 12px;
+    background-color: #fef2f2;
+    border-radius: 6px;
+}
+
+.footer {
+    padding: 16px 24px;
+    background-color: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.cancelButton {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    background: white;
+    border: 1px solid #d1d5db;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelButton:hover {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.printButton {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: white;
+    background-color: var(--color-primary);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.printButton:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+}
+
+.printButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Spinner helper */
+:global(.spin) {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
