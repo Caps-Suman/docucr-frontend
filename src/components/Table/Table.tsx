@@ -12,12 +12,17 @@ interface TableProps {
     columns: Column[];
     data: any[];
     className?: string;
+    maxHeight?: string;
+    stickyHeader?: boolean;
 }
 
-const Table: React.FC<TableProps> = ({ columns, data, className = '' }) => {
+const Table: React.FC<TableProps> = ({ columns, data, className = '', maxHeight, stickyHeader = true }) => {
     return (
-        <div className={`${styles.container} ${className}`}>
-            <table className={styles.table}>
+        <div
+            className={`${styles.container} ${className}`}
+            style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}
+        >
+            <table className={`${styles.table} ${stickyHeader ? styles.stickyHeader : ''}`}>
                 <thead>
                     <tr>
                         {columns.map((column) => (
@@ -37,7 +42,7 @@ const Table: React.FC<TableProps> = ({ columns, data, className = '' }) => {
                             <tr key={index}>
                                 {columns.map((column) => (
                                     <td key={column.key}>
-                                        {column.render 
+                                        {column.render
                                             ? column.render(row[column.key], row)
                                             : row[column.key]
                                         }

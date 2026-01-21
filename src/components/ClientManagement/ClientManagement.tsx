@@ -578,7 +578,11 @@ const ClientManagement: React.FC = () => {
                         </p>
                     </div>
                 ) : (
-                    <Table columns={clientColumns} data={clients} />
+                    <Table
+                        columns={clientColumns}
+                        data={clients}
+                        maxHeight="calc(100vh - 300px)"
+                    />
                 )}
                 {loading && !isInitialLoading && (
                     <div style={{
