@@ -277,6 +277,7 @@ const RoleManagement: React.FC = () => {
                 <Table
                     columns={roleColumns}
                     data={roles}
+                    maxHeight="calc(100vh - 360px)"
                 />
                 {loading && !isInitialLoading && (
                     <div style={{

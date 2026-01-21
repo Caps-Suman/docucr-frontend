@@ -289,6 +289,7 @@ const TemplateManagement: React.FC = () => {
                 <Table
                     data={templates}
                     columns={columns}
+                    maxHeight="calc(100vh - 340px)"
                 />
             )}
 

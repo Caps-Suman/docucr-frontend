@@ -375,6 +375,7 @@ const UserManagement: React.FC = () => {
                 <Table
                     columns={userColumns}
                     data={users}
+                    maxHeight="calc(100vh - 360px)"
                 />
                 {loading && !isInitialLoading && (
                     <div style={{

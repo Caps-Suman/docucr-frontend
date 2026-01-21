@@ -292,6 +292,7 @@ const FormManagement: React.FC = () => {
                 <Table
                     columns={columns}
                     data={forms}
+                    maxHeight="calc(100vh - 340px)"
                 />
             )}
 

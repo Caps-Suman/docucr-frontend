@@ -3,14 +3,14 @@ import {
     Activity,
     RefreshCw,
     User,
-    ChevronLeft,
-    ChevronRight,
     RotateCcw
 } from 'lucide-react';
 import activityLogService, { ActivityLog } from '../../services/activityLog.service';
 import styles from './ActivityLog.module.css';
 import CommonDropdown from '../Common/CommonDropdown';
 import CommonDatePicker from '../Common/CommonDatePicker';
+import Table from '../Table/Table';
+import CommonPagination from '../Common/CommonPagination';
 
 const ActivityLogPage: React.FC = () => {
     const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -198,6 +198,66 @@ const ActivityLogPage: React.FC = () => {
         );
     };
 
+    const columns = [
+        {
+            key: 'created_at',
+            header: 'Date',
+            render: (value: string) => new Date(value).toLocaleString(),
+            width: '150px'
+        },
+        {
+            key: 'user',
+            header: 'User',
+            render: (user: any, row: ActivityLog) => (
+                <div className={styles.userCell}>
+                    <User size={16} color="var(--color-gray-400)" />
+                    <span title={user?.username || row.user_id || 'System'}>
+                        {user ? (
+                            user.first_name && user.last_name
+                                ? `${user.first_name} ${user.last_name}`
+                                : user.username
+                        ) : (row.user_id ? row.user_id.substring(0, 8) + '...' : 'System')}
+                    </span>
+                </div>
+            ),
+            width: '180px'
+        },
+        {
+            key: 'action',
+            header: 'Action',
+            render: (value: string) => (
+                <span className={`${styles.badge} ${getBadgeClass(value)}`}>
+                    {value}
+                </span>
+            ),
+            width: '100px'
+        },
+        {
+            key: 'entity_type',
+            header: 'Entity',
+            render: (value: string) => (
+                <div className={styles.entityCell}>
+                    <span className={styles.entityType}>{value}</span>
+                </div>
+            ),
+            width: '120px'
+        },
+        {
+            key: 'details',
+            header: 'Details',
+            render: (_: any, row: ActivityLog) => renderDetails(row),
+            width: '360px'
+        },
+        {
+            key: 'ip_address',
+            header: 'IP Address',
+            render: (value: string) => (
+                <div className={styles.ipInfo}>{value || '-'}</div>
+            ),
+            width: '100px'
+        }
+    ];
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
@@ -284,98 +344,35 @@ const ActivityLogPage: React.FC = () => {
             </div>
 
             {/* Table */}
-            <div className={styles.tableContainer}>
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th className={styles.th}>Date</th>
-                            <th className={styles.th}>User</th>
-                            <th className={styles.th}>Action</th>
-                            <th className={styles.th}>Entity</th>
-                            <th className={styles.th}>Details</th>
-                            <th className={styles.th}>IP Address</th>
-                        </tr>
-                    </thead>
-                    <tbody className={styles.tbody}>
-                        {loading ? (
-                            <tr>
-                                <td colSpan={6} className={styles.loading}>
-                                    Loading activity logs...
-                                </td>
-                            </tr>
-                        ) : logs.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} className={styles.empty}>
-                                    No logs found matching filters.
-                                </td>
-                            </tr>
-                        ) : (
-                            logs.map((log) => (
-                                <tr key={log.id} className={styles.tr}>
-                                    <td className={styles.td}>
-                                        {new Date(log.created_at).toLocaleString()}
-                                    </td>
-                                    <td className={`${styles.td} ${styles.tdUser}`}>
-                                        <div className={styles.userCell}>
-                                            <User size={16} color="var(--color-gray-400)" />
-                                            <span title={log.user?.username || log.user_id || 'System'}>
-                                                {log.user ? (
-                                                    log.user.first_name && log.user.last_name
-                                                        ? `${log.user.first_name} ${log.user.last_name}`
-                                                        : log.user.username
-                                                ) : (log.user_id ? log.user_id.substring(0, 8) + '...' : 'System')}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className={styles.td}>
-                                        <span className={`${styles.badge} ${getBadgeClass(log.action)}`}>
-                                            {log.action}
-                                        </span>
-                                    </td>
-                                    <td className={styles.td}>
-                                        <div className={styles.entityCell}>
-                                            <span className={styles.entityType}>{log.entity_type}</span>
-                                            {/* {log.entity_id && <span className={styles.entityId} title={log.entity_id}>({log.entity_id.substring(0, 8)}...)</span>} */}
-                                        </div>
-                                    </td>
-                                    <td className={styles.td}>
-                                        {renderDetails(log)}
-                                    </td>
-                                    <td className={styles.td}>
-                                        <div className={styles.ipInfo}>{log.ip_address || '-'}</div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-
-                {/* Pagination */}
-                {!loading && totalPages > 1 && (
-                    <div className={styles.pagination}>
-                        <div className={styles.pageInfo}>
-                            Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} results
-                        </div>
-                        <div className={styles.pageControls}>
-                            <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                                className={styles.pageBtn}
-                            >
-                                <ChevronLeft size={20} />
-                            </button>
-                            <span style={{ fontSize: '14px', fontWeight: 500 }}>Page {page} of {totalPages}</span>
-                            <button
-                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                disabled={page === totalPages}
-                                className={styles.pageBtn}
-                            >
-                                <ChevronRight size={20} />
-                            </button>
-                        </div>
+            <div className={styles.tableSection}>
+                {loading && logs.length === 0 ? (
+                    <div className={styles.loading}>
+                        <RefreshCw size={24} className={styles.animateSpin} style={{ marginBottom: '12px' }} />
+                        <p>Loading activity logs...</p>
                     </div>
+                ) : logs.length === 0 ? (
+                    <div className={styles.empty}>
+                        <Activity size={48} style={{ marginBottom: '16px', opacity: 0.3 }} />
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600 }}>No logs found</h3>
+                        <p style={{ margin: 0, fontSize: '14px' }}>Try adjusting your filters to find what you're looking for</p>
+                    </div>
+                ) : (
+                    <Table
+                        columns={columns}
+                        data={logs}
+                        maxHeight="calc(100vh - 340px)"
+                    />
                 )}
             </div>
+
+            <CommonPagination
+                show={total > 0}
+                pageCount={totalPages}
+                currentPage={page - 1}
+                onPageChange={(data) => setPage(data.selected + 1)}
+                totalItems={total}
+                itemsPerPage={limit}
+            />
         </div>
     );
 };

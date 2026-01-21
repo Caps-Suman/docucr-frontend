@@ -234,6 +234,7 @@ const DocumentTypeManagement: React.FC = () => {
                 <Table
                     data={documentTypes}
                     columns={columns}
+                    maxHeight="calc(100vh - 340px)"
                 />
             )}
 

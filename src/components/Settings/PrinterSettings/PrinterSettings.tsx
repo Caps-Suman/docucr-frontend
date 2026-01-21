@@ -173,7 +173,11 @@ const PrinterSettings: React.FC = () => {
                 </div>
             ) : (
                 <div className={styles.tableWrapper}>
-                    <Table columns={columns} data={printers} />
+                    <Table
+                        columns={columns}
+                        data={printers}
+                        maxHeight="calc(100vh - 340px)"
+                    />
                 </div>
             )}
 

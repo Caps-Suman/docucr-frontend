@@ -31,6 +31,17 @@
   border-bottom: 1px solid #c4c7c5;
 }
 
+.table.stickyHeader thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f8fafc;
+}
+
+:global(.dark) .table.stickyHeader thead th {
+  background: #374151;
+}
+
 /* Table Body */
 .table tbody tr {
   border-bottom: 1px solid #c4c7c5;
@@ -61,12 +72,13 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+
   .table th,
   .table td {
     padding: 8px 12px;
     font-size: 12px;
   }
-  
+
   .table th {
     font-size: 11px;
   }
