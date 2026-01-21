@@ -59,6 +59,7 @@ class DocumentService {
         dateTo?: string;
         search?: string;
         formFilters?: Record<string, any>;
+        sharedOnly?: boolean;
         skip?: number;
         limit?: number;
     }): Promise<{ documents: Document[], total: number }> {
@@ -73,6 +74,7 @@ class DocumentService {
             if (filterParams.formFilters && Object.keys(filterParams.formFilters).length > 0) {
                 params.append('form_filters', JSON.stringify(filterParams.formFilters));
             }
+            if (filterParams.sharedOnly) params.append('shared_only', 'true');
             if (filterParams.skip !== undefined) params.append('skip', String(filterParams.skip));
             if (filterParams.limit !== undefined) params.append('limit', String(filterParams.limit));
         }

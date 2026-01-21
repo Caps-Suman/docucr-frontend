@@ -50,12 +50,14 @@ const DocumentList: React.FC = () => {
     const [filters, setFilters] = useState<Record<string, any>>({
         status: '',
         dateFrom: null,
-        dateTo: null
+        dateTo: null,
+        sharedOnly: false
     });
     const [activeFilters, setActiveFilters] = useState<Record<string, any>>({
         status: '',
         dateFrom: null,
-        dateTo: null
+        dateTo: null,
+        sharedOnly: false
     });
     const [formFields, setFormFields] = useState<any[]>([]);
     const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
@@ -86,13 +88,49 @@ const DocumentList: React.FC = () => {
     };
 
     const handleResetFilters = () => {
-        const resetState: Record<string, any> = { status: '', dateFrom: null, dateTo: null };
+        const resetState: Record<string, any> = {
+            status: '',
+            dateFrom: null,
+            dateTo: null,
+            sharedOnly: false
+        };
         // Reset all dynamic form fields
         formFields.forEach(field => {
             resetState[`form_${field.id}`] = '';
         });
         setFilters(resetState);
         setActiveFilters(resetState);
+        setCurrentPage(0);
+    };
+
+    const handleStatClick = (type: string) => {
+        const newFilters = { ...activeFilters };
+
+        // Reset specific filters when switching
+        newFilters.status = '';
+        newFilters.sharedOnly = false;
+
+        switch (type) {
+            case 'processed':
+                newFilters.status = 'completed';
+                break;
+            case 'processing':
+                newFilters.status = 'processing';
+                break;
+            case 'archived':
+                newFilters.status = 'archived';
+                break;
+            case 'shared':
+                newFilters.sharedOnly = true;
+                break;
+            case 'total':
+            default:
+                // already reset above
+                break;
+        }
+
+        setFilters(prev => ({ ...prev, ...newFilters }));
+        setActiveFilters(newFilters);
         setCurrentPage(0);
     };
 
@@ -195,6 +233,7 @@ const DocumentList: React.FC = () => {
                 dateFrom: activeFilters.dateFrom ? activeFilters.dateFrom.toISOString().split('T')[0] : undefined,
                 dateTo: activeFilters.dateTo ? activeFilters.dateTo.toISOString().split('T')[0] : undefined,
                 formFilters: Object.keys(formFilters).length > 0 ? formFilters : undefined,
+                sharedOnly: activeFilters.sharedOnly,
                 skip: currentPage * pageSize,
                 limit: pageSize
             };
@@ -977,7 +1016,10 @@ const DocumentList: React.FC = () => {
             </div>
 
             <div className={styles.stats}>
-                <div className={styles.statCard}>
+                <div
+                    className={`${styles.statCard} ${!activeFilters.status && !activeFilters.sharedOnly ? styles.activeTotal : ''}`}
+                    onClick={() => handleStatClick('total')}
+                >
                     <div className={`${styles.statIcon} ${styles.iconTotal}`}>
                         <FileText size={16} />
                     </div>
@@ -986,7 +1028,10 @@ const DocumentList: React.FC = () => {
                         <span className={styles.statLabel}>Total Documents</span>
                     </div>
                 </div>
-                <div className={styles.statCard}>
+                <div
+                    className={`${styles.statCard} ${activeFilters.status === 'completed' ? styles.activeProcessed : ''}`}
+                    onClick={() => handleStatClick('processed')}
+                >
                     <div className={`${styles.statIcon} ${styles.iconProcessed}`}>
                         <CheckCircle size={16} />
                     </div>
@@ -997,7 +1042,10 @@ const DocumentList: React.FC = () => {
                         <span className={styles.statLabel}>Processed</span>
                     </div>
                 </div>
-                <div className={styles.statCard}>
+                <div
+                    className={`${styles.statCard} ${activeFilters.status === 'processing' ? styles.activeProcessing : ''}`}
+                    onClick={() => handleStatClick('processing')}
+                >
                     <div className={`${styles.statIcon} ${styles.iconProcessing}`}>
                         <Clock size={16} />
                     </div>
@@ -1008,7 +1056,10 @@ const DocumentList: React.FC = () => {
                         <span className={styles.statLabel}>Processing</span>
                     </div>
                 </div>
-                <div className={styles.statCard}>
+                <div
+                    className={`${styles.statCard} ${activeFilters.sharedOnly ? styles.activeShared : ''}`}
+                    onClick={() => handleStatClick('shared')}
+                >
                     <div className={`${styles.statIcon} ${styles.iconShared}`}>
                         <Share size={16} />
                     </div>
@@ -1019,7 +1070,10 @@ const DocumentList: React.FC = () => {
                         <span className={styles.statLabel}>Shared with Me</span>
                     </div>
                 </div>
-                <div className={styles.statCard}>
+                <div
+                    className={`${styles.statCard} ${activeFilters.status === 'archived' ? styles.activeArchived : ''}`}
+                    onClick={() => handleStatClick('archived')}
+                >
                     <div className={`${styles.statIcon} ${styles.iconArchived}`}>
                         <Archive size={16} />
                     </div>
@@ -1173,6 +1227,17 @@ const DocumentList: React.FC = () => {
                                 ]}
                                 size="md"
                             />
+                        </div>
+                        <div className={styles.filterGroup}>
+                            <label className={styles.checkboxLabel}>
+                                <input
+                                    type="checkbox"
+                                    className={styles.checkbox}
+                                    checked={filters.sharedOnly}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, sharedOnly: e.target.checked }))}
+                                />
+                                <span style={{ marginLeft: '8px' }}>Shared with Me Only</span>
+                            </label>
                         </div>
                         <div className={styles.filterGroup}>
                             <div className={styles.dateRow}>

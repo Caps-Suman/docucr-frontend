@@ -10,7 +10,8 @@ import {
     Settings,
     User,
     LogOut,
-    ArrowRightLeft
+    ArrowRightLeft,
+    Activity
 } from 'lucide-react';
 import modulesService, { Module } from '../../services/modules.service';
 import authService from '../../services/auth.service';
@@ -34,7 +35,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onCollapseChange }) => {
         Users: <Users size={20} />,
         Shield: <Shield size={20} />,
         Settings: <Settings size={20} />,
-        User: <User size={20} />
+        User: <User size={20} />,
+        Activity: <Activity size={20} />
     };
 
     useEffect(() => {
