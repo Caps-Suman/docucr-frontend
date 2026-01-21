@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Shield, Lock, Save } from 'lucide-react';
 import Select from 'react-select';
-import authService from '../services/auth.service';
-import Toast, { ToastType } from '../components/Common/Toast';
-import Loading from '../components/Common/Loading';
-import { getCustomSelectStyles } from '../styles/selectStyles';
-import { fetchWithAuth } from '../utils/api';
+import authService from '../../services/auth.service';
+import Toast, { ToastType } from '../Common/Toast';
+import Loading from '../Common/Loading';
+import { getCustomSelectStyles } from '../../styles/selectStyles';
+import { fetchWithAuth } from '../../utils/api';
 import './Profile.css';
 
 interface ProfileData {
@@ -56,11 +56,11 @@ const Profile: React.FC = () => {
         try {
             setLoading(true);
             const response = await fetchWithAuth('/api/profile/me');
-            
+
             if (!response.ok) {
                 throw new Error('Failed to load profile');
             }
-            
+
             const data = await response.json();
             setProfile(data);
             setFormData({
@@ -81,21 +81,21 @@ const Profile: React.FC = () => {
 
     const validateProfile = () => {
         const newErrors: { [key: string]: string } = {};
-        
+
         if (!formData.first_name.trim()) newErrors.first_name = 'First name is required';
         if (!formData.last_name.trim()) newErrors.last_name = 'Last name is required';
         if (!formData.username.trim()) newErrors.username = 'Username is required';
         if (formData.phone_number && (formData.phone_number.length < 10 || formData.phone_number.length > 15)) {
             newErrors.phone_number = 'Phone must be 10-15 digits';
         }
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const validatePassword = () => {
         const newErrors: { [key: string]: string } = {};
-        
+
         if (!passwordData.current_password) newErrors.current_password = 'Current password is required';
         if (!passwordData.new_password) newErrors.new_password = 'New password is required';
         else if (passwordData.new_password.length < 8) newErrors.new_password = 'Password must be at least 8 characters';
@@ -103,7 +103,7 @@ const Profile: React.FC = () => {
         else if (passwordData.new_password !== passwordData.confirm_password) {
             newErrors.confirm_password = 'Passwords do not match';
         }
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -120,12 +120,12 @@ const Profile: React.FC = () => {
                 },
                 body: JSON.stringify(formData)
             });
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to update profile');
             }
-            
+
             setToast({ message: 'Profile updated successfully', type: 'success' });
             setEditMode(false);
             loadProfile();
@@ -151,12 +151,12 @@ const Profile: React.FC = () => {
                     new_password: passwordData.new_password
                 })
             });
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to change password');
             }
-            
+
             setToast({ message: 'Password changed successfully', type: 'success' });
             setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
         } catch (error: any) {
@@ -173,7 +173,7 @@ const Profile: React.FC = () => {
     return (
         <div className="profile-container">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            
+
             <div className="profile-header">
                 <h1>Profile Settings</h1>
                 <p>Manage your account information and security</p>
@@ -190,7 +190,7 @@ const Profile: React.FC = () => {
                             </button>
                         )}
                     </div>
-                    
+
                     <form onSubmit={handleUpdateProfile}>
                         <div className="form-row">
                             <div className="form-group">
@@ -217,7 +217,7 @@ const Profile: React.FC = () => {
                                 />
                             </div>
                         </div>
-                        
+
                         <div className="form-row">
                             <div className="form-group">
                                 <label>Last Name</label>
@@ -248,7 +248,7 @@ const Profile: React.FC = () => {
                                 {errors.username && <span className="error-text">{errors.username}</span>}
                             </div>
                         </div>
-                        
+
                         <div className="form-row">
                             <div className="form-group">
                                 <label>Email</label>
@@ -289,7 +289,7 @@ const Profile: React.FC = () => {
                                 {errors.phone_number && <span className="error-text">{errors.phone_number}</span>}
                             </div>
                         </div>
-                        
+
                         {editMode && (
                             <div className="form-actions">
                                 <button type="button" className="btn-cancel" onClick={() => {
@@ -323,7 +323,7 @@ const Profile: React.FC = () => {
                             {isChangingPassword ? 'Changing...' : 'Change Password'}
                         </button>
                     </div>
-                    
+
                     <form id="password-form" onSubmit={handleChangePassword}>
                         <div className="form-row">
                             <div className="form-group">

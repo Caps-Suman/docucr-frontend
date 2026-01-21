@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit } from 'lucide-react';
+import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit, Activity } from 'lucide-react';
 import authService from '../../../services/auth.service';
 import modulesService from '../../../services/modules.service';
 import Sidebar from '../../Sidebar/Sidebar';
@@ -59,6 +59,7 @@ const AppLayout: React.FC = () => {
         if (path.startsWith('/clients')) { crumbs.push({ icon: Users, label: 'Clients' }); return crumbs; }
         if (path.startsWith('/settings')) { crumbs.push({ icon: Settings, label: 'Settings' }); return crumbs; }
         if (path.startsWith('/forms')) { crumbs.push({ icon: FileEdit, label: 'Form Management' }); return crumbs; }
+        if (path.startsWith('/activity-logs')) { crumbs.push({ icon: Activity, label: 'Activity Logs' }); return crumbs; }
 
         // Fallback
         if (hasModuleAccess) {

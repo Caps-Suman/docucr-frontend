@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 import Login from './pages/Login';
 import RoleSelection from './pages/RoleSelection';
-import Profile from './pages/Profile';
+import Profile from './components/Profile/Profile';
 import IntroAnimation from './components/IntroAnimation/IntroAnimation';
 import AppLayout from './components/Layout/AppLayout/AppLayout';
 import Home from './pages/Home';
@@ -17,9 +17,10 @@ import ClientManagement from './components/ClientManagement/ClientManagement';
 import DocumentTemplate from './components/DocumentTemplate/DocumentTemplate';
 import CreateTemplate from './components/DocumentTemplate/TemplateManagement/CreateTemplate';
 import Settings from './components/Settings/Settings';
-import PublicShare from './pages/PublicShare';
+import PublicShare from './components/PublicShare/PublicShare';
 import ComingSoon from './components/Common/ComingSoon';
 import { FileSearch } from 'lucide-react';
+import ActivityLogPage from './components/ActivityLog/ActivityLog';
 
 const DefaultComponent: React.FC = () => (
   <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -106,6 +107,9 @@ const App: React.FC = () => {
           <Route index element={<FormManagement />} />
           <Route path="create" element={<FormBuilder />} />
           <Route path=":id" element={<FormBuilder />} />
+        </Route>
+        <Route path="/activity-logs" element={<AppLayout />}>
+          <Route index element={<ActivityLogPage />} />
         </Route>
 
       </Routes>
