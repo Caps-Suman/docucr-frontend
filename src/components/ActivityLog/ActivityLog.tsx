@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Activity,
     RefreshCw,
@@ -11,6 +11,7 @@ import CommonDropdown from '../Common/CommonDropdown';
 import CommonDatePicker from '../Common/CommonDatePicker';
 import Table from '../Table/Table';
 import CommonPagination from '../Common/CommonPagination';
+import { debounce } from '../../utils/debounce';
 
 const ActivityLogPage: React.FC = () => {
     const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -24,6 +25,7 @@ const ActivityLogPage: React.FC = () => {
     const [actionFilter, setActionFilter] = useState<string>('');
     const [entityTypeFilter, setEntityTypeFilter] = useState<string>('');
     const [userNameFilter, setUserNameFilter] = useState<string>('');
+    const [debouncedUserNameFilter, setDebouncedUserNameFilter] = useState<string>('');
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
 
@@ -60,7 +62,7 @@ const ActivityLogPage: React.FC = () => {
                 limit,
                 actionFilter || undefined,
                 entityTypeFilter || undefined,
-                userNameFilter || undefined,
+                debouncedUserNameFilter || undefined,
                 startDate ? startDate.toISOString() : undefined,
                 endDate ? endDate.toISOString() : undefined
             );
@@ -74,14 +76,41 @@ const ActivityLogPage: React.FC = () => {
         }
     };
 
+    // Debounced handler for user name filter
+    const debouncedSetUserNameFilter = useCallback(
+        debounce((value: string) => {
+            setDebouncedUserNameFilter(value);
+            setPage(1);
+        }, 500),
+        []
+    );
+
+    const refreshFiltersAndLogs = () => {
+        // Reset all filters to default values
+        setActionFilter('');
+        setEntityTypeFilter('');
+        setUserNameFilter('');
+        setDebouncedUserNameFilter('');
+        setStartDate(null);
+        setEndDate(null);
+        setPage(1);
+        // fetchLogs will be called automatically due to useEffect dependencies
+    };
+
+    const refreshOnlyLogs = () => {
+        // Only refresh logs with current filter values
+        fetchLogs();
+    };
+
     useEffect(() => {
         fetchLogs();
-    }, [page, actionFilter, entityTypeFilter, userNameFilter, startDate, endDate]);
+    }, [page, actionFilter, entityTypeFilter, debouncedUserNameFilter, startDate, endDate]);
 
     const handleReset = () => {
         setActionFilter('');
         setEntityTypeFilter('');
         setUserNameFilter('');
+        setDebouncedUserNameFilter('');
         setStartDate(null);
         setEndDate(null);
         setPage(1);
@@ -270,9 +299,9 @@ const ActivityLogPage: React.FC = () => {
                 </div>
                 <div className={styles.actions}>
                     <button
-                        onClick={fetchLogs}
+                        onClick={refreshFiltersAndLogs}
                         className={styles.refreshBtn}
-                        title="Refresh Logs"
+                        title="Refresh Filters and Logs"
                     >
                         <RefreshCw size={20} className={loading ? styles.animateSpin : ""} />
                     </button>
@@ -310,7 +339,10 @@ const ActivityLogPage: React.FC = () => {
                         placeholder="Search User Name..."
                         className={styles.input}
                         value={userNameFilter}
-                        onChange={(e) => { setUserNameFilter(e.target.value); setPage(1); }}
+                        onChange={(e) => {
+                            setUserNameFilter(e.target.value);
+                            debouncedSetUserNameFilter(e.target.value);
+                        }}
                     />
                 </div>
 
@@ -340,6 +372,14 @@ const ActivityLogPage: React.FC = () => {
                     title="Reset Filters"
                 >
                     <RotateCcw size={16} />
+                </button>
+
+                <button
+                    onClick={refreshOnlyLogs}
+                    className={styles.refreshBtnIcon}
+                    title="Refresh Logs Only"
+                >
+                    <RefreshCw size={16} className={loading ? styles.animateSpin : ""} />
                 </button>
             </div>
 
