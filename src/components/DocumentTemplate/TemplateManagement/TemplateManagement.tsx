@@ -94,7 +94,7 @@ const TemplateManagement: React.FC = () => {
 
     const loadDocumentTypes = async () => {
         try {
-            const response = await fetchWithAuth('/api/document-types/');
+            const response = await fetchWithAuth('/api/document-types');
             if (response.ok) {
                 const data = await response.json();
                 // Filter by 'ACTIVE' status (uppercase)

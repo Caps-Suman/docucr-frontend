@@ -32,27 +32,27 @@
 
 /* Specific border colors for selected state */
 .stat-card.blue.selected {
-    border: 2px solid #93c5fd;
+    border: 1px solid #93c5fd;
 }
 
 /* blue-300 */
 .stat-card.green.selected {
-    border: 2px solid #6ee7b7;
+    border: 1px solid #6ee7b7;
 }
 
 /* emerald-300 */
 .stat-card.red.selected {
-    border: 2px solid #fca5a5;
+    border: 1px solid #fca5a5;
 }
 
 /* red-300 */
 .stat-card.orange.selected {
-    border: 2px solid #fdba74;
+    border: 1px solid #fdba74;
 }
 
 /* orange-300 */
 .stat-card.purple.selected {
-    border: 2px solid #c4b5fd;
+    border: 1px solid #c4b5fd;
 }
 
 /* violet-300 */

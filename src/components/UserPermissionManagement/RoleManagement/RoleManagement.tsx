@@ -7,7 +7,7 @@ import RoleModal from './RoleModal';
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
 import roleService, { Role, RoleStats } from '../../../services/role.service';
-import modulesService from '../../../services/modules.service';
+import modulesService, { Module } from '../../../services/modules.service';
 import privilegeService, { Privilege } from '../../../services/privilege.service';
 import statusService, { Status } from '../../../services/status.service';
 import '../UserManagement/UserManagement.css';
@@ -21,7 +21,7 @@ const RoleManagement: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRole, setEditingRole] = useState<Role | null>(null);
-    const [modules, setModules] = useState<Array<{ id: string; name: string; label: string }>>([]);
+    const [modules, setModules] = useState<Module[]>([]);
     const [privileges, setPrivileges] = useState<Privilege[]>([]);
     const [statuses, setStatuses] = useState<Status[]>([]);
     const [activeStatusId, setActiveStatusId] = useState<string>('');
@@ -49,7 +49,7 @@ const RoleManagement: React.FC = () => {
             ]);
             console.log('Modules loaded:', modulesData);
             console.log('Privileges loaded:', privilegesData);
-            setModules(modulesData.map(m => ({ id: m.id, name: m.name, label: m.label })));
+            setModules(modulesData);
             setPrivileges(privilegesData);
         } catch (error) {
             console.error('Failed to load modules/privileges:', error);
@@ -93,7 +93,7 @@ const RoleManagement: React.FC = () => {
         setEditingRole(null);
     };
 
-    const handleModalSubmit = async (data: { name: string; description: string; modules: Array<{ module_id: string; privilege_id: string }> }) => {
+    const handleModalSubmit = async (data: { name: string; description: string; modules: Array<{ module_id?: string; submodule_id?: string; privilege_id: string }> }) => {
         try {
             if (editingRole) {
                 await roleService.updateRole(editingRole.id, {
