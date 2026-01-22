@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft } from 'lucide-react';
-import Select, { MultiValue } from 'react-select'; // Import MultiValue
-import { getCustomSelectStyles } from '../../../styles/selectStyles';
+import { X, ChevronRight, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import styles from './RoleModal.module.css';
 
 interface ModulePermission {
-    module_id: string;
+    module_id?: string;
+    submodule_id?: string;
     privilege_id: string;
+}
+
+interface Submodule {
+    id: string;
+    name: string;
+    label: string;
+    privileges: string[];
+}
+
+interface Module {
+    id: string;
+    name: string;
+    label: string;
+    submodules: Submodule[];
+    privileges: string[];
 }
 
 interface RoleModalProps {
@@ -15,7 +29,7 @@ interface RoleModalProps {
     onSubmit: (data: { name: string; description: string; modules: ModulePermission[] }) => void;
     initialData?: { name: string; description: string; id?: string };
     title: string;
-    modules?: Array<{ id: string; name: string; label: string }>;
+    modules?: Array<Module>;
     privileges?: Array<{ id: string; name: string }>;
 }
 
@@ -31,10 +45,16 @@ const RoleModal: React.FC<RoleModalProps> = ({
     const [step, setStep] = useState(1);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    // Changed to store array of strings for multi-select
-    const [selectedModules, setSelectedModules] = useState<Record<string, string[]>>({});
+
+    // Store selected privileges:
+    // { "module_id": ["priv1", "priv2"], "submodule_id": ["priv1"] }
+    const [selectedPermissions, setSelectedPermissions] = useState<Record<string, string[]>>({});
+
     const [errors, setErrors] = useState<{ name?: string; description?: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Accordion state: map of module_id -> boolean (isExpanded)
+    const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         if (initialData) {
@@ -46,7 +66,8 @@ const RoleModal: React.FC<RoleModalProps> = ({
         } else {
             setName('');
             setDescription('');
-            setSelectedModules({});
+            setSelectedPermissions({});
+            setExpandedModules({});
         }
         setStep(1);
         setErrors({});
@@ -61,15 +82,18 @@ const RoleModal: React.FC<RoleModalProps> = ({
             });
             if (response.ok) {
                 const data = await response.json();
-                const moduleMap: Record<string, string[]> = {};
-                // Group privileges by module_id
+                const permMap: Record<string, string[]> = {};
+
                 data.modules.forEach((m: any) => {
-                    if (!moduleMap[m.module_id]) {
-                        moduleMap[m.module_id] = [];
+                    const targetId = m.submodule_id || m.module_id;
+                    if (!targetId) return;
+
+                    if (!permMap[targetId]) {
+                        permMap[targetId] = [];
                     }
-                    moduleMap[m.module_id].push(m.privilege_id);
+                    permMap[targetId].push(m.privilege_id);
                 });
-                setSelectedModules(moduleMap);
+                setSelectedPermissions(permMap);
             }
         } catch (error) {
             console.error('Failed to load role modules:', error);
@@ -77,19 +101,13 @@ const RoleModal: React.FC<RoleModalProps> = ({
     };
 
     const validateName = (value: string): string | undefined => {
-        if (!value.trim()) {
-            return 'Role name is required';
-        }
-        if (value.trim().length > 50) {
-            return 'Role name cannot exceed 50 characters';
-        }
+        if (!value.trim()) return 'Role name is required';
+        if (value.trim().length > 50) return 'Role name cannot exceed 50 characters';
         return undefined;
     };
 
     const validateDescription = (value: string): string | undefined => {
-        if (value.trim().length > 300) {
-            return 'Description cannot exceed 300 characters';
-        }
+        if (value.trim().length > 300) return 'Description cannot exceed 300 characters';
         return undefined;
     };
 
@@ -116,16 +134,51 @@ const RoleModal: React.FC<RoleModalProps> = ({
         setStep(2);
     };
 
-    const handleBack = () => {
-        setStep(1);
+    const handleBack = () => setStep(1);
+
+    const toggleModule = (moduleId: string) => {
+        setExpandedModules(prev => ({
+            ...prev,
+            [moduleId]: !prev[moduleId]
+        }));
     };
 
-    // Updated to handle array updates
-    const handleModulePrivilegeChange = (moduleId: string, privilegeIds: string[]) => {
-        setSelectedModules(prev => ({
-            ...prev,
-            [moduleId]: privilegeIds
-        }));
+    // Toggle a specific privilege for a target (module/submodule)
+    // Toggle a specific privilege for a target (module/submodule)
+    // If Admin is selected, select ALL available privileges.
+    const togglePermission = (targetId: string, privilegeId: string, availablePrivilegeIds: string[]) => {
+        setSelectedPermissions(prev => {
+            const current = prev[targetId] || [];
+            const adminPrivilege = privileges.find(p => p.name === 'ADMIN');
+            const isAdminToggling = adminPrivilege && privilegeId === adminPrivilege.id;
+            const isSelecting = !current.includes(privilegeId);
+
+            if (isAdminToggling && isSelecting) {
+                // If selecting ADMIN, Select ALL available
+                return {
+                    ...prev,
+                    [targetId]: availablePrivilegeIds
+                };
+            } else if (isAdminToggling && !isSelecting) {
+                // If unchecking ADMIN, Remove ALL (Uncheck all)
+                return {
+                    ...prev,
+                    [targetId]: []
+                };
+            }
+
+            if (current.includes(privilegeId)) {
+                return {
+                    ...prev,
+                    [targetId]: current.filter(id => id !== privilegeId)
+                };
+            } else {
+                return {
+                    ...prev,
+                    [targetId]: [...current, privilegeId]
+                };
+            }
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -137,15 +190,28 @@ const RoleModal: React.FC<RoleModalProps> = ({
             return;
         }
 
-        // Flatten the map into ModulePermission[]
         const modulePermissions: ModulePermission[] = [];
-        Object.entries(selectedModules).forEach(([module_id, privilege_ids]) => {
-            privilege_ids.forEach(privilege_id => {
-                modulePermissions.push({
-                    module_id,
-                    privilege_id
-                });
+
+        modules.forEach(module => {
+            // Module level
+            const modPrivs = selectedPermissions[module.id] || [];
+            modPrivs.forEach(pid => {
+                modulePermissions.push({ module_id: module.id, privilege_id: pid });
             });
+
+            // Submodule level
+            if (module.submodules) {
+                module.submodules.forEach(sub => {
+                    const subPrivs = selectedPermissions[sub.id] || [];
+                    subPrivs.forEach(pid => {
+                        modulePermissions.push({
+                            module_id: module.id,
+                            submodule_id: sub.id,
+                            privilege_id: pid
+                        });
+                    });
+                });
+            }
         });
 
         setIsSubmitting(true);
@@ -154,6 +220,58 @@ const RoleModal: React.FC<RoleModalProps> = ({
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    // Sort privileges to ensure consistent order: READ, WRITE (CREATE), UPDATE, DELETE, ...
+    // Map of name -> order index
+    const privOrder: Record<string, number> = {
+        'READ': 1,
+        'CREATE': 2,
+        'WRITE': 2,
+        'UPDATE': 3,
+        'DELETE': 4,
+        'EXPORT': 5,
+        'IMPORT': 6,
+        'SHARE': 7,
+        'ADMIN': 99
+    };
+
+    const sortedPrivileges = [...privileges].sort((a, b) => {
+        const orderA = privOrder[a.name.toUpperCase()] || 50;
+        const orderB = privOrder[b.name.toUpperCase()] || 50;
+        return orderA - orderB;
+    });
+
+    const getPrivilegeLabel = (name: string) => {
+        const upper = name.toUpperCase();
+        if (upper === 'CREATE') return 'Write'; // User requested "Write"
+        return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(); // Title Case
+    };
+
+    const renderPrivilegeCheckboxes = (targetId: string, availablePrivilegeNames: string[]) => {
+        const selectedIds = selectedPermissions[targetId] || [];
+
+        // Filter global privileges to match what's available for this module/submodule
+        // availablePrivilegeNames is list of names (e.g. ['READ', 'CREATE'])
+        const available = sortedPrivileges.filter(p => availablePrivilegeNames.includes(p.name));
+
+        if (available.length === 0) return <span className={styles.noAccessLabel}>No Access</span>;
+
+        return (
+            <div className={styles.checkboxGroup}>
+                {available.map(priv => (
+                    <label key={priv.id} className={styles.checkboxLabel}>
+                        <input
+                            type="checkbox"
+                            checked={selectedIds.includes(priv.id)}
+                            onChange={() => togglePermission(targetId, priv.id, available.map(p => p.id))}
+                            className={styles.checkboxInput}
+                        />
+                        <span className={styles.checkboxText}>{getPrivilegeLabel(priv.name)}</span>
+                    </label>
+                ))}
+            </div>
+        );
     };
 
     if (!isOpen) return null;
@@ -183,14 +301,8 @@ const RoleModal: React.FC<RoleModalProps> = ({
                                         maxLength={50}
                                         style={{ borderColor: errors.name ? '#ef4444' : '#d1d5db' }}
                                     />
-                                    {errors.name && (
-                                        <span className={styles.errorText}>
-                                            {errors.name}
-                                        </span>
-                                    )}
-                                    <span className={styles.charCount}>
-                                        {name.length}/50 characters
-                                    </span>
+                                    {errors.name && <span className={styles.errorText}>{errors.name}</span>}
+                                    <span className={styles.charCount}>{name.length}/50 characters</span>
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Description</label>
@@ -203,91 +315,60 @@ const RoleModal: React.FC<RoleModalProps> = ({
                                         rows={4}
                                         style={{ borderColor: errors.description ? '#ef4444' : '#d1d5db' }}
                                     />
-                                    {errors.description && (
-                                        <span className={styles.errorText}>
-                                            {errors.description}
-                                        </span>
-                                    )}
-                                    <span className={styles.charCount}>
-                                        {description.length}/300 characters
-                                    </span>
+                                    {errors.description && <span className={styles.errorText}>{errors.description}</span>}
+                                    <span className={styles.charCount}>{description.length}/300 characters</span>
                                 </div>
                             </>
                         )}
 
                         {step === 2 && (
                             <div className={styles.moduleAssignment}>
-                                <p className={styles.moduleHint}>Assign modules and privileges to this role</p>
+                                <p className={styles.moduleHint}>Assign privileges to modules and submodules</p>
                                 {modules.length === 0 ? (
                                     <p className={styles.noModules}>No modules available</p>
                                 ) : (
-                                    <div className={styles.moduleList}>
+                                    <div className={styles.accordionContainer}>
                                         {modules.map(module => {
-                                            const privilegeOptions = privileges.map(p => {
-                                                let description = '';
-                                                const name = p.name.toLowerCase();
-                                                if (name.includes('read')) description = 'View only';
-                                                else if (name.includes('create')) description = 'Create new records';
-                                                else if (name.includes('update')) description = 'Edit existing records';
-                                                else if (name.includes('delete')) description = 'Delete records';
-                                                else if (name.includes('export')) description = 'Export data';
-                                                else if (name.includes('import')) description = 'Import data';
-                                                else if (name.includes('approve')) description = 'Approve workflows';
-                                                else if (name.includes('manage')) description = 'Full control';
-                                                else description = 'Access granted';
-                                                return { value: p.id, label: p.name, description };
-                                            });
+                                            const isExpanded = expandedModules[module.id];
+                                            const hasSubmodules = module.submodules && module.submodules.length > 0;
+                                            const modulePrivs = module.privileges || [];
 
-                                            // Filter selected options based on state
-                                            const currentSelections = selectedModules[module.id] || [];
-                                            const selectedOptions = privilegeOptions.filter(opt => currentSelections.includes(opt.value));
+                                            // If no submodules, show flat layout with privileges in same row
+                                            if (!hasSubmodules) {
+                                                return (
+                                                    <div key={module.id} className={styles.flatModuleItem}>
+                                                        <div className={styles.flatModuleRow}>
+                                                            <span className={styles.moduleLabel}>{module.label}</span>
+                                                            {renderPrivilegeCheckboxes(module.id, modulePrivs)}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
 
+                                            // If has submodules, show accordion layout
                                             return (
-                                                <div key={module.id} className={styles.moduleItem}>
-                                                    <label className={styles.moduleLabel}>{module.label}</label>
-                                                    <Select
-                                                        isMulti
-                                                        value={selectedOptions}
-                                                        onChange={(newValue) => {
-                                                            // MultiValue<Option>
-                                                            const ids = newValue.map((v: any) => v.value);
-                                                            handleModulePrivilegeChange(module.id, ids);
-                                                        }}
-                                                        options={privilegeOptions}
-                                                        className="privilege-select-custom"
-                                                        classNamePrefix="privilege"
-                                                        isSearchable={false}
-                                                        menuPortalTarget={document.body}
-                                                        menuPosition="fixed"
-                                                        placeholder="Select privileges..."
-                                                        formatOptionLabel={(option: any) => (
-                                                            <div>
-                                                                <div style={{ fontWeight: 500 }}>{option.label}</div>
-                                                                <div style={{ fontSize: '11px', color: '#64748b' }}>{option.description}</div>
+                                                <div key={module.id} className={styles.accordionItem}>
+                                                    <div className={styles.accordionHeader} onClick={() => toggleModule(module.id)}>
+                                                        <div className={styles.accordionTitle}>
+                                                            <span className={styles.moduleLabel}>{module.label}</span>
+                                                        </div>
+                                                        <div className={styles.accordionArrow}>
+                                                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                                        </div>
+                                                    </div>
+
+                                                    {isExpanded && (
+                                                        <div className={styles.accordionContent}>
+                                                            <div className={styles.submoduleList}>
+                                                                {module.submodules.map(sub => (
+                                                                    <div key={sub.id} className={styles.submoduleItem}>
+                                                                        <label className={styles.submoduleLabel}>{sub.label}</label>
+                                                                        {renderPrivilegeCheckboxes(sub.id, sub.privileges || [])}
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        )}
-                                                        styles={{
-                                                            ...getCustomSelectStyles(),
-                                                            control: (base) => ({
-                                                                ...getCustomSelectStyles().control(base),
-                                                                minHeight: '32px',
-                                                                fontSize: '13px'
-                                                            }),
-                                                            menu: (base) => ({
-                                                                ...getCustomSelectStyles().menu(base),
-                                                                fontSize: '13px',
-                                                                zIndex: 10000
-                                                            }),
-                                                            menuPortal: (base) => ({
-                                                                ...base,
-                                                                zIndex: 10000
-                                                            }),
-                                                            multiValueLabel: (base) => ({
-                                                                ...base,
-                                                                fontSize: '12px',
-                                                            })
-                                                        }}
-                                                    />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}

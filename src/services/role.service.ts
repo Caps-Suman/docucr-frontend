@@ -19,17 +19,23 @@ export interface RoleListResponse {
   page_size: number;
 }
 
+export interface ModulePermission {
+  module_id?: string;
+  submodule_id?: string;
+  privilege_id: string;
+}
+
 export interface RoleCreate {
   name: string;
   description?: string;
-  modules?: Array<{ module_id: string; privilege_id: string }>;
+  modules?: Array<ModulePermission>;
 }
 
 export interface RoleUpdate {
   name?: string;
   description?: string;
   status_id?: string;
-  modules?: Array<{ module_id: string; privilege_id: string }>;
+  modules?: Array<ModulePermission>;
 }
 
 export interface RoleStats {
@@ -109,7 +115,7 @@ class RoleService {
     return response.json();
   }
 
-  async getRoleModules(roleId: string): Promise<Array<{ module_id: string; privilege_id: string }>> {
+  async getRoleModules(roleId: string): Promise<Array<ModulePermission>> {
     const response = await apiClient(`${API_BASE_URL}/api/roles/${roleId}/modules`);
 
     if (!response.ok) {

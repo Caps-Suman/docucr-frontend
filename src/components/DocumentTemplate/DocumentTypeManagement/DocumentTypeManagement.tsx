@@ -36,7 +36,7 @@ const DocumentTypeManagement: React.FC = () => {
     const loadDocumentTypes = async () => {
         try {
             setLoading(true);
-            const response = await fetchWithAuth('/api/document-types/');
+            const response = await fetchWithAuth('/api/document-types');
             if (response.ok) {
                 const data = await response.json();
                 setDocumentTypes(data);
@@ -90,7 +90,7 @@ const DocumentTypeManagement: React.FC = () => {
         try {
             const url = editingDocumentType
                 ? `/api/document-types/${editingDocumentType.id}`
-                : '/api/document-types/';
+                : '/api/document-types';
 
             const response = await fetchWithAuth(url, {
                 method: editingDocumentType ? 'PUT' : 'POST',

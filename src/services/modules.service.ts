@@ -2,6 +2,15 @@ import apiClient from '../utils/apiClient';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+export interface Submodule {
+  id: string;
+  name: string;
+  label: string;
+  route_key: string;
+  display_order: number;
+  privileges: string[];
+}
+
 export interface Module {
   id: string;
   name: string;
@@ -14,6 +23,7 @@ export interface Module {
   color_from: string;
   color_to: string;
   privileges: string[];
+  submodules: Submodule[];
 }
 
 export interface ModulesResponse {
