@@ -143,12 +143,18 @@ const RoleModal: React.FC<RoleModalProps> = ({
         }));
     };
 
-    // Toggle a specific privilege for a target (module/submodule)
-    // Toggle a specific privilege for a target (module/submodule)
-    // If Admin is selected, select ALL available privileges.
     const togglePermission = (targetId: string, privilegeId: string, availablePrivilegeIds: string[]) => {
         setSelectedPermissions(prev => {
             const current = prev[targetId] || [];
+
+            // "NO_ACCESS" is a special virtual privilegeId we'll use in the UI
+            if (privilegeId === 'NO_ACCESS') {
+                return {
+                    ...prev,
+                    [targetId]: [] // Clear all permissions for this target
+                };
+            }
+
             const adminPrivilege = privileges.find(p => p.name === 'ADMIN');
             const isAdminToggling = adminPrivilege && privilegeId === adminPrivilege.id;
             const isSelecting = !current.includes(privilegeId);
@@ -252,13 +258,22 @@ const RoleModal: React.FC<RoleModalProps> = ({
         const selectedIds = selectedPermissions[targetId] || [];
 
         // Filter global privileges to match what's available for this module/submodule
-        // availablePrivilegeNames is list of names (e.g. ['READ', 'CREATE'])
         const available = sortedPrivileges.filter(p => availablePrivilegeNames.includes(p.name));
 
-        if (available.length === 0) return <span className={styles.noAccessLabel}>No Access</span>;
+        const isNoAccess = selectedIds.length === 0;
 
         return (
             <div className={styles.checkboxGroup}>
+                <label className={styles.checkboxLabel}>
+                    <input
+                        type="checkbox"
+                        checked={isNoAccess}
+                        onChange={() => togglePermission(targetId, 'NO_ACCESS', [])}
+                        className={styles.checkboxInput}
+                    />
+                    <span className={styles.checkboxText}>No Access</span>
+                </label>
+
                 {available.map(priv => (
                     <label key={priv.id} className={styles.checkboxLabel}>
                         <input
