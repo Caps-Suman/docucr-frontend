@@ -14,6 +14,7 @@ import UserModal from '../UserPermissionManagement/UserManagement/UserModal';
 import userService from '../../services/user.service';
 import roleService from '../../services/role.service';
 import styles from './ClientManagement.module.css';
+import { debounce } from '../../utils/debounce';
 
 const ClientManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(0);
@@ -81,11 +82,12 @@ const ClientManagement: React.FC = () => {
     }, [currentPage, itemsPerPage, debouncedSearchTerm, statusFilter]);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedSearchTerm(searchTerm);
+        const debouncedHandler = debounce((term: string) => {
+            setDebouncedSearchTerm(term);
             setCurrentPage(0);
         }, 500);
-        return () => clearTimeout(timer);
+        
+        debouncedHandler(searchTerm);
     }, [searchTerm]);
 
 
