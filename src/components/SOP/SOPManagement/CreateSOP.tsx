@@ -57,6 +57,8 @@ const CreateSOP: React.FC = () => {
     });
 
     const [errors, setErrors] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     // --- Effects ---
     useEffect(() => {
@@ -68,6 +70,7 @@ const CreateSOP: React.FC = () => {
 
     const loadSOP = async (sopId: string) => {
         try {
+            setLoading(true);
             const sop = await sopService.getSOPById(sopId);
             setTitle(sop.title);
             setCategory(sop.category);
@@ -89,6 +92,8 @@ const CreateSOP: React.FC = () => {
         } catch (error) {
             console.error('Failed to load SOP:', error);
             // Handle error (e.g., redirect or show notification)
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -206,6 +211,7 @@ const CreateSOP: React.FC = () => {
         };
 
         try {
+            setSaving(true);
             if (isEditMode && id) {
                 await sopService.updateSOP(id, payload);
             } else {
@@ -215,6 +221,8 @@ const CreateSOP: React.FC = () => {
         } catch (error) {
             console.error('Failed to save SOP:', error);
             // Here you might want to set a general error state or show a toast
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -231,355 +239,362 @@ const CreateSOP: React.FC = () => {
                         <ArrowLeft size={16} />
                         Back to List
                     </button>
-                    <button className={styles.saveButton} onClick={handleSave}>
+                    <button className={styles.saveButton} onClick={handleSave} disabled={saving}>
                         <Save size={16} />
-                        Save SOP
+                        {saving ? 'Saving...' : 'Save SOP'}
                     </button>
                 </div>
             </div>
 
             {/* Scrollable Content */}
-            <div className={styles.content}>
-
-                {errors.length > 0 && (
-                    <div className={styles.section} style={{ borderColor: '#ef4444', backgroundColor: '#fef2f2' }}>
-                        <div className={styles.sectionTitle} style={{ color: '#ef4444', marginBottom: '8px' }}>
-                            Please fix the following errors:
-                        </div>
-                        <ul style={{ listStyle: 'disc', paddingLeft: '20px', color: '#b91c1c', margin: 0 }}>
-                            {errors.map((err, i) => <li key={i}>{err}</li>)}
-                        </ul>
-                    </div>
-                )}
-
-                {/* Basic Info */}
-                <div className={styles.section}>
-                    <div className={styles.sectionTitle}>Basic Information</div>
-                    <div className={styles.formGrid}>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>SOP Title *</label>
-                            <input
-                                className={styles.input}
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="e.g., Dr. John Smith - Cardiology"
-                            />
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Category *</label>
-                            <input
-                                className={styles.input}
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                placeholder="e.g., Rheumatology"
-                            />
-                        </div>
-                    </div>
+            {loading ? (
+                <div className={styles.loadingContainer}>
+                    <div className={styles.spinner}></div>
+                    <p>Loading SOP...</p>
                 </div>
+            ) : (
+                <div className={styles.content}>
 
-                {/* Provider Info */}
-                <div className={styles.section}>
-                    <div className={styles.sectionTitle}>Provider Information</div>
-                    <div className={styles.formGrid}>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Provider Type *</label>
-                            <Select
-                                options={[
-                                    { value: 'new', label: 'New Provider' },
-                                    { value: 'existing', label: 'Existing Client' }
-                                ]}
-                                value={{ value: providerType, label: providerType === 'new' ? 'New Provider' : 'Existing Client' }}
-                                onChange={(option) => setProviderType(option?.value as any)}
-                                styles={getCustomSelectStyles()}
-                            />
+                    {errors.length > 0 && (
+                        <div className={styles.section} style={{ borderColor: '#ef4444', backgroundColor: '#fef2f2' }}>
+                            <div className={styles.sectionTitle} style={{ color: '#ef4444', marginBottom: '8px' }}>
+                                Please fix the following errors:
+                            </div>
+                            <ul style={{ listStyle: 'disc', paddingLeft: '20px', color: '#b91c1c', margin: 0 }}>
+                                {errors.map((err, i) => <li key={i}>{err}</li>)}
+                            </ul>
                         </div>
+                    )}
 
-                        {providerType === 'existing' && (
+                    {/* Basic Info */}
+                    <div className={styles.section}>
+                        <div className={styles.sectionTitle}>Basic Information</div>
+                        <div className={styles.formGrid}>
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>Select Client *</label>
+                                <label className={styles.label}>SOP Title *</label>
+                                <input
+                                    className={styles.input}
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="e.g., Dr. John Smith - Cardiology"
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Category *</label>
+                                <input
+                                    className={styles.input}
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    placeholder="e.g., Rheumatology"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Provider Info */}
+                    <div className={styles.section}>
+                        <div className={styles.sectionTitle}>Provider Information</div>
+                        <div className={styles.formGrid}>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Provider Type *</label>
                                 <Select
-                                    options={clients.map(c => ({
-                                        value: c.id,
-                                        label: `${c.type === 'individual'
-                                            ? `${c.first_name || ''} ${c.middle_name || ''} ${c.last_name || ''}`.trim()
-                                            : c.business_name || ""} ${c.npi ? `(${c.npi})` : ''}`
-                                    }))}
-                                    value={selectedClientId ? clients.find(c => c.id === selectedClientId) ? {
-                                        value: selectedClientId,
-                                        label: (() => {
-                                            const client = clients.find(c => c.id === selectedClientId);
-                                            if (!client) return '';
-                                            return `${client.type === 'individual'
-                                                ? `${client.first_name || ''} ${client.middle_name || ''} ${client.last_name || ''}`.trim()
-                                                : client.business_name || ""} ${client.npi ? `(${client.npi})` : ''}`;
-                                        })()
-                                    } : null : null}
-                                    onChange={(option) => setSelectedClientId(option?.value || '')}
-                                    isDisabled={loadingClients}
-                                    placeholder="Select a client"
+                                    options={[
+                                        { value: 'new', label: 'New Provider' },
+                                        { value: 'existing', label: 'Existing Client' }
+                                    ]}
+                                    value={{ value: providerType, label: providerType === 'new' ? 'New Provider' : 'Existing Client' }}
+                                    onChange={(option) => setProviderType(option?.value as any)}
                                     styles={getCustomSelectStyles()}
                                 />
                             </div>
-                        )}
 
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Provider Name {providerType === 'new' && '*'}</label>
-                            <input
-                                className={styles.input}
-                                value={providerInfo.providerName}
-                                onChange={(e) => setProviderInfo({ ...providerInfo, providerName: e.target.value })}
-                                disabled={providerType === 'existing'}
-                            />
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Billing Provider NPI *</label>
-                            <input
-                                className={styles.input}
-                                value={providerInfo.billingProviderNPI}
-                                onChange={(e) => setProviderInfo({ ...providerInfo, billingProviderNPI: e.target.value })}
-                                disabled={providerType === 'existing'}
-                            />
-                        </div>
-
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Software</label>
-                            <input
-                                className={styles.input}
-                                value={providerInfo.software}
-                                onChange={(e) => setProviderInfo({ ...providerInfo, software: e.target.value })}
-                            />
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Billing Address</label>
-                            <input
-                                className={styles.input}
-                                value={providerInfo.billingAddress}
-                                onChange={(e) => setProviderInfo({ ...providerInfo, billingAddress: e.target.value })}
-                            />
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Clearing house</label>
-                            <input
-                                className={styles.input}
-                                value={providerInfo.clearinghouse}
-                                onChange={(e) => setProviderInfo({ ...providerInfo, clearinghouse: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Workflow */}
-                <div className={styles.section}>
-                    <div className={styles.sectionTitle}>Workflow Process</div>
-                    <div className={styles.formGrid}>
-                        <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                            <label className={styles.label}>Workflow Description *</label>
-                            <textarea
-                                className={styles.textarea}
-                                value={workflowDescription}
-                                onChange={(e) => setWorkflowDescription(e.target.value)}
-                                placeholder="Describe how superbills are received and processed..."
-                            />
-                        </div>
-                        <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                            <label className={styles.label}>Eligibility Verification Portals</label>
-                            <div className={styles.addWrapper}>
-                                <input
-                                    className={styles.input}
-                                    value={newPortal}
-                                    onChange={(e) => setNewPortal(e.target.value)}
-                                    placeholder="e.g., Availity"
-                                    onKeyPress={(e) => e.key === 'Enter' && handleAddPortal()}
-                                />
-                                <button type="button" className={styles.addButton} onClick={handleAddPortal}>
-                                    <Plus size={16} />
-                                </button>
-                            </div>
-                            <div className={styles.tagsList}>
-                                {eligibilityPortals.map((portal, idx) => (
-                                    <span key={idx} className={styles.tag}>
-                                        {portal}
-                                        <div className={styles.removeTag} onClick={() => handleRemovePortal(idx)}>
-                                            <X size={12} />
-                                        </div>
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Billing Guidelines */}
-                <div className={styles.section}>
-                    <div className={styles.sectionTitle}>Billing Guidelines</div>
-                    <div className={styles.helperText}>
-                        <div className={styles.formGridWithButton}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Title</label>
-                                <input
-                                    className={styles.input}
-                                    value={newGuideline.title}
-                                    onChange={(e) => setNewGuideline({ ...newGuideline, title: e.target.value })}
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Description</label>
-                                <input
-                                    className={styles.input}
-                                    value={newGuideline.description}
-                                    onChange={(e) => setNewGuideline({ ...newGuideline, description: e.target.value })}
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>&nbsp;</label>
-                                <button type="button" className={styles.saveButton} onClick={handleAddGuideline}>
-                                    <Plus size={16} /> Add Guideline
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={styles.cardList}>
-                        {billingGuidelines.map((g, i) => (
-                            <div key={i} className={styles.cardItem}>
-                                <div className={styles.cardContent}>
-                                    <h4>{g.title}</h4>
-                                    <p>{g.description}</p>
+                            {providerType === 'existing' && (
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Select Client *</label>
+                                    <Select
+                                        options={clients.map(c => ({
+                                            value: c.id,
+                                            label: `${c.type === 'individual'
+                                                ? `${c.first_name || ''} ${c.middle_name || ''} ${c.last_name || ''}`.trim()
+                                                : c.business_name || ""} ${c.npi ? `(${c.npi})` : ''}`
+                                        }))}
+                                        value={selectedClientId ? clients.find(c => c.id === selectedClientId) ? {
+                                            value: selectedClientId,
+                                            label: (() => {
+                                                const client = clients.find(c => c.id === selectedClientId);
+                                                if (!client) return '';
+                                                return `${client.type === 'individual'
+                                                    ? `${client.first_name || ''} ${client.middle_name || ''} ${client.last_name || ''}`.trim()
+                                                    : client.business_name || ""} ${client.npi ? `(${client.npi})` : ''}`;
+                                            })()
+                                        } : null : null}
+                                        onChange={(option) => setSelectedClientId(option?.value || '')}
+                                        isDisabled={loadingClients}
+                                        placeholder="Select a client"
+                                        styles={getCustomSelectStyles()}
+                                    />
                                 </div>
-                                <button className={styles.deleteButton} onClick={() => handleRemoveGuideline(g.id, i)}>
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                            )}
 
-                {/* Coding Guidelines */}
-                <div className={styles.section}>
-                    <div className={styles.sectionTitle}>Coding Guidelines</div>
-                    <div className={styles.helperText}>
-                        <div className={styles.codingRulesGrid}>
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>CPT Code</label>
+                                <label className={styles.label}>Provider Name {providerType === 'new' && '*'}</label>
                                 <input
                                     className={styles.input}
-                                    value={newCodingRule.cptCode}
-                                    onChange={(e) => setNewCodingRule({ ...newCodingRule, cptCode: e.target.value })}
+                                    value={providerInfo.providerName}
+                                    onChange={(e) => setProviderInfo({ ...providerInfo, providerName: e.target.value })}
+                                    disabled={providerType === 'existing'}
                                 />
                             </div>
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>Description</label>
+                                <label className={styles.label}>Billing Provider NPI *</label>
                                 <input
                                     className={styles.input}
-                                    value={newCodingRule.description}
-                                    onChange={(e) => setNewCodingRule({ ...newCodingRule, description: e.target.value })}
+                                    value={providerInfo.billingProviderNPI}
+                                    onChange={(e) => setProviderInfo({ ...providerInfo, billingProviderNPI: e.target.value })}
+                                    disabled={providerType === 'existing'}
+                                />
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Software</label>
+                                <input
+                                    className={styles.input}
+                                    value={providerInfo.software}
+                                    onChange={(e) => setProviderInfo({ ...providerInfo, software: e.target.value })}
                                 />
                             </div>
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>NDC Code</label>
+                                <label className={styles.label}>Billing Address</label>
                                 <input
                                     className={styles.input}
-                                    value={newCodingRule.ndcCode}
-                                    onChange={(e) => setNewCodingRule({ ...newCodingRule, ndcCode: e.target.value })}
+                                    value={providerInfo.billingAddress}
+                                    onChange={(e) => setProviderInfo({ ...providerInfo, billingAddress: e.target.value })}
                                 />
                             </div>
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>Units</label>
+                                <label className={styles.label}>Clearing house</label>
                                 <input
                                     className={styles.input}
-                                    value={newCodingRule.units}
-                                    onChange={(e) => setNewCodingRule({ ...newCodingRule, units: e.target.value })}
+                                    value={providerInfo.clearinghouse}
+                                    onChange={(e) => setProviderInfo({ ...providerInfo, clearinghouse: e.target.value })}
                                 />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Charge per Unit</label>
-                                <input
-                                    className={styles.input}
-                                    value={newCodingRule.chargePerUnit}
-                                    onChange={(e) => setNewCodingRule({ ...newCodingRule, chargePerUnit: e.target.value })}
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Modifier</label>
-                                <input
-                                    className={styles.input}
-                                    value={newCodingRule.modifier}
-                                    onChange={(e) => setNewCodingRule({ ...newCodingRule, modifier: e.target.value })}
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Replacement CPT</label>
-                                <input
-                                    className={styles.input}
-                                    value={newCodingRule.replacementCPT}
-                                    onChange={(e) => setNewCodingRule({ ...newCodingRule, replacementCPT: e.target.value })}
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>&nbsp;</label>
-                                <button type="button" className={styles.saveButton} onClick={handleAddCodingRule}>
-                                    <Plus size={16} /> Add More
-                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <div className={styles.cardList}>
-                        {codingRules.map((r, i) => (
-                            <div key={i} className={styles.cardItem}>
-                                <div className={styles.cardContent} style={{ width: '100%' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '13px' }}>
-                                        <span style={{ fontWeight: 600, color: '#111827' }}>CPT: {r.cptCode}</span>
-                                        {r.description && (
-                                            <>
-                                                <span style={{ color: '#000' }}>|</span>
-                                                <span style={{ color: '#6b7280' }}>Description: {r.description}</span>
-                                            </>
-                                        )}
-                                        {r.ndcCode && (
-                                            <>
-                                                <span style={{ color: '#000' }}>|</span>
-                                                <span style={{ color: '#6b7280' }}>NDC: {r.ndcCode}</span>
-                                            </>
-                                        )}
-                                        {r.units && (
-                                            <>
-                                                <span style={{ color: '#000' }}>|</span>
-                                                <span style={{ color: '#6b7280' }}>Units: {r.units}</span>
-                                            </>
-                                        )}
-                                        {r.chargePerUnit && (
-                                            <>
-                                                <span style={{ color: '#000' }}>|</span>
-                                                <span style={{ color: '#6b7280' }}>Charge/Unit: {r.chargePerUnit}</span>
-                                            </>
-                                        )}
-                                        {r.modifier && (
-                                            <>
-                                                <span style={{ color: '#000' }}>|</span>
-                                                <span style={{ color: '#6b7280' }}>Modifier: {r.modifier}</span>
-                                            </>
-                                        )}
-                                        {r.replacementCPT && (
-                                            <>
-                                                <span style={{ color: '#000' }}>|</span>
-                                                <span style={{ color: '#6b7280' }}>Replacement CPT: {r.replacementCPT}</span>
-                                            </>
-                                        )}
+                    {/* Workflow */}
+                    <div className={styles.section}>
+                        <div className={styles.sectionTitle}>Workflow Process</div>
+                        <div className={styles.formGrid}>
+                            <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                                <label className={styles.label}>Workflow Description *</label>
+                                <textarea
+                                    className={styles.textarea}
+                                    value={workflowDescription}
+                                    onChange={(e) => setWorkflowDescription(e.target.value)}
+                                    placeholder="Describe how superbills are received and processed..."
+                                />
+                            </div>
+                            <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                                <label className={styles.label}>Eligibility Verification Portals</label>
+                                <div className={styles.addWrapper}>
+                                    <input
+                                        className={styles.input}
+                                        value={newPortal}
+                                        onChange={(e) => setNewPortal(e.target.value)}
+                                        placeholder="e.g., Availity"
+                                        onKeyPress={(e) => e.key === 'Enter' && handleAddPortal()}
+                                    />
+                                    <button type="button" className={styles.addButton} onClick={handleAddPortal}>
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
+                                <div className={styles.tagsList}>
+                                    {eligibilityPortals.map((portal, idx) => (
+                                        <span key={idx} className={styles.tag}>
+                                            {portal}
+                                            <div className={styles.removeTag} onClick={() => handleRemovePortal(idx)}>
+                                                <X size={12} />
+                                            </div>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Billing Guidelines */}
+                    <div className={styles.section}>
+                        <div className={styles.sectionTitle}>Billing Guidelines</div>
+                        <div className={styles.helperText}>
+                            <div className={styles.formGridWithButton}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Title</label>
+                                    <input
+                                        className={styles.input}
+                                        value={newGuideline.title}
+                                        onChange={(e) => setNewGuideline({ ...newGuideline, title: e.target.value })}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Description</label>
+                                    <input
+                                        className={styles.input}
+                                        value={newGuideline.description}
+                                        onChange={(e) => setNewGuideline({ ...newGuideline, description: e.target.value })}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>&nbsp;</label>
+                                    <button type="button" className={styles.saveButton} onClick={handleAddGuideline}>
+                                        <Plus size={16} /> Add Guideline
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.cardList}>
+                            {billingGuidelines.map((g, i) => (
+                                <div key={i} className={styles.cardItem}>
+                                    <div className={styles.cardContent}>
+                                        <h4>{g.title}</h4>
+                                        <p>{g.description}</p>
                                     </div>
+                                    <button className={styles.deleteButton} onClick={() => handleRemoveGuideline(g.id, i)}>
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
-                                <button
-                                    className={styles.deleteButton}
-                                    onClick={() => handleRemoveCodingRule(r.id)}
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
-                </div>
 
-            </div>
+                    {/* Coding Guidelines */}
+                    <div className={styles.section}>
+                        <div className={styles.sectionTitle}>Coding Guidelines</div>
+                        <div className={styles.helperText}>
+                            <div className={styles.codingRulesGrid}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>CPT Code</label>
+                                    <input
+                                        className={styles.input}
+                                        value={newCodingRule.cptCode}
+                                        onChange={(e) => setNewCodingRule({ ...newCodingRule, cptCode: e.target.value })}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Description</label>
+                                    <input
+                                        className={styles.input}
+                                        value={newCodingRule.description}
+                                        onChange={(e) => setNewCodingRule({ ...newCodingRule, description: e.target.value })}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>NDC Code</label>
+                                    <input
+                                        className={styles.input}
+                                        value={newCodingRule.ndcCode}
+                                        onChange={(e) => setNewCodingRule({ ...newCodingRule, ndcCode: e.target.value })}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Units</label>
+                                    <input
+                                        className={styles.input}
+                                        value={newCodingRule.units}
+                                        onChange={(e) => setNewCodingRule({ ...newCodingRule, units: e.target.value })}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Charge per Unit</label>
+                                    <input
+                                        className={styles.input}
+                                        value={newCodingRule.chargePerUnit}
+                                        onChange={(e) => setNewCodingRule({ ...newCodingRule, chargePerUnit: e.target.value })}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Modifier</label>
+                                    <input
+                                        className={styles.input}
+                                        value={newCodingRule.modifier}
+                                        onChange={(e) => setNewCodingRule({ ...newCodingRule, modifier: e.target.value })}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Replacement CPT</label>
+                                    <input
+                                        className={styles.input}
+                                        value={newCodingRule.replacementCPT}
+                                        onChange={(e) => setNewCodingRule({ ...newCodingRule, replacementCPT: e.target.value })}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>&nbsp;</label>
+                                    <button type="button" className={styles.saveButton} onClick={handleAddCodingRule}>
+                                        <Plus size={16} /> Add More
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.cardList}>
+                            {codingRules.map((r, i) => (
+                                <div key={i} className={styles.cardItem}>
+                                    <div className={styles.cardContent} style={{ width: '100%' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '13px' }}>
+                                            <span style={{ fontWeight: 600, color: '#111827' }}>CPT: {r.cptCode}</span>
+                                            {r.description && (
+                                                <>
+                                                    <span style={{ color: '#000' }}>|</span>
+                                                    <span style={{ color: '#6b7280' }}>Description: {r.description}</span>
+                                                </>
+                                            )}
+                                            {r.ndcCode && (
+                                                <>
+                                                    <span style={{ color: '#000' }}>|</span>
+                                                    <span style={{ color: '#6b7280' }}>NDC: {r.ndcCode}</span>
+                                                </>
+                                            )}
+                                            {r.units && (
+                                                <>
+                                                    <span style={{ color: '#000' }}>|</span>
+                                                    <span style={{ color: '#6b7280' }}>Units: {r.units}</span>
+                                                </>
+                                            )}
+                                            {r.chargePerUnit && (
+                                                <>
+                                                    <span style={{ color: '#000' }}>|</span>
+                                                    <span style={{ color: '#6b7280' }}>Charge/Unit: {r.chargePerUnit}</span>
+                                                </>
+                                            )}
+                                            {r.modifier && (
+                                                <>
+                                                    <span style={{ color: '#000' }}>|</span>
+                                                    <span style={{ color: '#6b7280' }}>Modifier: {r.modifier}</span>
+                                                </>
+                                            )}
+                                            {r.replacementCPT && (
+                                                <>
+                                                    <span style={{ color: '#000' }}>|</span>
+                                                    <span style={{ color: '#6b7280' }}>Replacement CPT: {r.replacementCPT}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <button
+                                        className={styles.deleteButton}
+                                        onClick={() => handleRemoveCodingRule(r.id)}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                </div>
+            )}
         </div>
     );
 };

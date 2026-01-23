@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Edit, ClipboardList, Users, FolderOpen, PlayCircle, StopCircle, Eye, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { Search, Plus, Edit, Users, FolderOpen, PlayCircle, StopCircle, Eye, ChevronDown, ChevronUp, Download, BookOpen } from 'lucide-react';
 import Table from '../../Table/Table';
+import Loading from '../../Common/Loading';
+import CommonPagination from '../../Common/CommonPagination';
 import styles from './SOPListing.module.css';
 import sopService from '../../../services/sop.service';
 import statusService, { Status } from '../../../services/status.service';
@@ -14,7 +16,9 @@ const SOPListing: React.FC = () => {
     const navigate = useNavigate();
     const [sops, setSops] = useState<SOP[]>([]);
     const [loading, setLoading] = useState(true);
+    const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedSOP, setSelectedSOP] = useState<SOP | null>(null);
@@ -24,21 +28,45 @@ const SOPListing: React.FC = () => {
     const [activeStatusId, setActiveStatusId] = useState<number | null>(null);
     const [inactiveStatusId, setInactiveStatusId] = useState<number | null>(null);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
+    const [totalSOPs, setTotalSOPs] = useState(0);
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
     useEffect(() => {
-        loadSOPs();
         loadStatuses();
     }, []);
 
-    const loadSOPs = async () => {
+    useEffect(() => {
+        loadSOPs(debouncedSearchTerm, statusFilter);
+    }, [currentPage, itemsPerPage, debouncedSearchTerm, statusFilter, activeStatusId, inactiveStatusId]);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchTerm]);
+
+    const loadSOPs = async (search?: string, filter?: string) => {
         try {
             setLoading(true);
-            const data = await sopService.getSOPs();
-            setSops(data);
+            let sId: number | undefined = undefined;
+            if (filter === 'active') sId = activeStatusId || undefined;
+            if (filter === 'inactive') sId = inactiveStatusId || undefined;
+
+            const data = await sopService.getSOPs(currentPage * itemsPerPage, itemsPerPage, search, sId);
+            setSops(data.sops);
+            setTotalSOPs(data.total);
         } catch (error) {
             console.error('Failed to load SOPs:', error);
         } finally {
             setLoading(false);
+            setIsInitialLoading(false);
         }
     };
 
@@ -56,7 +84,7 @@ const SOPListing: React.FC = () => {
     };
 
     const handleToggleStatus = async (id: string, currentStatusId?: number) => {
-        const isActive = currentStatusId === activeStatusId;
+        const isActive = currentStatusId === activeStatusId || !currentStatusId;
         setConfirmModal({ isOpen: true, sopId: id, action: isActive ? 'deactivate' : 'activate' });
     };
 
@@ -65,9 +93,9 @@ const SOPListing: React.FC = () => {
             const newStatusId = confirmModal.action === 'activate' ? activeStatusId : inactiveStatusId;
             if (newStatusId) {
                 await sopService.toggleSOPStatus(confirmModal.sopId, newStatusId);
-                loadSOPs();
+                loadSOPs(debouncedSearchTerm, statusFilter);
                 setToast({
-                    message: `SOP ${confirmModal.action}d successfully`,
+                    message: `SOP ${confirmModal.action === 'activate' ? 'activated' : 'deactivated'} successfully`,
                     type: 'success'
                 });
             }
@@ -82,47 +110,52 @@ const SOPListing: React.FC = () => {
     };
 
     const filteredSOPs = useMemo(() => {
-        let filtered = sops;
-
-        if (statusFilter === 'active') {
-            filtered = filtered.filter(sop => sop.statusId === activeStatusId);
-        } else if (statusFilter === 'inactive') {
-            filtered = filtered.filter(sop => sop.statusId === inactiveStatusId);
-        }
-
-        if (!searchTerm) return filtered;
-
-        const term = searchTerm.toLowerCase();
-        return filtered.filter(sop =>
-            sop.title.toLowerCase().includes(term) ||
-            sop.category.toLowerCase().includes(term) ||
-            sop.providerInfo?.providerName?.toLowerCase().includes(term) ||
-            sop.providerInfo?.billingProviderName?.toLowerCase().includes(term) ||
-            sop.providerInfo?.billingProviderNPI?.includes(term) ||
-            sop.providerInfo?.practiceName?.toLowerCase().includes(term) ||
-            sop.providerInfo?.software?.toLowerCase().includes(term)
-        );
-    }, [sops, searchTerm, statusFilter]);
+        return sops;
+    }, [sops]);
 
     const stats = useMemo(() => {
-        const activeSOPs = sops.filter(sop => sop.statusId === activeStatusId).length;
+        const activeSOPs = sops.filter(sop => sop.statusId === activeStatusId || (!sop.statusId && activeStatusId)).length;
         const inactiveSOPs = sops.filter(sop => sop.statusId === inactiveStatusId).length;
 
         return {
-            totalSOPs: sops.length,
-            activeSOPs,
-            inactiveSOPs
+            totalSOPs: statusFilter === 'all' ? totalSOPs : sops.length,
+            activeSOPs: statusFilter === 'active' ? totalSOPs : activeSOPs,
+            inactiveSOPs: statusFilter === 'inactive' ? totalSOPs : inactiveSOPs
         };
-    }, [sops, activeStatusId, inactiveStatusId]);
+    }, [sops, activeStatusId, inactiveStatusId, totalSOPs, statusFilter]);
+
+    const handleDownloadPDF = async (sop: SOP) => {
+        try {
+            setDownloadingId(sop.id);
+            await sopService.downloadSOPPDF(sop.id, sop.title);
+            setToast({ message: 'PDF downloaded successfully', type: 'success' });
+        } catch (error) {
+            console.error('Failed to download PDF:', error);
+            setToast({ message: 'Failed to download PDF', type: 'error' });
+        } finally {
+            setDownloadingId(null);
+        }
+    };
 
     const toggleSection = (section: string) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
 
-    const handleViewSOP = (sop: SOP) => {
-        setSelectedSOP(sop);
-        setViewModalOpen(true);
-        setExpandedSections({});
+    const handleViewSOP = async (sop: SOP) => {
+        try {
+            setSelectedSOP(sop);
+            setViewModalOpen(true);
+            setLoadingDetails(true);
+            setExpandedSections({});
+            const fullSOP = await sopService.getSOPById(sop.id);
+            setSelectedSOP(fullSOP);
+        } catch (error) {
+            console.error('Failed to fetch SOP details:', error);
+            setToast({ message: 'Failed to load SOP details', type: 'error' });
+            setViewModalOpen(false);
+        } finally {
+            setLoadingDetails(false);
+        }
     };
 
     const columns = [
@@ -180,10 +213,11 @@ const SOPListing: React.FC = () => {
                     </button>
                     <button
                         className={styles.downloadButton}
-                        onClick={() => console.log(`Download PDF for SOP ${row.id}`)}
+                        onClick={() => handleDownloadPDF(row)}
+                        disabled={downloadingId === row.id}
                         title="Download PDF"
                     >
-                        <Download size={14} />
+                        {downloadingId === row.id ? <div className={styles.smallSpinner}></div> : <Download size={14} />}
                     </button>
                     <button
                         className={styles.editButton}
@@ -193,12 +227,11 @@ const SOPListing: React.FC = () => {
                         <Edit size={14} />
                     </button>
                     <button
-                        className={row.statusId === inactiveStatusId ? styles.activateButton : styles.deactivateButton}
+                        className={row.statusId === activeStatusId || !row.statusId ? styles.deactivateButton : styles.activateButton}
                         onClick={() => handleToggleStatus(row.id, row.statusId)}
-                        title={row.statusId === inactiveStatusId ? 'Activate SOP' : 'Deactivate SOP'}
-                        style={row.statusId === inactiveStatusId ? { backgroundColor: '#dcfce7', color: '#166534' } : { backgroundColor: '#fee2e2', color: '#dc2626' }}
+                        title={row.statusId === activeStatusId || !row.statusId ? 'Deactivate SOP' : 'Activate SOP'}
                     >
-                        {row.statusId === inactiveStatusId ? <PlayCircle size={14} /> : <StopCircle size={14} />}
+                        {row.statusId === activeStatusId || !row.statusId ? <StopCircle size={14} /> : <PlayCircle size={14} />}
                     </button>
                 </div>
             )
@@ -214,7 +247,7 @@ const SOPListing: React.FC = () => {
                     onClick={() => setStatusFilter('all')}
                 >
                     <div className={styles.statIcon}>
-                        <ClipboardList size={16} />
+                        <BookOpen size={16} />
                     </div>
                     <div className={styles.statContent}>
                         <h3>{stats.totalSOPs}</h3>
@@ -250,7 +283,7 @@ const SOPListing: React.FC = () => {
             {/* Header with Title and Actions */}
             <div className={styles.header}>
                 <h1>
-                    <ClipboardList size={20} style={{ marginRight: '8px' }} />
+                    <BookOpen size={20} style={{ marginRight: '8px' }} />
                     Standard Operating Procedures
                 </h1>
                 <div className={styles.actions}>
@@ -275,120 +308,135 @@ const SOPListing: React.FC = () => {
             </div>
 
             {/* Table */}
-            <Table
-                data={filteredSOPs}
-                columns={columns}
-                maxHeight="calc(100vh - 240px)"
-            />
+            {isInitialLoading ? (
+                <div className={styles.tableSection}>
+                    <Loading message="Loading SOPs..." />
+                </div>
+            ) : (
+                <Table
+                    data={filteredSOPs}
+                    columns={columns}
+                    maxHeight="calc(100vh - 240px)"
+                />
+            )}
 
             {/* View Modal */}
             {viewModalOpen && selectedSOP && (
                 <div className={styles.modalOverlay} onClick={() => setViewModalOpen(false)}>
                     <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.modalHeader}>
-                            <h2>SOP Details</h2>
+                            <h2><BookOpen size={20} style={{ marginRight: '8px', display: 'inline-block', verticalAlign: 'middle' }} />SOP Details</h2>
                             <button className={styles.modalClose} onClick={() => setViewModalOpen(false)}>×</button>
                         </div>
                         <div className={styles.modalBody}>
-                            {/* Basic Information */}
-                            <div className={styles.infoSection}>
-                                <h3>Basic Information</h3>
-                                <div className={styles.infoGrid}>
-                                    <div><strong>Title:</strong> <span style={{ color: '#1d4ed8' }}>{selectedSOP.title}</span></div>
-                                    <div><strong>Category:</strong> <span style={{ color: '#1d4ed8' }}>{selectedSOP.category}</span></div>
+                            {loadingDetails ? (
+                                <div className={styles.loadingContainer}>
+                                    <div className={styles.spinner}></div>
+                                    <p>Loading details...</p>
                                 </div>
-                            </div>
-
-                            {/* Provider Information */}
-                            <div className={styles.infoSection}>
-                                <h3>Provider Information</h3>
-                                <div className={styles.infoGrid}>
-                                    <div><strong>Provider Name:</strong> <span style={{ color: '#1d4ed8' }}>{selectedSOP.providerInfo?.providerName || '-'}</span></div>
-                                    <div><strong>Billing Provider:</strong> <span style={{ color: '#1d4ed8' }}>{selectedSOP.providerInfo?.billingProviderName || '-'}</span></div>
-                                    <div><strong>NPI:</strong> <span style={{ color: '#1d4ed8' }}>{selectedSOP.providerInfo?.billingProviderNPI || '-'}</span></div>
-                                    <div><strong>Practice Name:</strong> <span style={{ color: '#1d4ed8' }}>{selectedSOP.providerInfo?.practiceName || '-'}</span></div>
-                                    <div><strong>Software:</strong> <span style={{ color: '#1d4ed8' }}>{selectedSOP.providerInfo?.software || '-'}</span></div>
-                                    <div><strong>Tax ID:</strong> <span style={{ color: '#1d4ed8' }}>{selectedSOP.providerInfo?.providerTaxID || '-'}</span></div>
-                                    <div><strong>Address:</strong> <span style={{ color: '#1d4ed8' }}>{selectedSOP.providerInfo?.billingAddress || '-'}</span></div>
-                                    <div><strong>Clearinghouse:</strong> <span style={{ color: '#1d4ed8' }}>{selectedSOP.providerInfo?.clearinghouse || '-'}</span></div>
-                                </div>
-                            </div>
-
-                            {/* Workflow Process */}
-                            <div className={styles.infoSection}>
-                                <h3>Workflow Process</h3>
-                                <div style={{ marginBottom: '12px' }}>
-                                    <strong style={{ display: 'block', marginBottom: '4px' }}>Description:</strong>
-                                    <div style={{ whiteSpace: 'pre-wrap', color: '#1d4ed8', fontSize: '14px' }}>
-                                        {selectedSOP.workflowProcess?.description || '-'}
-                                    </div>
-                                </div>
-                                <div>
-                                    <strong style={{ display: 'block', marginBottom: '4px' }}>Eligibility Portals:</strong>
-                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                        {selectedSOP.workflowProcess?.eligibilityPortals?.length ? (
-                                            selectedSOP.workflowProcess.eligibilityPortals.map((p, i) => (
-                                                <span key={i} className={styles.badge} style={{ background: '#eff6ff', color: '#1d4ed8' }}>{p}</span>
-                                            ))
-                                        ) : (
-                                            <span style={{ color: '#9ca3af', fontSize: '14px' }}>No portals listed</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className={styles.accordion}>
-                                <div className={styles.accordionItem}>
-                                    <div
-                                        className={styles.accordionHeader}
-                                        onClick={() => toggleSection('guidelines')}
-                                    >
-                                        <span>Billing Guidelines ({selectedSOP.billingGuidelines?.length || 0})</span>
-                                        {expandedSections['guidelines'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                    </div>
-                                    {expandedSections['guidelines'] && (
-                                        <div className={styles.accordionContent}>
-                                            {selectedSOP.billingGuidelines?.map((g, i) => (
-                                                <div key={i} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: i < (selectedSOP.billingGuidelines?.length || 0) - 1 ? '1px solid #e5e7eb' : 'none' }}>
-                                                    <div style={{ fontWeight: 600, marginBottom: '4px' }}>{g.title}</div>
-                                                    <div style={{ color: '#1d4ed8', fontSize: '14px' }}>{g.description}</div>
-                                                </div>
-                                            ))}
-                                            {(!selectedSOP.billingGuidelines || selectedSOP.billingGuidelines.length === 0) && <p style={{ color: '#9ca3af', fontSize: '14px' }}>No guidelines.</p>}
+                            ) : (
+                                <>
+                                    {/* Basic Information */}
+                                    <div className={styles.infoSection}>
+                                        <h3>Basic Information</h3>
+                                        <div className={styles.infoGrid}>
+                                            <div><strong>Title:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{selectedSOP.title}</span></div>
+                                            <div><strong>Category:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{selectedSOP.category}</span></div>
                                         </div>
-                                    )}
-                                </div>
-
-                                <div className={styles.accordionItem}>
-                                    <div
-                                        className={styles.accordionHeader}
-                                        onClick={() => toggleSection('coding')}
-                                    >
-                                        <span>Coding Rules ({selectedSOP.codingRules?.length || 0})</span>
-                                        {expandedSections['coding'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                     </div>
-                                    {expandedSections['coding'] && (
-                                        <div className={styles.accordionContent}>
-                                            {selectedSOP.codingRules?.map((r, i) => (
-                                                <div key={i} style={{ marginBottom: '8px', fontSize: '14px', paddingBottom: '8px', borderBottom: '1px solid #f3f4f6' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                                                        <span style={{ fontWeight: 600, color: '#1d4ed8' }}>{r.cptCode}</span>
-                                                        {r.description && <span style={{ marginLeft: '8px', color: '#1d4ed8' }}>- {r.description}</span>}
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: '#6b7280' }}>
-                                                        {r.ndcCode && <span><strong>NDC:</strong> <span style={{ color: '#1d4ed8' }}>{r.ndcCode}</span></span>}
-                                                        {r.units && <span><strong>Units:</strong> <span style={{ color: '#1d4ed8' }}>{r.units}</span></span>}
-                                                        {r.chargePerUnit && <span><strong>Charge:</strong> <span style={{ color: '#1d4ed8' }}>{r.chargePerUnit}</span></span>}
-                                                        {r.modifier && <span><strong>Mod:</strong> <span style={{ color: '#1d4ed8' }}>{r.modifier}</span></span>}
-                                                        {r.replacementCPT && <span><strong>Replace:</strong> <span style={{ color: '#1d4ed8' }}>{r.replacementCPT}</span></span>}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            {(!selectedSOP.codingRules || selectedSOP.codingRules.length === 0) && <p style={{ color: '#9ca3af', fontSize: '14px' }}>No coding rules.</p>}
+
+                                    {/* Provider Information */}
+                                    <div className={styles.infoSection}>
+                                        <h3>Provider Information</h3>
+                                        <div className={styles.infoGrid}>
+                                            <div><strong>Provider Name:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{selectedSOP.providerInfo?.providerName || '-'}</span></div>
+                                            <div><strong>Billing Provider:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{selectedSOP.providerInfo?.billingProviderName || '-'}</span></div>
+                                            <div><strong>NPI:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{selectedSOP.providerInfo?.billingProviderNPI || '-'}</span></div>
+                                            <div><strong>Practice Name:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{selectedSOP.providerInfo?.practiceName || '-'}</span></div>
+                                            <div><strong>Software:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{selectedSOP.providerInfo?.software || '-'}</span></div>
+                                            <div><strong>Tax ID:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{selectedSOP.providerInfo?.providerTaxID || '-'}</span></div>
+                                            <div><strong>Address:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{selectedSOP.providerInfo?.billingAddress || '-'}</span></div>
+                                            <div><strong>Clearinghouse:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{selectedSOP.providerInfo?.clearinghouse || '-'}</span></div>
                                         </div>
-                                    )}
-                                </div>
-                            </div>
+                                    </div>
+
+                                    {/* Workflow Process */}
+                                    <div className={styles.infoSection}>
+                                        <h3>Workflow Process</h3>
+                                        <div style={{ marginBottom: '12px' }}>
+                                            <strong style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#475569' }}>Description:</strong>
+                                            <div style={{ whiteSpace: 'pre-wrap', color: '#0c4a6e', fontSize: '14px', fontWeight: 500, padding: '10px', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                {selectedSOP.workflowProcess?.description || '-'}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <strong style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#475569' }}>Eligibility Portals:</strong>
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                {selectedSOP.workflowProcess?.eligibilityPortals?.length ? (
+                                                    selectedSOP.workflowProcess.eligibilityPortals.map((p, i) => (
+                                                        <span key={i} style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 500, background: 'linear-gradient(135deg, #83cee4 0%, #e2f3f9 100%)', color: '#011926' }}>{p}</span>
+                                                    ))
+                                                ) : (
+                                                    <span style={{ color: '#9ca3af', fontSize: '14px' }}>No portals listed</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.accordion}>
+                                        <div className={styles.accordionItem}>
+                                            <div
+                                                className={styles.accordionHeader}
+                                                onClick={() => toggleSection('guidelines')}
+                                            >
+                                                <span>Billing Guidelines ({selectedSOP.billingGuidelines?.length || 0})</span>
+                                                {expandedSections['guidelines'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                            </div>
+                                            {expandedSections['guidelines'] && (
+                                                <div className={styles.accordionContent}>
+                                                    {selectedSOP.billingGuidelines?.map((g, i) => (
+                                                        <div key={i} style={{ marginBottom: '12px', padding: '12px', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+                                                            <div style={{ fontWeight: 600, marginBottom: '6px', color: '#334155', fontSize: '14px' }}>{g.title}</div>
+                                                            <div style={{ color: '#0c4a6e', fontSize: '13px', lineHeight: '1.6' }}>{g.description}</div>
+                                                        </div>
+                                                    ))}
+                                                    {(!selectedSOP.billingGuidelines || selectedSOP.billingGuidelines.length === 0) && <p style={{ color: '#9ca3af', fontSize: '14px' }}>No guidelines.</p>}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className={styles.accordionItem}>
+                                            <div
+                                                className={styles.accordionHeader}
+                                                onClick={() => toggleSection('coding')}
+                                            >
+                                                <span>Coding Rules ({selectedSOP.codingRules?.length || 0})</span>
+                                                {expandedSections['coding'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                            </div>
+                                            {expandedSections['coding'] && (
+                                                <div className={styles.accordionContent}>
+                                                    {selectedSOP.codingRules?.map((r, i) => (
+                                                        <div key={i} style={{ marginBottom: '10px', padding: '12px', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+                                                                <span style={{ fontWeight: 600, color: '#0c4a6e', fontSize: '14px' }}>{r.cptCode}</span>
+                                                                {r.description && <span style={{ marginLeft: '8px', color: '#64748b', fontSize: '13px' }}>- {r.description}</span>}
+                                                            </div>
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: '#64748b' }}>
+                                                                {r.ndcCode && <span><strong>NDC:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{r.ndcCode}</span></span>}
+                                                                {r.units && <span><strong>Units:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{r.units}</span></span>}
+                                                                {r.chargePerUnit && <span><strong>Charge:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{r.chargePerUnit}</span></span>}
+                                                                {r.modifier && <span><strong>Mod:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{r.modifier}</span></span>}
+                                                                {r.replacementCPT && <span><strong>Replace:</strong> <span style={{ color: '#0c4a6e', fontWeight: 500 }}>{r.replacementCPT}</span></span>}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    {(!selectedSOP.codingRules || selectedSOP.codingRules.length === 0) && <p style={{ color: '#9ca3af', fontSize: '14px' }}>No coding rules.</p>}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -411,6 +459,19 @@ const SOPListing: React.FC = () => {
                     onClose={() => setToast(null)}
                 />
             )}
+
+            <CommonPagination
+                show={totalSOPs > 0}
+                pageCount={Math.ceil(totalSOPs / itemsPerPage)}
+                currentPage={currentPage}
+                totalItems={totalSOPs}
+                itemsPerPage={itemsPerPage}
+                onPageChange={(data) => setCurrentPage(data.selected)}
+                onItemsPerPageChange={(items) => {
+                    setItemsPerPage(items);
+                    setCurrentPage(0);
+                }}
+            />
         </div>
     );
 };

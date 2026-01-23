@@ -26,11 +26,18 @@ const mapExampleToSOP = (data: any): SOP => ({
 });
 
 const sopService = {
-    getSOPs: async (skip: number = 0, limit: number = 100): Promise<SOP[]> => {
-        const response = await apiClient(`${API_URL}/api/sops?skip=${skip}&limit=${limit}`);
+    getSOPs: async (skip: number = 0, limit: number = 100, search?: string, statusId?: number): Promise<{ sops: SOP[]; total: number }> => {
+        let url = `${API_URL}/api/sops?skip=${skip}&limit=${limit}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (statusId) url += `&status_id=${statusId}`;
+
+        const response = await apiClient(url);
         if (!response.ok) throw new Error('Failed to fetch SOPs');
         const data = await response.json();
-        return data.map(mapExampleToSOP);
+        return {
+            sops: data.sops.map(mapExampleToSOP),
+            total: data.total
+        };
     },
 
     getSOPById: async (id: string): Promise<SOP> => {
@@ -81,6 +88,20 @@ const sopService = {
         if (!response.ok) throw new Error('Failed to update SOP status');
         const data = await response.json();
         return mapExampleToSOP(data);
+    },
+
+    downloadSOPPDF: async (id: string, title: string): Promise<void> => {
+        const response = await apiClient(`${API_URL}/api/sops/${id}/pdf`);
+        if (!response.ok) throw new Error('Failed to download PDF');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title.replace(/\s+/g, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
     }
 };
 

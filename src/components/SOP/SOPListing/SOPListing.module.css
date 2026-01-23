@@ -266,6 +266,22 @@
     font-size: 14px;
 }
 
+.tableSection {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.smallSpinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(5, 150, 105, 0.2);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
 /* Dark mode styles */
 :global(.dark) .statCard {
     background: #1f2937 !important;
@@ -392,34 +408,34 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .modalHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px 28px;
+    padding: 18px 24px;
     border-bottom: 1px solid #e5e7eb;
-    background: linear-gradient(to bottom, #ffffff, #f9fafb);
+    background: linear-gradient(135deg, #aad4e0 0%, #e2f3f9 100%);
 }
 
 .modalHeader h2 {
     margin: 0;
     font-size: 22px;
     font-weight: 600;
-    color: #1e293b;
+    color: #011926;
 }
 
 .modalClose {
-    background: #f3f4f6;
+    background: rgba(1, 25, 38, 0.1);
     border: none;
     width: 32px;
     height: 32px;
     border-radius: 8px;
     font-size: 24px;
     cursor: pointer;
-    color: #6b7280;
+    color: #011926;
     line-height: 1;
     display: flex;
     align-items: center;
@@ -428,28 +444,31 @@
 }
 
 .modalClose:hover {
-    background: #e5e7eb;
-    color: #1e293b;
+    background: rgba(1, 25, 38, 0.2);
 }
 
 .modalBody {
-    padding: 24px 28px;
+    padding: 20px;
     overflow-y: auto;
+    background: #f8fafc;
 }
 
 .infoSection {
-    background: #f9fafb;
+    background: white;
     border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 24px;
-    border: 1px solid #e5e7eb;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .infoSection h3 {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    color: #1e293b;
-    margin: 0 0 16px 0;
+    color: #334155;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -458,7 +477,7 @@
 .infoGrid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    gap: 12px;
     font-size: 14px;
 }
 
@@ -470,7 +489,7 @@
 }
 
 .infoGrid strong {
-    color: #1e293b;
+    color: #475569;
     font-weight: 600;
     font-size: 12px;
     text-transform: uppercase;
@@ -484,33 +503,34 @@
 }
 
 .accordionItem {
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
     overflow: hidden;
     background: white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: box-shadow 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s;
 }
 
 .accordionItem:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
 }
 
 .accordionHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    background: white;
+    padding: 12px 16px;
+    background: linear-gradient(to right, #f8fafc, white);
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
-    color: #1e293b;
-    transition: background 0.2s;
+    color: #334155;
+    transition: all 0.2s;
 }
 
 .accordionHeader:hover {
-    background: #f9fafb;
+    background: linear-gradient(to right, #f1f5f9, #f8fafc);
 }
 
 .accordionHeader span {
@@ -520,19 +540,20 @@
 }
 
 .accordionContent {
-    padding: 20px;
+    padding: 16px;
     font-size: 14px;
     color: #64748b;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #e2e8f0;
     background: #fafbfc;
 }
 
 .accordionContent p {
-    margin: 0 0 12px 0;
-    padding: 12px;
+    margin: 0 0 8px 0;
+    padding: 10px;
     background: white;
     border-radius: 8px;
-    border-left: 3px solid #3b82f6;
+    border-left: 3px solid #83cee4;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .accordionContent p:last-child {
@@ -545,30 +566,34 @@
 
 :global(.dark) .modalHeader {
     border-bottom-color: #374151;
-    background: linear-gradient(to bottom, #1f2937, #111827);
+    background: linear-gradient(135deg, #83cee4 0%, #7dd0e9 100%);
 }
 
 :global(.dark) .modalHeader h2 {
-    color: #f9fafb;
+    color: #011926;
 }
 
 :global(.dark) .modalClose {
-    background: #374151;
-    color: #9ca3af;
+    background: rgba(1, 25, 38, 0.2);
+    color: #011926;
 }
 
 :global(.dark) .modalClose:hover {
-    background: #4b5563;
-    color: #f9fafb;
+    background: rgba(1, 25, 38, 0.3);
+}
+
+:global(.dark) .modalBody {
+    background: #111827;
 }
 
 :global(.dark) .infoSection {
-    background: #111827;
+    background: #1f2937;
     border-color: #374151;
 }
 
 :global(.dark) .infoSection h3 {
     color: #f9fafb;
+    border-bottom-color: #374151;
 }
 
 :global(.dark) .infoGrid div {
@@ -576,7 +601,7 @@
 }
 
 :global(.dark) .infoGrid strong {
-    color: #f9fafb;
+    color: #d1d5db;
 }
 
 :global(.dark) .accordionItem {
@@ -585,12 +610,12 @@
 }
 
 :global(.dark) .accordionHeader {
-    background: #1f2937;
+    background: linear-gradient(to right, #1f2937, #1f2937);
     color: #f9fafb;
 }
 
 :global(.dark) .accordionHeader:hover {
-    background: #111827;
+    background: linear-gradient(to right, #111827, #1f2937);
 }
 
 :global(.dark) .accordionContent {
@@ -601,5 +626,5 @@
 
 :global(.dark) .accordionContent p {
     background: #1f2937;
-    border-left-color: #60a5fa;
+    border-left-color: #83cee4;
 }
