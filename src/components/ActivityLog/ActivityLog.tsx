@@ -11,6 +11,7 @@ import CommonDropdown from '../Common/CommonDropdown';
 import CommonDatePicker from '../Common/CommonDatePicker';
 import Table from '../Table/Table';
 import CommonPagination from '../Common/CommonPagination';
+import Loading from '../Common/Loading';
 import { debounce } from '../../utils/debounce';
 
 const ActivityLogPage: React.FC = () => {
@@ -374,22 +375,19 @@ const ActivityLogPage: React.FC = () => {
                     <RotateCcw size={16} />
                 </button>
 
-                <button
+                {/* <button
                     onClick={refreshOnlyLogs}
                     className={styles.refreshBtnIcon}
                     title="Refresh Logs Only"
                 >
                     <RefreshCw size={16} className={loading ? styles.animateSpin : ""} />
-                </button>
+                </button> */}
             </div>
 
             {/* Table */}
             <div className={styles.tableSection}>
                 {loading && logs.length === 0 ? (
-                    <div className={styles.loading}>
-                        <RefreshCw size={24} className={styles.animateSpin} style={{ marginBottom: '12px' }} />
-                        <p>Loading activity logs...</p>
-                    </div>
+                    <Loading message="Loading activity logs..." />
                 ) : logs.length === 0 ? (
                     <div className={styles.empty}>
                         <Activity size={48} style={{ marginBottom: '16px', opacity: 0.3 }} />

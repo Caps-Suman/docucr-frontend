@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Webhook, Plus, Trash2, Edit, Save, X, Loader2 } from 'lucide-react';
+import { Webhook, Plus, Trash2, Edit, Save, X } from 'lucide-react';
 import Toast, { ToastType } from '../../Common/Toast';
+import Loading from '../../Common/Loading';
 import webhookService, { WebhookConfig } from '../../../services/webhook.service';
 import styles from './WebhookSettings.module.css';
 
@@ -88,7 +89,7 @@ const WebhookSettings: React.FC = () => {
         }));
     };
 
-    if (loading) return <div className={styles.loading}><Loader2 className="animate-spin" /> Loading webhooks...</div>;
+    if (loading) return <Loading message="Loading webhooks..." />;
 
     return (
         <div className={styles.container}>

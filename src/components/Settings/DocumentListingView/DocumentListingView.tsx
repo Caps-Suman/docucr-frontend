@@ -3,6 +3,7 @@ import { GripVertical, Eye, EyeOff, Save, RotateCcw, FileText, CheckCircle, Eye 
 import formService, { FormField } from '../../../services/form.service';
 import documentListConfigService, { ColumnConfig as ServiceColumnConfig, DocumentListConfigRequest } from '../../../services/documentListConfig.service';
 import Toast, { ToastType } from '../../Common/Toast';
+import Loading from '../../Common/Loading';
 import styles from './DocumentListingView.module.css';
 
 interface ColumnConfig {
@@ -199,13 +200,7 @@ const DocumentListingView: React.FC = () => {
         }
     };
 
-    if (loading) {
-        return (
-            <div className={styles.container}>
-                <div className={styles.loading}>Loading...</div>
-            </div>
-        );
-    }
+    if (loading) return <Loading message="Loading column configuration..." />;
 
     return (
         <div className={styles.container}>

@@ -23,12 +23,9 @@ const AppLayout: React.FC = () => {
         const path = location.pathname;
         const crumbs: { icon: any, label: string }[] = [];
 
-        // Always start with Home icon (root)
-        // User asked to "start from home icon"
         crumbs.push({ icon: Home, label: '' });
 
         if (path === '/dashboard' || path === '/') {
-            // Only show Dashboard label if user has access
             if (hasModuleAccess) {
                 crumbs.push({ icon: LayoutDashboard, label: 'Dashboard' });
             }
@@ -39,6 +36,7 @@ const AppLayout: React.FC = () => {
             crumbs.push({ icon: User, label: 'Profile' });
             return crumbs;
         }
+
         if (path === '/users-permissions') {
             crumbs.push({ icon: Shield, label: 'User & Permission' });
             return crumbs;
@@ -46,22 +44,47 @@ const AppLayout: React.FC = () => {
 
         if (path.startsWith('/documents')) {
             crumbs.push({ icon: FileText, label: 'Documents' });
-            if (path.includes('/upload')) {
-                crumbs.push({ icon: FileText, label: 'Upload' });
-            } else if (path !== '/documents') {
-                crumbs.push({ icon: FileText, label: 'Document Details' });
-            }
+            if (path.includes('/upload')) crumbs.push({ icon: FileText, label: 'Upload' });
+            else if (path !== '/documents') crumbs.push({ icon: FileText, label: 'Details' });
             return crumbs;
         }
 
-        if (path.startsWith('/templates')) { crumbs.push({ icon: Layout, label: 'Templates' }); return crumbs; }
-        if (path.startsWith('/sops')) { crumbs.push({ icon: BookOpen, label: 'SOPs' }); return crumbs; }
-        if (path.startsWith('/clients')) { crumbs.push({ icon: Users, label: 'Clients' }); return crumbs; }
-        if (path.startsWith('/settings')) { crumbs.push({ icon: Settings, label: 'Settings' }); return crumbs; }
-        if (path.startsWith('/forms')) { crumbs.push({ icon: FileEdit, label: 'Form Management' }); return crumbs; }
-        if (path.startsWith('/activity-logs')) { crumbs.push({ icon: Activity, label: 'Activity Logs' }); return crumbs; }
+        if (path.startsWith('/templates')) {
+            crumbs.push({ icon: Layout, label: 'Templates' });
+            if (path.includes('/create')) crumbs.push({ icon: Layout, label: 'Create' });
+            else if (path.includes('/edit')) crumbs.push({ icon: Layout, label: 'Edit' });
+            return crumbs;
+        }
 
-        // Fallback
+        if (path.startsWith('/sops')) {
+            crumbs.push({ icon: BookOpen, label: 'SOPs' });
+            if (path.includes('/create')) crumbs.push({ icon: BookOpen, label: 'Create' });
+            else if (path.includes('/edit')) crumbs.push({ icon: BookOpen, label: 'Edit' });
+            return crumbs;
+        }
+
+        if (path.startsWith('/clients')) {
+            crumbs.push({ icon: Users, label: 'Clients' });
+            return crumbs;
+        }
+
+        if (path.startsWith('/settings')) {
+            crumbs.push({ icon: Settings, label: 'Settings' });
+            return crumbs;
+        }
+
+        if (path.startsWith('/forms')) {
+            crumbs.push({ icon: FileEdit, label: 'Forms' });
+            if (path.includes('/create')) crumbs.push({ icon: FileEdit, label: 'Create' });
+            else if (path !== '/forms') crumbs.push({ icon: FileEdit, label: 'Edit' });
+            return crumbs;
+        }
+
+        if (path.startsWith('/activity-logs')) {
+            crumbs.push({ icon: Activity, label: 'Activity Logs' });
+            return crumbs;
+        }
+
         if (hasModuleAccess) {
             crumbs.push({ icon: LayoutDashboard, label: 'Dashboard' });
         }

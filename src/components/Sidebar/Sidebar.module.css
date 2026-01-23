@@ -135,7 +135,7 @@
 .navItem.active {
   background-color: #e2f3f9 !important;
   color: #00517c !important;
-  border: 0.7px solid #83cee3;
+  border: 1px solid #83cee3;
 }
 
 .navIcon {

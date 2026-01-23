@@ -1,0 +1,387 @@
+.container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.header {
+    background: white;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.titleSection h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 4px 0;
+}
+
+.titleSection p {
+    color: #64748b;
+    margin: 0;
+    font-size: 13px;
+}
+
+.headerActions {
+    display: flex;
+    gap: 12px;
+}
+
+.cancelButton,
+.backButton {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.cancelButton:hover,
+.backButton:hover {
+    background-color: #f9fafb;
+    color: #1e293b;
+}
+
+.saveButton {
+    background-color: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+    min-height: 38px;
+}
+
+.saveButton:hover {
+    background-color: #83cee4;
+}
+
+/* Scrollable Content Area */
+.content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.section {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.sectionTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.formGridWithButton {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 16px;
+    align-items: end;
+}
+
+.codingRulesGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    align-items: end;
+}
+
+.rulesGridGeneral {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr auto;
+    gap: 16px;
+    align-items: end;
+}
+
+.rulesGridXray {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 16px;
+    align-items: end;
+}
+
+.fullWidth {
+    grid-column: 1 / -1;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.input,
+.select,
+.textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #1e293b;
+    background-color: white;
+    transition: all 0.2s;
+    min-height: 38px;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.input:disabled {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+/* Dynamic List Items (Badges/Cards) */
+.listContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.addWrapper {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.addButton {
+    height: 38px;
+    width: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.2s;
+}
+
+.addButton:hover {
+    background-color: #83cee4;
+}
+
+.tagsList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background-color: #dbeafe;
+    border-radius: 20px;
+    font-size: 11px;
+    color: #1d4ed8;
+    font-weight: 500;
+}
+
+.removeTag {
+    cursor: pointer;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+}
+
+.removeTag:hover {
+    color: #ef4444;
+}
+
+/* Card List for Rules */
+.cardList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.cardItem {
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s;
+}
+
+.cardItem:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.cardContent h4 {
+    margin: 0 0 4px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.cardContent p {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.deleteButton {
+    padding: 6px;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.deleteButton:hover {
+    color: #ef4444;
+    background-color: #fee2e2;
+}
+
+.helperText {
+    grid-column: 1 / -1;
+    background-color: #eff6ff;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.errorText {
+    color: #ef4444;
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+/* Dark mode styles */
+:global(.dark) .section,
+:global(.dark) .header {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+}
+
+:global(.dark) .titleSection h1,
+:global(.dark) .sectionTitle {
+    color: #f9fafb;
+}
+
+:global(.dark) .titleSection p {
+    color: #9ca3af;
+}
+
+:global(.dark) .saveButton {
+    background-color: #7dd0e9;
+    color: #011926;
+}
+
+:global(.dark) .saveButton:hover {
+    background-color: #83cee4;
+}
+
+:global(.dark) .cancelButton,
+:global(.dark) .backButton {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #d1d5db;
+}
+
+:global(.dark) .cancelButton:hover,
+:global(.dark) .backButton:hover {
+    background-color: #4b5563;
+    color: #f9fafb;
+}
+
+:global(.dark) .input,
+:global(.dark) .select,
+:global(.dark) .textarea {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+:global(.dark) .cardItem {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+:global(.dark) .cardContent h4 {
+    color: #f9fafb;
+}
+
+:global(.dark) .cardContent p {
+    color: #d1d5db;
+}
+
+:global(.dark) .tag {
+    background-color: #1e3a8a;
+    color: #93c5fd;
+}
+
+:global(.dark) .addButton {
+    background-color: #7dd0e9;
+    color: #011926;
+}
+
+:global(.dark) .addButton:hover {
+    background-color: #83cee4;
+}

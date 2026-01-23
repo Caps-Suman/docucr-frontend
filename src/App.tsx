@@ -17,6 +17,8 @@ import ClientManagement from './components/ClientManagement/ClientManagement';
 import DocumentTemplate from './components/DocumentTemplate/DocumentTemplate';
 import CreateTemplate from './components/DocumentTemplate/TemplateManagement/CreateTemplate';
 import Settings from './components/Settings/Settings';
+import SOPListing from './components/SOP/SOPListing/SOPListing';
+import CreateSOP from './components/SOP/SOPManagement/CreateSOP';
 import PublicShare from './components/PublicShare/PublicShare';
 import ComingSoon from './components/Common/ComingSoon';
 import { FileSearch } from 'lucide-react';
@@ -86,13 +88,9 @@ const App: React.FC = () => {
           <Route path="edit/:id" element={<CreateTemplate />} />
         </Route>
         <Route path="/sops" element={<AppLayout />}>
-          <Route index element={
-            <ComingSoon
-              title="SOP Module"
-              description="Standard Operating Procedures (SOPs) are currently under development to help you manage your document workflows more effectively."
-              icon={<FileSearch size={48} />}
-            />
-          } />
+          <Route index element={<SOPListing />} />
+          <Route path="create" element={<CreateSOP />} />
+          <Route path="edit/:id" element={<CreateSOP />} />
         </Route>
         <Route path="/clients" element={<AppLayout />}>
           <Route index element={<ClientManagement />} />
