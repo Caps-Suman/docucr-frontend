@@ -80,6 +80,12 @@ const DocumentList: React.FC = () => {
         }
         return value !== '' && value !== null && value !== undefined;
     }).length;
+    const formatLocalDate = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
 
     const handleApplyFilters = () => {
         setActiveFilters(filters);
@@ -239,12 +245,14 @@ const DocumentList: React.FC = () => {
 
             const serviceFilters = {
     status: activeFilters.status ? activeFilters.status.toUpperCase() : undefined,
-    dateFrom: activeFilters.dateFrom
-        ? activeFilters.dateFrom.toISOString().split('T')[0]
-        : undefined,
-    dateTo: activeFilters.dateTo
-        ? activeFilters.dateTo.toISOString().split('T')[0]
-        : undefined,
+   dateFrom: activeFilters.dateFrom
+    ? formatLocalDate(activeFilters.dateFrom)
+    : undefined,
+
+dateTo: activeFilters.dateTo
+    ? formatLocalDate(activeFilters.dateTo)
+    : undefined,
+
 
     // ✅ THIS IS THE FIX
     document_type_id: documentTypeFilter,
