@@ -80,6 +80,12 @@ const DocumentList: React.FC = () => {
         }
         return value !== '' && value !== null && value !== undefined;
     }).length;
+    const formatLocalDate = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
 
     const handleApplyFilters = () => {
         setActiveFilters(filters);
@@ -205,7 +211,10 @@ const DocumentList: React.FC = () => {
             console.error('Failed to load document stats:', error);
         }
     };
-
+    const documentTypeFilter =
+            activeFilters.document_type_id ||
+            activeFilters.form_document_type ||
+            undefined;
     const loadDocuments = async () => {
         try {
             setLoading(true);
@@ -214,29 +223,46 @@ const DocumentList: React.FC = () => {
             // Prepare filters
             const formFilters: Record<string, any> = {};
             Object.entries(activeFilters).forEach(([key, value]) => {
-                if (key.startsWith('form_') && value) {
-                    const fieldId = key.replace('form_', '');
-                    // Handle date values - convert Date objects to date strings using local date
-                    if (value instanceof Date) {
-                        const year = value.getFullYear();
-                        const month = String(value.getMonth() + 1).padStart(2, '0');
-                        const day = String(value.getDate()).padStart(2, '0');
-                        formFilters[fieldId] = `${year}-${month}-${day}`;
-                    } else {
-                        formFilters[fieldId] = value;
-                    }
-                }
-            });
+    if (!value) return;
+
+    // ❌ Skip document type here
+    if (key === 'document_type_id') return;
+
+    if (key.startsWith('form_')) {
+        const fieldId = key.replace('form_', '');
+
+        if (value instanceof Date) {
+            const year = value.getFullYear();
+            const month = String(value.getMonth() + 1).padStart(2, '0');
+            const day = String(value.getDate()).padStart(2, '0');
+            formFilters[fieldId] = `${year}-${month}-${day}`;
+        } else {
+            formFilters[fieldId] = value;
+        }
+    }
+});
+
 
             const serviceFilters = {
-                status: activeFilters.status ? activeFilters.status.toUpperCase() : undefined,
-                dateFrom: activeFilters.dateFrom ? activeFilters.dateFrom.toISOString().split('T')[0] : undefined,
-                dateTo: activeFilters.dateTo ? activeFilters.dateTo.toISOString().split('T')[0] : undefined,
-                formFilters: Object.keys(formFilters).length > 0 ? formFilters : undefined,
-                sharedOnly: activeFilters.sharedOnly,
-                skip: currentPage * pageSize,
-                limit: pageSize
-            };
+    status: activeFilters.status ? activeFilters.status.toUpperCase() : undefined,
+   dateFrom: activeFilters.dateFrom
+    ? formatLocalDate(activeFilters.dateFrom)
+    : undefined,
+
+dateTo: activeFilters.dateTo
+    ? formatLocalDate(activeFilters.dateTo)
+    : undefined,
+
+
+    // ✅ THIS IS THE FIX
+    document_type_id: documentTypeFilter,
+
+    formFilters: Object.keys(formFilters).length > 0 ? formFilters : undefined,
+    sharedOnly: activeFilters.sharedOnly,
+    skip: currentPage * pageSize,
+    limit: pageSize
+};
+
 
             const response = await documentService.getDocuments(serviceFilters);
             const docs = response.documents;

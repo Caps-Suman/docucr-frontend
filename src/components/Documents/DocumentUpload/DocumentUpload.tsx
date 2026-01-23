@@ -362,7 +362,14 @@ const DocumentUpload: React.FC = () => {
                 return (
                     <CommonDatePicker
                         selected={value ? new Date(value) : null}
-                        onChange={(date: Date | null) => handleFormFieldChange(fieldId, date ? date.toISOString().split('T')[0] : '')}
+onChange={(date: Date | null) =>
+    handleFormFieldChange(
+        fieldId,
+        date
+            ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+            : ''
+    )
+}
                         className={`${styles.formInput} ${hasError ? styles.error : ''}`}
                         placeholderText={field.placeholder || 'Select date'}
                     />

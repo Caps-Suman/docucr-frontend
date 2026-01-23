@@ -71,11 +71,11 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
 
     const loadDocumentTypes = async () => {
         try {
-            const response = await fetchWithAuth('/api/document-types');
+            const response = await fetchWithAuth('/api/document-types/dropdown');
             if (response.ok) {
                 const data = await response.json();
                 // Filter by 'ACTIVE' statusCode
-                setDocumentTypes(data.filter((dt: any) => dt.statusCode === 'ACTIVE'));
+                setDocumentTypes(data);
             } else {
                 const error = await response.json();
                 setToast({ message: error.detail || 'Failed to load document types', type: 'error' });
