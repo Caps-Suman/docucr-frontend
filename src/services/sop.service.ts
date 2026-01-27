@@ -39,6 +39,21 @@ const sopService = {
             total: data.total
         };
     },
+    getSOPStats: async (): Promise<{
+    totalSOPs: number;
+    activeSOPs: number;
+    inactiveSOPs: number;
+}> => {
+    const response = await apiClient(`${API_URL}/api/sops/stats`);
+    if (!response.ok) throw new Error('Failed to fetch SOP stats');
+    const data = await response.json();
+
+    return {
+        totalSOPs: data.total_sops,
+        activeSOPs: data.active_sops,
+        inactiveSOPs: data.inactive_sops
+    };
+},
 
     getSOPById: async (id: string): Promise<SOP> => {
         const response = await apiClient(`${API_URL}/api/sops/${id}`);

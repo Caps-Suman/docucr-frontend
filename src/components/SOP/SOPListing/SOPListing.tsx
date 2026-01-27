@@ -33,9 +33,14 @@ const SOPListing: React.FC = () => {
     const [itemsPerPage, setItemsPerPage] = useState(25);
     const [totalSOPs, setTotalSOPs] = useState(0);
     const [loadingDetails, setLoadingDetails] = useState(false);
+    const [stats, setStats] = useState({
+    totalSOPs: 0,
+    activeSOPs: 0,
+    inactiveSOPs: 0
+});
 
     useEffect(() => {
-        loadStatuses();
+        loadStats();
     }, []);
 
     useEffect(() => {
@@ -69,6 +74,14 @@ const SOPListing: React.FC = () => {
             setIsInitialLoading(false);
         }
     };
+    const loadStats = async () => {
+    try {
+        const data = await sopService.getSOPStats();
+        setStats(data);
+    } catch (err) {
+        console.error('Failed to load SOP stats', err);
+    }
+};
 
     const loadStatuses = async () => {
         try {
@@ -93,7 +106,11 @@ const SOPListing: React.FC = () => {
             const newStatusId = confirmModal.action === 'activate' ? activeStatusId : inactiveStatusId;
             if (newStatusId) {
                 await sopService.toggleSOPStatus(confirmModal.sopId, newStatusId);
-                loadSOPs(debouncedSearchTerm, statusFilter);
+                await Promise.all([
+    loadSOPs(debouncedSearchTerm, statusFilter),
+    loadStats()
+]);
+                // loadSOPs(debouncedSearchTerm, statusFilter);
                 setToast({
                     message: `SOP ${confirmModal.action === 'activate' ? 'activated' : 'deactivated'} successfully`,
                     type: 'success'
@@ -113,16 +130,6 @@ const SOPListing: React.FC = () => {
         return sops;
     }, [sops]);
 
-    const stats = useMemo(() => {
-        const activeSOPs = sops.filter(sop => sop.statusId === activeStatusId || (!sop.statusId && activeStatusId)).length;
-        const inactiveSOPs = sops.filter(sop => sop.statusId === inactiveStatusId).length;
-
-        return {
-            totalSOPs: statusFilter === 'all' ? totalSOPs : sops.length,
-            activeSOPs: statusFilter === 'active' ? totalSOPs : activeSOPs,
-            inactiveSOPs: statusFilter === 'inactive' ? totalSOPs : inactiveSOPs
-        };
-    }, [sops, activeStatusId, inactiveStatusId, totalSOPs, statusFilter]);
 
     const handleDownloadPDF = async (sop: SOP) => {
         try {

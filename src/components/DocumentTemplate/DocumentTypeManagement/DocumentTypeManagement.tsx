@@ -88,6 +88,10 @@ const DocumentTypeManagement: React.FC = () => {
 
     const handleModalSubmit = async (data: { name: string; description?: string }) => {
         try {
+             const payload = {
+            ...data,
+            name: data.name.trim().toUpperCase()
+        };
             const url = editingDocumentType
                 ? `/api/document-types/${editingDocumentType.id}`
                 : '/api/document-types';
@@ -95,7 +99,7 @@ const DocumentTypeManagement: React.FC = () => {
             const response = await fetchWithAuth(url, {
                 method: editingDocumentType ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
