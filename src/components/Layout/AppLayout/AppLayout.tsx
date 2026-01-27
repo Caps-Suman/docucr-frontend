@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit, Activity } from 'lucide-react';
 import authService from '../../../services/auth.service';
 import modulesService from '../../../services/modules.service';
+import apiClient, { API_BASE_URL } from '../../../utils/apiClient';
 import Sidebar from '../../Sidebar/Sidebar';
 import './AppLayout.css';
 
@@ -122,7 +123,7 @@ const AppLayout: React.FC = () => {
 
     const fetchUserRoleCount = async (email: string) => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/users/email/${email}`);
+            const response = await apiClient(`${API_BASE_URL}/api/users/email/${email}`);
             if (response.ok) {
                 const userData = await response.json();
                 setUserRoleCount(userData.roles?.length || 0);
