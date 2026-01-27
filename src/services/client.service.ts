@@ -55,6 +55,11 @@ const clientService = {
         if (!response.ok) throw new Error('Failed to fetch clients');
         return response.json();
     },
+    getVisibleClients: async (): Promise<Client[]> => {
+    const response = await apiClient(`${API_URL}/api/clients/visible`);
+    if (!response.ok) throw new Error('Failed to fetch visible clients');
+    return response.json();
+},
 
     getClientStats: async (): Promise<ClientStats> => {
         const response = await apiClient(`${API_URL}/api/clients/stats`);

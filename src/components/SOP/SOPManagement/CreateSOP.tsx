@@ -129,8 +129,8 @@ const CreateSOP: React.FC = () => {
   const loadClients = async () => {
     try {
       setLoadingClients(true);
-      const response = await clientService.getClients(1, 1000, "", "active");
-      setClients(response.clients || []);
+      const clients = await clientService.getVisibleClients();
+      setClients(clients);
     } catch (error) {
       console.error("Failed to load clients:", error);
     } finally {
