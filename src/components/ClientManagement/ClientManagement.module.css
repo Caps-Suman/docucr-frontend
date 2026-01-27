@@ -345,21 +345,21 @@
 }
 
 .actionBtn.activate {
-    color: #22c55e;
-    background-color: #f0fdf4;
-}
-
-.actionBtn.activate:hover {
+    color: #15803d;
     background-color: #dcfce7;
 }
 
+.actionBtn.activate:hover {
+    background-color: #bbf7d0;
+}
+
 .actionBtn.deactivate {
-    color: #ef4444;
-    background-color: #fef2f2;
+    color: #b91c1c;
+    background-color: #fee2e2;
 }
 
 .actionBtn.deactivate:hover {
-    background-color: #fee2e2;
+    background-color: #fecaca;
 }
 
 .actionBtn.createUser {

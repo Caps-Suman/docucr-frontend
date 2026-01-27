@@ -161,21 +161,21 @@
 }
 
 .action-btn.deactivate {
-    color: #ef4444;
-    background-color: #fef2f2;
-}
-
-.action-btn.deactivate:hover {
+    color: #b91c1c;
     background-color: #fee2e2;
 }
 
+.action-btn.deactivate:hover {
+    background-color: #fecaca;
+}
+
 .action-btn.activate {
-    color: #22c55e;
-    background-color: #f0fdf4;
+    color: #15803d;
+    background-color: #dcfce7;
 }
 
 .action-btn.activate:hover {
-    background-color: #dcfce7;
+    background-color: #bbf7d0;
 }
 
 .action-btn.delete {

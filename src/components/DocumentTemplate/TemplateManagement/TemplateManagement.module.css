@@ -99,22 +99,22 @@
 }
 
 .activateButton {
-    background: #f0fdf4;
-    color: #22c55e;
+    background: #dcfce7;
+    color: #15803d;
 }
 
 .activateButton:hover {
-    background: #dcfce7;
+    background: #bbf7d0;
     color: #16a34a;
 }
 
 .deactivateButton {
-    background: #fef2f2;
-    color: #dc2626;
+    background: #fee2e2;
+    color: #b91c1c;
 }
 
 .deactivateButton:hover {
-    background: #fee2e2;
+    background: #fecaca;
     color: #b91c1c;
 }
 
