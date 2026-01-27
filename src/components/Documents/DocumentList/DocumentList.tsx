@@ -16,6 +16,7 @@ import {
   Archive,
   ArchiveRestore,
   Share,
+  Info,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../Common/Loading";
@@ -843,7 +844,38 @@ const handleUnarchive = async (id: string) => {
             case "status":
               return {
                 key: "status",
-                header: col.label,
+                header: (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {col.label}
+                    <span
+                      className={styles.statusTooltipWrapper}
+                      onMouseEnter={(e) => {
+                        const tooltip = e.currentTarget.querySelector(`.${styles.statusTooltip}`) as HTMLElement;
+                        if (tooltip) {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          tooltip.style.top = `${rect.bottom}px`;
+                          tooltip.style.left = `${rect.left + rect.width / 2}px`;
+                          tooltip.style.transform = 'translateX(-50%)';
+                        }
+                      }}
+                    >
+                      <Info size={14} style={{ cursor: 'help', color: '#64748b' }} />
+                      <div className={styles.statusTooltip}>
+                        <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Completed: Finished analysis</div>
+                        <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Uploaded: File ready for AI</div>
+                        <div className={styles.statusTooltipItem}><Clock size={12} /> Queued: Waiting to start</div>
+                        <div className={styles.statusTooltipItem}><Clock size={12} /> Processing: Being analyzed</div>
+                        <div className={styles.statusTooltipItem}><Loader2 size={12} /> Analyzing: AI processing</div>
+                        <div className={styles.statusTooltipItem}><Clock size={12} /> AI Queued: Waiting for AI</div>
+                        <div className={styles.statusTooltipItem}><UploadCloud size={12} /> Uploading: File transfer</div>
+                        <div className={styles.statusTooltipItem}><X size={12} /> Failed: General error</div>
+                        <div className={styles.statusTooltipItem}><X size={12} /> AI Failed: Analysis error</div>
+                        <div className={styles.statusTooltipItem}><X size={12} /> Upload Failed: Network error</div>
+                        <div className={styles.statusTooltipItem}><Ban size={12} /> Cancelled: Manually stopped</div>
+                      </div>
+                    </span>
+                  </div>
+                ),
                 render: (value: string, row: DocumentListItem) => {
                   const getStatusConfig = (status: string) => {
                     switch (status) {
@@ -1316,92 +1348,7 @@ const handleUnarchive = async (id: string) => {
             </button>
           </div>
         </div>
-        <div className={styles.statusLegend}>
-          <span className={styles.legendItem}>
-            <CheckCircle
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorSuccess}`}
-            />
-            <span>Completed: Finished analysis</span>
-          </span>
-          <span className={styles.legendItem}>
-            <CheckCircle
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorUploaded}`}
-            />
-            <span>Uploaded: File ready for AI</span>
-          </span>
-          <span className={styles.legendItem}>
-            <Clock
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorQueued}`}
-            />
-            <span>Queued: Waiting to start</span>
-          </span>
-          <span className={styles.legendItem}>
-            <Clock
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorProcessing}`}
-            />
-            <span>Processing: Being analyzed</span>
-          </span>
-          <span className={styles.legendItem}>
-            <Loader2
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorAnalyzing} ${styles.animateSpin}`}
-            />
-            <span>Analyzing: AI processing</span>
-          </span>
-          <span className={styles.legendItem}>
-            <Clock
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorAIQueued}`}
-            />
-            <span>AI Queued: Waiting for AI</span>
-          </span>
-          <span className={styles.legendItem}>
-            <UploadCloud
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorUploading}`}
-            />
-            <span>Uploading: File transfer</span>
-          </span>
-          <span className={styles.legendItem}>
-            <X
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorFailed}`}
-            />
-            <span>Failed: General error</span>
-          </span>
-          <span className={styles.legendItem}>
-            <X
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorAIFailed}`}
-            />
-            <span>AI Failed: Analysis error</span>
-          </span>
-          <span className={styles.legendItem}>
-            <X
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorUploadFailed}`}
-            />
-            <span>Upload Failed: Network error</span>
-          </span>
-          <span className={styles.legendItem}>
-            <Ban
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorCancelled}`}
-            />
-            <span>Cancelled: Manually stopped</span>
-          </span>
-          <span className={styles.legendItem}>
-            <Archive
-              size={12}
-              className={`${styles.legendIcon} ${styles.colorArchived}`}
-            />
-            <span>Archived: Document archived</span>
-          </span>
-        </div>
+
       </div>
 
       <div className={styles.stats}>

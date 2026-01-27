@@ -1040,8 +1040,6 @@
     border: 1px solid #c4c7c5;
     background: white;
     position: relative;
-    overflow-y: visible;
-    /* Allow tooltips to show above */
 }
 
 .table {
@@ -1083,6 +1081,7 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 1px solid #c4c7c5;
+    position: static;
 }
 
 .table tbody tr {
@@ -1132,9 +1131,9 @@
 .tooltipWrapper::after {
     content: attr(data-tooltip);
     position: absolute;
-    bottom: 100%;
+    top: 100%;
     left: 50%;
-    transform: translateX(-50%) translateY(-4px);
+    transform: translateX(-50%) translateY(4px);
     background-color: #1e293b;
     color: white;
     padding: 6px 10px;
@@ -1149,7 +1148,7 @@
     opacity: 0;
     pointer-events: none;
     transition: all 0.2s ease;
-    z-index: 99999;
+    z-index: 999999;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     overflow-wrap: anywhere;
 }
@@ -1157,20 +1156,82 @@
 .tooltipWrapper::before {
     content: '';
     position: absolute;
-    bottom: 100%;
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
     border: 5px solid transparent;
-    border-top-color: #1e293b;
+    border-bottom-color: #1e293b;
     opacity: 0;
     pointer-events: none;
     transition: all 0.2s ease;
-    z-index: 99999;
+    z-index: 999999;
 }
 
 .tooltipWrapper:hover::after,
 .tooltipWrapper:hover::before {
     opacity: 1;
+}
+
+/* Status Tooltip Styles */
+.statusTooltipWrapper {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+}
+
+.statusTooltipWrapper:hover .statusTooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.statusTooltip {
+    position: fixed;
+    background-color: #1e293b;
+    color: white !important;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 9999999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 220px;
+    margin-top: 8px;
+}
+
+.statusTooltip::before {
+    content: '';
+    position: fixed;
+    border: 5px solid transparent;
+    border-bottom-color: #1e293b;
+    margin-top: -13px;
+}
+
+.statusTooltipWrapper:hover .statusTooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.statusTooltipItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    line-height: 1.4;
+    color: white;
+}
+
+.statusTooltipItem svg {
+    color: white;
+    stroke: white;
+}
+
+.statusTooltipItem:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Dark mode overrides for table */
@@ -1208,5 +1269,28 @@
 }
 
 :global(.dark) .tooltipWrapper::before {
-    border-top-color: #f9fafb;
+    border-bottom-color: #f9fafb;
+}
+
+/* Dark mode for status tooltip */
+:global(.dark) .statusTooltip {
+    background-color: #f9fafb;
+    color: #1e293b !important;
+}
+
+:global(.dark) .statusTooltip::before {
+    border-bottom-color: #f9fafb;
+}
+
+:global(.dark) .statusTooltipItem {
+    color: #1e293b;
+}
+
+:global(.dark) .statusTooltipItem svg {
+    color: #1e293b;
+    stroke: #1e293b;
+}
+
+:global(.dark) .statusTooltipItem:not(:last-child) {
+    border-bottom-color: rgba(0, 0, 0, 0.1);
 }
