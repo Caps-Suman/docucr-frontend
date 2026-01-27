@@ -56,10 +56,10 @@ const clientService = {
         return response.json();
     },
     getVisibleClients: async (): Promise<Client[]> => {
-    const response = await apiClient(`${API_URL}/api/clients/visible`);
-    if (!response.ok) throw new Error('Failed to fetch visible clients');
-    return response.json();
-},
+        const response = await apiClient(`${API_URL}/api/clients/visible`);
+        if (!response.ok) throw new Error('Failed to fetch visible clients');
+        return response.json();
+    },
 
     getClientStats: async (): Promise<ClientStats> => {
         const response = await apiClient(`${API_URL}/api/clients/stats`);
@@ -118,7 +118,10 @@ const clientService = {
             method: 'POST',
             body: JSON.stringify({ client_ids: clientIds, assigned_by: assignedBy })
         });
-        if (!response.ok) throw new Error('Failed to assign clients');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to assign clients');
+        }
     },
 
     getUserClients: async (userId: string): Promise<Client[]> => {

@@ -34,7 +34,7 @@ const SYSTEM_FIELDS = [
         field_type: 'select',
         label: 'Document Type',
         placeholder: 'Select document type',
-        required: true,
+        required: false,
         options: [],
         order: 0,
         is_system: true
@@ -104,7 +104,7 @@ const FormBuilder: React.FC = () => {
             order: fields.length
         };
         setFields([...fields, newField]);
-        
+
         // Reset current field
         setCurrentField({
             id: '',
@@ -198,17 +198,17 @@ const FormBuilder: React.FC = () => {
         const target = e.target as HTMLElement;
         const previewField = target.closest(`.${styles.previewField}`);
         if (!previewField || draggedIndex === null) return;
-        
+
         const allFields = Array.from(previewField.parentElement?.children || []);
         const targetIndex = allFields.indexOf(previewField);
-        
+
         if (draggedIndex === targetIndex) return;
-        
+
         const updatedFields = [...fields];
         const draggedField = updatedFields[draggedIndex];
         updatedFields.splice(draggedIndex, 1);
         updatedFields.splice(targetIndex, 0, draggedField);
-        
+
         setFields(updatedFields.map((f, i) => ({ ...f, order: i })));
         setDraggedIndex(targetIndex);
     };
@@ -330,8 +330,8 @@ const FormBuilder: React.FC = () => {
                             </div>
                         ) : (
                             fields.map((field, index) => (
-                                <div 
-                                    key={field.id || index} 
+                                <div
+                                    key={field.id || index}
                                     className={`${styles.previewField} ${draggedIndex === index ? styles.dragging : ''}`}
                                 >
                                     <div className={styles.previewFieldHeader}>
@@ -373,7 +373,7 @@ const FormBuilder: React.FC = () => {
                                     ) : field.field_type === 'select' ? (
                                         <CommonDropdown
                                             value=""
-                                            onChange={() => {}}
+                                            onChange={() => { }}
                                             options={[
                                                 { value: '', label: field.placeholder || 'Select an option' },
                                                 ...(field.options?.map(opt => ({ value: opt, label: opt })) || [])
@@ -413,13 +413,13 @@ const FormBuilder: React.FC = () => {
 
                     {/* Tabs */}
                     <div className={styles.tabContainer}>
-                        <button 
+                        <button
                             className={`${styles.tab} ${activeTab === 'dynamic' ? styles.activeTab : ''}`}
                             onClick={() => setActiveTab('dynamic')}
                         >
                             Dynamic Fields
                         </button>
-                        <button 
+                        <button
                             className={`${styles.tab} ${activeTab === 'system' ? styles.activeTab : ''}`}
                             onClick={() => setActiveTab('system')}
                         >
@@ -431,99 +431,99 @@ const FormBuilder: React.FC = () => {
                         <>
                             <div className={styles.fieldItem}>
                                 <div className={styles.fieldGrid}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Type</label>
-                                <CommonDropdown
-                                    value={currentField.field_type}
-                                    onChange={(value) => handleFieldChange('field_type', value)}
-                                    options={FIELD_TYPES}
-                                    size="md"
-                                />
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Label *</label>
-                                <input
-                                    type="text"
-                                    className={styles.input}
-                                    value={currentField.label}
-                                    onChange={(e) => handleFieldChange('label', e.target.value)}
-                                    placeholder="Field Label"
-                                />
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Placeholder</label>
-                                <input
-                                    type="text"
-                                    className={styles.input}
-                                    value={currentField.placeholder || ''}
-                                    onChange={(e) => handleFieldChange('placeholder', e.target.value)}
-                                    placeholder="Placeholder text"
-                                />
-                            </div>
-
-                            {(['select', 'checkbox', 'radio'].includes(currentField.field_type)) && (
-                                <>
-                                    <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                                        <label className={styles.label}>Options Separator</label>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Type</label>
                                         <CommonDropdown
-                                            value={optionsSeparator}
-                                            onChange={(value) => {
-                                                setOptionsSeparator(value as 'comma' | 'newline');
-                                                setOptionsInput('');
-                                                handleFieldChange('options', []);
-                                            }}
-                                            options={[
-                                                { value: 'comma', label: 'Comma separated' },
-                                                { value: 'newline', label: 'New line separated' }
-                                            ]}
+                                            value={currentField.field_type}
+                                            onChange={(value) => handleFieldChange('field_type', value)}
+                                            options={FIELD_TYPES}
                                             size="md"
                                         />
                                     </div>
-                                    <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                                        <label className={styles.label}>
-                                            Options ({optionsSeparator === 'comma' ? 'comma separated' : 'one per line'})
-                                        </label>
-                                        {optionsSeparator === 'comma' ? (
-                                            <input
-                                                type="text"
-                                                className={styles.input}
-                                                value={optionsInput}
-                                                onChange={(e) => handleOptionsChange(e.target.value)}
-                                                placeholder="Option 1, Option 2, Option 3"
-                                            />
-                                        ) : (
-                                            <textarea
-                                                className={styles.textarea}
-                                                value={optionsInput}
-                                                onChange={(e) => handleOptionsChange(e.target.value)}
-                                                placeholder="Option 1&#10;Option 2&#10;Option 3"
-                                                rows={4}
-                                            />
-                                        )}
-                                    </div>
-                                </>
-                            )}
 
-                            <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                                <label className={styles.checkbox}>
-                                    <input
-                                        type="checkbox"
-                                        checked={currentField.required}
-                                        onChange={(e) => handleFieldChange('required', e.target.checked)}
-                                    />
-                                    <span className={styles.label}>Required Field</span>
-                                </label>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Label *</label>
+                                        <input
+                                            type="text"
+                                            className={styles.input}
+                                            value={currentField.label}
+                                            onChange={(e) => handleFieldChange('label', e.target.value)}
+                                            placeholder="Field Label"
+                                        />
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Placeholder</label>
+                                        <input
+                                            type="text"
+                                            className={styles.input}
+                                            value={currentField.placeholder || ''}
+                                            onChange={(e) => handleFieldChange('placeholder', e.target.value)}
+                                            placeholder="Placeholder text"
+                                        />
+                                    </div>
+
+                                    {(['select', 'checkbox', 'radio'].includes(currentField.field_type)) && (
+                                        <>
+                                            <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                                                <label className={styles.label}>Options Separator</label>
+                                                <CommonDropdown
+                                                    value={optionsSeparator}
+                                                    onChange={(value) => {
+                                                        setOptionsSeparator(value as 'comma' | 'newline');
+                                                        setOptionsInput('');
+                                                        handleFieldChange('options', []);
+                                                    }}
+                                                    options={[
+                                                        { value: 'comma', label: 'Comma separated' },
+                                                        { value: 'newline', label: 'New line separated' }
+                                                    ]}
+                                                    size="md"
+                                                />
+                                            </div>
+                                            <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                                                <label className={styles.label}>
+                                                    Options ({optionsSeparator === 'comma' ? 'comma separated' : 'one per line'})
+                                                </label>
+                                                {optionsSeparator === 'comma' ? (
+                                                    <input
+                                                        type="text"
+                                                        className={styles.input}
+                                                        value={optionsInput}
+                                                        onChange={(e) => handleOptionsChange(e.target.value)}
+                                                        placeholder="Option 1, Option 2, Option 3"
+                                                    />
+                                                ) : (
+                                                    <textarea
+                                                        className={styles.textarea}
+                                                        value={optionsInput}
+                                                        onChange={(e) => handleOptionsChange(e.target.value)}
+                                                        placeholder="Option 1&#10;Option 2&#10;Option 3"
+                                                        rows={4}
+                                                    />
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                                        <label className={styles.checkbox}>
+                                            <input
+                                                type="checkbox"
+                                                checked={currentField.required}
+                                                onChange={(e) => handleFieldChange('required', e.target.checked)}
+                                            />
+                                            <span className={styles.label}>Required Field</span>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
+                            <div className={styles.addFieldButtonContainer}>
+                                <button className={styles.addFieldButton} onClick={handleAddField}>
+                                    <ArrowLeft size={16} />
+                                    Add Field
+                                </button>
                             </div>
-                        </div>
-                        <div className={styles.addFieldButtonContainer}>
-                            <button className={styles.addFieldButton} onClick={handleAddField}>
-                                <ArrowLeft size={16} />
-                                Add Field
-                            </button>
-                        </div>
                         </>
                     )}
 
@@ -537,7 +537,7 @@ const FormBuilder: React.FC = () => {
                                             <span className={styles.systemFieldLabel}>{systemField.label}</span>
                                             <span className={styles.systemFieldType}>{systemField.field_type}</span>
                                         </div>
-                                        <button 
+                                        <button
                                             className={`${styles.addSystemFieldButton} ${isAdded ? styles.disabled : ''}`}
                                             onClick={() => handleAddSystemField(systemField)}
                                             disabled={isAdded}
