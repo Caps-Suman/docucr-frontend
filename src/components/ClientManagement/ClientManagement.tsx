@@ -30,6 +30,7 @@ const ClientManagement: React.FC = () => {
     const [selectedUserId, setSelectedUserId] = useState<string>('');
     const [showUsersModal, setShowUsersModal] = useState(false);
     const [clientUsers, setClientUsers] = useState<Array<{ id: string; username: string; name: string }>>([]);
+    const [usersLoading, setUsersLoading] = useState(false);
 
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -50,28 +51,42 @@ const ClientManagement: React.FC = () => {
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
     const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
 
-    const loadUserFormData = async () => {
-        try {
-            const [rolesData, usersData] = await Promise.all([
-                roleService.getAssignableRoles(1, 100),
-                userService.getUsers(1, 1000)
-            ]);
-            setRoles(rolesData.roles.map(r => ({ id: r.id, name: r.name })));
-            setSupervisors(usersData.users.map(u => ({
-                id: u.id,
-                name: `${u.first_name} ${u.last_name} (${u.username})`
-            })));
-            setUsers(usersData.users.map(u => ({
-                id: u.id,
-                name: `${u.first_name} ${u.last_name} (${u.username})`,
-                roles: u.roles.map(r => r.name).join(', ') || 'No roles'
-            })));
-            return { roles: rolesData.roles };
-        } catch (error) {
-            console.error('Failed to load user form data:', error);
-            return null;
-        }
-    };
+const openAssignModal = () => {
+    setShowAssignModal(true);
+    if (users.length === 0 && !usersLoading) {
+        loadUserFormData();
+    }
+};
+
+  const loadUserFormData = async () => {
+    try {
+        setUsersLoading(true);
+
+        const [rolesData, usersData] = await Promise.all([
+            roleService.getAssignableRoles(1, 100),
+            userService.getUsers(1, 1000)
+        ]);
+
+        setRoles(rolesData.roles.map(r => ({ id: r.id, name: r.name })));
+
+        setSupervisors(usersData.users.map(u => ({
+            id: u.id,
+            name: `${u.first_name} ${u.last_name} (${u.username})`
+        })));
+
+        setUsers(usersData.users.map(u => ({
+            id: u.id,
+            name: `${u.first_name} ${u.last_name} (${u.username})`,
+            roles: u.roles.map(r => r.name).join(', ') || 'No roles'
+        })));
+    } catch (error) {
+        console.error('Failed to load user form data:', error);
+        setToast({ message: 'Failed to load users', type: 'error' });
+    } finally {
+        setUsersLoading(false);
+    }
+};
+
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
@@ -132,21 +147,17 @@ const ClientManagement: React.FC = () => {
 
     const handleCrossCreationConfirm = async () => {
         setShowCrossCreationConfirm(false);
-        const data = await loadUserFormData();
+       await loadUserFormData();
 
-        let initialRoles: any[] = [];
-        if (data && data.roles) {
-            const clientRole = data.roles.find((r: any) => r.name.toUpperCase() === 'CLIENT');
-            if (clientRole) {
-                initialRoles = [{ id: clientRole.id, name: clientRole.name }];
-            }
-        }
+const clientRole = roles.find(r => r.name.toUpperCase() === 'CLIENT');
 
-        setCrossCreationData((prev: any) => ({
-            ...prev,
-            roles: initialRoles
-        }));
-        setIsUserModalOpen(true);
+setCrossCreationData((prev: any) => ({
+    ...prev,
+    roles: clientRole ? [{ id: clientRole.id, name: clientRole.name }] : []
+}));
+
+setIsUserModalOpen(true);
+
     };
 
     const handleUserModalSubmit = async (data: any) => {
@@ -367,26 +378,23 @@ const ClientManagement: React.FC = () => {
                             <button
                                 className={`${styles.actionBtn} ${styles.createUser}`}
                                 onClick={async () => {
-                                    const data = await loadUserFormData();
-                                    let initialRoles: any[] = [];
-                                    if (data && data.roles) {
-                                        const clientRole = data.roles.find((r: any) => r.name.toUpperCase() === 'CLIENT');
-                                        if (clientRole) {
-                                            initialRoles = [{ id: clientRole.id, name: clientRole.name }];
-                                        }
-                                    }
+                                  await loadUserFormData();
 
-                                    setCrossCreationData({
-                                        client_id: row.id,
-                                        email: '',
-                                        username: '',
-                                        first_name: row.first_name || '',
-                                        middle_name: row.middle_name || '',
-                                        last_name: row.last_name || '',
-                                        roles: initialRoles,
-                                        supervisor_id: undefined
-                                    });
-                                    setIsUserModalOpen(true);
+const clientRole = roles.find(r => r.name.toUpperCase() === 'CLIENT');
+
+setCrossCreationData({
+    client_id: row.id,
+    email: '',
+    username: '',
+    first_name: row.first_name || '',
+    middle_name: row.middle_name || '',
+    last_name: row.last_name || '',
+    roles: clientRole ? [{ id: clientRole.id, name: clientRole.name }] : [],
+    supervisor_id: undefined
+});
+
+setIsUserModalOpen(true);
+
                                 }}
                             >
                                 <UserCheck size={14} />
@@ -476,9 +484,7 @@ const ClientManagement: React.FC = () => {
                             {selectedClients.length > 0 && (
                                 <button
                                     className={styles.assignBtn}
-                                    onClick={() => {
-                                        loadUserFormData().then(() => setShowAssignModal(true));
-                                    }}
+                                    onClick={openAssignModal}
                                 >
                                     Assign to User ({selectedClients.length})
                                 </button>
@@ -540,9 +546,7 @@ const ClientManagement: React.FC = () => {
                         {selectedClients.length > 0 && (
                             <button
                                 className={styles.assignBtn}
-                                onClick={() => {
-                                    loadUserFormData().then(() => setShowAssignModal(true));
-                                }}
+                                onClick={openAssignModal}
                             >
                                 Assign to User ({selectedClients.length})
                             </button>
@@ -662,57 +666,86 @@ const ClientManagement: React.FC = () => {
             />
 
             {showAssignModal && (
-                <div className={styles.overlay} onClick={() => setShowAssignModal(false)}>
-                    <div className={styles.assignModal} onClick={(e) => e.stopPropagation()}>
-                        <div className={styles.assignModalHeader}>
-                            <h3>Assign Clients to User</h3>
-                            <button onClick={() => setShowAssignModal(false)}>×</button>
-                        </div>
-                        <div className={styles.assignModalBody}>
-                            <label>Select User:</label>
-                            <Select
-                                options={users.map(user => ({
-                                    value: user.id,
-                                    label: `${user.name} - ${user.roles}`
-                                }))}
-                                onChange={(selected) => {
-                                    setSelectedUserId(selected?.value || '');
-                                }}
-                                placeholder="Select a user..."
-                                styles={{
-                                    ...getCustomSelectStyles(),
-                                    menu: (base) => ({
-                                        ...getCustomSelectStyles().menu(base),
-                                        zIndex: 10000
-                                    }),
-                                    menuPortal: (base) => ({
-                                        ...base,
-                                        zIndex: 10000
-                                    })
-                                }}
-                                menuPortalTarget={document.body}
-                                menuPosition="fixed"
-                            />
-                            <p>{selectedClients.length} client(s) will be assigned to the selected user.</p>
-                            <div className={styles.assignModalActions}>
-                                <button
-                                    className={styles.cancelButton}
-                                    onClick={() => setShowAssignModal(false)}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className={styles.assignButton}
-                                    onClick={() => handleAssignClients(selectedUserId)}
-                                    disabled={!selectedUserId}
-                                >
-                                    Assign
-                                </button>
-                            </div>
-                        </div>
+    <div className={styles.overlay} onClick={() => setShowAssignModal(false)}>
+        <div className={styles.assignModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.assignModalHeader}>
+                <h3>Assign Clients to User</h3>
+                <button onClick={() => setShowAssignModal(false)}>×</button>
+            </div>
+
+            {/* BODY — ALWAYS PRESENT */}
+            <div className={styles.assignModalBody} style={{ minHeight: 140 }}>
+                {usersLoading ? (
+                    <div
+                        style={{
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            color: '#64748b'
+                        }}
+                    >
+                        <Loading message="Loading users..." />
+                        <span style={{ fontSize: '13px' }}>
+                            Fetching assignable users
+                        </span>
                     </div>
-                </div>
-            )}
+                ) : (
+                    <>
+                        <label>Select User:</label>
+
+                       <Select
+    options={users.map(user => ({
+        value: user.id,
+        label: `${user.name} - ${user.roles}`
+    }))}
+    onChange={(selected) =>
+        setSelectedUserId(selected?.value || '')
+    }
+    placeholder="Select a user..."
+    menuPortalTarget={document.body}
+    menuPosition="fixed"
+    styles={{
+        ...getCustomSelectStyles(),
+        menuPortal: (base) => ({
+            ...base,
+            zIndex: 9999, // 🔴 THIS IS THE KEY
+        }),
+        menu: (base) => ({
+            ...base,
+            zIndex: 9999,
+        }),
+    }}
+/>
+
+                        <p style={{ marginTop: 8, color: '#475569' }}>
+                            {selectedClients.length} client(s) will be assigned to the selected user.
+                        </p>
+                    </>
+                )}
+            </div>
+
+            {/* FOOTER — ALWAYS PRESENT */}
+            <div className={styles.assignModalActions}>
+                <button
+                    className={styles.cancelButton}
+                    onClick={() => setShowAssignModal(false)}
+                >
+                    Cancel
+                </button>
+                <button
+                    className={styles.assignButton}
+                    onClick={() => handleAssignClients(selectedUserId)}
+                    disabled={usersLoading || !selectedUserId}
+                >
+                    Assign
+                </button>
+            </div>
+        </div>
+    </div>
+)}
 
             {showUsersModal && (
                 <div className={styles.overlay} onClick={() => setShowUsersModal(false)}>
