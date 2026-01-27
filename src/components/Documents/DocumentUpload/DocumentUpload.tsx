@@ -23,7 +23,7 @@ const DocumentUpload: React.FC = () => {
     const [clients, setClients] = useState<any[]>([]);
     const [documentTypes, setDocumentTypes] = useState<any[]>([]);
     const [formLoading, setFormLoading] = useState(true);
-    const [enableAI, setEnableAI] = useState(false);
+    const [enableAI, setEnableAI] = useState(true);
     const [templates, setTemplates] = useState<any[]>([]);
     const [selectedTemplate, setSelectedTemplate] = useState<string>('');
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
