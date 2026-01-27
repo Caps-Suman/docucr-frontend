@@ -171,9 +171,9 @@ const AppLayout: React.FC = () => {
                         ))}
                     </div>
                     <div className="user-info">
-                        <button className="theme-toggle" onClick={toggleDarkMode}>
+                        {/* <button className="theme-toggle" onClick={toggleDarkMode}>
                             {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-                        </button>
+                        </button> */}
                         {user?.role && (
                             <div className="role-display">
                                 <Shield size={16} />
