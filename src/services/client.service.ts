@@ -131,6 +131,18 @@ const clientService = {
         const response = await apiClient(`${API_URL}/api/clients/${clientId}/users`);
         if (!response.ok) throw new Error('Failed to fetch client users');
         return response.json();
+    },
+
+    createClientsFromBulk: async (clients: ClientCreateData[]): Promise<{ success: number; failed: number; errors: string[] }> => {
+        const response = await apiClient(`${API_URL}/api/clients/bulk`, {
+            method: 'POST',
+            body: JSON.stringify({ clients })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to create clients from bulk');
+        }
+        return response.json();
     }
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Edit2, PlayCircle, StopCircle, UserCheck, UserX, Briefcase } from 'lucide-react';
+import { Users, Edit2, PlayCircle, StopCircle, UserCheck, UserX, Briefcase, Upload } from 'lucide-react';
 import Select from 'react-select';
 import { getCustomSelectStyles } from '../../styles/selectStyles';
 import Table from '../Table/Table';
@@ -8,6 +8,7 @@ import Loading from '../Common/Loading';
 import ConfirmModal from '../Common/ConfirmModal';
 import Toast, { ToastType } from '../Common/Toast';
 import ClientModal from './ClientModal';
+import ClientImportModal from './ClientImportModal';
 import clientService, { Client, ClientStats } from '../../services/client.service';
 import statusService, { Status } from '../../services/status.service';
 import UserModal from '../UserPermissionManagement/UserManagement/UserModal';
@@ -36,6 +37,7 @@ const ClientManagement: React.FC = () => {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; client: Client | null; action: 'toggle' }>({
         isOpen: false,
         client: null,
@@ -125,9 +127,18 @@ const ClientManagement: React.FC = () => {
         setIsModalOpen(true);
     };
 
+    const handleImport = () => {
+        setShowImportModal(true);
+    };
+
     const handleModalClose = () => {
         setIsModalOpen(false);
         setEditingClient(null);
+    };
+
+    const handleImportSuccess = () => {
+        loadClients();
+        setToast({ message: 'Clients imported successfully', type: 'success' });
     };
 
     const handleCrossCreationConfirm = async () => {
@@ -565,6 +576,10 @@ const ClientManagement: React.FC = () => {
                         <button className={styles.addBtn} onClick={handleAddNew}>
                             Add Client
                         </button>
+                        <button className={styles.addBtn} onClick={handleImport}>
+                            <Upload size={14} style={{ marginRight: '6px' }} />
+                            Import Client
+                        </button>
                     </div>
                 </div>
                 {clients.length === 0 ? (
@@ -633,6 +648,12 @@ const ClientManagement: React.FC = () => {
                 onSubmit={handleModalSubmit}
                 initialData={editingClient || undefined}
                 title={editingClient ? 'Edit Client' : 'Add New Client'}
+            />
+
+            <ClientImportModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onSuccess={handleImportSuccess}
             />
 
             <ConfirmModal
