@@ -26,10 +26,10 @@ const mapExampleToSOP = (data: any): SOP => ({
 });
 
 const sopService = {
-    getSOPs: async (skip: number = 0, limit: number = 100, search?: string, statusId?: number): Promise<{ sops: SOP[]; total: number }> => {
+    getSOPs: async (skip: number = 0, limit: number = 100, search?: string, statusCode?: 'ACTIVE' | 'INACTIVE'): Promise<{ sops: SOP[]; total: number }> => {
         let url = `${API_URL}/api/sops?skip=${skip}&limit=${limit}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
-        if (statusId) url += `&status_id=${statusId}`;
+        if (statusCode) url += `&status_code=${statusCode}`;
 
         const response = await apiClient(url);
         if (!response.ok) throw new Error('Failed to fetch SOPs');

@@ -60,11 +60,13 @@ const SOPListing: React.FC = () => {
     const loadSOPs = async (search?: string, filter?: string) => {
         try {
             setLoading(true);
-            let sId: number | undefined = undefined;
-            if (filter === 'active') sId = activeStatusId || undefined;
-            if (filter === 'inactive') sId = inactiveStatusId || undefined;
+            let statusCode: 'ACTIVE' | 'INACTIVE' | undefined;
 
-            const data = await sopService.getSOPs(currentPage * itemsPerPage, itemsPerPage, search, sId);
+if (filter === 'active') statusCode = 'ACTIVE';
+if (filter === 'inactive') statusCode = 'INACTIVE';
+
+
+            const data = await sopService.getSOPs(currentPage * itemsPerPage, itemsPerPage, search, statusCode);
             setSops(data.sops);
             setTotalSOPs(data.total);
         } catch (error) {
