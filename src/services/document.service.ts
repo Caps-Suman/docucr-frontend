@@ -237,6 +237,14 @@ class DocumentService {
         const data = await response.json();
         return data.url;
     }
+
+    async getDocumentReportData(id: string): Promise<any> {
+        const response = await apiClient(`${API_BASE_URL}/api/documents/${id}/report-data`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch report data');
+        }
+        return response.json();
+    }
 }
 
 const documentService = new DocumentService();
