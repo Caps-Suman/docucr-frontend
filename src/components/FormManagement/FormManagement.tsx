@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, FileText, CheckCircle, XCircle, StopCircle, PlayCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, CheckCircle, XCircle, StopCircle, PlayCircle, FileEdit } from 'lucide-react';
 import Table from '../Table/Table';
 import Loading from '../Common/Loading';
 import formService, { Form, FormStats } from '../../services/form.service';
@@ -187,17 +187,6 @@ const FormManagement: React.FC = () => {
     if (loading) {
         return (
             <div className={styles.container}>
-                <div className={styles.header}>
-                    <h1 className={styles.title}>Form Templates</h1>
-                    <button
-                        className={styles.createButton}
-                        onClick={() => navigate('/forms/create')}
-                    >
-                        <Plus size={20} />
-                        Create New Form
-                    </button>
-                </div>
-
                 <div className={styles.statsGrid}>
                     <div className={styles.statCard}>
                         <div className={`${styles.statIcon} ${styles.iconTotal}`}>
@@ -228,6 +217,20 @@ const FormManagement: React.FC = () => {
                     </div>
                 </div>
 
+                <div className={styles.header}>
+                    <h1 className={styles.title}>
+                        <FileEdit size={18} />
+                        Form Templates
+                    </h1>
+                    <button
+                        className={styles.createButton}
+                        onClick={() => navigate('/forms/create')}
+                    >
+                        <Plus size={18} />
+                        Create New Form
+                    </button>
+                </div>
+
                 <Loading message="Loading forms..." />
             </div>
         );
@@ -235,17 +238,6 @@ const FormManagement: React.FC = () => {
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>Form Templates</h1>
-                <button
-                    className={styles.createButton}
-                    onClick={() => navigate('/forms/create')}
-                >
-                    <Plus size={20} />
-                    Create New Form
-                </button>
-            </div>
-
             <div className={styles.statsGrid}>
                 <div className={styles.statCard}>
                     <div className={`${styles.statIcon} ${styles.iconTotal}`}>
@@ -274,6 +266,20 @@ const FormManagement: React.FC = () => {
                         <span className={styles.statLabel}>Inactive Forms</span>
                     </div>
                 </div>
+            </div>
+
+            <div className={styles.header}>
+                <h1 className={styles.title}>
+                    <FileEdit size={18} />
+                    Form Templates
+                </h1>
+                <button
+                    className={styles.createButton}
+                    onClick={() => navigate('/forms/create')}
+                >
+                    <Plus size={18} />
+                    Create New Form
+                </button>
             </div>
 
             {forms.length === 0 ? (
