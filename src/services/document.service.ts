@@ -60,6 +60,7 @@ class DocumentService {
         search?: string;
         formFilters?: Record<string, any>;
         sharedOnly?: boolean;
+        document_type_id?: string; // ✅ ADD THIS
         skip?: number;
         limit?: number;
     }): Promise<{ documents: Document[], total: number }> {
@@ -75,6 +76,10 @@ class DocumentService {
                 params.append('form_filters', JSON.stringify(filterParams.formFilters));
             }
             if (filterParams.sharedOnly) params.append('shared_only', 'true');
+            if (filterParams.document_type_id) {
+                params.append('document_type_id', filterParams.document_type_id);
+            }
+
             if (filterParams.skip !== undefined) params.append('skip', String(filterParams.skip));
             if (filterParams.limit !== undefined) params.append('limit', String(filterParams.limit));
         }
