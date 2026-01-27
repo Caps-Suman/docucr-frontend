@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, FileText, CheckCircle, XCircle, StopCircle, PlayCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, CheckCircle, XCircle, StopCircle, PlayCircle, FileEdit } from 'lucide-react';
 import Table from '../Table/Table';
 import Loading from '../Common/Loading';
 import formService, { Form, FormStats } from '../../services/form.service';
@@ -188,7 +188,10 @@ const FormManagement: React.FC = () => {
         return (
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>Form Templates</h1>
+                    <h1 className={styles.title}>
+                        <FileEdit size={20} />
+                        Form Templates
+                    </h1>
                     <button
                         className={styles.createButton}
                         onClick={() => navigate('/forms/create')}
@@ -236,7 +239,10 @@ const FormManagement: React.FC = () => {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>Form Templates</h1>
+                <h1 className={styles.title}>
+                    <FileEdit size={20} />
+                    Form Templates
+                </h1>
                 <button
                     className={styles.createButton}
                     onClick={() => navigate('/forms/create')}
