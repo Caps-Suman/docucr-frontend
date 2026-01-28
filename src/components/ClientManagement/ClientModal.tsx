@@ -8,16 +8,25 @@ import styles from './ClientModal.module.css';
 interface ClientModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: {
-        business_name?: string;
-        first_name?: string;
-        middle_name?: string;
-        last_name?: string;
-        npi?: string;
-        type?: string;
-        status_id?: string | number;
-        description?: string;
-    }) => void;
+ onSubmit: (data: {
+  business_name?: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  npi?: string;
+  type?: string;
+  status_id?: string | number;
+  description?: string;
+
+  // ✅ ADDRESS
+  address_line_1?: string;
+  address_line_2?: string;
+  state_code?: string;
+  state_name?: string;
+  zip_code?: string;
+  zip_extension?: string;
+}) => void;
+
     initialData?: Client;
     title: string;
 }
@@ -39,6 +48,12 @@ const ClientModal: React.FC<ClientModalProps> = ({
     const [description, setDescription] = useState('');
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [addressLine1, setAddressLine1] = useState('');
+    const [addressLine2, setAddressLine2] = useState('');
+    const [stateCode, setStateCode] = useState('');
+    const [stateName, setStateName] = useState('');
+    const [zipCode, setZipCode] = useState('');
+    const [zipExtension, setZipExtension] = useState('');
 
     useEffect(() => {
         if (initialData) {
@@ -50,6 +65,12 @@ const ClientModal: React.FC<ClientModalProps> = ({
             setType(initialData.type || 'Individual');
             setStatusId(initialData.status_id || '');
             setDescription(initialData.description || '');
+            setAddressLine1(initialData.address_line_1 || '');
+            setAddressLine2(initialData.address_line_2 || '');
+            setStateCode(initialData.state_code || '');
+            setStateName(initialData.state_name || '');
+            setZipCode(initialData.zip_code || '');
+            setZipExtension(initialData.zip_extension || '');
         } else {
             setBusinessName('');
             setFirstName('');
@@ -59,6 +80,12 @@ const ClientModal: React.FC<ClientModalProps> = ({
             setType('Individual');
             setStatusId('');
             setDescription('');
+            setAddressLine1('');
+            setAddressLine2('');
+            setStateCode('');
+            setStateName('');
+            setZipCode('');
+            setZipExtension('');
         }
         setErrors({});
     }, [initialData, isOpen]);
@@ -87,14 +114,23 @@ const ClientModal: React.FC<ClientModalProps> = ({
         if (!validate()) return;
 
         const data: any = {
-            business_name: businessName.trim() || undefined,
-            first_name: firstName.trim() || undefined,
-            middle_name: middleName.trim() || undefined,
-            last_name: lastName.trim() || undefined,
-            npi: npi.trim() || undefined,
-            type: type.trim() || undefined,
-            description: description.trim() || undefined
-        };
+  business_name: businessName.trim() || undefined,
+  first_name: firstName.trim() || undefined,
+  middle_name: middleName.trim() || undefined,
+  last_name: lastName.trim() || undefined,
+  npi: npi.trim() || undefined,
+  type: type.trim() || undefined,
+  description: description.trim() || undefined,
+
+  // ✅ ADDRESS
+  address_line_1: addressLine1 || undefined,
+  address_line_2: addressLine2 || undefined,
+  state_code: stateCode || undefined,
+  state_name: stateName || undefined,
+  zip_code: zipCode || undefined,
+  zip_extension: zipExtension || undefined,
+};
+
 
         // Only include status_id for new clients, not updates
         if (!initialData && statusId) {
@@ -149,6 +185,23 @@ const ClientModal: React.FC<ClientModalProps> = ({
                                 menuPosition="fixed"
                             />
                         </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>NPI</label>
+                            <input
+                                type="text"
+                                className={styles.input}
+                                value={npi}
+                                onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, '');
+                                    if (value.length <= 10) {
+                                        setNpi(value);
+                                    }
+                                }}
+                                placeholder="Enter 10-digit NPI"
+                                style={{ borderColor: errors.npi ? '#ef4444' : '#d1d5db' }}
+                            />
+                            {errors.npi && <span className={styles.errorText}>{errors.npi}</span>}
+                        </div>
                         {type === 'Group' ? (
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Business Name *</label>
@@ -199,22 +252,77 @@ const ClientModal: React.FC<ClientModalProps> = ({
                             </div>
                         )}
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>NPI</label>
-                            <input
-                                type="text"
-                                className={styles.input}
-                                value={npi}
-                                onChange={(e) => {
-                                    const value = e.target.value.replace(/\D/g, '');
-                                    if (value.length <= 10) {
-                                        setNpi(value);
-                                    }
-                                }}
-                                placeholder="Enter 10-digit NPI"
-                                style={{ borderColor: errors.npi ? '#ef4444' : '#d1d5db' }}
-                            />
-                            {errors.npi && <span className={styles.errorText}>{errors.npi}</span>}
-                        </div>
+  <label className={styles.label}>Address Line 1</label>
+  <input
+    className={styles.input}
+    maxLength={250}
+    value={addressLine1}
+    onChange={(e) => setAddressLine1(e.target.value)}
+  />
+</div>
+
+<div className={styles.formGroup}>
+  <label className={styles.label}>Address Line 2</label>
+  <input
+    className={styles.input}
+    maxLength={250}
+    value={addressLine2}
+    onChange={(e) => setAddressLine2(e.target.value)}
+  />
+</div>
+
+<div className={styles.formRowThree}>
+  <div className={styles.formGroup}>
+    <label className={styles.label}>State Code</label>
+    <input
+      className={styles.input}
+      maxLength={2}
+      value={stateCode}
+      onChange={(e) =>
+        setStateCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))
+      }
+      placeholder="CA"
+    />
+  </div>
+
+  <div className={styles.formGroup}>
+    <label className={styles.label}>State Name</label>
+    <input
+      className={styles.input}
+      maxLength={50}
+      value={stateName}
+      onChange={(e) => setStateName(e.target.value)}
+      placeholder="California"
+    />
+  </div>
+
+  <div className={styles.formGroup}>
+    <label className={styles.label}>ZIP</label>
+    <input
+      className={styles.input}
+      maxLength={5}
+      value={zipCode}
+      onChange={(e) =>
+        setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))
+      }
+      placeholder="90210"
+    />
+  </div>
+</div>
+
+<div className={styles.formGroup}>
+  <label className={styles.label}>ZIP Extension</label>
+  <input
+    className={styles.input}
+    maxLength={4}
+    value={zipExtension}
+    onChange={(e) =>
+      setZipExtension(e.target.value.replace(/\D/g, '').slice(0, 4))
+    }
+    placeholder="1234"
+  />
+</div>
+
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Description</label>
                             <textarea

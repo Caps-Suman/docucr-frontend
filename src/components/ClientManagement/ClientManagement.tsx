@@ -264,7 +264,7 @@ setIsUserModalOpen(true);
 
         setActionLoading(confirmModal.client.id);
         try {
-            const isActive = confirmModal.client.statusCode === 'ACTIVE';
+            const isActive = confirmModal.client.status_code === 'ACTIVE';
             if (isActive) {
                 await clientService.deactivateClient(confirmModal.client.id);
                 setToast({ message: 'Client deactivated successfully', type: 'success' });
@@ -323,7 +323,19 @@ setIsUserModalOpen(true);
             render: (value: string | null) => value || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
         },
         {
-            key: 'statusCode',
+    key: 'state_name',
+    header: 'State',
+    render: (value: string | null) =>
+        value ? (
+            value
+        ) : (
+            <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
+                N/A
+            </span>
+        )
+},
+        {
+            key: 'status_code',
             header: 'Status',
             render: (value: string | null) => {
                 const isActive = value === 'ACTIVE';
@@ -412,12 +424,12 @@ setIsUserModalOpen(true);
                             </button>
                         </span>
                     )}
-                    <span className="tooltip-wrapper" data-tooltip={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
+                    <span className="tooltip-wrapper" data-tooltip={row.status_code === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
                         <button
-                            className={`${styles.actionBtn} ${row.statusCode === 'ACTIVE' ? styles.deactivate : styles.activate}`}
+                            className={`${styles.actionBtn} ${row.status_code === 'ACTIVE' ? styles.deactivate : styles.activate}`}
                             onClick={() => handleToggleStatus(row)}
                         >
-                            {row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+                            {row.status_code === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />}
                         </button>
                     </span >
                 </div >
@@ -640,13 +652,13 @@ setIsUserModalOpen(true);
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ isOpen: false, client: null, action: 'toggle' })}
                 onConfirm={handleConfirmAction}
-                title={confirmModal.client?.statusCode === 'ACTIVE' ? 'Deactivate Client' : 'Activate Client'}
-                message={`Are you sure you want to ${confirmModal.client?.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'} this client?`}
-                confirmText={confirmModal.client?.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                title={confirmModal.client?.status_code === 'ACTIVE' ? 'Deactivate Client' : 'Activate Client'}
+                message={`Are you sure you want to ${confirmModal.client?.status_code === 'ACTIVE' ? 'deactivate' : 'activate'} this client?`}
+                confirmText={confirmModal.client?.status_code === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                 type="warning"
             />
 
-            <ClientModal
+            <ClientModal    
                 isOpen={isModalOpen}
                 onClose={handleModalClose}
                 onSubmit={handleModalSubmit}
