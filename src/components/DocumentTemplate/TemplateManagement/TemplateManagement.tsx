@@ -55,6 +55,7 @@ const TemplateManagement: React.FC = () => {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [templateToToggle, setTemplateToToggle] = useState<{ template: Template; action: 'activate' | 'deactivate' } | null>(null);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         loadStatuses();
@@ -194,24 +195,67 @@ const TemplateManagement: React.FC = () => {
     };
 
     const columns = [
-        { key: 'template_name', header: 'Template Name', sortable: true },
+        { key: 'template_name', header: 'Template Name', sortable: true, width: '200px' },
         {
             key: 'document_type_id',
             header: 'Document Type',
             sortable: false,
+            width: '180px',
             render: (_: string, row: Template) => getDocumentTypeName(row)
         },
-        { key: 'description', header: 'Description', sortable: false },
+        { 
+            key: 'description', 
+            header: 'Description', 
+            sortable: false,
+            width: '300px',
+            render: (value: string, row: Template) => {
+                if (!value) return '-';
+                const isExpanded = expandedDescriptions.has(row.id);
+                const shouldTruncate = value.length > 100;
+                
+                return (
+                    <div>
+                        <span>{isExpanded || !shouldTruncate ? value : `${value.substring(0, 100)}...`}</span>
+                        {shouldTruncate && (
+                            <button
+                                onClick={() => {
+                                    const newExpanded = new Set(expandedDescriptions);
+                                    if (isExpanded) {
+                                        newExpanded.delete(row.id);
+                                    } else {
+                                        newExpanded.add(row.id);
+                                    }
+                                    setExpandedDescriptions(newExpanded);
+                                }}
+                                style={{
+                                    marginLeft: '8px',
+                                    color: '#0284c7',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                {isExpanded ? 'Less' : 'More'}
+                            </button>
+                        )}
+                    </div>
+                );
+            }
+        },
         {
             key: 'extraction_fields',
             header: 'Fields',
             sortable: false,
+            width: '100px',
             render: (value: ExtractionField[]) => `${value?.length || 0} fields`
         },
         {
             key: 'statusCode',
             header: 'Status',
             sortable: false,
+            width: '120px',
             render: (value: string) => (
                 <span className={`status-badge ${value === 'ACTIVE' ? 'active' : 'inactive'}`}>
                     {value === 'ACTIVE' ? 'Active' : 'Inactive'}
@@ -222,12 +266,14 @@ const TemplateManagement: React.FC = () => {
             key: 'created_at',
             header: 'Created',
             sortable: true,
+            width: '120px',
             render: (value: string) => new Date(value).toLocaleDateString()
         },
         {
             key: 'actions',
             header: 'Actions',
             sortable: false,
+            width: '120px',
             render: (_: any, row: Template) => (
                 <div className={styles.actions}>
                     <span className="tooltip-wrapper" data-tooltip="Edit">
