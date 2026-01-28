@@ -3,6 +3,7 @@ import { X, ChevronRight, ChevronLeft } from 'lucide-react';
 import Select from 'react-select';
 import { getCustomSelectStyles } from '../../../styles/selectStyles';
 import styles from './UserModal.module.css';
+import userService from '../../../services/user.service';
 
 interface UserModalProps {
     isOpen: boolean;
@@ -31,7 +32,7 @@ interface UserModalProps {
     };
     title: string;
     roles?: Array<{ id: string; name: string }>;
-    supervisors?: Array<{ id: string; name: string }>;
+    // supervisors?: Array<{ id: string; name: string }>;
     clientName?: string;
 }
 
@@ -42,7 +43,7 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
     initialData,
     title,
     roles = [],
-    supervisors = [],
+    // supervisors = [],
     clientName,
     isClientUser
 }) => {
@@ -55,8 +56,23 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
     const [password, setPassword] = useState('');
     const [phoneCountryCode, setPhoneCountryCode] = useState('+91');
     const [phoneNumber, setPhoneNumber] = useState('');
-    const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-    const [selectedSupervisor, setSelectedSupervisor] = useState<string>('');
+    // const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+    // const [selectedSupervisor, setSelectedSupervisor] = useState<string>('');
+    const [userRoles, setUserRoles] = useState<
+  { value: string; label: string }[]
+>([]);
+
+const [supervisorRole, setSupervisorRole] = useState<
+  { value: string; label: string } | null
+>(null);
+
+const [supervisorOptions, setSupervisorOptions] = useState<
+  { value: string; label: string }[]
+>([]);
+
+const [selectedSupervisor, setSelectedSupervisor] = useState<string | null>(null);
+const [loadingSupervisors, setLoadingSupervisors] = useState(false);
+
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -69,7 +85,10 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
             setLastName(initialData.last_name);
             setPhoneCountryCode((initialData as any).phone_country_code || '+91');
             setPhoneNumber((initialData as any).phone_number || '');
-            setSelectedRoles(initialData.roles.map(r => r.id));
+setUserRoles(
+  initialData.roles.map(r => ({ value: r.id, label: r.name }))
+);
+setSelectedSupervisor(initialData.supervisor_id || null);
             setSelectedSupervisor(initialData.supervisor_id || '');
             setPassword('');
         } else {
@@ -81,7 +100,7 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
             setPassword('');
             setPhoneCountryCode('+91');
             setPhoneNumber('');
-            setSelectedRoles([]);
+setUserRoles([]);
             setSelectedSupervisor('');
         }
         setStep(1);
@@ -142,8 +161,8 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
             last_name: lastName.trim(),
             phone_country_code: phoneCountryCode,
             phone_number: phoneNumber || undefined,
-            role_ids: selectedRoles,
-            supervisor_id: selectedSupervisor || undefined
+            role_ids: userRoles.map(r => r.value),
+supervisor_id: selectedSupervisor || undefined
         };
 
         if (!initialData?.id) {
@@ -161,10 +180,10 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
     if (!isOpen) return null;
 
     const roleOptions = roles.map(r => ({ value: r.id, label: r.name }));
-    const supervisorOptions = [
-        { value: '', label: 'No Supervisor' },
-        ...supervisors.map(s => ({ value: s.id, label: s.name }))
-    ];
+    // const supervisorOptions = [
+    //     { value: '', label: 'No Supervisor' },
+    //     ...supervisors.map(s => ({ value: s.id, label: s.name }))
+    // ];
     const countryCodeOptions = [
         { value: '+91', label: '+91' },
         { value: '+1', label: '+1' }
@@ -323,12 +342,12 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
                                     <label className={styles.label}>Roles</label>
                                     <Select
                                         isMulti
-                                        value={roleOptions.filter(opt => selectedRoles.includes(opt.value))}
-                                        onChange={(selected) => setSelectedRoles(selected.map(s => s.value))}
-                                        options={roleOptions}
-                                        className="role-select"
-                                        classNamePrefix="select"
-                                        placeholder="Select roles"
+                                         value={userRoles}
+  onChange={(selected) =>
+    setUserRoles(selected as { value: string; label: string }[])
+  }
+  options={roleOptions}
+  placeholder="Assign roles to user"
                                         styles={{
                                             ...getCustomSelectStyles(),
                                             menu: (base) => ({
@@ -345,14 +364,54 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
                                     />
                                 </div>
                                 <div className={styles.formGroup}>
+  <label className={styles.label}>Supervisor Role</label>
+  <Select
+    value={supervisorRole}
+    onChange={async (role) => {
+      setSupervisorRole(role);
+      setSelectedSupervisor(null);
+      setSupervisorOptions([]);
+
+      if (!role) return;
+
+      try {
+        setLoadingSupervisors(true);
+        const users = await userService.getUsersByRole(role.value);
+
+        setSupervisorOptions(
+          users
+            .filter((u: any) => u.id !== initialData?.id)
+            .map((u: any) => ({
+              value: u.id,
+              label: `${u.first_name} ${u.last_name} (${u.username})`
+            }))
+        );
+      } finally {
+        setLoadingSupervisors(false);
+      }
+    }}
+    options={roleOptions}
+    placeholder="Select role to choose supervisor from"
+  />
+</div>
+
+                                <div className={styles.formGroup}>
                                     <label className={styles.label}>Supervisor</label>
-                                    <Select
-                                        value={supervisorOptions.find(opt => opt.value === selectedSupervisor)}
-                                        onChange={(selected) => setSelectedSupervisor(selected?.value || '')}
-                                        options={supervisorOptions}
-                                        className="supervisor-select"
-                                        classNamePrefix="select"
-                                        placeholder="Select supervisor"
+                                   <Select
+  value={supervisorOptions.find(o => o.value === selectedSupervisor)}
+  onChange={(selected) =>
+    setSelectedSupervisor(selected?.value || null)
+  }
+  options={supervisorOptions}
+  isDisabled={!supervisorRole || loadingSupervisors}
+  placeholder={
+    loadingSupervisors
+      ? 'Loading supervisors...'
+      : supervisorRole
+      ? 'Select supervisor'
+      : 'Select supervisor role first'
+  }
+
                                         styles={{
                                             ...getCustomSelectStyles(),
                                             menu: (base) => ({
