@@ -1,29 +1,111 @@
 import apiClient from '../utils/apiClient';
-import { SOP } from '../types/sop';
+import { BillingGuideline, CodingRule, SOP } from '../types/sop';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+type RawBillingGuideline =
+  | string
+  | {
+      id?: string;
+      title?: string;
+      description?: string | { title?: string; description?: string };
+    };
+
 // Helper to map backend snake_case to frontend camelCase
 const mapExampleToSOP = (data: any): SOP => ({
-    id: data.id,
-    title: data.title,
-    category: data.category,
-    providerType: data.provider_type,
-    clientId: data.client_id,
-    providerInfo: data.provider_info || {},
-    workflowProcess: {
-        description: data.workflow_process?.description || '',
-        eligibilityPortals: data.workflow_process?.eligibilityPortals || []
-    },
-    postingCharges: '',
-    billingGuidelines: data.billing_guidelines || [],
-    codingRules: data.coding_rules || [],
-    insuranceSpecific: {},
-    statusId: data.status_id,
-    status: data.status,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at
+  id: data.id,
+  title: data.title,
+  category: data.category,
+
+  providerType: data.provider_type,
+  clientId: data.client_id,
+
+  providerInfo: data.provider_info || {},
+
+  workflowProcess: {
+    description: data.workflow_process?.description || '',
+    eligibilityPortals: data.workflow_process?.eligibilityPortals || []
+  },
+
+  billingGuidelines: normalizeBillingGuidelines(data.billing_guidelines),
+  codingRules: data.coding_rules || [],
+
+  statusId: data.status_id,
+  status: data.status,
+  createdAt: data.created_at,
+  updatedAt: data.updated_at
 });
+type RawSOP = Omit<SOP, 'billingGuidelines'> & {
+  billingGuidelines?: RawBillingGuideline[];
+};
+
+export const normalizeSOP = (raw: RawSOP): SOP => {  return {
+    ...raw,
+
+    // ---- CATEGORY ----
+    category:
+      typeof raw.category === 'string'
+        ? raw.category
+        : raw.category?.title ?? '',
+
+    // ---- BILLING GUIDELINES ----
+billingGuidelines: (raw.billingGuidelines ?? []).map((g, i): BillingGuideline => {
+  let description = '';
+
+  if (typeof g === 'string') {
+    description = g;
+  } else if (typeof g?.description === 'string') {
+    description = g.description;
+  } else if (g?.description && typeof g.description === 'object') {
+    description = g.description.description ?? '';
+  }
+
+  return {
+    id: g && typeof g === 'object' ? g.id ?? `bg_${i}` : `bg_${i}`,
+    title: g && typeof g === 'object' ? g.title ?? `Guideline ${i + 1}` : `Guideline ${i + 1}`,
+    description,
+  };
+}),
+
+
+
+    // ---- CODING RULES (defensive) ----
+    codingRules: (raw.codingRules ?? []).map((r, i): CodingRule => ({
+      ...r,
+      cptCode: r.cptCode ?? '',
+      description: typeof r.description === 'string' ? r.description : '',
+    })),
+  };
+};
+
+const normalizeBillingGuidelines = (input: any[] = []) => {
+  return input.map((g, i) => {
+    if (typeof g === "string") {
+      return {
+        id: `bg_${i}`,
+        title: `Guideline ${i + 1}`,
+        description: g
+      };
+    }
+
+    if (typeof g === "object" && g !== null) {
+      return {
+        id: g.id || `bg_${i}`,
+        title: g.title || `Guideline ${i + 1}`,
+        description:
+          typeof g.description === "string"
+            ? g.description
+            : g.description?.description ?? ""
+      };
+    }
+
+    return {
+      id: `bg_${i}`,
+      title: `Guideline ${i + 1}`,
+      description: ""
+    };
+  });
+};
 
 const sopService = {
     getSOPs: async (skip: number = 0, limit: number = 100, search?: string, statusCode?: 'ACTIVE' | 'INACTIVE'): Promise<{ sops: SOP[]; total: number }> => {
@@ -35,7 +117,7 @@ const sopService = {
         if (!response.ok) throw new Error('Failed to fetch SOPs');
         const data = await response.json();
         return {
-            sops: data.sops.map(mapExampleToSOP),
+    sops: data.sops.map(normalizeSOP),
             total: data.total
         };
     },
@@ -54,12 +136,34 @@ const sopService = {
         inactiveSOPs: data.inactive_sops
     };
 },
+uploadAndExtractSOP: async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
 
+  const token = localStorage.getItem("access_token");
+
+  const response = await fetch(
+    `${API_URL}/api/sops/ai/extract-sop`,
+    {
+      method: "POST",
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  return response.json();
+},
     getSOPById: async (id: string): Promise<SOP> => {
         const response = await apiClient(`${API_URL}/api/sops/${id}`);
         if (!response.ok) throw new Error('Failed to fetch SOP');
         const data = await response.json();
-        return mapExampleToSOP(data);
+        return normalizeSOP(data);
     },
 
     createSOP: async (data: any): Promise<SOP> => {
@@ -72,7 +176,7 @@ const sopService = {
             throw new Error(error.detail || 'Failed to create SOP');
         }
         const responseData = await response.json();
-        return mapExampleToSOP(responseData);
+return normalizeSOP(mapExampleToSOP(responseData));
     },
 
     updateSOP: async (id: string, data: any): Promise<SOP> => {
@@ -85,7 +189,7 @@ const sopService = {
             throw new Error(error.detail || 'Failed to update SOP');
         }
         const responseData = await response.json();
-        return mapExampleToSOP(responseData);
+return normalizeSOP(mapExampleToSOP(responseData));
     },
 
     deleteSOP: async (id: string): Promise<void> => {
@@ -102,7 +206,7 @@ const sopService = {
         });
         if (!response.ok) throw new Error('Failed to update SOP status');
         const data = await response.json();
-        return mapExampleToSOP(data);
+return normalizeSOP(mapExampleToSOP(data));
     },
 
     downloadSOPPDF: async (id: string, title: string): Promise<void> => {
