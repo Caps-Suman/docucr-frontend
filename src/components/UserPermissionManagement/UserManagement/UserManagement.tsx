@@ -293,6 +293,15 @@ const UserManagement: React.FC = () => {
             }
         },
         {
+            key: 'clients',
+            header: 'Clients',
+            render: (_: any, row: User) => {
+                if (!row.client_count) return 'No clients';
+                if (row.client_count === 1) return '1 client';
+                return `${row.client_count} clients`;
+            }
+        },
+        {
             key: 'statusCode',
             header: 'Status',
             render: (value: string | null) => {

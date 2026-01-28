@@ -14,6 +14,7 @@ export interface User {
     is_superuser: boolean;
     roles: Array<{ id: string; name: string }>;
     supervisor_id: string | null;
+    client_count: number;
 }
 
 export interface UserStats {
