@@ -43,7 +43,7 @@ const EditFieldModal: React.FC<EditFieldModalProps> = ({
                 
                 <div className={styles.modalBody}>
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Type</label>
+                        <label className={styles.label}>Input Type</label>
                         <CommonDropdown
                             value={field.field_type}
                             onChange={(value) => onFieldChange('field_type', value)}

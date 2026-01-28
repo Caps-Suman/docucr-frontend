@@ -861,16 +861,23 @@ const handleUnarchive = async (id: string) => {
                     >
                       <Info size={14} style={{ cursor: 'help', color: '#64748b' }} />
                       <div className={styles.statusTooltip}>
-                        <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Completed: Finished analysis</div>
-                        <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Uploaded: File ready for AI</div>
                         <div className={styles.statusTooltipItem}><Clock size={12} /> Queued: Waiting to start</div>
-                        <div className={styles.statusTooltipItem}><Clock size={12} /> Processing: Being analyzed</div>
-                        <div className={styles.statusTooltipItem}><Loader2 size={12} /> Analyzing: AI processing</div>
-                        <div className={styles.statusTooltipItem}><Clock size={12} /> AI Queued: Waiting for AI</div>
+                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
                         <div className={styles.statusTooltipItem}><UploadCloud size={12} /> Uploading: File transfer</div>
+                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+                        <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Uploaded: File ready for AI</div>
+                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+                        <div className={styles.statusTooltipItem}><Clock size={12} /> Processing: Being analyzed</div>
+                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+                        <div className={styles.statusTooltipItem}><Clock size={12} /> AI Queued: Waiting for AI</div>
+                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+                        <div className={styles.statusTooltipItem}><Loader2 size={12} /> Analyzing: AI processing</div>
+                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+                        <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Completed: Finished analysis</div>
+                        <div className={styles.statusTooltipItem} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>Error States:</div>
+                        <div className={styles.statusTooltipItem}><X size={12} /> Upload Failed: Network error</div>
                         <div className={styles.statusTooltipItem}><X size={12} /> Failed: General error</div>
                         <div className={styles.statusTooltipItem}><X size={12} /> AI Failed: Analysis error</div>
-                        <div className={styles.statusTooltipItem}><X size={12} /> Upload Failed: Network error</div>
                         <div className={styles.statusTooltipItem}><Ban size={12} /> Cancelled: Manually stopped</div>
                       </div>
                     </span>
@@ -1301,56 +1308,6 @@ const handleUnarchive = async (id: string) => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.titleRow}>
-          <h1 className={styles.title}>
-            <FileText size={20} />
-            Documents
-          </h1>
-          <div className={styles.headerButtons}>
-            <button
-              className={styles.filterButton}
-              onClick={() => setShowFilters(true)}
-            >
-              <Filter size={16} />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className={styles.filterBadge}>{activeFilterCount}</span>
-              )}
-            </button>
-            {selectedDocuments.size > 0 && (
-              <>
-                <button
-                  className={styles.shareButton}
-                  onClick={() => setShowShareModal(true)}
-                >
-                  <Share size={16} />
-                  Share ({selectedDocuments.size})
-                </button>
-                <button
-                  className={styles.downloadButton}
-                  onClick={handleBulkDownload}
-                  disabled={isDownloading}
-                >
-                  <Download size={16} />
-                  {isDownloading
-                    ? "Downloading..."
-                    : `Download ZIP (${selectedDocuments.size})`}
-                </button>
-              </>
-            )}
-            <button
-              className={styles.uploadButton}
-              onClick={() => navigate("/documents/upload")}
-            >
-              <Upload size={16} />
-              Upload Document
-            </button>
-          </div>
-        </div>
-
-      </div>
-
       <div className={styles.stats}>
         <div
           className={`${styles.statCard} ${!activeFilters.status && !activeFilters.sharedOnly ? styles.activeTotal : ""}`}
@@ -1412,6 +1369,56 @@ const handleUnarchive = async (id: string) => {
             <span className={styles.statLabel}>Archived</span>
           </div>
         </div>
+      </div>
+
+      <div className={styles.header}>
+        <div className={styles.titleRow}>
+          <h1 className={styles.title}>
+            <FileText size={20} />
+            Documents
+          </h1>
+          <div className={styles.headerButtons}>
+            <button
+              className={styles.filterButton}
+              onClick={() => setShowFilters(true)}
+            >
+              <Filter size={16} />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className={styles.filterBadge}>{activeFilterCount}</span>
+              )}
+            </button>
+            {selectedDocuments.size > 0 && (
+              <>
+                <button
+                  className={styles.shareButton}
+                  onClick={() => setShowShareModal(true)}
+                >
+                  <Share size={16} />
+                  Share ({selectedDocuments.size})
+                </button>
+                <button
+                  className={styles.downloadButton}
+                  onClick={handleBulkDownload}
+                  disabled={isDownloading}
+                >
+                  <Download size={16} />
+                  {isDownloading
+                    ? "Downloading..."
+                    : `Download ZIP (${selectedDocuments.size})`}
+                </button>
+              </>
+            )}
+            <button
+              className={styles.uploadButton}
+              onClick={() => navigate("/documents/upload")}
+            >
+              <Upload size={16} />
+              Upload Document
+            </button>
+          </div>
+        </div>
+
       </div>
 
       {loading ? (

@@ -12,6 +12,98 @@
     margin-bottom: 0;
 }
 
+.helpBanner {
+    background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+}
+
+.helpBanner::before {
+    content: '';
+    position: absolute;
+    top: -9px;
+    left: calc(var(--arrow-position, 175px) - 15px);
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 9px solid #bae6fd;
+    filter: drop-shadow(0 -2px 2px rgba(2, 132, 199, 0.1));
+}
+
+.helpBanner::after {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: calc(var(--arrow-position, 175px) - 15px);
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid #e0f2fe;
+}
+
+.helpIcon {
+    color: #0284c7;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.helpContent {
+    flex: 1;
+}
+
+.helpTitle {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0c4a6e;
+}
+
+.helpList {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 13px;
+    color: #075985;
+    line-height: 1.6;
+}
+
+.helpList li {
+    margin-bottom: 4px;
+}
+
+.helpList li:last-child {
+    margin-bottom: 0;
+}
+
+.helpClose {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #0284c7;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+}
+
+.helpClose:hover {
+    background: rgba(2, 132, 199, 0.1);
+    color: #0369a1;
+}
+
 .pageTitle {
     font-size: 20px;
     font-weight: 600;
@@ -20,6 +112,23 @@
     align-items: center;
     gap: 12px;
     color: #1e293b;
+}
+
+.infoButton {
+    background: #e0f2fe;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    color: #0284c7;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.infoButton:hover {
+    background-color: #bae6fd;
+    color: #0369a1;
 }
 
 .backButton {
@@ -153,7 +262,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    /* margin-bottom: 16px; */
 }
 
 .addFieldButton {
@@ -514,6 +623,49 @@
 }
 
 /* Dark mode styles */
+:global(.dark) .helpBanner {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    border-color: #3b82f6;
+}
+
+:global(.dark) .helpBanner::before {
+    border-bottom-color: #3b82f6;
+}
+
+:global(.dark) .helpBanner::after {
+    border-bottom-color: #1e3a8a;
+}
+
+:global(.dark) .helpIcon {
+    color: #60a5fa;
+}
+
+:global(.dark) .helpTitle {
+    color: #dbeafe;
+}
+
+:global(.dark) .helpList {
+    color: #bfdbfe;
+}
+
+:global(.dark) .helpClose {
+    color: #60a5fa;
+}
+
+:global(.dark) .helpClose:hover {
+    background: rgba(96, 165, 250, 0.1);
+    color: #93c5fd;
+}
+
+:global(.dark) .infoButton {
+    color: #60a5fa;
+}
+
+:global(.dark) .infoButton:hover {
+    background-color: #1e3a8a;
+    color: #93c5fd;
+}
+
 :global(.dark) .pageTitle {
     color: #f9fafb;
 }

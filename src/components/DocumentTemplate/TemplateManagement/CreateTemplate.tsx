@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Edit, X } from 'lucide-react';
+import { ArrowLeft, Trash2, Edit, X, Info } from 'lucide-react';
 import CommonDropdown from '../../Common/CommonDropdown';
 import Toast, { ToastType } from '../../Common/Toast';
 import { fetchWithAuth } from '../../../utils/api';
@@ -54,6 +54,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
         exampleValue: ''
     });
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [showHelp, setShowHelp] = useState(!isEditMode);
 
     useEffect(() => {
         loadDocumentTypes();
@@ -363,8 +364,37 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
                     <div className={styles.rightSection}>
                         <div className={styles.fieldDefinition}>
                             <div className={styles.fieldHeader}>
-                                <h3>Field Definition</h3>
+                                <h3>
+                                    Field Definition
+                                    <button 
+                                        className={styles.infoButton} 
+                                        onClick={() => setShowHelp(!showHelp)}
+                                        title={showHelp ? 'Hide help' : 'Show help'}
+                                    >
+                                        <Info size={18} />
+                                    </button>
+                                </h3>
                             </div>
+
+                            {showHelp && (
+                                <div className={styles.helpBannerInline}>
+                                    <div className={styles.helpIcon}>
+                                        <Info size={20} />
+                                    </div>
+                                    <div className={styles.helpContent}>
+                                        <h4 className={styles.helpTitle}>How to Configure Your Template</h4>
+                                        <ul className={styles.helpList}>
+                                            <li><strong>Template Info:</strong> Enter template name, select document type, and add description</li>
+                                            <li><strong>Extraction Fields:</strong> Define fields to extract from documents (e.g., Invoice Number, Date)</li>
+                                            <li><strong>Field Types:</strong> Choose appropriate type (Text, Number, Date, Email, Phone, URL)</li>
+                                            <li><strong>Preview:</strong> View all added fields on the left panel before saving</li>
+                                        </ul>
+                                    </div>
+                                    <button className={styles.helpClose} onClick={() => setShowHelp(false)}>
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            )}
 
                             <div className={styles.newFieldCard}>
                                 <div className={styles.fieldInputs}>
