@@ -39,7 +39,7 @@ const AppLayout: React.FC = () => {
         }
 
         if (path === '/users-permissions') {
-            crumbs.push({ icon: Shield, label: 'User & Permission' });
+            crumbs.push({ icon: Shield, label: 'User & Role Permission' });
             return crumbs;
         }
 

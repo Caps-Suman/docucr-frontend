@@ -47,13 +47,15 @@ const DocumentListingView: React.FC = () => {
 
             // Load system columns
             let allColumns = [...defaultSystemColumns];
+            let activeFormName = '';
 
             // Try to load form fields to add as additional columns
             try {
                 const activeForm = await formService.getActiveForm();
+                activeFormName = activeForm.name;
                 if (activeForm.fields) {
                     const formColumns: ColumnConfig[] = activeForm.fields.map((field, index) => ({
-                        id: `form_${field.id || field.label.toLowerCase().replace(/\s+/g, '_')}`,
+                        id: `form_${field.id}`,
                         label: field.label,
                         visible: false, // Default to hidden for form fields
                         order: defaultSystemColumns.length + index + 1,
@@ -74,25 +76,47 @@ const DocumentListingView: React.FC = () => {
             // Load saved configuration from backend
             try {
                 const response = await documentListConfigService.getUserConfig();
-                if (response.configuration) {
-                    const savedConfig = response.configuration;
-                    // Merge saved config with available columns
-                    allColumns = allColumns.map(col => {
-                        const savedCol = savedConfig.columns.find(s => s.id === col.id);
-                        return savedCol ? {
-                            ...col,
-                            visible: savedCol.visible,
-                            order: savedCol.order,
-                            width: savedCol.width
-                        } : col;
+                if (response.configuration && response.configuration.columns) {
+                    const savedColumns = response.configuration.columns;
+                    
+                    // Create a map of available columns for quick lookup
+                    const availableColumnsMap = new Map(allColumns.map(col => [col.id, col]));
+                    
+                    // Use saved columns and enrich with metadata, filter out columns that no longer exist
+                    const mergedColumns: ColumnConfig[] = savedColumns
+                        .map(savedCol => {
+                            const existingCol = availableColumnsMap.get(savedCol.id);
+                            // If column exists in available columns, use it
+                            if (existingCol) {
+                                return {
+                                    ...savedCol,
+                                    isSystem: existingCol.isSystem,
+                                    formName: existingCol.formName,
+                                    fieldType: existingCol.fieldType
+                                };
+                            }
+                            // For columns not in available list, infer isSystem from ID
+                            return {
+                                ...savedCol,
+                                isSystem: !savedCol.id.startsWith('form_'),
+                                formName: savedCol.id.startsWith('form_') ? activeFormName : undefined,
+                                fieldType: undefined
+                            };
+                        });
+                    
+                    // Add any new columns that weren't in saved config
+                    allColumns.forEach(col => {
+                        if (!savedColumns.find(s => s.id === col.id)) {
+                            mergedColumns.push(col);
+                        }
                     });
+                    
+                    allColumns = mergedColumns;
                 }
             } catch (error) {
                 console.error('Error fetching saved column config:', error);
             }
 
-            // Sort by order
-            allColumns.sort((a, b) => a.order - b.order);
             setColumns(allColumns);
         } catch (error) {
             console.error('Error loading columns:', error);
@@ -212,7 +236,6 @@ const DocumentListingView: React.FC = () => {
                             <tr>
                                 {columns
                                     .filter(col => col.visible)
-                                    .sort((a, b) => a.order - b.order)
                                     .map(col => (
                                         <th key={col.id}>
                                             {col.label}
@@ -225,7 +248,6 @@ const DocumentListingView: React.FC = () => {
                             <tr>
                                 {columns
                                     .filter(col => col.visible)
-                                    .sort((a, b) => a.order - b.order)
                                     .map(col => (
                                         <td key={col.id}>
                                             {col.id === 'name' && (
@@ -289,9 +311,10 @@ const DocumentListingView: React.FC = () => {
 
             <div className={styles.columnList}>
                 <div className={styles.listHeader}>
+                    <span></span>
                     <span>Column</span>
-                    <span>Type</span>
-                    <span>Visible</span>
+                    <span>Source</span>
+                    <span>Visibility</span>
                 </div>
 
                 {columns.map((column) => (
@@ -313,7 +336,7 @@ const DocumentListingView: React.FC = () => {
 
                         <div className={styles.columnType}>
                             <span className={`${styles.typeBadge} ${column.isSystem ? styles.system : styles.form}`}>
-                                {column.isSystem ? 'System' : column.formName || 'Form'}
+                                {column.isSystem ? 'System' : (column.formName || 'Form')}
                             </span>
                         </div>
 

@@ -60,7 +60,7 @@ const UserPermissionManagement: React.FC = () => {
         return (
             <NoAccess
                 title="Module Access Restricted"
-                description="You do not have permission to view the User & Permissions module. Please contact your administrator."
+                description="You do not have permission to view the User & Role Permissions module. Please contact your administrator."
             />
         );
     }
