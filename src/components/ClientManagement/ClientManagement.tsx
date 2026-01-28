@@ -51,7 +51,7 @@ const ClientManagement: React.FC = () => {
     const [crossCreationData, setCrossCreationData] = useState<any>(null);
     const [showCrossCreationConfirm, setShowCrossCreationConfirm] = useState(false);
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
-    const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
+    // const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
 
 const openAssignModal = () => {
     setShowAssignModal(true);
@@ -71,10 +71,10 @@ const openAssignModal = () => {
 
         setRoles(rolesData.roles.map(r => ({ id: r.id, name: r.name })));
 
-        setSupervisors(usersData.users.map(u => ({
-            id: u.id,
-            name: `${u.first_name} ${u.last_name} (${u.username})`
-        })));
+        // setSupervisors(usersData.users.map(u => ({
+        //     id: u.id,
+        //     name: `${u.first_name} ${u.last_name} (${u.username})`
+        // })));
 
         setUsers(usersData.users.map(u => ({
             id: u.id,
@@ -689,7 +689,7 @@ setIsUserModalOpen(true);
                 initialData={crossCreationData}
                 title="Create Linked User"
                 roles={roles}
-                supervisors={supervisors}
+                // supervisors={supervisors}
                 clientName={crossCreationData ? (
                     clients.find(c => c.id === crossCreationData.client_id)?.business_name ||
                     [crossCreationData.first_name, crossCreationData.middle_name, crossCreationData.last_name]

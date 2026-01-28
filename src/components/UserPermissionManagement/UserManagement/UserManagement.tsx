@@ -26,7 +26,7 @@ const UserManagement: React.FC = () => {
     const [changePasswordUser, setChangePasswordUser] = useState<User | null>(null);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
-    const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
+    // const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
 
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; user: User | null; action: 'toggle' }>({ isOpen: false, user: null, action: 'toggle' });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -45,8 +45,6 @@ const UserManagement: React.FC = () => {
     useEffect(() => {
         loadRoles();
     }, []);
-
-
 
     const loadRoles = async () => {
         try {
@@ -69,11 +67,11 @@ const UserManagement: React.FC = () => {
             setStats(statsData);
 
             // Load supervisors (all users except current)
-            const allUsers = await userService.getUsers(1, 1000);
-            setSupervisors(allUsers.users.map(u => ({
-                id: u.id,
-                name: `${u.first_name} ${u.last_name} (${u.username})`
-            })));
+            // const allUsers = await userService.getUsers(1, 1000);
+            // setSupervisors(allUsers.users.map(u => ({
+            //     id: u.id,
+            //     name: `${u.first_name} ${u.last_name} (${u.username})`
+            // })));
         } catch (error) {
             console.error('Failed to load users:', error);
             setToast({ message: 'Failed to load users', type: 'error' });
@@ -407,25 +405,23 @@ const UserManagement: React.FC = () => {
                     setCurrentPage(0);
                 }}
             />
-
-            <UserModal
-                isOpen={isModalOpen}
-                onClose={handleModalClose}
-                onSubmit={handleModalSubmit}
-                initialData={editingUser ? {
-                    id: editingUser.id,
-                    email: editingUser.email,
-                    username: editingUser.username,
-                    first_name: editingUser.first_name || '',
-                    middle_name: editingUser.middle_name || '',
-                    last_name: editingUser.last_name || '',
-                    roles: editingUser.roles,
-                    supervisor_id: editingUser.supervisor_id || undefined
-                } : undefined}
-                title={editingUser ? 'Edit User' : 'Add New User'}
-                roles={roles}
-                supervisors={supervisors.filter(s => s.id !== editingUser?.id)}
-            />
+<UserModal
+  isOpen={isModalOpen}
+  onClose={handleModalClose}
+  onSubmit={handleModalSubmit}
+  initialData={editingUser ? {
+    id: editingUser.id,
+    email: editingUser.email,
+    username: editingUser.username,
+    first_name: editingUser.first_name || '',
+    middle_name: editingUser.middle_name || '',
+    last_name: editingUser.last_name || '',
+    roles: editingUser.roles,
+    supervisor_id: editingUser.supervisor_id || undefined
+  } : undefined}
+  title={editingUser ? 'Edit User' : 'Add New User'}
+  roles={roles}
+/>
 
             <ChangePasswordModal
                 isOpen={!!changePasswordUser}

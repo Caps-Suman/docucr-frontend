@@ -73,6 +73,20 @@ const userService = {
         if (!response.ok) throw new Error('Failed to fetch user');
         return response.json();
     },
+   async getUsersByRole(roleId: string): Promise<
+  { id: string; first_name: string; last_name: string; username: string }[]
+> {
+  const response = await apiClient(
+    `${API_URL}/api/users/by-role?role_id=${encodeURIComponent(roleId)}`
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch users by role');
+  }
+
+  return response.json();
+},
+
 
     createUser: async (data: UserCreateData): Promise<User> => {
         const response = await apiClient(`${API_URL}/api/users/`, {
