@@ -13,6 +13,7 @@ import statusService, { Status } from '../../../services/status.service';
 import './UserManagement.css';
 import ClientModal from '../../ClientManagement/ClientModal';
 import clientService from '../../../services/client.service';
+import ClientMappingModal from './ClientMappingModal';
 
 const UserManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(0);
@@ -35,6 +36,20 @@ const UserManagement: React.FC = () => {
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
     const [crossCreationData, setCrossCreationData] = useState<any>(null);
     const [showCrossCreationConfirm, setShowCrossCreationConfirm] = useState(false);
+
+    // Client Mapping State
+    const [clientMappingModal, setClientMappingModal] = useState<{ isOpen: boolean; user: User | null }>({
+        isOpen: false,
+        user: null
+    });
+
+    const handleOpenMapping = (user: User) => {
+        setClientMappingModal({ isOpen: true, user });
+    };
+
+    const handleCloseMapping = () => {
+        setClientMappingModal({ isOpen: false, user: null });
+    };
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
@@ -294,9 +309,30 @@ const UserManagement: React.FC = () => {
             key: 'clients',
             header: 'Clients',
             render: (_: any, row: User) => {
-                if (!row.client_count) return 'No clients';
-                if (row.client_count === 1) return '1 client';
-                return `${row.client_count} clients`;
+                let text = 'No clients';
+                if (row.client_count === 1) text = '1 Client';
+                else if (row.client_count > 1) text = `${row.client_count} Clients`;
+
+                return (
+                    <div
+                        onClick={() => handleOpenMapping(row)}
+                        style={{
+                            display: 'inline-block',
+                            padding: '4px 12px',
+                            background: '#e0f2fe',
+                            color: '#0369a1',
+                            borderRadius: '9999px',
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#bae6fd'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = '#e0f2fe'}
+                    >
+                        {text}
+                    </div>
+                );
             }
         },
         {
@@ -414,23 +450,23 @@ const UserManagement: React.FC = () => {
                     setCurrentPage(0);
                 }}
             />
-<UserModal
-  isOpen={isModalOpen}
-  onClose={handleModalClose}
-  onSubmit={handleModalSubmit}
-  initialData={editingUser ? {
-    id: editingUser.id,
-    email: editingUser.email,
-    username: editingUser.username,
-    first_name: editingUser.first_name || '',
-    middle_name: editingUser.middle_name || '',
-    last_name: editingUser.last_name || '',
-    roles: editingUser.roles,
-    supervisor_id: editingUser.supervisor_id || undefined
-  } : undefined}
-  title={editingUser ? 'Edit User' : 'Add New User'}
-  roles={roles}
-/>
+            <UserModal
+                isOpen={isModalOpen}
+                onClose={handleModalClose}
+                onSubmit={handleModalSubmit}
+                initialData={editingUser ? {
+                    id: editingUser.id,
+                    email: editingUser.email,
+                    username: editingUser.username,
+                    first_name: editingUser.first_name || '',
+                    middle_name: editingUser.middle_name || '',
+                    last_name: editingUser.last_name || '',
+                    roles: editingUser.roles,
+                    supervisor_id: editingUser.supervisor_id || undefined
+                } : undefined}
+                title={editingUser ? 'Edit User' : 'Add New User'}
+                roles={roles}
+            />
 
             <ChangePasswordModal
                 isOpen={!!changePasswordUser}
@@ -473,6 +509,13 @@ const UserManagement: React.FC = () => {
                 onSubmit={handleClientModalSubmit}
                 initialData={crossCreationData}
                 title="Create Linked Client"
+            />
+
+            <ClientMappingModal
+                isOpen={clientMappingModal.isOpen}
+                onClose={handleCloseMapping}
+                user={clientMappingModal.user}
+                onUpdate={loadData}
             />
         </div>
     );

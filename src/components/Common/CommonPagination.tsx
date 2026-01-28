@@ -12,6 +12,7 @@ interface CommonPaginationProps {
     totalItems?: number;
     itemsPerPage?: number;
     onItemsPerPageChange?: (itemsPerPage: number) => void;
+    renderInPlace?: boolean;
 }
 
 const CommonPagination: React.FC<CommonPaginationProps> = ({
@@ -21,17 +22,19 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
     onPageChange,
     totalItems,
     itemsPerPage = 10,
-    onItemsPerPageChange
+    onItemsPerPageChange,
+    renderInPlace = false
 }) => {
     // Simplified portal target lookup
     const target = document.getElementById('pagination-target');
 
-    if (!show || !target) return null;
+    if (!show || (!target && !renderInPlace)) return null;
 
     const startItem = currentPage * itemsPerPage + 1;
     const endItem = Math.min((currentPage + 1) * itemsPerPage, totalItems || 0);
 
     const itemsPerPageOptions = [
+        { value: 5, label: '5' },
         { value: 10, label: '10' },
         { value: 20, label: '20' },
         { value: 25, label: '25' },
@@ -95,10 +98,10 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
         })
     };
 
-    return createPortal(
+    const content = (
         <div className={styles.container}>
             <div className={styles.left}>
-                {totalItems && (
+                {totalItems !== undefined && (
                     <div className={styles.info}>
                         Showing {startItem}-{endItem} of {totalItems} results
                     </div>
@@ -141,9 +144,14 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
                     />
                 </div>
             )}
-        </div>,
-        target
+        </div>
     );
+
+    if (renderInPlace) {
+        return content;
+    }
+
+    return target ? createPortal(content, target) : null;
 };
 
 export default CommonPagination;
