@@ -304,6 +304,16 @@
     background-color: #83cee4;
 }
 
+.importBtn {
+    background-color: #f0f9ff;
+    color: #1e40af;
+    border: 1px solid #60a5fa;
+}
+
+.importBtn:hover {
+    background-color: #dbeafe;
+}
+
 .statusBadge {
     display: inline-flex;
     align-items: center;
