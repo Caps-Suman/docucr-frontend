@@ -36,6 +36,7 @@ const CreateSOP: React.FC = () => {
     software: "",
     clearinghouse: "",
   });
+  const [uploading, setUploading] = useState(false);
 
   // Workflow
   const [workflowDescription, setWorkflowDescription] = useState("");
@@ -69,6 +70,11 @@ const CreateSOP: React.FC = () => {
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
 
   // --- Effects ---
   useEffect(() => {
@@ -83,7 +89,11 @@ const CreateSOP: React.FC = () => {
       setLoading(true);
       const sop = await sopService.getSOPById(sopId);
       setTitle(sop.title);
-      setCategory(sop.category);
+      setCategory(
+        typeof sop.category === "string"
+          ? sop.category
+          : (sop.category?.title ?? ""),
+      );
       // Type assertion or mapping if backend returns snake_case but frontend uses camelCase for internal state variables
       // However, SOP type is shared. If backend returns snake_case keys in JSON response, we might need to map them to component state
       // provider_type from backend to providerType state
@@ -91,12 +101,25 @@ const CreateSOP: React.FC = () => {
       setSelectedClientId(sop.clientId || "");
 
       // Map JSONB fields back to state
-      if (sop.providerInfo) setProviderInfo(sop.providerInfo);
+      if (sop.providerInfo) {
+        setProviderInfo({
+          providerName: sop.providerInfo.providerName ?? "",
+          billingProviderName: sop.providerInfo.billingProviderName ?? "",
+          billingProviderNPI: sop.providerInfo.billingProviderNPI ?? "",
+          providerTaxID: sop.providerInfo.providerTaxID ?? "",
+          practiceName: sop.providerInfo.practiceName ?? "",
+          billingAddress: sop.providerInfo.billingAddress ?? "",
+          software: sop.providerInfo.software ?? "",
+          clearinghouse: sop.providerInfo.clearinghouse ?? "",
+        });
+      }
       if (sop.workflowProcess) {
         setWorkflowDescription(sop.workflowProcess.description || "");
         setEligibilityPortals(sop.workflowProcess.eligibilityPortals || []);
       }
-      if (sop.billingGuidelines) setBillingGuidelines(sop.billingGuidelines);
+      if (sop.billingGuidelines) {
+        setBillingGuidelines(normalizeBillingGuidelines(sop.billingGuidelines));
+      }
       if (sop.codingRules) setCodingRules(sop.codingRules);
     } catch (error) {
       console.error("Failed to load SOP:", error);
@@ -105,6 +128,100 @@ const CreateSOP: React.FC = () => {
       setLoading(false);
     }
   };
+  const handleSOPUpload = async (file: File) => {
+    try {
+      setUploading(true);
+
+      const response = await sopService.uploadAndExtractSOP(file);
+
+      if (!response?.extracted_data) {
+        throw new Error("No extracted data returned from AI");
+      }
+
+      applyExtractedSOP(response.extracted_data);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to extract SOP from file");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+const applyExtractedSOP = (data: any) => {
+  if (!data || typeof data !== "object") {
+    console.error("Invalid extracted SOP payload", data);
+    return;
+  }
+
+  // ---- BASIC ----
+  if (data.basic_information?.sop_title) {
+    setTitle(data.basic_information.sop_title);
+  }
+
+  if (data.basic_information?.category) {
+    setCategory(data.basic_information.category);
+  }
+
+  // ---- PROVIDER ----
+  if (data.provider_information) {
+    setProviderType("new");
+    setProviderInfo(prev => ({
+      ...prev,
+      providerName: data.provider_information.billing_provider_name || "",
+      billingProviderName: data.provider_information.billing_provider_name || "",
+      billingProviderNPI: data.provider_information.billing_provider_npi || "",
+      providerTaxID: data.provider_information.provider_tax_id || "",
+      billingAddress: data.provider_information.billing_address || "",
+      software: data.provider_information.software || "",
+      clearinghouse: data.provider_information.clearinghouse || "",
+    }));
+  }
+
+  // ---- WORKFLOW (THIS IS THE PART YOU BROKE) ----
+  if (data.workflow_process) {
+    setWorkflowDescription(
+      [
+        data.workflow_process.superbill_source,
+        data.workflow_process.posting_charges_rules,
+      ]
+        .filter(Boolean)
+        .join("\n\n")
+    );
+
+    setEligibilityPortals(
+      Array.isArray(data.workflow_process.eligibility_verification_portals)
+        ? data.workflow_process.eligibility_verification_portals
+        : []
+    );
+  }
+
+  // ---- BILLING GUIDELINES ----
+  if (Array.isArray(data.billing_guidelines)) {
+    setBillingGuidelines(
+      data.billing_guidelines.map((g: any, i: number) => ({
+        id: `bg_ai_${i}`,
+        title: g?.title || `Guideline ${i + 1}`,
+        description: g?.description || "",
+      }))
+    );
+  }
+
+  // ---- CODING RULES ----
+  if (Array.isArray(data.coding_rules)) {
+    setCodingRules(
+      data.coding_rules.map((r: any, i: number) => ({
+        id: `cr_ai_${i}`,
+        cptCode: r.cptCode || "",
+        description: r.description || "",
+        ndcCode: r.ndcCode || "",
+        units: r.units || "",
+        chargePerUnit: r.chargePerUnit || "",
+        modifier: r.modifier || "",
+        replacementCPT: r.replacementCPT || "",
+      }))
+    );
+  }
+};
 
   useEffect(() => {
     if (providerType === "existing" && selectedClientId) {
@@ -209,6 +326,31 @@ const CreateSOP: React.FC = () => {
   const handleRemoveCodingRule = (id: string) => {
     setCodingRules(codingRules.filter((r) => r.id !== id));
   };
+  const normalizeBillingGuidelines = (input: any[]): BillingGuideline[] => {
+    return input.map((g, i) => {
+      if (typeof g === "string") {
+        return {
+          id: `bg_norm_${i}`,
+          title: `Guideline ${i + 1}`,
+          description: g,
+        };
+      }
+
+      if (typeof g === "object" && g !== null) {
+        return {
+          id: g.id || `bg_norm_${i}`,
+          title: g.title || `Guideline ${i + 1}`,
+          description: g.description || "",
+        };
+      }
+
+      return {
+        id: `bg_norm_${i}`,
+        title: `Guideline ${i + 1}`,
+        description: "",
+      };
+    });
+  };
 
   const handleSave = async () => {
     if (!validateForm()) {
@@ -221,10 +363,11 @@ const CreateSOP: React.FC = () => {
       provider_type: providerType,
       client_id: selectedClientId || null,
       provider_info: providerInfo,
-      workflow_process: {
-        description: workflowDescription,
-        eligibilityPortals,
-      },
+ workflow_process: {
+  superbill_source: workflowDescription,
+  posting_charges_rules: postingCharges,
+  eligibility_verification_portals: eligibilityPortals,
+},
       billing_guidelines: billingGuidelines,
       coding_rules: codingRules,
     };
@@ -273,6 +416,29 @@ const CreateSOP: React.FC = () => {
             <Save size={16} />
             {saving ? "Saving..." : "Save SOP"}
           </button>
+
+          <button
+            className={styles.saveButton}
+            type="button"
+            onClick={handleUploadClick}
+            disabled={uploading}
+          >
+            {uploading ? "Extracting..." : "Upload SOP"}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,.png,.jpg,.jpeg"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                handleSOPUpload(file);
+                e.target.value = ""; // 🔥 REQUIRED
+              }
+            }}
+          />
         </div>
       </div>
 
