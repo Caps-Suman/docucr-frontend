@@ -14,6 +14,7 @@ export interface User {
     is_superuser: boolean;
     roles: Array<{ id: string; name: string }>;
     supervisor_id: string | null;
+    client_count: number;
 }
 
 export interface UserStats {
@@ -132,6 +133,23 @@ const userService = {
             throw new Error(error.detail || 'Failed to deactivate user');
         }
         return response.json();
+    },
+
+    getUserClients: async (userId: string): Promise<any[]> => {
+        const response = await apiClient(`${API_URL}/api/users/${userId}/clients`);
+        if (!response.ok) throw new Error('Failed to fetch user clients');
+        return response.json();
+    },
+
+    mapUserClients: async (userId: string, clientIds: string[], assignedBy: string): Promise<void> => {
+        const response = await apiClient(`${API_URL}/api/users/${userId}/clients`, {
+            method: 'POST',
+            body: JSON.stringify({ client_ids: clientIds, assigned_by: assignedBy })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to map clients');
+        }
     }
 };
 

@@ -27,6 +27,7 @@ import ConfirmModal from "../../Common/ConfirmModal";
 import CommonDropdown from "../../Common/CommonDropdown";
 import ShareDocumentsModal from "../ShareDocumentsModal/ShareDocumentsModal";
 import PrintModal from "./PrintModal";
+import EditMetadataModal from "./EditMetadataModal";
 import styles from "./DocumentDetail.module.css";
 
 interface DocumentDetailData {
@@ -308,14 +309,14 @@ const DocumentDetail: React.FC = () => {
               />
             </button>
           </span>
-          <span className="tooltip-wrapper" data-tooltip="Print">
+          {/* <span className="tooltip-wrapper" data-tooltip="Print">
             <button
               className={styles.actionButton}
               onClick={() => setShowPrintModal(true)}
             >
               <Printer size={16} />
             </button>
-          </span>
+          </span> */}
           <span className="tooltip-wrapper" data-tooltip="Share">
             <button
               className={styles.actionButton}
@@ -410,7 +411,9 @@ const DocumentDetail: React.FC = () => {
           {id && <MetadataCard documentId={id} />}
 
           <div className={styles.card}>
-            <h3 className={styles.cardTitle}>Derived Documents</h3>
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>Derived Documents</h3>
+            </div>
             <div className={styles.badgeList}>
               {document.extracted_documents.map((ed, index) => (
                 <span key={ed.id} className={getBadgeClass(index)}>
@@ -532,24 +535,23 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
   const [resolvedValues, setResolvedValues] = useState<Record<string, string>>(
     {}
   );
-  const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
   const [isSaving, setIsSaving] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
   const [documentTypes, setDocumentTypes] = useState<any[]>([]);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const res = await documentService.getDocumentFormData(documentId);
-      setData(res.data);
-      setEditData(res.data);
+      let normalizedData = { ...res.data };
+      let finalMapping: Record<string, string> = {};
 
       if (res.form_id) {
         const formDef = await formService.getForm(res.form_id);
         setForm(formDef);
 
-        const normalizedData = { ...res.data };
         if (formDef.fields) {
           formDef.fields.forEach((field) => {
             const fid = field.id || "";
@@ -559,9 +561,6 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
             }
           });
         }
-
-        setData(normalizedData);
-        setEditData(normalizedData);
 
         const clientRes = await clientService.getClients(1, 100);
         const docTypeRes = await documentTypeService.getActiveDocumentTypes();
@@ -573,7 +572,6 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
         setClients(clientList);
         setDocumentTypes(docTypeRes.map((t: any) => ({ id: t.id, name: t.name })));
 
-        const mapping: Record<string, string> = {};
         for (const field of formDef.fields || []) {
           const fieldId = field.id || "";
           const label = field.label || "";
@@ -584,16 +582,24 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
             const client = clientList.find(
               (c: any) => String(c.id) === String(val) || String(c.name) === String(val)
             );
-            if (client) mapping[fieldId] = client.name;
+            if (client) {
+              finalMapping[fieldId] = client.name;
+              normalizedData[fieldId] = client.id;
+            }
           } else if (label.toLowerCase().includes("document type")) {
             const type = docTypeRes.find(
               (t) => String(t.id) === String(val) || String(t.name) === String(val)
             );
-            if (type) mapping[fieldId] = type.name;
+            if (type) {
+              finalMapping[fieldId] = type.name;
+              normalizedData[fieldId] = type.id;
+            }
           }
         }
-        setResolvedValues(mapping);
       }
+      setResolvedValues(finalMapping);
+      setData(normalizedData);
+      setEditData(normalizedData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -610,7 +616,6 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
       setIsSaving(true);
       await documentService.updateDocumentFormData(documentId, editData);
       await fetchData();
-      setIsEditing(false);
     } catch (e) {
       console.error(e);
       alert("Failed to save changes");
@@ -637,148 +642,78 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
       </div>
     );
 
-  if (!data || (Object.keys(data).length === 0 && !isEditing)) return null;
+  if (!data || Object.keys(data).length === 0) return null;
 
   return (
-    <div className={styles.card}>
-      <div className={styles.cardHeader}>
-        <h3 className={styles.cardTitle}>
-          <FileText size={18} />
-          Uploaded Metadata
-        </h3>
-        {!isEditing && (
+    <>
+      <div className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h3 className={styles.cardTitle}>
+            <FileText size={18} />
+            Uploaded Metadata
+          </h3>
           <button
             className={styles.editButton}
-            onClick={() => setIsEditing(true)}
+            onClick={() => setShowEditModal(true)}
           >
             <Edit3 size={14} />
             Edit
           </button>
-        )}
-      </div>
+        </div>
 
-      <div className={styles.metaList}>
-        {form
-          ? form.fields?.map((field) => {
-            const fieldId = field.id || "";
-            const label = field.label || "";
-            let val = isEditing
-              ? (editData[fieldId] ?? editData[label])
-              : (data[fieldId] ?? data[label]);
+        <div className={styles.metaList}>
+          {form
+            ? form.fields?.map((field) => {
+              const fieldId = field.id || "";
+              const label = field.label || "";
+              let val = data[fieldId] ?? data[label];
 
-            if (
-              !isEditing &&
-              (val === undefined || val === null || val === "" || (Array.isArray(val) && val.length === 0))
-            )
-              return null;
+              if (
+                val === undefined || val === null || val === "" || (Array.isArray(val) && val.length === 0)
+              )
+                return null;
 
-            return (
-              <div key={fieldId} className={styles.summaryItem}>
-                <div className={styles.summaryKey}>
-                  {field.label}
-                  {isEditing && field.required && (
-                    <span className={styles.requiredAsterisk}>*</span>
-                  )}
-                </div>
-
-                {isEditing ? (
-                  <div className={styles.editInterface}>
-                    {field.label.toLowerCase() === "client" ? (
-                      <CommonDropdown
-                        value={val || ""}
-                        onChange={(v) => handleFieldChange(fieldId, v, label)}
-                        options={[
-                          { value: "", label: "Select client" },
-                          ...clients.map((c) => ({
-                            value: c.id,
-                            label: c.name,
-                          })),
-                        ]}
-                        size="md"
-                      />
-                    ) : field.label.toLowerCase().includes("document type") ? (
-                      <CommonDropdown
-                        value={val || ""}
-                        onChange={(v) => handleFieldChange(fieldId, v, label)}
-                        options={[
-                          { value: "", label: "Select document type" },
-                          ...documentTypes.map((t) => ({
-                            value: t.id,
-                            label: t.name,
-                          })),
-                        ]}
-                        size="md"
-                      />
-                    ) : field.field_type === "textarea" ? (
-                      <textarea
-                        className={styles.formInput}
-                        value={val || ""}
-                        onChange={(e) => handleFieldChange(fieldId, e.target.value, label)}
-                        rows={3}
-                      />
-                    ) : field.field_type === "select" ? (
-                      <CommonDropdown
-                        value={val || ""}
-                        onChange={(v) => handleFieldChange(fieldId, v, label)}
-                        options={[
-                          { value: "", label: "Select an option" },
-                          ...(field.options?.map((opt) => ({
-                            value: opt,
-                            label: opt,
-                          })) || []),
-                        ]}
-                        size="md"
-                      />
-                    ) : (
-                      <input
-                        type={field.field_type === "date" ? "date" : "text"}
-                        className={styles.formInput}
-                        value={val || ""}
-                        onChange={(e) => handleFieldChange(fieldId, e.target.value, label)}
-                      />
-                    )}
+              return (
+                <div key={fieldId} className={styles.summaryItem}>
+                  <div className={styles.summaryKey}>
+                    {field.label}
                   </div>
-                ) : (
                   <div className={styles.summaryValue}>
                     {resolvedValues[fieldId] || (Array.isArray(val) ? val.join(", ") : String(val))}
                   </div>
-                )}
-              </div>
-            );
-          })
-          : Object.entries(data).map(([key, value]) => {
-            if (!value) return null;
-            return (
-              <div key={key} className={styles.summaryItem}>
-                <div className={styles.summaryKey}>{key}</div>
-                <div className={styles.summaryValue}>{String(value)}</div>
-              </div>
-            );
-          })}
+                </div>
+              );
+            })
+            : Object.entries(data).map(([key, value]) => {
+              if (!value) return null;
+              return (
+                <div key={key} className={styles.summaryItem}>
+                  <div className={styles.summaryKey}>{key}</div>
+                  <div className={styles.summaryValue}>{String(value)}</div>
+                </div>
+              );
+            })}
+        </div>
       </div>
 
-      {isEditing && (
-        <div className={styles.cardFooter}>
-          <button
-            className={styles.cancelButton}
-            onClick={() => {
-              setIsEditing(false);
-              setEditData(data);
-            }}
-            disabled={isSaving}
-          >
-            Cancel
-          </button>
-          <button
-            className={styles.saveButton}
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
-      )}
-    </div>
+      <EditMetadataModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditData(data);
+        }}
+        onSave={async () => {
+          await handleSave();
+          setShowEditModal(false);
+        }}
+        form={form}
+        editData={editData}
+        handleFieldChange={handleFieldChange}
+        isSaving={isSaving}
+        clients={clients}
+        documentTypes={documentTypes}
+      />
+    </>
   );
 };
 
@@ -787,21 +722,23 @@ const ExtractedReportCard: React.FC<{ documentId: string }> = ({
 }) => {
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedPage, setSelectedPage] = useState(1);
+
+  const fetchReportData = async (page: number) => {
+    try {
+      setLoading(true);
+      const data = await documentService.getDocumentReportData(documentId, page);
+      setReportData(data);
+    } catch (err) {
+      console.error("Failed to fetch report data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchReportData = async () => {
-      try {
-        setLoading(true);
-        const data = await documentService.getDocumentReportData(documentId);
-        setReportData(data);
-      } catch (err) {
-        console.error("Failed to fetch report data", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchReportData();
-  }, [documentId]);
+    fetchReportData(selectedPage);
+  }, [documentId, selectedPage]);
 
   if (loading) {
     return (
@@ -814,9 +751,143 @@ const ExtractedReportCard: React.FC<{ documentId: string }> = ({
     );
   }
 
-  if (!reportData || !reportData.findings || reportData.findings.length === 0) {
-    return null;
-  }
+  // Pre-calculate rendered findings to check if we have any data to show
+  const renderedFindings = !reportData?.findings ? [] : reportData.findings.map((finding: any, idx: number) => {
+    let displayData = finding.extracted_data || {};
+
+    // Flatten wrapper keys
+    if (displayData.fields && !Array.isArray(displayData.fields)) {
+      displayData = displayData.fields;
+    }
+
+    // Format labels (camelCase/snake_case to Title Case)
+    const formatLabel = (str: string) => {
+      if (!str) return "";
+      return str
+        .replace(/([A-Z])/g, " $1")
+        .replace(/_/g, " ")
+        .replace(/^./, (s) => s.toUpperCase())
+        .trim();
+    };
+
+    // Recursive parser for values
+    const parseAndRenderValue = (val: any): any => {
+      if (val === null || val === undefined || val === "" || val === "null" || val === "NULL") return null;
+
+      if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+        try {
+          const parsed = JSON.parse(val);
+          return parseAndRenderValue(parsed);
+        } catch (e) { /* ignore */ }
+      }
+
+      if (Array.isArray(val)) {
+        const renderedItems = val
+          .map(item => parseAndRenderValue(item))
+          .filter(item => item !== null);
+
+        if (renderedItems.length === 0) return null;
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+            {renderedItems.map((item, i) => (
+              <div key={i} style={{ paddingLeft: '10px', borderLeft: '2px solid var(--color-gray-200)' }}>
+                {item}
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      if (typeof val === 'object' && val !== null) {
+        if (val.fieldName && val.exampleValue !== undefined) {
+          if (val.exampleValue === "null" || val.exampleValue === null || val.exampleValue === "") return null;
+          return (
+            <div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                {formatLabel(val.fieldName)}
+              </div>
+              <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                {String(val.exampleValue)}
+              </div>
+            </div>
+          );
+        }
+
+        const entries = Object.entries(val).filter(([k, v]) => {
+          const internal = ['type_name', 'document_type', 'confidence', 'page_range', 'fieldType', 'description'];
+          if (internal.includes(k)) return false;
+          const evaluated = parseAndRenderValue(v);
+          return evaluated !== null;
+        });
+
+        if (entries.length === 0) return null;
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {entries.map(([k, v]) => (
+              <div key={k}>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>{formatLabel(k)}</div>
+                <div>{parseAndRenderValue(v)}</div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      return String(val);
+    };
+
+    // If it's an array, handle it
+    if (Array.isArray(displayData)) {
+      const items = displayData.map(item => parseAndRenderValue(item)).filter(i => i !== null);
+      if (items.length === 0) return null;
+
+      return (
+        <div key={idx} className={styles.typeItem} style={{ marginBottom: "16px" }}>
+          <div className={styles.typeHeader}>
+            <span className={styles.typeBadge} style={{ background: "var(--color-primary-light)", color: "var(--color-primary-dark)", border: "1px solid var(--color-primary)" }}>
+              {finding.document_type}
+            </span>
+            <span className={styles.typePageRange}>Pages: {finding.page_range}</span>
+          </div>
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {items.map((item, i) => <div key={i}>{item}</div>)}
+          </div>
+        </div>
+      );
+    }
+
+    // Standard map
+    const entries = Object.entries(displayData).filter(([key, value]) => {
+      const internalKeys = ['type_name', 'document_type', 'confidence', 'page_range'];
+      if (internalKeys.includes(key.toLowerCase())) return false;
+      return parseAndRenderValue(value) !== null;
+    });
+
+    if (entries.length === 0) return null;
+
+    return (
+      <div key={idx} className={styles.typeItem} style={{ marginBottom: idx === reportData.findings.length - 1 ? 0 : "16px" }}>
+        <div className={styles.typeHeader}>
+          <span className={styles.typeBadge} style={{ background: "var(--color-primary-light)", color: "var(--color-primary-dark)", border: "1px solid var(--color-primary)" }}>
+            {finding.document_type}
+          </span>
+          <span className={styles.typePageRange}>Pages: {finding.page_range}</span>
+        </div>
+        <div className={styles.metaList} style={{ marginTop: "12px" }}>
+          {entries.map(([key, value]) => (
+            <div key={key} className={styles.summaryItem} style={{ marginBottom: "12px" }}>
+              <div className={styles.summaryKey}>{formatLabel(key)}</div>
+              <div className={styles.summaryValue} style={{ fontSize: "14px" }}>
+                {parseAndRenderValue(value)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }).filter((f: React.ReactNode) => f !== null);
 
   return (
     <div className={styles.card}>
@@ -825,79 +896,26 @@ const ExtractedReportCard: React.FC<{ documentId: string }> = ({
           <FileSpreadsheet size={18} />
           Extracted Analysis
         </h3>
+
+        {reportData && reportData.total_pages > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>Page:</span> */}
+            <CommonDropdown
+              value={selectedPage}
+              onChange={(v) => setSelectedPage(Number(v))}
+              options={Array.from({ length: reportData.total_pages }, (_, i) => ({
+                value: i + 1,
+                label: `Page ${i + 1}`
+              }))}
+              size="sm"
+            />
+          </div>
+        )}
       </div>
       <div className={styles.metaList}>
-        {reportData.findings.map((finding: any, idx: number) => (
-          <div
-            key={idx}
-            className={styles.typeItem}
-            style={{
-              marginBottom: idx === reportData.findings.length - 1 ? 0 : "16px",
-            }}
-          >
-            <div className={styles.typeHeader}>
-              <span
-                className={styles.typeBadge}
-                style={{
-                  background: "var(--color-primary-light)",
-                  color: "var(--color-primary-dark)",
-                  borderColor: "var(--color-primary)",
-                }}
-              >
-                {finding.document_type}
-              </span>
-              <span className={styles.typePageRange}>
-                Pages: {finding.page_range}
-              </span>
-            </div>
-            <div className={styles.metaList} style={{ marginTop: "12px" }}>
-              {Object.entries(finding.extracted_data).map(([key, value]) => {
-                if (value === null || value === undefined || value === "")
-                  return null;
-
-                const renderExtractedValue = (val: any) => {
-                  if (Array.isArray(val)) {
-                    if (val.length === 0) return null;
-                    if (typeof val[0] === 'object' && val[0] !== null) {
-                      return (
-                        <div style={{ marginTop: '4px' }}>
-                          {val.map((item: any, i: number) => (
-                            <div key={i} style={{ marginBottom: '8px', paddingLeft: '8px', borderLeft: '2px solid var(--color-border-light)' }}>
-                              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
-                                {item.fieldName || `Item ${i + 1}`}
-                              </div>
-                              <div style={{ fontSize: '14px', color: 'var(--color-text-primary)' }}>
-                                {String(item.exampleValue || "")}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }
-                    return val.join(", ");
-                  }
-                  return String(val);
-                };
-
-                return (
-                  <div
-                    key={key}
-                    className={styles.summaryItem}
-                    style={{ marginBottom: "12px" }}
-                  >
-                    <div className={styles.summaryKey}>{key}</div>
-                    <div
-                      className={styles.summaryValue}
-                      style={{ fontSize: "14px" }}
-                    >
-                      {renderExtractedValue(value)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        {renderedFindings.length > 0 ? renderedFindings : (
+          <p className={styles.emptyMessage}>No specific data points were extracted for this document page.</p>
+        )}
       </div>
     </div>
   );
