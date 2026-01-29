@@ -12,8 +12,9 @@ interface ClientImportModalProps {
 
 const ClientImportModal: React.FC<ClientImportModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const [file, setFile] = useState<File | null>(null);
-    const [preview, setPreview] = useState<any[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [isValidating, setIsValidating] = useState(false);
+    const [validationResult, setValidationResult] = useState<{ valid: any[]; invalid: { row: any; error: string }[] } | null>(null);
     const [uploadResult, setUploadResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -21,95 +22,103 @@ const ClientImportModal: React.FC<ClientImportModalProps> = ({ isOpen, onClose, 
         const selectedFile = event.target.files?.[0];
         if (selectedFile) {
             setFile(selectedFile);
-            parseFile(selectedFile);
+            setValidationResult(null);
+            setUploadResult(null);
         }
     };
 
-    const parseFile = async (file: File) => {
-        try {
-            const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data, { type: 'buffer' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-                header: 1,
-                defval: null 
-            });
-            
-            if (jsonData.length === 0) {
-                setPreview([]);
-                return;
-            }
-            
-            const headers = jsonData[0] as string[];
-            const rows = jsonData.slice(1).filter((row: any) => 
-                row && Array.isArray(row) && row.some((cell: any) => cell !== null && cell !== undefined && String(cell).trim() !== '')
-            );
-            
-            const processedData = rows.map((row: any) => {
-                const obj: any = {};
-                headers.forEach((header: string, index: number) => {
-                    if (header && String(header).trim()) {
-                        const cleanHeader = String(header).trim().toLowerCase().replace(/\s+/g, '_');
-                        obj[cleanHeader] = row[index];
-                    }
-                });
-                return obj;
-            });
-            
-            setPreview(processedData.slice(0, 5));
-        } catch (error) {
-            console.error('Error parsing file:', error);
-            setPreview([]);
-        }
+    const normalizeData = (data: any) => {
+        const normalized: any = {};
+        Object.keys(data).forEach(key => {
+            const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+            normalized[cleanKey] = data[key];
+        });
+        return normalized;
     };
 
-    const validateClientData = (data: any): ClientCreateData | null => {
+    const validateClientData = (rawData: any): { client: ClientCreateData | null; error?: string } => {
+        const data = normalizeData(rawData);
         const client: ClientCreateData = {};
-        const type = String(data.type || 'Individual').trim().toLowerCase();
-        
-        if (type === 'group') {
-            if (data.business_name && String(data.business_name).trim()) {
-                client.business_name = String(data.business_name).trim();
+
+        // Header Variations Mapping
+        const getVal = (keys: string[]) => {
+            for (const k of keys) {
+                const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (data[cleanK] !== undefined && data[cleanK] !== null) return String(data[cleanK]).trim();
             }
-            if (data.npi && String(data.npi).trim()) {
-                client.npi = String(data.npi).trim();
-            }
-            if (data.description && String(data.description).trim()) {
-                client.description = String(data.description).trim();
-            }
-            client.type = 'Group';
+            return null;
+        };
+
+        const typeStr = getVal(['type', 'client_type', 'category'])?.toLowerCase() || 'individual';
+        client.type = typeStr.includes('group') || typeStr.includes('org') ? 'Group' : 'Individual';
+
+        const npi = getVal(['npi', 'npi_number', 'provider_id']);
+        if (npi) {
+            let cleanNpi = npi.replace(/\D/g, '');
+            // Handle case where Excel strips leading zero
+            if (cleanNpi.length === 9) cleanNpi = '0' + cleanNpi;
+
+            if (!/^\d{10}$/.test(cleanNpi)) return { client: null, error: 'NPI must be exactly 10 digits' };
+            client.npi = cleanNpi;
         } else {
-            if (data.first_name && String(data.first_name).trim()) {
-                client.first_name = String(data.first_name).trim();
-            }
-            if (data.middle_name && String(data.middle_name).trim()) {
-                client.middle_name = String(data.middle_name).trim();
-            }
-            if (data.last_name && String(data.last_name).trim()) {
-                client.last_name = String(data.last_name).trim();
-            }
-            if (data.npi && String(data.npi).trim()) {
-                client.npi = String(data.npi).trim();
-            }
-            if (data.description && String(data.description).trim()) {
-                client.description = String(data.description).trim();
-            }
-            client.type = 'Individual';
+            return { client: null, error: 'NPI is required' };
         }
 
-        const hasName = (type === 'group' && client.business_name) || 
-                       (type === 'individual' && client.first_name);
-        if (!hasName) return null;
+        if (client.type === 'Group') {
+            const bName = getVal(['business_name', 'organization', 'company', 'name']);
+            if (!bName) return { client: null, error: 'Business Name is required for Group type' };
+            client.business_name = bName;
+        } else {
+            const fName = getVal(['first_name', 'given_name', 'fname']);
+            const lName = getVal(['last_name', 'surname', 'lname']);
+            if (!fName) return { client: null, error: 'First Name is required for Individual type' };
+            client.first_name = fName;
+            client.last_name = lName || '';
+            client.middle_name = getVal(['middle_name', 'mname']) || '';
+        }
 
-        return client;
+        // Address Mapping
+        const a1 = getVal(['address_line_1', 'address1', 'street', 'address']);
+        if (a1) client.address_line_1 = a1.substring(0, 250);
+
+        const a2 = getVal(['address_line_2', 'address2', 'city', 'suite', 'apt']);
+        if (a2) client.address_line_2 = a2.substring(0, 250);
+
+        const sc = getVal(['state_code', 'state', 'province']);
+        const sn = getVal(['state_name', 'state_full']);
+
+        if (sc && sc.length === 2) {
+            client.state_code = sc.toUpperCase();
+            if (sn) client.state_name = sn.substring(0, 50);
+        } else if (sc) {
+            // If we have a long state name in the 'state' column
+            client.state_name = sc.substring(0, 50);
+        } else if (sn) {
+            client.state_name = sn.substring(0, 50);
+        }
+
+        const zc = getVal(['zip_code', 'zip', 'postcode', 'pin']);
+        if (zc) {
+            // Clean and take first 5 digits
+            const cleanZip = zc.replace(/\D/g, '').substring(0, 5);
+            if (cleanZip.length === 5) client.zip_code = cleanZip;
+        }
+
+        const ze = getVal(['zip_extension', 'zip4']);
+        if (ze) {
+            const cleanExt = ze.replace(/\D/g, '').substring(0, 4);
+            if (cleanExt.length === 4) client.zip_extension = cleanExt;
+        }
+
+        const desc = getVal(['description', 'notes', 'memo']);
+        if (desc) client.description = desc.substring(0, 1000);
+
+        return { client };
     };
 
-    const handleUpload = async () => {
+    const handleValidate = async () => {
         if (!file) return;
-
-        setIsUploading(true);
+        setIsValidating(true);
         setUploadResult(null);
 
         try {
@@ -117,61 +126,77 @@ const ClientImportModal: React.FC<ClientImportModalProps> = ({ isOpen, onClose, 
             const workbook = XLSX.read(data, { type: 'buffer' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-                header: 1,
-                defval: null 
-            });
-            
-            if (jsonData.length === 0) {
-                setUploadResult({ success: 0, failed: 0, errors: ['No data found in file'] });
-                return;
-            }
-            
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+
             const headers = jsonData[0] as string[];
-            const rows = jsonData.slice(1).filter((row: any) => 
+            const rows = jsonData.slice(1).filter((row: any) =>
                 row && Array.isArray(row) && row.some((cell: any) => cell !== null && cell !== undefined && String(cell).trim() !== '')
             );
-            
+
             const processedData = rows.map((row: any) => {
                 const obj: any = {};
                 headers.forEach((header: string, index: number) => {
-                    if (header && String(header).trim()) {
-                        const cleanHeader = String(header).trim().toLowerCase().replace(/\s+/g, '_');
-                        obj[cleanHeader] = row[index];
-                    }
+                    if (header) obj[header] = row[index];
                 });
                 return obj;
             });
 
-            const validClients: ClientCreateData[] = [];
-            const errors: string[] = [];
+            const valid: ClientCreateData[] = [];
+            const invalid: { row: any; error: string }[] = [];
 
-            processedData.forEach((row: any, index: number) => {
-                const client = validateClientData(row);
-                if (client) {
-                    validClients.push(client);
+            // Preliminary mapping to collect NPIs
+            const mappedRows = processedData.map((row: any) => {
+                return validateClientData(row);
+            });
+
+            const npisToCheck = mappedRows
+                .map(r => r.client?.npi)
+                .filter((npi): npi is string => !!npi);
+
+            const existingNpis = npisToCheck.length > 0
+                ? await clientService.checkExistingNPIs(npisToCheck)
+                : [];
+
+            mappedRows.forEach((result, index) => {
+                const row = processedData[index];
+                if (result.client) {
+                    if (result.client.npi && existingNpis.includes(result.client.npi)) {
+                        invalid.push({ row, error: 'NPI already exists in system' });
+                    } else {
+                        valid.push(result.client);
+                    }
                 } else {
-                    errors.push(`Row ${index + 2}: Missing required name information`);
+                    invalid.push({ row, error: result.error || 'Invalid data' });
                 }
             });
 
-            if (validClients.length === 0) {
-                setUploadResult({ success: 0, failed: 0, errors: ['No valid client data found'] });
-                return;
-            }
+            setValidationResult({ valid, invalid });
+        } catch (error) {
+            console.error('Validation error:', error);
+        } finally {
+            setIsValidating(false);
+        }
+    };
 
-            const result = await clientService.createClientsFromBulk(validClients);
+    const handleUpload = async () => {
+        if (!validationResult || validationResult.valid.length === 0) return;
+
+        setIsUploading(true);
+        try {
+            const result = await clientService.createClientsFromBulk(validationResult.valid);
             setUploadResult(result);
 
             if (result.success > 0) {
                 setTimeout(() => {
                     onSuccess();
                     handleClose();
-                }, 2000);
+                }, 3000);
             }
         } catch (error: any) {
             console.error('Error uploading file:', error);
-            setUploadResult({ success: 0, failed: 0, errors: [error.message || 'Failed to upload file'] });
+            // If we have a validation error string with commas from our service, split it back into multiple lines
+            const errorList = error.message ? error.message.split(', ') : ['Failed to upload'];
+            setUploadResult({ success: 0, failed: errorList.length, errors: errorList });
         } finally {
             setIsUploading(false);
         }
@@ -179,7 +204,7 @@ const ClientImportModal: React.FC<ClientImportModalProps> = ({ isOpen, onClose, 
 
     const handleClose = () => {
         setFile(null);
-        setPreview([]);
+        setValidationResult(null);
         setUploadResult(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -189,130 +214,186 @@ const ClientImportModal: React.FC<ClientImportModalProps> = ({ isOpen, onClose, 
 
     if (!isOpen) return null;
 
+    const renderStepContent = () => {
+        if (uploadResult) {
+            return (
+                <div className={styles.resultContainer}>
+                    <div className={styles.resultHeader}>
+                        <CheckCircle size={48} className={styles.successIcon} />
+                        <h3>Import Complete</h3>
+                        <p>We've finished processing your client list.</p>
+                    </div>
+
+                    <div className={styles.statsGrid}>
+                        <div className={styles.statCard}>
+                            <span className={styles.statValue}>{uploadResult.success}</span>
+                            <span className={styles.statLabel}>Successfully Created</span>
+                        </div>
+                        <div className={styles.statCard}>
+                            <span className={styles.statValue}>{uploadResult.failed}</span>
+                            <span className={styles.statLabel}>Failed to Upload</span>
+                        </div>
+                    </div>
+
+                    {uploadResult.errors.length > 0 && (
+                        <div className={styles.errorSection}>
+                            <h4>Detailed Errors</h4>
+                            <div className={styles.issueListContainer}>
+                                <ul className={styles.issueList}>
+                                    {uploadResult.errors.map((error, idx) => (
+                                        <li key={idx}>
+                                            <AlertCircle size={14} className={styles.errorIcon} />
+                                            <span>{error}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        if (validationResult) {
+            return (
+                <div className={styles.validationArea}>
+                    <div className={styles.validationSummary}>
+                        <div className={styles.summaryItem}>
+                            <CheckCircle size={20} className={styles.successColor} />
+                            <div>
+                                <strong>{validationResult.valid.length}</strong>
+                                <span>Valid Rows</span>
+                            </div>
+                        </div>
+                        <div className={styles.summaryItem}>
+                            <AlertCircle size={20} className={styles.errorColor} />
+                            <div>
+                                <strong>{validationResult.invalid.length}</strong>
+                                <span>Invalid Rows</span>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    {validationResult.invalid.length > 0 && (
+                        <div className={styles.invalidSection}>
+                            <h4>Fix Required ({validationResult.invalid.length} issues)</h4>
+                            <div className={styles.issueListContainer}>
+                                <ul className={styles.issueList}>
+                                    {validationResult.invalid.map((issue, idx) => (
+                                        <li key={idx}>
+                                            <strong>Row {idx + 2}:</strong> {issue.error}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        if (file) {
+            return (
+                <div className={styles.fileSelected}>
+                    <div className={styles.fileCard}>
+                        <FileText size={40} className={styles.fileIcon} />
+                        <div className={styles.fileDetails}>
+                            <strong>{file.name}</strong>
+                            <span>{(file.size / 1024).toFixed(1)} KB</span>
+                        </div>
+                        <button className={styles.removeFile} onClick={() => setFile(null)}>Change</button>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className={styles.uploadArea}>
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleFileSelect}
+                    className={styles.fileInput}
+                />
+                <div className={styles.uploadBox} onClick={() => fileInputRef.current?.click()}>
+                    <Upload size={48} className={styles.uploadIcon} />
+                    <h3>Drop your file here</h3>
+                    <p>or click to browse from your computer</p>
+                    <span className={styles.supportedFormats}>Supports .XLSX, .XLS, .CSV</span>
+                </div>
+
+                <div className={styles.guidelines}>
+                    <div className={styles.guidelinesHeader}>
+                        <h4>Guideline for Columns</h4>
+                        <a
+                            href="/client_import_template.csv"
+                            download="client_import_template.csv"
+                            className={styles.downloadLink}
+                        >
+                            Download Sample Template
+                        </a>
+                    </div>
+                    <p>Include headers like <strong>Type, Name, NPI, Address, State, ZIP</strong>.</p>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className={styles.overlay} onClick={handleClose}>
             <div className={styles.content} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.header}>
-                    <h2>Import Clients from File</h2>
+                    <div className={styles.titleInfo}>
+                        <h2>Bulk Client Import</h2>
+                        <p>Import multiple providers at once</p>
+                    </div>
                     <button className={styles.closeButton} onClick={handleClose}>
                         <X size={20} />
                     </button>
                 </div>
 
                 <div className={styles.body}>
-                    {!file ? (
-                        <div className={styles.uploadArea}>
-                            <div className={styles.uploadContent}>
-                                <Upload size={48} className={styles.uploadIcon} />
-                                <h3>Upload Excel or CSV file</h3>
-                                <p>File should contain columns for client information</p>
-                                <div className={styles.columnInfo}>
-                                    <p>Required columns:</p>
-                                    <ul>
-                                        <li><strong>business_name</strong> - Required for Group type</li>
-                                        <li><strong>first_name</strong> - Required for Individual type</li>
-                                        <li><strong>middle_name</strong> - Optional for Individual type</li>
-                                        <li><strong>last_name</strong> - Optional for Individual type</li>
-                                        <li><strong>npi</strong> - Optional</li>
-                                        <li><strong>type</strong> - Client type (Individual/Group)</li>
-                                        <li><strong>description</strong> - Optional</li>
-                                    </ul>
-                                    <p style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
-                                        Only applicable columns are used for each client type
-                                    </p>
-                                </div>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept=".xlsx,.xls,.csv"
-                                    onChange={handleFileSelect}
-                                    className={styles.fileInput}
-                                />
-                                <button
-                                    className={styles.browseButton}
-                                    onClick={() => fileInputRef.current?.click()}
-                                >
-                                    Browse Files
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className={styles.previewArea}>
-                            <div className={styles.fileInfo}>
-                                <FileText size={20} />
-                                <span>{file.name}</span>
-                                <button onClick={() => fileInputRef.current?.click()}>
-                                    Change File
-                                </button>
-                            </div>
+                    {renderStepContent()}
+                </div>
 
-                            {preview.length > 0 && (
-                                <div className={styles.preview}>
-                                    <h4>Preview (first 5 rows)</h4>
-                                    <div className={styles.tableContainer}>
-                                        <table className={styles.previewTable}>
-                                            <thead>
-                                                <tr>
-                                                    {Object.keys(preview[0]).map(key => (
-                                                        <th key={key}>{key}</th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {preview.map((row, index) => (
-                                                    <tr key={index}>
-                                                        {Object.values(row).map((value, cellIndex) => (
-                                                            <td key={cellIndex}>{String(value)}</td>
-                                                        ))}
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
+                <div className={styles.footer}>
+                    {file && !validationResult && !uploadResult && (
+                        <button
+                            className={styles.primaryButton}
+                            onClick={handleValidate}
+                            disabled={isValidating}
+                        >
+                            {isValidating ? 'Validating...' : 'Validate File'}
+                        </button>
+                    )}
 
-                            {uploadResult && (
-                                <div className={styles.result}>
-                                    <h4>Upload Result</h4>
-                                    <div className={styles.resultStats}>
-                                        <div className={styles.successStat}>
-                                            <CheckCircle size={16} />
-                                            <span>{uploadResult.success} clients created successfully</span>
-                                        </div>
-                                        {uploadResult.failed > 0 && (
-                                            <div className={styles.errorStat}>
-                                                <AlertCircle size={16} />
-                                                <span>{uploadResult.failed} clients failed</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {uploadResult.errors.length > 0 && (
-                                        <div className={styles.errorList}>
-                                            <h5>Errors:</h5>
-                                            <ul>
-                                                {uploadResult.errors.map((error, index) => (
-                                                    <li key={index}>{error}</li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                    {validationResult && !uploadResult && (
+                        <>
+                            <button className={styles.secondaryButton} onClick={() => setValidationResult(null)}>
+                                Back
+                            </button>
+                            <button
+                                className={styles.primaryButton}
+                                onClick={handleUpload}
+                                disabled={isUploading || validationResult.valid.length === 0}
+                            >
+                                {isUploading ? 'Importing...' : `Import ${validationResult.valid.length} Clients`}
+                            </button>
+                        </>
+                    )}
 
-                            <div className={styles.actions}>
-                                <button className={styles.cancelButton} onClick={handleClose}>
-                                    Cancel
-                                </button>
-                                <button
-                                    className={styles.uploadButton}
-                                    onClick={handleUpload}
-                                    disabled={isUploading || uploadResult?.success !== undefined}
-                                >
-                                    {isUploading ? 'Uploading...' : 'Import Clients'}
-                                </button>
-                            </div>
-                        </div>
+                    {uploadResult && (
+                        <button className={styles.primaryButton} onClick={handleClose}>
+                            Close
+                        </button>
+                    )}
+
+                    {!file && (
+                        <button className={styles.secondaryButton} onClick={handleClose}>
+                            Cancel
+                        </button>
                     )}
                 </div>
             </div>

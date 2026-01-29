@@ -1,0 +1,5 @@
+Type,Business Name,First Name,Middle Name,Last Name,NPI,Address Line 1,Address Line 2,State,ZIP,Description
+Individual,,John,A,Doe,1234567890,1600 Amphitheatre Pkwy,,California,94043,San Francisco Clinic
+Group,HealthCare Solutions,,,,0987654321,123 Main St,Suite 400,New York,10001,Main Hospital Office
+Individual,,Jane,,Smith,1122334455,456 Park Ave,,New York,10022,Private Practice
+Group,Apollo Hospital,,,,5566778899,Road No 72,Film Nagar,Telangana,500033,Hyderabad Branch

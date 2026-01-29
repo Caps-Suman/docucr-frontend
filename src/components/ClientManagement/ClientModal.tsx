@@ -19,7 +19,7 @@ interface ClientModalProps {
         status_id?: string | number;
         description?: string;
 
-        // ✅ ADDRESS
+        // ADDRESS
         address_line_1?: string;
         address_line_2?: string;
         state_code?: string;
@@ -212,7 +212,9 @@ const ClientModal: React.FC<ClientModalProps> = ({
             newErrors.firstName = 'First Name is required for Individual type';
         }
 
-        if (npi && !/^\d{10}$/.test(npi)) {
+        if (!npi) {
+            newErrors.npi = 'NPI is required';
+        } else if (!/^\d{10}$/.test(npi)) {
             newErrors.npi = 'NPI must be exactly 10 digits';
         }
 
@@ -229,6 +231,17 @@ const ClientModal: React.FC<ClientModalProps> = ({
         setFetchingNpi(true);
         setErrors({});
         try {
+            // Check if NPI already exists in our system first
+            const existing = await clientService.checkExistingNPIs([npi]);
+            if (existing.length > 0) {
+                // If editing, check if it's the same client
+                if (!initialData || initialData.npi !== npi) {
+                    setErrors({ npi: 'This NPI is already registered in the system' });
+                    setFetchingNpi(false);
+                    return;
+                }
+            }
+
             const data = await clientService.lookupNPI(npi);
             if (data.results && data.results.length > 0) {
                 const result = data.results[0];
@@ -300,9 +313,23 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         if (!validate()) return;
 
-        const data: any = {
+        // Check for existing NPI before submission
+        if (npi && (!initialData || initialData.npi !== npi)) {
+            try {
+                const existing = await clientService.checkExistingNPIs([npi]);
+                if (existing.length > 0) {
+                    setErrors({ npi: 'This NPI is already registered in the system' });
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking NPI:', error);
+            }
+        }
+
+        const formData: any = {
             business_name: businessName.trim() || undefined,
             first_name: firstName.trim() || undefined,
             middle_name: middleName.trim() || undefined,
@@ -323,12 +350,12 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
         // Only include status_id for new clients, not updates
         if (!initialData && statusId) {
-            data.status_id = statusId;
+            formData.status_id = statusId;
         }
 
         setIsSubmitting(true);
         try {
-            await onSubmit(data);
+            await onSubmit(formData);
         } finally {
             setIsSubmitting(false);
         }
@@ -375,7 +402,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
                             />
                         </div>
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>NPI</label>
+                            <label className={styles.label}>NPI *</label>
                             <div className={styles.npiInputWrapper}>
                                 <input
                                     type="text"
