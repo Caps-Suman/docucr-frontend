@@ -1040,6 +1040,16 @@
     border: 1px solid #c4c7c5;
     background: white;
     position: relative;
+    /* Hide scrollbars */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+}
+
+.tableContainer::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari and Opera */
 }
 
 .table {
@@ -1059,7 +1069,7 @@
 /* Default column width */
 .table th:not(.stickyCol),
 .table td:not(.stickyCol) {
-    width: 120px;
+    width: 182px;
 }
 
 /* Checkbox column - narrower */
@@ -1112,6 +1122,69 @@
     z-index: 20;
 }
 
+.stickyCol {
+    position: sticky !important;
+    z-index: 10 !important;
+    background-color: white !important;
+}
+
+:global(.dark) .stickyCol {
+    background-color: #1f2937 !important;
+}
+
+.stickyStatus {
+    right: 182px;
+    width: 182px !important;
+    border-left: 1px solid #c4c7c5 !important;
+    position: sticky !important;
+}
+
+.stickyStatus::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -15px;
+    /* Wider shadow */
+    width: 15px;
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.2));
+    /* More opaque */
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+    /* Ensure it's above potential content overlap */
+}
+
+.hasScrollShadow .stickyStatus::before {
+    opacity: 1;
+}
+
+.stickyActions {
+    right: 0;
+    width: 182px !important;
+    z-index: 11 !important;
+    /* Slightly higher than status */
+}
+
+:global(.dark) .stickyStatus::before {
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.6));
+}
+
+:global(.dark) .hasScrollShadow .stickyStatus {
+    border-left: 1px solid #4b5563 !important;
+}
+
+/* Ensure header also has sticky background */
+.table thead th.stickyCol {
+    z-index: 11 !important;
+    background-color: #f8fafc !important;
+}
+
+:global(.dark) .table thead th.stickyCol {
+    background-color: #374151 !important;
+}
+
 /* Truncation for cells */
 .cellContent {
     display: block;
@@ -1131,17 +1204,17 @@
 .tooltipWrapper::after {
     content: attr(data-tooltip);
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: 50%;
-    transform: translateX(-50%) translateY(4px);
+    transform: translateX(-50%) translateY(-8px);
     background-color: #1e293b;
     color: white;
     padding: 6px 10px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     white-space: normal;
-    max-width: 300px;
+    max-width: 250px;
     width: max-content;
     text-align: center;
     line-height: 1.4;
@@ -1156,11 +1229,11 @@
 .tooltipWrapper::before {
     content: '';
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-bottom-color: #1e293b;
+    transform: translateX(-50%) translateY(-2px);
+    border: 6px solid transparent;
+    border-top-color: #1e293b;
     opacity: 0;
     pointer-events: none;
     transition: all 0.2s ease;
@@ -1179,11 +1252,6 @@
     align-items: center;
 }
 
-.statusTooltipWrapper:hover .statusTooltip {
-    opacity: 1;
-    visibility: visible;
-}
-
 .statusTooltip {
     position: fixed;
     background-color: #1e293b;
@@ -1193,27 +1261,20 @@
     font-size: 12px;
     font-weight: 400;
     white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
     transition: all 0.2s ease;
     z-index: 9999999;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     min-width: 220px;
-    margin-top: 8px;
 }
 
 .statusTooltip::before {
     content: '';
-    position: fixed;
-    border: 5px solid transparent;
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
     border-bottom-color: #1e293b;
-    margin-top: -13px;
-}
-
-.statusTooltipWrapper:hover .statusTooltip {
-    opacity: 1;
-    visibility: visible;
 }
 
 .statusTooltipItem {
@@ -1265,7 +1326,7 @@
 }
 
 :global(.dark) .tooltipWrapper::before {
-    border-bottom-color: #f9fafb;
+    border-top-color: #f9fafb;
 }
 
 /* Dark mode for status tooltip */

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Eye,
   Download,
@@ -46,18 +47,18 @@ interface DocumentListItem {
   uploadedAt: string;
   totalPages?: number; // ✅ ADD
   status:
-    | "processing"
-    | "completed"
-    | "failed"
-    | "uploading"
-    | "queued"
-    | "uploaded"
-    | "ai_queued"
-    | "analyzing"
-    | "ai_failed"
-    | "upload_failed"
-    | "cancelled"
-    | "archived";
+  | "processing"
+  | "completed"
+  | "failed"
+  | "uploading"
+  | "queued"
+  | "uploaded"
+  | "ai_queued"
+  | "analyzing"
+  | "ai_failed"
+  | "upload_failed"
+  | "cancelled"
+  | "archived";
   isUploading?: boolean;
   progress?: number;
   errorMessage?: string;
@@ -112,6 +113,10 @@ const DocumentList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
   const [totalDocuments, setTotalDocuments] = useState(0);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [statusTooltipVisible, setStatusTooltipVisible] = useState(false);
+  const [statusTooltipPos, setStatusTooltipPos] = useState({ top: 0, left: 0 });
 
   const activeFilterCount = Object.entries(activeFilters).filter(
     ([key, value]) => {
@@ -149,6 +154,33 @@ const DocumentList: React.FC = () => {
     setActiveFilters(resetState);
     setCurrentPage(0);
   };
+
+  const checkScroll = () => {
+    if (tableContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tableContainerRef.current;
+      // Show shadow if the table is wider than the container 
+      // AND we haven't scrolled all the way to the right yet.
+      // Use a 5px threshold for subpixel and zoom issues.
+      const hasOverflow = scrollWidth > clientWidth;
+      const atTheEnd = scrollLeft + clientWidth >= scrollWidth - 5;
+      setIsScrolled(hasOverflow && !atTheEnd);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const container = tableContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", checkScroll);
+      window.addEventListener("resize", checkScroll);
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", checkScroll);
+      }
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [documents, loading]);
 
   const handleStatClick = (type: string) => {
     const newFilters = { ...activeFilters };
@@ -343,9 +375,9 @@ const DocumentList: React.FC = () => {
         const response = await documentListConfigService.getUserConfig();
         if (response.configuration) {
           const sortedColumns = [...response.configuration.columns]
-  .sort((a: any, b: any) => a.order - b.order);
+            .sort((a: any, b: any) => a.order - b.order);
 
-setColumnConfig(sortedColumns);
+          setColumnConfig(sortedColumns);
 
         } else {
           // Default config if none saved
@@ -512,11 +544,11 @@ setColumnConfig(sortedColumns);
         const updated = prev.map((doc) =>
           String(doc.id) === String(data.document_id)
             ? {
-                ...doc,
-                status: mapDocumentStatus(data.status),
-                progress: data.progress,
-                errorMessage: data.error_message,
-              }
+              ...doc,
+              status: mapDocumentStatus(data.status),
+              progress: data.progress,
+              errorMessage: data.error_message,
+            }
             : doc,
         );
 
@@ -788,544 +820,522 @@ setColumnConfig(sortedColumns);
 
     return [
       ...baseColumns,
-...columnConfig
-  .filter((col) => col.visible)
-  .map((col) => {
-        const isSystem = col.isSystem || systemIds.includes(col.id);
-        if (isSystem) {
-          switch (col.id) {
-            case "name":
-              return {
-                key: "name",
-                header: col.label,
-                render: (value: string, row: DocumentListItem) => (
-                  <span className={styles.tooltipWrapper} data-tooltip={value}>
-                    <div
-                      className={styles.documentName}
-                      style={{ maxWidth: "100%", overflow: "hidden" }}
-                    >
-                      <FileText size={16} style={{ flexShrink: 0 }} />
-                      <span className={styles.cellContent}>{value}</span>
-                    </div>
-                  </span>
-                ),
-              };
-            case "type":
-              return {
-                key: "type",
-                header: col.label,
-                render: (value: string) => (
-                  <span className={styles.tooltipWrapper} data-tooltip={value}>
-                    <span className={styles.documentType}>{value}</span>
-                  </span>
-                ),
-              };
-            case "size":
-              return {
-                key: "size",
-                header: col.label,
-                render: (value: number) => {
-                  const sizeText = `${value.toFixed(2)} MB`;
-                  return (
-                    <span
-                      className={styles.tooltipWrapper}
-                      data-tooltip={sizeText}
-                    >
-                      <span className={styles.cellContent}>{sizeText}</span>
-                    </span>
-                  );
-                },
-              };
-            case "pages":
-              return {
-                key: "pages",
-                header: col.label,
-                render: (_: any, row: DocumentListItem) => (
-                  <span>{row.totalPages ?? "-"}</span>
-                ),
-              };
-
-            case "uploadedAt":
-              return {
-                key: "uploadedAt",
-                header: col.label,
-                render: (value: string) => {
-                  const dateText = new Date(value).toLocaleDateString();
-                  const fullDate = new Date(value).toLocaleString();
-                  return (
-                    <span
-                      className={styles.tooltipWrapper}
-                      data-tooltip={fullDate}
-                    >
-                      <span className={styles.cellContent}>{dateText}</span>
-                    </span>
-                  );
-                },
-              };
-            case "status":
-              return {
-                key: "status",
-                header: (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    {col.label}
-                    <span
-                      className={styles.statusTooltipWrapper}
-                      onMouseEnter={(e) => {
-                        const tooltip = e.currentTarget.querySelector(
-                          `.${styles.statusTooltip}`,
-                        ) as HTMLElement;
-                        if (tooltip) {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          tooltip.style.top = `${rect.bottom}px`;
-                          tooltip.style.left = `${rect.left + rect.width / 2}px`;
-                          tooltip.style.transform = "translateX(-50%)";
-                        }
-                      }}
-                    >
-                      <Info
-                        size={14}
-                        style={{ cursor: "help", color: "#64748b" }}
-                      />
-                      <div className={styles.statusTooltip}>
-                        <div className={styles.statusTooltipItem}><Clock size={12} /> Queued: Waiting to start</div>
-                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                        <div className={styles.statusTooltipItem}><UploadCloud size={12} /> Uploading: File transfer</div>
-                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                        <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Uploaded: File ready for AI</div>
-                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                        <div className={styles.statusTooltipItem}><Clock size={12} /> Processing: Being analyzed</div>
-                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                        <div className={styles.statusTooltipItem}><Clock size={12} /> AI Queued: Waiting for AI</div>
-                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                        <div className={styles.statusTooltipItem}><Loader2 size={12} /> Analyzing: AI processing</div>
-                        <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                        <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Completed: Finished analysis</div>
-                        <div className={styles.statusTooltipItem} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>Error States:</div>
-                        <div className={styles.statusTooltipItem}><X size={12} /> Upload Failed: Network error</div>
-                        <div className={styles.statusTooltipItem}><X size={12} /> Failed: General error</div>
-                        <div className={styles.statusTooltipItem}><X size={12} /> AI Failed: Analysis error</div>
-                        <div className={styles.statusTooltipItem}><Ban size={12} /> Cancelled: Manually stopped</div>
+      ...columnConfig
+        .filter((col) => col.visible)
+        .map((col) => {
+          const isSystem = col.isSystem || systemIds.includes(col.id);
+          if (isSystem) {
+            switch (col.id) {
+              case "name":
+                return {
+                  key: "name",
+                  header: col.label,
+                  render: (value: string, row: DocumentListItem) => (
+                    <span className={styles.tooltipWrapper} data-tooltip={value}>
+                      <div
+                        className={styles.documentName}
+                        style={{ maxWidth: "100%", overflow: "hidden" }}
+                      >
+                        <FileText size={16} style={{ flexShrink: 0 }} />
+                        <span className={styles.cellContent}>{value}</span>
                       </div>
                     </span>
-                  </div>
-                ),
-                render: (value: string, row: DocumentListItem) => {
-                  const getStatusConfig = (status: string) => {
-                    switch (status) {
-                      case "completed":
-                        return {
-                          class: "active",
-                          icon: <CheckCircle size={12} />,
-                          text: "Completed",
-                        };
-                      case "queued":
-                        return {
-                          class: "inactive",
-                          icon: <Clock size={12} />,
-                          text: "Queued",
-                        };
-                      case "uploading":
-                        const progressText = row.progress
-                          ? `Uploading (${row.progress}%)`
-                          : "Uploading";
-                        return {
-                          class: "inactive",
-                          icon: <UploadCloud size={12} />,
-                          text: progressText,
-                        };
-                      case "uploaded":
-                        return {
-                          class: "active",
-                          icon: <CheckCircle size={12} />,
-                          text: "Uploaded",
-                        };
-                      case "processing":
-                        return {
-                          class: "inactive",
-                          icon: <Clock size={12} />,
-                          text: "Processing",
-                        };
-                      case "upload_failed":
-                        return {
-                          class: "error",
-                          icon: <X size={12} />,
-                          text: (
-                            <span
-                              className={`${styles.tooltipWrapper} tooltip-bottom`}
-                              data-tooltip={row.errorMessage || "Upload failed"}
-                            >
-                              Upload Failed
-                            </span>
-                          ),
-                        };
-                      case "ai_queued":
-                        return {
-                          class: "inactive",
-                          icon: <Clock size={12} />,
-                          text: "AI Queued",
-                        };
-                      case "analyzing":
-                        return {
-                          class: "processing",
-                          icon: (
-                            <Loader2 size={12} className={styles.animateSpin} />
-                          ),
-                          text: row.errorMessage || "Analyzing...",
-                        };
-                      case "ai_failed":
-                        return {
-                          class: "error",
-                          icon: <X size={12} />,
-                          text: (
-                            <span
-                              className={`${styles.tooltipWrapper} tooltip-bottom`}
-                              data-tooltip={
-                                row.errorMessage || "Analysis failed"
-                              }
-                            >
-                              Analysis Failed
-                            </span>
-                          ),
-                        };
-                      case "cancelled":
-                        return {
-                          class: "inactive",
-                          icon: <Ban size={12} />,
-                          text: "Cancelled",
-                        };
-                      case "archived":
-                        return {
-                          class: "inactive",
-                          icon: <Archive size={12} />,
-                          text: "Archived",
-                        };
-                      case "failed":
-                        return {
-                          class: "error",
-                          icon: <X size={12} />,
-                          text: (
-                            <span
-                              className={`${styles.tooltipWrapper} tooltip-bottom`}
-                              data-tooltip={row.errorMessage || "Unknown error"}
-                            >
-                              Failed
-                            </span>
-                          ),
-                        };
-                      default:
-                        return {
-                          class: "inactive",
-                          icon: <Clock size={12} />,
-                          text: status,
-                        };
-                    }
-                  };
+                  ),
+                };
+              case "type":
+                return {
+                  key: "type",
+                  header: col.label,
+                  render: (value: string) => (
+                    <span className={styles.tooltipWrapper} data-tooltip={value}>
+                      <span className={styles.documentType}>{value}</span>
+                    </span>
+                  ),
+                };
+              case "size":
+                return {
+                  key: "size",
+                  header: col.label,
+                  render: (value: number) => {
+                    const sizeText = `${value.toFixed(2)} MB`;
+                    return (
+                      <span
+                        className={styles.tooltipWrapper}
+                        data-tooltip={sizeText}
+                      >
+                        <span className={styles.cellContent}>{sizeText}</span>
+                      </span>
+                    );
+                  },
+                };
+              case "pages":
+                return {
+                  key: "pages",
+                  header: col.label,
+                  render: (_: any, row: DocumentListItem) => (
+                    <span>{row.totalPages ?? "-"}</span>
+                  ),
+                };
 
-                  const config = getStatusConfig(value);
-                  return (
-                    <span
-                      className={`status-badge ${config.class}`}
+              case "uploadedAt":
+                return {
+                  key: "uploadedAt",
+                  header: col.label,
+                  render: (value: string) => {
+                    const dateText = new Date(value).toLocaleDateString();
+                    const fullDate = new Date(value).toLocaleString();
+                    return (
+                      <span
+                        className={styles.tooltipWrapper}
+                        data-tooltip={fullDate}
+                      >
+                        <span className={styles.cellContent}>{dateText}</span>
+                      </span>
+                    );
+                  },
+                };
+              case "status":
+                return {
+                  key: "status",
+                  header: (
+                    <div
                       style={{
-                        display: "inline-flex",
+                        display: "flex",
                         alignItems: "center",
                         gap: "4px",
                       }}
                     >
-                      {config.icon}
-                      {config.text}
-                    </span>
-                  );
-                },
-              };
-            case "actions":
-              return {
-                key: "actions",
-                header: col.label,
-                render: (_: any, row: DocumentListItem) => (
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    {(row.status === "failed" ||
-                      row.status === "ai_failed" ||
-                      row.status === "upload_failed" ||
-                      row.status === "cancelled") && (
+                      {col.label}
                       <span
-                        className={styles.tooltipWrapper}
-                        data-tooltip="Retry Analysis"
+                        className={styles.statusTooltipWrapper}
+                        onMouseEnter={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setStatusTooltipPos({
+                            top: rect.bottom,
+                            left: rect.left + rect.width / 2,
+                          });
+                          setStatusTooltipVisible(true);
+                        }}
+                        onMouseLeave={() => setStatusTooltipVisible(false)}
                       >
-                        <button
-                          onClick={() => handleReanalyze(row.id)}
-                          className="action-btn activate"
-                        >
-                          <RefreshCw size={14} />
-                        </button>
+                        <Info
+                          size={14}
+                          style={{ cursor: "help", color: "#64748b" }}
+                        />
                       </span>
-                    )}
+                    </div>
+                  ),
+                  render: (value: string, row: DocumentListItem) => {
+                    const getStatusConfig = (status: string) => {
+                      switch (status) {
+                        case "completed":
+                          return {
+                            class: "active",
+                            icon: <CheckCircle size={12} />,
+                            text: "Completed",
+                          };
+                        case "queued":
+                          return {
+                            class: "inactive",
+                            icon: <Clock size={12} />,
+                            text: "Queued",
+                          };
+                        case "uploading":
+                          const progressText = row.progress
+                            ? `Uploading (${row.progress}%)`
+                            : "Uploading";
+                          return {
+                            class: "inactive",
+                            icon: <UploadCloud size={12} />,
+                            text: progressText,
+                          };
+                        case "uploaded":
+                          return {
+                            class: "active",
+                            icon: <CheckCircle size={12} />,
+                            text: "Uploaded",
+                          };
+                        case "processing":
+                          return {
+                            class: "inactive",
+                            icon: <Clock size={12} />,
+                            text: "Processing",
+                          };
+                        case "upload_failed":
+                          return {
+                            class: "error",
+                            icon: <X size={12} />,
+                            text: (
+                              <span
+                                className={`${styles.tooltipWrapper} tooltip-bottom`}
+                                data-tooltip={row.errorMessage || "Upload failed"}
+                              >
+                                Upload Failed
+                              </span>
+                            ),
+                          };
+                        case "ai_queued":
+                          return {
+                            class: "inactive",
+                            icon: <Clock size={12} />,
+                            text: "AI Queued",
+                          };
+                        case "analyzing":
+                          return {
+                            class: "processing",
+                            icon: (
+                              <Loader2 size={12} className={styles.animateSpin} />
+                            ),
+                            text: row.errorMessage || "Analyzing...",
+                          };
+                        case "ai_failed":
+                          return {
+                            class: "error",
+                            icon: <X size={12} />,
+                            text: (
+                              <span
+                                className={`${styles.tooltipWrapper} tooltip-bottom`}
+                                data-tooltip={
+                                  row.errorMessage || "Analysis failed"
+                                }
+                              >
+                                Analysis Failed
+                              </span>
+                            ),
+                          };
+                        case "cancelled":
+                          return {
+                            class: "inactive",
+                            icon: <Ban size={12} />,
+                            text: "Cancelled",
+                          };
+                        case "archived":
+                          return {
+                            class: "inactive",
+                            icon: <Archive size={12} />,
+                            text: "Archived",
+                          };
+                        case "failed":
+                          return {
+                            class: "error",
+                            icon: <X size={12} />,
+                            text: (
+                              <span
+                                className={`${styles.tooltipWrapper} tooltip-bottom`}
+                                data-tooltip={row.errorMessage || "Unknown error"}
+                              >
+                                Failed
+                              </span>
+                            ),
+                          };
+                        default:
+                          return {
+                            class: "inactive",
+                            icon: <Clock size={12} />,
+                            text: status,
+                          };
+                      }
+                    };
 
-                    {(row.status === "analyzing" ||
-                      row.status === "ai_queued") && (
+                    const config = getStatusConfig(value);
+                    return (
                       <span
-                        className={styles.tooltipWrapper}
-                        data-tooltip="Cancel Analysis"
+                        className={`status-badge ${config.class}`}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
                       >
-                        <button
-                          onClick={() => handleCancel(row.id)}
-                          className="action-btn delete"
-                        >
-                          <Ban size={14} />
-                        </button>
+                        {config.icon}
+                        {config.text}
                       </span>
-                    )}
-
-                    {!row.isUploading && (
-                      <>
-                        <span
-                          className={styles.tooltipWrapper}
-                          data-tooltip={
-                            row.status === "queued" ||
-                            row.status === "uploading" ||
-                            row.status === "upload_failed"
-                              ? "Upload in progress or failed"
-                              : "View Details"
-                          }
-                        >
-                          <button
-                            className={`action-btn edit ${row.status === "queued" || row.status === "uploading" || row.status === "upload_failed" ? "disabled" : ""}`}
-                            onClick={() => {
-                              if (
-                                row.status !== "queued" &&
-                                row.status !== "uploading" &&
-                                row.status !== "upload_failed"
-                              ) {
-                                navigate(`/documents/${row.id}`);
-                              }
-                            }}
-                            disabled={
-                              row.status === "queued" ||
-                              row.status === "uploading" ||
-                              row.status === "upload_failed"
-                            }
-                          >
-                            <Eye size={14} />
-                          </button>
-                        </span>
-                        <span
-                          className={styles.tooltipWrapper}
-                          data-tooltip="Download"
-                        >
-                          <button
-                            className="action-btn activate"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              try {
-                                const url =
-                                  await documentService.getDocumentDownloadUrl(
-                                    row.id,
-                                  );
-                                const link = window.document.createElement("a");
-                                link.href = url;
-                                link.setAttribute(
-                                  "download",
-                                  row.originalFilename || row.name,
-                                );
-                                link.setAttribute("target", "_blank");
-                                link.setAttribute("rel", "noopener noreferrer");
-                                window.document.body.appendChild(link);
-                                link.click();
-                                window.document.body.removeChild(link);
-                              } catch (error) {
-                                setToast({
-                                  message: "Failed to verify download",
-                                  type: "error",
-                                });
-                              }
-                            }}
-                          >
-                            <Download size={14} />
-                          </button>
-                        </span>
-                        {!row.isArchived && (
+                    );
+                  },
+                };
+              case "actions":
+                return {
+                  key: "actions",
+                  header: col.label,
+                  render: (_: any, row: DocumentListItem) => (
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      {(row.status === "failed" ||
+                        row.status === "ai_failed" ||
+                        row.status === "upload_failed" ||
+                        row.status === "cancelled") && (
                           <span
                             className={styles.tooltipWrapper}
-                            data-tooltip="Archive"
+                            data-tooltip="Retry Analysis"
                           >
                             <button
-                              className="action-btn"
-                              onClick={() => handleArchive(row.id)}
+                              onClick={() => handleReanalyze(row.id)}
+                              className="action-btn activate"
                             >
-                              <Archive size={14} />
+                              <RefreshCw size={14} />
                             </button>
                           </span>
                         )}
-                        {row.isArchived && (
+
+                      {(row.status === "analyzing" ||
+                        row.status === "ai_queued") && (
                           <span
                             className={styles.tooltipWrapper}
-                            data-tooltip="Unarchive"
+                            data-tooltip="Cancel Analysis"
+                          >
+                            <button
+                              onClick={() => handleCancel(row.id)}
+                              className="action-btn delete"
+                            >
+                              <Ban size={14} />
+                            </button>
+                          </span>
+                        )}
+
+                      {!row.isUploading && (
+                        <>
+                          <span
+                            className={styles.tooltipWrapper}
+                            data-tooltip={
+                              row.status === "queued" ||
+                                row.status === "uploading" ||
+                                row.status === "upload_failed"
+                                ? "Upload in progress or failed"
+                                : "View Details"
+                            }
+                          >
+                            <button
+                              className={`action-btn edit ${row.status === "queued" || row.status === "uploading" || row.status === "upload_failed" ? "disabled" : ""}`}
+                              onClick={() => {
+                                if (
+                                  row.status !== "queued" &&
+                                  row.status !== "uploading" &&
+                                  row.status !== "upload_failed"
+                                ) {
+                                  navigate(`/documents/${row.id}`);
+                                }
+                              }}
+                              disabled={
+                                row.status === "queued" ||
+                                row.status === "uploading" ||
+                                row.status === "upload_failed"
+                              }
+                            >
+                              <Eye size={14} />
+                            </button>
+                          </span>
+                          <span
+                            className={styles.tooltipWrapper}
+                            data-tooltip="Download"
                           >
                             <button
                               className="action-btn activate"
-                              onClick={() => handleUnarchive(row.id)}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const url =
+                                    await documentService.getDocumentDownloadUrl(
+                                      row.id,
+                                    );
+                                  const link = window.document.createElement("a");
+                                  link.href = url;
+                                  link.setAttribute(
+                                    "download",
+                                    row.originalFilename || row.name,
+                                  );
+                                  link.setAttribute("target", "_blank");
+                                  link.setAttribute("rel", "noopener noreferrer");
+                                  window.document.body.appendChild(link);
+                                  link.click();
+                                  window.document.body.removeChild(link);
+                                } catch (error) {
+                                  setToast({
+                                    message: "Failed to verify download",
+                                    type: "error",
+                                  });
+                                }
+                              }}
                             >
-                              <ArchiveRestore size={14} />
+                              <Download size={14} />
                             </button>
                           </span>
-                        )}
+                          {!row.isArchived && (
+                            <span
+                              className={styles.tooltipWrapper}
+                              data-tooltip="Archive"
+                            >
+                              <button
+                                className="action-btn"
+                                onClick={() => handleArchive(row.id)}
+                              >
+                                <Archive size={14} />
+                              </button>
+                            </span>
+                          )}
+                          {row.isArchived && (
+                            <span
+                              className={styles.tooltipWrapper}
+                              data-tooltip="Unarchive"
+                            >
+                              <button
+                                className="action-btn activate"
+                                onClick={() => handleUnarchive(row.id)}
+                              >
+                                <ArchiveRestore size={14} />
+                              </button>
+                            </span>
+                          )}
+                          <span
+                            className={styles.tooltipWrapper}
+                            data-tooltip="Delete"
+                          >
+                            <button
+                              className="action-btn delete"
+                              onClick={() => handleDeleteClick(row)}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </span>
+                        </>
+                      )}
+                      {row.isUploading && (
                         <span
                           className={styles.tooltipWrapper}
-                          data-tooltip="Delete"
+                          data-tooltip="Uploading..."
                         >
-                          <button
-                            className="action-btn delete"
-                            onClick={() => handleDeleteClick(row)}
-                          >
-                            <Trash2 size={14} />
+                          <button className="action-btn" disabled>
+                            <Clock size={14} />
                           </button>
                         </span>
-                      </>
-                    )}
-                    {row.isUploading && (
+                      )}
+                    </div>
+                  ),
+                };
+              default:
+                return { key: col.id, header: col.label };
+            }
+          } else {
+            // Custom Form Field
+            const formFieldId = col.id.replace("form_", "");
+            return {
+              key: col.id,
+              header: col.label,
+              render: (_: any, row: DocumentListItem) => {
+                const data = row.customFormData || {};
+
+                // Strategy 1: Direct lookup by column ID (stripped of form_ prefix)
+                let val = data[formFieldId];
+
+                // Strategy 2: Lookup by column label (handles cases where keys are labels)
+                if (!val && col.label) {
+                  val = data[col.label];
+                }
+
+                // Strategy 3: Lookup by actual field metadata (handles ID mismatch in config)
+                if (!val && formFields.length > 0) {
+                  const fieldMetadata = formFields.find(
+                    (f) =>
+                      f.id === formFieldId ||
+                      f.label === col.label ||
+                      (f.label &&
+                        col.label &&
+                        f.label.toLowerCase() === col.label.toLowerCase()),
+                  );
+                  if (fieldMetadata) {
+                    val = data[fieldMetadata.id] || data[fieldMetadata.label];
+                  }
+                }
+
+                if (!val) return <span style={{ color: "#94a3b8" }}>-</span>;
+
+                // Better matching for system fields
+                const normalizedLabel = col.label.trim().toLowerCase();
+                const formField = formFields.find((f) => f.id === formFieldId);
+
+                // Check if this is a client or document type field by UUID pattern and field name
+                const isUuidPattern =
+                  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                    String(val),
+                  );
+                const isClientField =
+                  normalizedLabel.includes("client") ||
+                  (formField &&
+                    formField.label &&
+                    formField.label.toLowerCase().includes("client"));
+                const isDocTypeField =
+                  normalizedLabel.includes("document type") ||
+                  normalizedLabel.includes("doc type") ||
+                  (formField &&
+                    formField.label &&
+                    formField.label.toLowerCase().includes("document type"));
+                const isSystemField =
+                  isClientField || isDocTypeField || formField?.is_system;
+
+                if (isSystemField && isUuidPattern) {
+                  // Handle Client resolution
+                  if (isClientField) {
+                    if (clients.length === 0)
+                      return (
+                        <span style={{ color: "#94a3b8", fontSize: "12px" }}>
+                          Loading clients...
+                        </span>
+                      );
+                    const client = clients.find(
+                      (c) => String(c.id) === String(val),
+                    );
+                    const clientName = client
+                      ? client.business_name ||
+                      `${client.first_name} ${client.last_name}`.trim()
+                      : `Unknown Client (${String(val).substring(0, 8)}...)`;
+                    return (
                       <span
                         className={styles.tooltipWrapper}
-                        data-tooltip="Uploading..."
+                        data-tooltip={clientName}
                       >
-                        <button className="action-btn" disabled>
-                          <Clock size={14} />
-                        </button>
+                        <span className={styles.cellContent}>{clientName}</span>
                       </span>
-                    )}
-                  </div>
-                ),
-              };
-            default:
-              return { key: col.id, header: col.label };
+                    );
+                  }
+
+                  // Handle Document Type resolution
+                  if (isDocTypeField) {
+                    if (documentTypes.length === 0)
+                      return (
+                        <span style={{ color: "#94a3b8", fontSize: "12px" }}>
+                          Loading types...
+                        </span>
+                      );
+                    const type = documentTypes.find(
+                      (t) => String(t.id) === String(val),
+                    );
+                    const typeName = type
+                      ? type.name
+                      : `Unknown Type (${String(val).substring(0, 8)}...)`;
+                    return (
+                      <span
+                        className={styles.tooltipWrapper}
+                        data-tooltip={typeName}
+                      >
+                        <span className={styles.cellContent}>{typeName}</span>
+                      </span>
+                    );
+                  }
+                }
+
+                const displayValue = Array.isArray(val)
+                  ? val.join(", ")
+                  : String(val);
+                return (
+                  <span
+                    className={styles.tooltipWrapper}
+                    data-tooltip={displayValue}
+                  >
+                    <span className={styles.cellContent}>{displayValue}</span>
+                  </span>
+                );
+              },
+            };
           }
-        } else {
-          // Custom Form Field
-          const formFieldId = col.id.replace("form_", "");
-          return {
-            key: col.id,
-            header: col.label,
-            render: (_: any, row: DocumentListItem) => {
-              const data = row.customFormData || {};
-
-              // Strategy 1: Direct lookup by column ID (stripped of form_ prefix)
-              let val = data[formFieldId];
-
-              // Strategy 2: Lookup by column label (handles cases where keys are labels)
-              if (!val && col.label) {
-                val = data[col.label];
-              }
-
-              // Strategy 3: Lookup by actual field metadata (handles ID mismatch in config)
-              if (!val && formFields.length > 0) {
-                const fieldMetadata = formFields.find(
-                  (f) =>
-                    f.id === formFieldId ||
-                    f.label === col.label ||
-                    (f.label &&
-                      col.label &&
-                      f.label.toLowerCase() === col.label.toLowerCase()),
-                );
-                if (fieldMetadata) {
-                  val = data[fieldMetadata.id] || data[fieldMetadata.label];
-                }
-              }
-
-              if (!val) return <span style={{ color: "#94a3b8" }}>-</span>;
-
-              // Better matching for system fields
-              const normalizedLabel = col.label.trim().toLowerCase();
-              const formField = formFields.find((f) => f.id === formFieldId);
-
-              // Check if this is a client or document type field by UUID pattern and field name
-              const isUuidPattern =
-                /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-                  String(val),
-                );
-              const isClientField =
-                normalizedLabel.includes("client") ||
-                (formField &&
-                  formField.label &&
-                  formField.label.toLowerCase().includes("client"));
-              const isDocTypeField =
-                normalizedLabel.includes("document type") ||
-                normalizedLabel.includes("doc type") ||
-                (formField &&
-                  formField.label &&
-                  formField.label.toLowerCase().includes("document type"));
-              const isSystemField =
-                isClientField || isDocTypeField || formField?.is_system;
-
-              if (isSystemField && isUuidPattern) {
-                // Handle Client resolution
-                if (isClientField) {
-                  if (clients.length === 0)
-                    return (
-                      <span style={{ color: "#94a3b8", fontSize: "12px" }}>
-                        Loading clients...
-                      </span>
-                    );
-                  const client = clients.find(
-                    (c) => String(c.id) === String(val),
-                  );
-                  const clientName = client
-                    ? client.business_name ||
-                      `${client.first_name} ${client.last_name}`.trim()
-                    : `Unknown Client (${String(val).substring(0, 8)}...)`;
-                  return (
-                    <span
-                      className={styles.tooltipWrapper}
-                      data-tooltip={clientName}
-                    >
-                      <span className={styles.cellContent}>{clientName}</span>
-                    </span>
-                  );
-                }
-
-                // Handle Document Type resolution
-                if (isDocTypeField) {
-                  if (documentTypes.length === 0)
-                    return (
-                      <span style={{ color: "#94a3b8", fontSize: "12px" }}>
-                        Loading types...
-                      </span>
-                    );
-                  const type = documentTypes.find(
-                    (t) => String(t.id) === String(val),
-                  );
-                  const typeName = type
-                    ? type.name
-                    : `Unknown Type (${String(val).substring(0, 8)}...)`;
-                  return (
-                    <span
-                      className={styles.tooltipWrapper}
-                      data-tooltip={typeName}
-                    >
-                      <span className={styles.cellContent}>{typeName}</span>
-                    </span>
-                  );
-                }
-              }
-
-              const displayValue = Array.isArray(val)
-                ? val.join(", ")
-                : String(val);
-              return (
-                <span
-                  className={styles.tooltipWrapper}
-                  data-tooltip={displayValue}
-                >
-                  <span className={styles.cellContent}>{displayValue}</span>
-                </span>
-              );
-            },
-          };
-        }
-      }),
+        }),
     ];
   }, [
     columnConfig,
@@ -1465,12 +1475,26 @@ setColumnConfig(sortedColumns);
           <p>No documents uploaded yet</p>
         </div>
       ) : (
-        <div className={styles.tableContainer}>
+        <div
+          ref={tableContainerRef}
+          className={`${styles.tableContainer} ${isScrolled ? styles.hasScrollShadow : ""}`}
+        >
           <table className={styles.table}>
             <thead>
               <tr>
                 {columns.map((column: any) => (
-                  <th key={column.key}>{column.header}</th>
+                  <th
+                    key={column.key}
+                    className={
+                      column.key === "status"
+                        ? `${styles.stickyCol} ${styles.stickyStatus}`
+                        : column.key === "actions"
+                          ? `${styles.stickyCol} ${styles.stickyActions}`
+                          : ""
+                    }
+                  >
+                    {column.header}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -1509,7 +1533,16 @@ setColumnConfig(sortedColumns);
                 return filteredData.map((row: any, index: number) => (
                   <tr key={row.id || index}>
                     {columns.map((column: any) => (
-                      <td key={column.key}>
+                      <td
+                        key={column.key}
+                        className={
+                          column.key === "status"
+                            ? `${styles.stickyCol} ${styles.stickyStatus}`
+                            : column.key === "actions"
+                              ? `${styles.stickyCol} ${styles.stickyActions}`
+                              : ""
+                        }
+                      >
                         {column.render
                           ? column.render(row[column.key], row)
                           : row[column.key]}
@@ -1702,7 +1735,7 @@ setColumnConfig(sortedColumns);
                     <CommonDatePicker
                       selected={
                         filters[filterKey] &&
-                        typeof filters[filterKey] === "string"
+                          typeof filters[filterKey] === "string"
                           ? new Date(filters[filterKey])
                           : filters[filterKey]
                       }
@@ -1753,6 +1786,41 @@ setColumnConfig(sortedColumns);
           </div>
         </div>
       </div>
+      {statusTooltipVisible && createPortal(
+        <div
+          className={styles.statusTooltip}
+          style={{
+            position: 'fixed',
+            top: statusTooltipPos.top,
+            left: statusTooltipPos.left,
+            transform: 'translateX(-50%)',
+            opacity: 1,
+            visibility: 'visible',
+            pointerEvents: 'none',
+            zIndex: 9999
+          }}
+        >
+          <div className={styles.statusTooltipItem}><Clock size={12} /> Queued: Waiting to start</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><UploadCloud size={12} /> Uploading: File transfer</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Uploaded: File ready for AI</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><Clock size={12} /> Processing: Being analyzed</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><Clock size={12} /> AI Queued: Waiting for AI</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><Loader2 size={12} /> Analyzing: AI processing</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Completed: Finished analysis</div>
+          <div className={styles.statusTooltipItem} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>Error States:</div>
+          <div className={styles.statusTooltipItem}><X size={12} /> Upload Failed: Network error</div>
+          <div className={styles.statusTooltipItem}><X size={12} /> Failed: General error</div>
+          <div className={styles.statusTooltipItem}><X size={12} /> AI Failed: Analysis error</div>
+          <div className={styles.statusTooltipItem}><Ban size={12} /> Cancelled: Manually stopped</div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

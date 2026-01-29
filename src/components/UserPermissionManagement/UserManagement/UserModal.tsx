@@ -110,6 +110,40 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
     setErrors({});
   }, [initialData, isOpen]);
 
+  useEffect(() => {
+    if (!supervisorRole) {
+        setSupervisorOptions([]);
+        setSelectedSupervisor(null);
+        return;
+    }
+
+    let cancelled = false;
+    setLoadingSupervisors(true);
+
+    userService
+        .getUsersByRole(supervisorRole.value)
+        .then(users => {
+            if (cancelled) return;
+
+            setSupervisorOptions(
+                users.map((u: any) => ({
+                    value: u.id,
+                    label: `${u.first_name} ${u.last_name} (${u.username})`
+                }))
+            );
+        })
+        .catch(() => {
+            if (!cancelled) setSupervisorOptions([]);
+        })
+        .finally(() => {
+            if (!cancelled) setLoadingSupervisors(false);
+        });
+
+    return () => {
+        cancelled = true;
+    };
+  }, [supervisorRole]);
+
   const validateStep1 = () => {
     const newErrors: { [key: string]: string } = {};
 
@@ -191,48 +225,10 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
   if (!isOpen) return null;
 
   const roleOptions = roles.map((r) => ({ value: r.id, label: r.name }));
-  // const supervisorOptions = [
-  //     { value: '', label: 'No Supervisor' },
-  //     ...supervisors.map(s => ({ value: s.id, label: s.name }))
-  // ];
   const countryCodeOptions = [
     { value: "+91", label: "+91" },
     { value: "+1", label: "+1" },
   ];
-
-  useEffect(() => {
-    if (!supervisorRole) {
-        setSupervisorOptions([]);
-        setSelectedSupervisor(null);
-        return;
-    }
-
-    let cancelled = false;
-    setLoadingSupervisors(true);
-
-    userService
-        .getUsersByRole(supervisorRole.value)
-        .then(users => {
-            if (cancelled) return;
-
-            setSupervisorOptions(
-                users.map((u: any) => ({
-                    value: u.id,
-                    label: `${u.first_name} ${u.last_name} (${u.username})`
-                }))
-            );
-        })
-        .catch(() => {
-            if (!cancelled) setSupervisorOptions([]);
-        })
-        .finally(() => {
-            if (!cancelled) setLoadingSupervisors(false);
-        });
-
-    return () => {
-        cancelled = true;
-    };
-}, [supervisorRole]);
 
   return (
     <div className={styles.overlay} onClick={onClose}>
