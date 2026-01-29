@@ -241,8 +241,12 @@ class DocumentService {
         return data.url;
     }
 
-    async getDocumentReportData(id: string): Promise<any> {
-        const response = await apiClient(`${API_BASE_URL}/api/documents/${id}/report-data`);
+    async getDocumentReportData(id: string, page?: number): Promise<any> {
+        let url = `${API_BASE_URL}/api/documents/${id}/report-data`;
+        if (page !== undefined) {
+            url += `?page=${page}`;
+        }
+        const response = await apiClient(url);
         if (!response.ok) {
             throw new Error('Failed to fetch report data');
         }

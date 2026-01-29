@@ -30,6 +30,7 @@ const ShareDocumentsModal: React.FC<ShareDocumentsModalProps> = ({
     const [emailConfig, setEmailConfig] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const [sharing, setSharing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -38,8 +39,11 @@ const ShareDocumentsModal: React.FC<ShareDocumentsModalProps> = ({
     }, [isOpen, documentIds]);
 
     useEffect(() => {
-        if (isOpen && activeTab === 'internal') {
-            loadUsers();
+        if (isOpen) {
+            setError(null);
+            if (activeTab === 'internal') {
+                loadUsers();
+            }
         }
     }, [isOpen, activeTab]);
 
@@ -72,6 +76,7 @@ const ShareDocumentsModal: React.FC<ShareDocumentsModalProps> = ({
 
         try {
             setSharing(true);
+            setError(null);
 
             if (activeTab === 'internal') {
                 const response = await fetchWithAuth('/api/documents/share', {
@@ -90,7 +95,7 @@ const ShareDocumentsModal: React.FC<ShareDocumentsModalProps> = ({
                 }
             } else {
                 // Consolidated Email Sharing for multiple documents
-                await fetchWithAuth('/api/documents/share/external/batch', {
+                const response = await fetchWithAuth('/api/documents/share/external/batch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -99,9 +104,15 @@ const ShareDocumentsModal: React.FC<ShareDocumentsModalProps> = ({
                         password: emailConfig.password
                     })
                 });
-                onShare();
-                onClose();
-                setEmailConfig({ email: '', password: '' });
+
+                if (response.ok) {
+                    onShare();
+                    onClose();
+                    setEmailConfig({ email: '', password: '' });
+                } else {
+                    const errorData = await response.json();
+                    setError(errorData.detail || 'Failed to share documents');
+                }
             }
         } catch (error) {
             console.error('Failed to share documents:', error);
@@ -174,7 +185,11 @@ const ShareDocumentsModal: React.FC<ShareDocumentsModalProps> = ({
                         </div>
                     ) : (
                         <div className={styles.section}>
-                            <h4>Share via Email</h4>
+                            <div className={styles.warningBox}>
+                                <Lock size={14} />
+                                <span>For security, you can only share with email addresses of registered team members.</span>
+                            </div>
+                            {/* <h4>Share via Email</h4> */}
                             <div className={styles.formGroup}>
                                 <label>Recipient Email</label>
                                 <input
@@ -193,6 +208,13 @@ const ShareDocumentsModal: React.FC<ShareDocumentsModalProps> = ({
                                     onChange={(e) => setEmailConfig({ ...emailConfig, password: e.target.value })}
                                 />
                                 <span className={styles.hint}>The recipient will need this password to view the document.</span>
+
+                                {error && (
+                                    <div className={styles.fieldError}>
+                                        <Lock size={24} />
+                                        <span>{error}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
