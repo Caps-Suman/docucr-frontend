@@ -4,6 +4,7 @@ import Table from '../../Table/Table';
 import CommonPagination from '../../Common/CommonPagination';
 import Loading from '../../Common/Loading';
 import RoleModal from './RoleModal';
+import RoleUsersModal from './RoleUsersModal';
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
 import roleService, { Role, RoleStats } from '../../../services/role.service';
@@ -11,6 +12,7 @@ import modulesService, { Module } from '../../../services/modules.service';
 import privilegeService, { Privilege } from '../../../services/privilege.service';
 import statusService, { Status } from '../../../services/status.service';
 import '../UserManagement/UserManagement.css';
+import styles from './RoleManagement.module.css';
 
 const RoleManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(0);
@@ -195,6 +197,14 @@ const RoleManagement: React.FC = () => {
             }
         ];
 
+    const [usersModalOpen, setUsersModalOpen] = useState(false);
+    const [selectedRoleForUsers, setSelectedRoleForUsers] = useState<{ id: string, name: string } | null>(null);
+
+    const handleUsersClick = (role: Role) => {
+        setSelectedRoleForUsers({ id: role.id, name: role.name });
+        setUsersModalOpen(true);
+    };
+
     const roleColumns = [
         { key: 'name', header: 'Role Name' },
         { key: 'description', header: 'Description' },
@@ -210,7 +220,18 @@ const RoleManagement: React.FC = () => {
                 );
             }
         },
-        { key: 'users_count', header: 'Users Count' },
+        {
+            key: 'users_count',
+            header: 'Users Count',
+            render: (value: number, row: Role) => (
+                <span
+                    className={`${styles.userCountBadge} ${value > 0 ? styles.clickable : styles.empty}`}
+                    onClick={() => value > 0 && handleUsersClick(row)}
+                >
+                    {value}
+                </span>
+            )
+        },
         {
             key: 'actions',
             header: 'Actions',
@@ -318,6 +339,13 @@ const RoleManagement: React.FC = () => {
                 title={editingRole ? 'Edit Role' : 'Add New Role'}
                 modules={modules}
                 privileges={privileges}
+            />
+
+            <RoleUsersModal
+                isOpen={usersModalOpen}
+                onClose={() => setUsersModalOpen(false)}
+                roleId={selectedRoleForUsers?.id || ''}
+                roleName={selectedRoleForUsers?.name || ''}
             />
 
             <ConfirmModal

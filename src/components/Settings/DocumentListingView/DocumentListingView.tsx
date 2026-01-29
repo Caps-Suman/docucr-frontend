@@ -25,20 +25,47 @@ const DocumentListingView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const tablePreviewRef = React.useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Default system columns
   const defaultSystemColumns: ColumnConfig[] = [
     { id: 'name', label: 'Document Name', visible: true, order: 1, width: 200, type: 'text', required: false, isSystem: true },
     { id: 'type', label: 'Type', visible: true, order: 2, width: 120, type: 'text', required: false, isSystem: true },
     { id: 'size', label: 'Size', visible: true, order: 3, width: 100, type: 'text', required: false, isSystem: true },
-    { id: 'uploadedAt', label: 'Uploaded', visible: true, order: 4, width: 150, type: 'date', required: false, isSystem: true },
-    { id: 'status', label: 'Status', visible: true, order: 5, width: 120, type: 'text', required: true, isSystem: true },
-    { id: 'actions', label: 'Actions', visible: true, order: 6, width: 100, type: 'text', required: true, isSystem: true }
+    { id: 'pages', label: 'Pages', visible: true, order: 4, width: 80, type: 'number', required: false, isSystem: true },
+    { id: 'uploadedAt', label: 'Uploaded', visible: true, order: 5, width: 150, type: 'date', required: false, isSystem: true },
+    { id: 'status', label: 'Status', visible: true, order: 6, width: 120, type: 'text', required: true, isSystem: true },
+    { id: 'actions', label: 'Actions', visible: true, order: 7, width: 100, type: 'text', required: true, isSystem: true }
   ];
 
   useEffect(() => {
     loadColumns();
   }, []);
+
+  const checkScroll = () => {
+    if (tablePreviewRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tablePreviewRef.current;
+      const hasOverflow = scrollWidth > clientWidth;
+      const atTheEnd = scrollLeft + clientWidth >= scrollWidth - 5;
+      setIsScrolled(hasOverflow && !atTheEnd);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const container = tablePreviewRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', checkScroll);
+      }
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [columns, loading]);
 
 
   const loadColumns = async () => {
@@ -117,6 +144,22 @@ const DocumentListingView: React.FC = () => {
         console.error('Error fetching saved column config:', error);
       }
 
+      // Ensure status and actions are always at the end
+      const fixedIds = ['status', 'actions'];
+      const normalColumns = allColumns.filter(col => !fixedIds.includes(col.id));
+      const fixedColumns = allColumns.filter(col => fixedIds.includes(col.id));
+
+      // Sort fixed columns by their preferred order if both present
+      fixedColumns.sort((a, b) => {
+        if (a.id === 'status') return -1;
+        return 1;
+      });
+
+      allColumns = [...normalColumns, ...fixedColumns].map((col, index) => ({
+        ...col,
+        order: index + 1
+      }));
+
       setColumns(allColumns);
     } catch (error) {
       console.error('Error loading columns:', error);
@@ -127,6 +170,10 @@ const DocumentListingView: React.FC = () => {
   };
 
   const handleDragStart = (e: React.DragEvent, columnId: string) => {
+    if (columnId === 'status' || columnId === 'actions') {
+      e.preventDefault();
+      return;
+    }
     setDraggedItem(columnId);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -144,6 +191,12 @@ const DocumentListingView: React.FC = () => {
       return;
     }
 
+    // Prevent dropping on fixed columns
+    if (targetId === 'status' || targetId === 'actions') {
+      setDraggedItem(null);
+      return;
+    }
+
     const draggedIndex = columns.findIndex(col => col.id === draggedItem);
     const targetIndex = columns.findIndex(col => col.id === targetId);
 
@@ -156,13 +209,18 @@ const DocumentListingView: React.FC = () => {
     const [draggedColumn] = newColumns.splice(draggedIndex, 1);
     newColumns.splice(targetIndex, 0, draggedColumn);
 
+    // Ensure status and actions remain at the end even after reorder logic if somehow compromised
+    const fixedIds = ['status', 'actions'];
+    const normalColumns = newColumns.filter(col => !fixedIds.includes(col.id));
+    const fixedColumns = newColumns.filter(col => fixedIds.includes(col.id));
+
     // Update order values
-    const updatedColumns = newColumns.map((col, index) => ({
+    const finalColumns = [...normalColumns, ...fixedColumns].map((col, index) => ({
       ...col,
       order: index + 1
     }));
 
-    setColumns(updatedColumns);
+    setColumns(finalColumns);
     setDraggedItem(null);
   };
 
@@ -229,14 +287,29 @@ const DocumentListingView: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.preview}>
         <h3>Preview</h3>
-        <div className={styles.previewTable}>
+        <div
+          ref={tablePreviewRef}
+          className={`${styles.previewTable} ${isScrolled ? styles.hasScrollShadow : ''}`}
+        >
           <table className={styles.table}>
             <thead>
               <tr>
+                <th style={{ width: '40px' }}>
+                  <input type="checkbox" className={styles.checkbox} readOnly />
+                </th>
                 {columns
                   .filter(col => col.visible)
                   .map(col => (
-                    <th key={col.id}>
+                    <th
+                      key={col.id}
+                      className={
+                        col.id === 'status'
+                          ? `${styles.stickyCol} ${styles.stickyStatus}`
+                          : col.id === 'actions'
+                            ? `${styles.stickyCol} ${styles.stickyActions}`
+                            : ''
+                      }
+                    >
                       {col.label}
                     </th>
                   ))
@@ -245,10 +318,22 @@ const DocumentListingView: React.FC = () => {
             </thead>
             <tbody>
               <tr>
+                <td style={{ width: '40px' }}>
+                  <input type="checkbox" className={styles.checkbox} readOnly />
+                </td>
                 {columns
                   .filter(col => col.visible)
                   .map(col => (
-                    <td key={col.id}>
+                    <td
+                      key={col.id}
+                      className={
+                        col.id === 'status'
+                          ? `${styles.stickyCol} ${styles.stickyStatus}`
+                          : col.id === 'actions'
+                            ? `${styles.stickyCol} ${styles.stickyActions}`
+                            : ''
+                      }
+                    >
                       {col.id === 'name' && (
                         <div className={styles.documentName}>
                           <FileText size={16} />
@@ -257,6 +342,7 @@ const DocumentListingView: React.FC = () => {
                       )}
                       {col.id === 'type' && <span className={styles.documentType}>PDF</span>}
                       {col.id === 'size' && <span>2.50 MB</span>}
+                      {col.id === 'pages' && <span>12</span>}
                       {col.id === 'uploadedAt' && <span>{new Date().toLocaleDateString()}</span>}
                       {col.id === 'status' && (
                         <span className={styles.statusBadge}>
@@ -316,43 +402,49 @@ const DocumentListingView: React.FC = () => {
           <span>Visibility</span>
         </div>
 
-        {columns.map((column) => (
-          <div
-            key={column.id}
-            className={`${styles.columnItem} ${draggedItem === column.id ? styles.dragging : ''}`}
-            draggable
-            onDragStart={(e) => handleDragStart(e, column.id)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, column.id)}
-          >
-            <div className={styles.dragHandle}>
-              <GripVertical size={16} />
-            </div>
+        {columns.map((column) => {
+          const isFixed = column.id === 'status' || column.id === 'actions';
+          return (
+            <div
+              key={column.id}
+              className={`${styles.columnItem} ${draggedItem === column.id ? styles.dragging : ''} ${isFixed ? styles.fixedItem : ''}`}
+              draggable={!isFixed}
+              onDragStart={(e) => handleDragStart(e, column.id)}
+              onDragOver={isFixed ? undefined : handleDragOver}
+              onDrop={(e) => handleDrop(e, column.id)}
+            >
+              <div className={styles.dragHandle} style={{ cursor: isFixed ? 'default' : 'grab', opacity: isFixed ? 0.3 : 1 }}>
+                <GripVertical size={16} />
+              </div>
 
-            <div className={styles.columnInfo}>
-              <span className={styles.columnLabel}>{column.label}</span>
-            </div>
+              <div className={styles.columnInfo}>
+                <span className={styles.columnLabel}>
+                  {column.label}
+                  {isFixed && <span className={styles.fixedBadge}>Fixed</span>}
+                </span>
+              </div>
 
-            <div className={styles.columnType}>
-              <span className={`${styles.typeBadge} ${column.isSystem ? styles.system : styles.form}`}>
-                {column.isSystem ? 'System' : (column.formName || 'Form')}
-              </span>
-            </div>
+              <div className={styles.columnType}>
+                <span className={`${styles.typeBadge} ${column.isSystem ? styles.system : styles.form}`}>
+                  {column.isSystem ? 'System' : (column.formName || 'Form')}
+                </span>
+              </div>
 
-            <div className={styles.visibilityToggle}>
-              {column.required ? (
-                <span className={styles.requiredLabel}>Required</span>
-              ) : (
-                <button
-                  className={`${styles.toggleButton} ${column.visible ? styles.visible : styles.hidden}`}
-                  onClick={() => toggleVisibility(column.id)}
-                >
-                  {column.visible ? <Eye size={16} /> : <EyeOff size={16} />}
-                </button>
-              )}
+              <div className={styles.visibilityToggle}>
+                {column.required ? (
+                  <span className={styles.requiredLabel}>Required</span>
+                ) : (
+                  <button
+                    className={`${styles.toggleButton} ${column.visible ? styles.visible : styles.hidden}`}
+                    onClick={() => toggleVisibility(column.id)}
+                  >
+                    {column.visible ? <Eye size={16} /> : <EyeOff size={16} />}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {toast && (

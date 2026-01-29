@@ -60,6 +60,12 @@
   padding: 8px 16px;
   color: #444746;
   vertical-align: middle;
+  position: relative;
+  overflow: visible;
+}
+
+.table td:hover {
+  z-index: 110 !important;
 }
 
 /* Empty State */

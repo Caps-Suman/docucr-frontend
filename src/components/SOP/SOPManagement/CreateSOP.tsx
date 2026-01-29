@@ -147,81 +147,81 @@ const CreateSOP: React.FC = () => {
     }
   };
 
-const applyExtractedSOP = (data: any) => {
-  if (!data || typeof data !== "object") {
-    console.error("Invalid extracted SOP payload", data);
-    return;
-  }
+  const applyExtractedSOP = (data: any) => {
+    if (!data || typeof data !== "object") {
+      console.error("Invalid extracted SOP payload", data);
+      return;
+    }
 
-  // ---- BASIC ----
-  if (data.basic_information?.sop_title) {
-    setTitle(data.basic_information.sop_title);
-  }
+    // ---- BASIC ----
+    if (data.basic_information?.sop_title) {
+      setTitle(data.basic_information.sop_title);
+    }
 
-  if (data.basic_information?.category) {
-    setCategory(data.basic_information.category);
-  }
+    if (data.basic_information?.category) {
+      setCategory(data.basic_information.category);
+    }
 
-  // ---- PROVIDER ----
-  if (data.provider_information) {
-    setProviderType("new");
-    setProviderInfo(prev => ({
-      ...prev,
-      providerName: data.provider_information.billing_provider_name || "",
-      billingProviderName: data.provider_information.billing_provider_name || "",
-      billingProviderNPI: data.provider_information.billing_provider_npi || "",
-      providerTaxID: data.provider_information.provider_tax_id || "",
-      billingAddress: data.provider_information.billing_address || "",
-      software: data.provider_information.software || "",
-      clearinghouse: data.provider_information.clearinghouse || "",
-    }));
-  }
+    // ---- PROVIDER ----
+    if (data.provider_information) {
+      setProviderType("new");
+      setProviderInfo(prev => ({
+        ...prev,
+        providerName: data.provider_information.billing_provider_name || "",
+        billingProviderName: data.provider_information.billing_provider_name || "",
+        billingProviderNPI: data.provider_information.billing_provider_npi || "",
+        providerTaxID: data.provider_information.provider_tax_id || "",
+        billingAddress: data.provider_information.billing_address || "",
+        software: data.provider_information.software || "",
+        clearinghouse: data.provider_information.clearinghouse || "",
+      }));
+    }
 
-  // ---- WORKFLOW (THIS IS THE PART YOU BROKE) ----
-  if (data.workflow_process) {
-    setWorkflowDescription(
-      [
-        data.workflow_process.superbill_source,
-        data.workflow_process.posting_charges_rules,
-      ]
-        .filter(Boolean)
-        .join("\n\n")
-    );
+    // ---- WORKFLOW (THIS IS THE PART YOU BROKE) ----
+    if (data.workflow_process) {
+      setWorkflowDescription(
+        [
+          data.workflow_process.superbill_source,
+          data.workflow_process.posting_charges_rules,
+        ]
+          .filter(Boolean)
+          .join("\n\n")
+      );
 
-    setEligibilityPortals(
-      Array.isArray(data.workflow_process.eligibility_verification_portals)
-        ? data.workflow_process.eligibility_verification_portals
-        : []
-    );
-  }
+      setEligibilityPortals(
+        Array.isArray(data.workflow_process.eligibility_verification_portals)
+          ? data.workflow_process.eligibility_verification_portals
+          : []
+      );
+    }
 
-  // ---- BILLING GUIDELINES ----
-  if (Array.isArray(data.billing_guidelines)) {
-    setBillingGuidelines(
-      data.billing_guidelines.map((g: any, i: number) => ({
-        id: `bg_ai_${i}`,
-        title: g?.title || `Guideline ${i + 1}`,
-        description: g?.description || "",
-      }))
-    );
-  }
+    // ---- BILLING GUIDELINES ----
+    if (Array.isArray(data.billing_guidelines)) {
+      setBillingGuidelines(
+        data.billing_guidelines.map((g: any, i: number) => ({
+          id: `bg_ai_${i}`,
+          title: g?.title || `Guideline ${i + 1}`,
+          description: g?.description || "",
+        }))
+      );
+    }
 
-  // ---- CODING RULES ----
-  if (Array.isArray(data.coding_rules)) {
-    setCodingRules(
-      data.coding_rules.map((r: any, i: number) => ({
-        id: `cr_ai_${i}`,
-        cptCode: r.cptCode || "",
-        description: r.description || "",
-        ndcCode: r.ndcCode || "",
-        units: r.units || "",
-        chargePerUnit: r.chargePerUnit || "",
-        modifier: r.modifier || "",
-        replacementCPT: r.replacementCPT || "",
-      }))
-    );
-  }
-};
+    // ---- CODING RULES ----
+    if (Array.isArray(data.coding_rules)) {
+      setCodingRules(
+        data.coding_rules.map((r: any, i: number) => ({
+          id: `cr_ai_${i}`,
+          cptCode: r.cptCode || "",
+          description: r.description || "",
+          ndcCode: r.ndcCode || "",
+          units: r.units || "",
+          chargePerUnit: r.chargePerUnit || "",
+          modifier: r.modifier || "",
+          replacementCPT: r.replacementCPT || "",
+        }))
+      );
+    }
+  };
 
   useEffect(() => {
     if (providerType === "existing" && selectedClientId) {
@@ -363,11 +363,11 @@ const applyExtractedSOP = (data: any) => {
       provider_type: providerType,
       client_id: selectedClientId || null,
       provider_info: providerInfo,
- workflow_process: {
-  superbill_source: workflowDescription,
-  posting_charges_rules: postingCharges,
-  eligibility_verification_portals: eligibilityPortals,
-},
+      workflow_process: {
+        superbill_source: workflowDescription,
+        posting_charges_rules: postingCharges,
+        eligibility_verification_portals: eligibilityPortals,
+      },
       billing_guidelines: billingGuidelines,
       coding_rules: codingRules,
     };
@@ -530,29 +530,27 @@ const applyExtractedSOP = (data: any) => {
                   <Select
                     options={clients.map((c) => ({
                       value: c.id,
-                      label: `${
-                        c.type === "individual"
+                      label: `${c.type === "individual"
                           ? `${c.first_name || ""} ${c.middle_name || ""} ${c.last_name || ""}`.trim()
                           : c.business_name || ""
-                      } ${c.npi ? `(${c.npi})` : ""}`,
+                        } ${c.npi ? `(${c.npi})` : ""}`,
                     }))}
                     value={
                       selectedClientId
                         ? clients.find((c) => c.id === selectedClientId)
                           ? {
-                              value: selectedClientId,
-                              label: (() => {
-                                const client = clients.find(
-                                  (c) => c.id === selectedClientId,
-                                );
-                                if (!client) return "";
-                                return `${
-                                  client.type === "individual"
-                                    ? `${client.first_name || ""} ${client.middle_name || ""} ${client.last_name || ""}`.trim()
-                                    : client.business_name || ""
+                            value: selectedClientId,
+                            label: (() => {
+                              const client = clients.find(
+                                (c) => c.id === selectedClientId,
+                              );
+                              if (!client) return "";
+                              return `${client.type === "individual"
+                                  ? `${client.first_name || ""} ${client.middle_name || ""} ${client.last_name || ""}`.trim()
+                                  : client.business_name || ""
                                 } ${client.npi ? `(${client.npi})` : ""}`;
-                              })(),
-                            }
+                            })(),
+                          }
                           : null
                         : null
                     }

@@ -44,6 +44,20 @@ export interface RoleStats {
   inactive_roles: number;
 }
 
+export interface RoleUser {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+}
+
+export interface RoleUsersResponse {
+    items: RoleUser[];
+    total: number;
+    page: number;
+    page_size: number;
+}
+
 class RoleService {
   async getRoles(page: number = 1, pageSize: number = 10, statusId?: string): Promise<RoleListResponse> {
     const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
@@ -65,6 +79,23 @@ class RoleService {
     }
 
     return response.json();
+  }
+
+  async getRoleUsers(roleId: string, page: number = 1, pageSize: number = 10, search?: string): Promise<RoleUsersResponse> {
+    const params = new URLSearchParams({
+        page: page.toString(),
+        page_size: pageSize.toString(),
+    });
+
+    if (search) {
+        params.append('search', search);
+    }
+
+    const response = await apiClient(`${API_BASE_URL}/api/roles/${roleId}/users?${params.toString()}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch role users');
+    }
+    return await response.json();
   }
 
   async getRoleStats(): Promise<RoleStats> {

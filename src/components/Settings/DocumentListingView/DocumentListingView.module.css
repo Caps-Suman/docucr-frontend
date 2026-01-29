@@ -127,6 +127,13 @@
     background: #f9fafb;
 }
 
+.checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #83cee4;
+}
+
 .columnItem.dragging {
     opacity: 0.5;
     background: #f3f4f6;
@@ -233,6 +240,17 @@
     border-radius: 8px;
     border: 1px solid #c4c7c5;
     background: white;
+    position: relative;
+    /* Hide scrollbars */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+}
+
+.previewTable::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari and Opera */
 }
 
 .table {
@@ -260,6 +278,65 @@
     top: 0;
     z-index: 10;
     background: #f8fafc;
+}
+
+.stickyCol {
+    position: sticky !important;
+    z-index: 10 !important;
+    background-color: white !important;
+}
+
+:global(.dark) .stickyCol {
+    background-color: #1f2937 !important;
+}
+
+.stickyStatus {
+    right: 182px;
+    width: 182px !important;
+    border-left: 1px solid #c4c7c5 !important;
+    position: sticky !important;
+}
+
+.stickyStatus::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -15px;
+    width: 15px;
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.2));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+}
+
+.hasScrollShadow .stickyStatus::before {
+    opacity: 1;
+}
+
+.stickyActions {
+    right: 0;
+    width: 182px !important;
+    z-index: 11 !important;
+}
+
+:global(.dark) .stickyStatus::before {
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.6));
+}
+
+:global(.dark) .hasScrollShadow .stickyStatus {
+    border-left: 1px solid #4b5563 !important;
+}
+
+/* Ensure header also has sticky background */
+.table thead th.stickyCol {
+    z-index: 11 !important;
+    background-color: #f8fafc !important;
+}
+
+:global(.dark) .table thead th.stickyCol {
+    background-color: #374151 !important;
 }
 
 /* Default column width for preview */
@@ -348,6 +425,47 @@
     background: #374151;
     border-color: #4b5563;
     color: #d1d5db;
+}
+
+:global(.dark) .columnItem:hover {
+    border-color: #cbd5e1;
+}
+
+.fixedItem {
+    background-color: #f8fafc;
+    /* border-style: dashed; */
+    cursor: default;
+}
+
+:global(.dark) .fixedItem {
+    background-color: #1e293b;
+}
+
+.fixedItem:hover {
+    border-color: #e2e8f0;
+}
+
+.fixedBadge {
+    display: inline-block;
+    padding: 2px 6px;
+    background-color: #f1f5f9;
+    color: #64748b;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+:global(.dark) .fixedBadge {
+    background-color: #334155;
+    color: #94a3b8;
+    border-color: #475569;
+}
+
+.dragging {
+    opacity: 0.5;
 }
 
 :global(.dark) .columnItem {

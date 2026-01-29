@@ -1101,7 +1101,7 @@
 
 .table tbody tr:hover {
     background: #f8fafc;
-    z-index: 10;
+    /* Removed z-index to avoid creating a new stacking context that could clip tooltips */
     position: relative;
 }
 
@@ -1119,7 +1119,7 @@
 }
 
 .table td:hover {
-    z-index: 20;
+    z-index: 100 !important;
 }
 
 .stickyCol {
@@ -1163,8 +1163,10 @@
 .stickyActions {
     right: 0;
     width: 182px !important;
-    z-index: 11 !important;
-    /* Slightly higher than status */
+    z-index: 20 !important;
+    /* Increased from 11 to 20 to be definitely above status and shadows */
+    overflow: visible !important;
+    /* Ensure it doesn't clip children like tooltips */
 }
 
 :global(.dark) .stickyStatus::before {
@@ -1199,6 +1201,11 @@
     position: relative;
     display: inline-block;
     max-width: 100%;
+}
+
+.tooltipWrapper:hover {
+    z-index: 10000;
+    /* Ensure the tooltip wrapper itself is elevated on hover */
 }
 
 .tooltipWrapper::after {
