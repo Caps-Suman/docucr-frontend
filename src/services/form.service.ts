@@ -10,6 +10,7 @@ export interface FormField {
   required: boolean;
   options?: string[];
   validation?: any;
+  default_value?: any;   // 👈 ADD THIS
   order?: number;
   is_system?: boolean;
 }
