@@ -95,7 +95,8 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
             '&:active': {
                 backgroundColor: '#83cee4'
             }
-        })
+        }),
+        menuPortal: (base: any) => ({ ...base, zIndex: 9999 })
     };
 
     const content = (
@@ -117,6 +118,8 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
                             isSearchable={false}
                             className={styles.itemsPerPageSelect}
                             menuPlacement="auto"
+                            menuPortalTarget={document.body}
+                            menuPosition="fixed"
                         />
                     </div>
                 )}

@@ -5,6 +5,7 @@ import clientService, { Client } from '../../../services/client.service';
 import Loading from '../../Common/Loading';
 import Toast, { ToastType } from '../../Common/Toast';
 import CommonPagination from '../../Common/CommonPagination';
+import styles from './UserModal.module.css';
 import './ClientMappingModal.css';
 
 interface ClientMappingModalProps {
@@ -96,10 +97,15 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
     };
 
     // Filter Logic
-    const filteredUnassigned = unassignedClients.filter(c =>
-    (c.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.npi?.includes(searchTerm))
-    );
+    const filteredUnassigned = unassignedClients.filter(c => {
+        const searchLower = searchTerm.toLowerCase();
+        const businessNameMatch = c.business_name?.toLowerCase().includes(searchLower);
+        const firstNameMatch = c.first_name?.toLowerCase().includes(searchLower);
+        const lastNameMatch = c.last_name?.toLowerCase().includes(searchLower);
+        const npiMatch = c.npi?.includes(searchTerm);
+
+        return businessNameMatch || firstNameMatch || lastNameMatch || npiMatch;
+    });
 
     // Reset page on search
     useEffect(() => {
@@ -183,13 +189,6 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                                                             <tr key={client.id}>
                                                                 <td>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                                        <div style={{
-                                                                            width: '32px', height: '32px', borderRadius: '8px',
-                                                                            background: '#eff6ff', color: '#2563eb', display: 'flex',
-                                                                            alignItems: 'center', justifyContent: 'center', fontWeight: 600
-                                                                        }}>
-                                                                            {client.business_name?.charAt(0) || 'C'}
-                                                                        </div>
                                                                         <span className="client-name">{client.business_name || `${client.first_name} ${client.last_name}`}</span>
                                                                     </div>
                                                                 </td>
@@ -236,7 +235,7 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                                         <Search size={16} />
                                         <input
                                             type="text"
-                                            placeholder="Search by business name or NPI..."
+                                            placeholder="Search by client name or NPI..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                             autoFocus
@@ -282,15 +281,6 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                                                             </td>
                                                             <td>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                                    <div style={{
-                                                                        width: '32px', height: '32px', borderRadius: '8px',
-                                                                        background: selectedClientIds.has(client.id) ? '#dbeafe' : '#f3f4f6',
-                                                                        color: selectedClientIds.has(client.id) ? '#2563eb' : '#6b7280',
-                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600,
-                                                                        transition: 'all 0.2s'
-                                                                    }}>
-                                                                        {client.business_name?.charAt(0) || 'C'}
-                                                                    </div>
                                                                     <span className="client-name">{client.business_name || `${client.first_name} ${client.last_name}`}</span>
                                                                 </div>
                                                             </td>
@@ -333,8 +323,8 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                                     </span>
                                 )}
                             </div>
-                            <button className="submit-btn" disabled={selectedClientIds.size === 0 || mappingLoading} onClick={handleMapClients}>
-                                {mappingLoading ? <Loading message="" /> : 'Map Selected Clients'}
+                            <button type="submit" className={styles.submitButton} disabled={selectedClientIds.size === 0 || mappingLoading} onClick={handleMapClients}>
+                                {mappingLoading ? 'Mapping...' : 'Map Selected Clients'}
                             </button>
                         </>
                     )}
