@@ -92,34 +92,34 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             <div className={styles.actionsCard}>
-                <h3>Admin Actions</h3>
-                <div className={styles.actionButtons}>
-                    <button 
-                        className={styles.actionBtn}
-                        onClick={() => navigate('/user-management')}
-                        disabled
-                    >
-                        <Users size={16} />
-                        Manage Users
-                    </button>
-                    <button 
-                        className={styles.actionBtn}
-                        onClick={() => navigate('/document-types')}
-                        disabled
-                    >
-                        <FileText size={16} />
-                        Document Types
-                    </button>
-                    <button 
-                        className={styles.actionBtn}
-                        onClick={() => navigate('/settings')}
-                        disabled
-                    >
-                        <Settings size={16} />
-                        Settings
-                    </button>
-                </div>
-            </div>
+    <h3>Admin Actions</h3>
+    <div className={styles.actionButtons}>
+        <button 
+            className={styles.actionBtn}
+            onClick={() => navigate('/users-permissions')}
+        >
+            <Users size={16} />
+            Manage Users
+        </button>
+
+        <button 
+            className={styles.actionBtn}
+            onClick={() => navigate('/templates')}
+        >
+            <FileText size={16} />
+            Document Types
+        </button>
+
+        <button 
+            className={styles.actionBtn}
+            onClick={() => navigate('/settings')}
+        >
+            <Settings size={16} />
+            Settings
+        </button>
+    </div>
+</div>
+
         </div>
     );
 };
