@@ -10,6 +10,7 @@ import CommonDropdown from '../../Common/CommonDropdown';
 import CommonDatePicker from '../../Common/CommonDatePicker';
 import Toast, { ToastType } from '../../Common/Toast';
 import styles from './DocumentUpload.module.css';
+import authService from '../../../services/auth.service';
 
 const DocumentUpload: React.FC = () => {
     const navigate = useNavigate();
@@ -27,6 +28,27 @@ const DocumentUpload: React.FC = () => {
     const [templates, setTemplates] = useState<any[]>([]);
     const [selectedTemplate, setSelectedTemplate] = useState<string>('');
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const currentUser = authService.getUser();
+    const isClientUser = currentUser?.is_client === true;
+    const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
+
+useEffect(() => {
+    if (!currentUser?.is_client) return;
+    if (!currentUser.client_id) return;
+    if (!selectedForm?.fields) return;
+
+    const clientField = selectedForm.fields.find(
+        f => f.is_system && f.label.toLowerCase() === 'client'
+    );
+
+    if (!clientField?.id) return;
+
+    setFormData(prev => ({
+        ...prev,
+        [clientField.id!]: currentUser.client_id
+    }));
+}, [currentUser, selectedForm]);
+
 
     useEffect(() => {
         fetchActiveForm();
@@ -92,16 +114,30 @@ const DocumentUpload: React.FC = () => {
     };
 
     const initializeFormData = (form: Form) => {
-        const initialData: Record<string, any> = {};
-        form.fields?.forEach(field => {
-            if (field.field_type === 'checkbox') {
-                initialData[field.id || ''] = [];
-            } else {
-                initialData[field.id || ''] = '';
-            }
-        });
-        setFormData(initialData);
-    };
+    const initialData: Record<string, any> = {};
+
+    form.fields?.forEach(field => {
+        // 🔥 AUTO-FILL CLIENT FIELD FOR CLIENT USER
+       if (
+    isClientUser &&
+    resolvedClientId &&
+    (field as any).is_system &&
+    field.label.toLowerCase() === 'client'
+) {
+    initialData[field.id || ''] = resolvedClientId;
+    return;
+}
+
+        if (field.field_type === 'checkbox') {
+            initialData[field.id || ''] = [];
+        } else {
+            initialData[field.id || ''] = '';
+        }
+    });
+
+    setFormData(initialData);
+};
+
 
     const handleFormFieldChange = async (fieldId: string, value: any) => {
         setFormData(prev => ({ ...prev, [fieldId]: value }));
@@ -257,27 +293,56 @@ const DocumentUpload: React.FC = () => {
         }
     };
 
-    const renderFormField = (field: FormField) => {
-        const fieldId = field.id || '';
-        const value = formData[fieldId] || '';
-        const hasError = !!formErrors[fieldId];
+const renderFormField = (field: FormField) => {
+    const fieldId = field.id || '';
+    const value = formData[fieldId] || '';
+    const hasError = !!formErrors[fieldId];
 
-        // Handle system fields
-        if ((field as any).is_system) {
-            console.log('Rendering system field:', fieldId, field.label, { clients, documentTypes });
-            if (field.label.toLowerCase() === 'client') {
-                return (
-                    <CommonDropdown
-                        value={value}
-                        onChange={(val) => handleFormFieldChange(fieldId, val)}
-                        options={[
-                            { value: '', label: 'Select client' },
-                            ...clients.map(client => ({ value: client.id, label: client.name }))
-                        ]}
-                        size="md"
-                    />
-                );
-            }
+    // 🔒 CLIENT USERS: HIDE CLIENT FIELD COMPLETELY
+    if (
+        isClientUser &&
+        (field as any).is_system &&
+        field.label.toLowerCase() === 'client'
+    ) {
+        return null;
+    }
+
+    // Handle system fields
+    if ((field as any).is_system) {
+        if (field.label.toLowerCase() === 'client') {
+            return (
+                <CommonDropdown
+                    value={value}
+                    onChange={(val) => handleFormFieldChange(fieldId, val)}
+                    options={[
+                        { value: '', label: 'Select client' },
+                        ...clients.map(client => ({
+                            value: client.id,
+                            label: client.name
+                        }))
+                    ]}
+                    size="md"
+                />
+            );
+        }
+
+        if (field.label.toLowerCase().includes('document type')) {
+            return (
+                <CommonDropdown
+                    value={value}
+                    onChange={(val) => handleFormFieldChange(fieldId, val)}
+                    options={[
+                        { value: '', label: 'Select document type' },
+                        ...documentTypes.map(type => ({
+                            value: type.id,
+                            label: type.name
+                        }))
+                    ]}
+                    size="md"
+                />
+            );
+        }
+
             if (field.label.toLowerCase().includes('document type')) {
                 return (
                     <CommonDropdown

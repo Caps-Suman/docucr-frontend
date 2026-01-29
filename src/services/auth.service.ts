@@ -6,6 +6,18 @@ export interface LoginRequest {
   remember_me?: boolean;
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role?: { id: string; name: string };
+
+  // 🔥 ADD THESE
+  is_client?: boolean;
+  client_id?: string | null;
+}
+
 export interface LoginResponse {
   access_token?: string;
   refresh_token?: string;
@@ -14,13 +26,7 @@ export interface LoginResponse {
   requires_role_selection?: boolean;
   temp_token?: string;
   roles?: Array<{ id: string; name: string }>;
-  user: {
-    id: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    role?: { id: string; name: string };
-  };
+  user: AuthUser;
 }
 
 export interface RoleSelectionRequest {
