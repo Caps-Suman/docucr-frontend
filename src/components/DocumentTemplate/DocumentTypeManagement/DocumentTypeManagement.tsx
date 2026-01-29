@@ -28,6 +28,7 @@ const DocumentTypeManagement: React.FC = () => {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [documentTypeToDelete, setDocumentTypeToDelete] = useState<DocumentType | null>(null);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         loadDocumentTypes();
@@ -143,12 +144,53 @@ const DocumentTypeManagement: React.FC = () => {
     };
 
     const columns = [
-        { key: 'name', header: 'Name', sortable: true },
-        { key: 'description', header: 'Description', sortable: false },
+        { key: 'name', header: 'Name', sortable: true, width: '200px' },
+        { 
+            key: 'description', 
+            header: 'Description', 
+            sortable: false,
+            width: '350px',
+            render: (value: string, row: DocumentType) => {
+                if (!value) return '-';
+                const isExpanded = expandedDescriptions.has(row.id);
+                const shouldTruncate = value.length > 100;
+                
+                return (
+                    <div>
+                        <span>{isExpanded || !shouldTruncate ? value : `${value.substring(0, 100)}...`}</span>
+                        {shouldTruncate && (
+                            <button
+                                onClick={() => {
+                                    const newExpanded = new Set(expandedDescriptions);
+                                    if (isExpanded) {
+                                        newExpanded.delete(row.id);
+                                    } else {
+                                        newExpanded.add(row.id);
+                                    }
+                                    setExpandedDescriptions(newExpanded);
+                                }}
+                                style={{
+                                    marginLeft: '8px',
+                                    color: '#0284c7',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                {isExpanded ? 'Less' : 'More'}
+                            </button>
+                        )}
+                    </div>
+                );
+            }
+        },
         {
             key: 'statusCode',
             header: 'Status',
             sortable: true,
+            width: '120px',
             render: (value: string) => (
                 <span className={`status-badge ${value === 'ACTIVE' ? 'active' : 'inactive'}`}>
                     {value === 'ACTIVE' ? 'Active' : 'Inactive'}
@@ -159,12 +201,14 @@ const DocumentTypeManagement: React.FC = () => {
             key: 'created_at',
             header: 'Created',
             sortable: true,
+            width: '120px',
             render: (value: string) => new Date(value).toLocaleDateString()
         },
         {
             key: 'actions',
             header: 'Actions',
             sortable: false,
+            width: '120px',
             render: (_: any, row: DocumentType) => (
                 <div className={styles.actions}>
                     <span className="tooltip-wrapper" data-tooltip="Edit">

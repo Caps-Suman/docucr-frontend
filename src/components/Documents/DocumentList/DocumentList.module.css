@@ -1230,10 +1230,6 @@
     stroke: white;
 }
 
-.statusTooltipItem:not(:last-child) {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
 /* Dark mode overrides for table */
 :global(.dark) .tableContainer {
     background: #1f2937;
@@ -1289,8 +1285,4 @@
 :global(.dark) .statusTooltipItem svg {
     color: #1e293b;
     stroke: #1e293b;
-}
-
-:global(.dark) .statusTooltipItem:not(:last-child) {
-    border-bottom-color: rgba(0, 0, 0, 0.1);
 }

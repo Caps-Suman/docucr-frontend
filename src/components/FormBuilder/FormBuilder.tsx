@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, GripVertical, Edit2 } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, GripVertical, Edit2, Info, X } from 'lucide-react';
 import formService, { FormField } from '../../services/form.service';
 import Toast from '../Common/Toast';
 import CommonDropdown from '../Common/CommonDropdown';
@@ -70,12 +70,25 @@ const FormBuilder: React.FC = () => {
     const [editingField, setEditingField] = useState<FormField | null>(null);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'dynamic' | 'system'>('dynamic');
+    const [showHelp, setShowHelp] = useState(!isEditMode);
+    const [arrowPosition, setArrowPosition] = useState(175);
+    const infoButtonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         if (isEditMode) {
             fetchForm(id);
         }
     }, [id, isEditMode]);
+
+    useEffect(() => {
+        if (infoButtonRef.current) {
+            const rect = infoButtonRef.current.getBoundingClientRect();
+            const containerRect = infoButtonRef.current.closest(`.${styles.container}`)?.getBoundingClientRect();
+            if (containerRect) {
+                setArrowPosition(rect.left - containerRect.left + rect.width / 2);
+            }
+        }
+    }, [isEditMode]);
 
     const fetchForm = async (formId: string) => {
         try {
@@ -273,6 +286,14 @@ const FormBuilder: React.FC = () => {
                         <ArrowLeft size={20} />
                     </button>
                     {isEditMode ? 'Edit Form' : 'Create New Form'}
+                    <button 
+                        ref={infoButtonRef}
+                        className={styles.infoButton} 
+                        onClick={() => setShowHelp(!showHelp)}
+                        title={showHelp ? 'Hide help' : 'Show help'}
+                    >
+                        <Info size={18} />
+                    </button>
                 </div>
                 <div className={styles.actions}>
                     <button
@@ -296,6 +317,28 @@ const FormBuilder: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            {showHelp && (
+                <div className={styles.helpBanner} style={{
+                    '--arrow-position': `${arrowPosition}px`
+                } as React.CSSProperties}>
+                    <div className={styles.helpIcon}>
+                        <Info size={20} />
+                    </div>
+                    <div className={styles.helpContent}>
+                        <h4 className={styles.helpTitle}>How to Configure Your Form</h4>
+                        <ul className={styles.helpList}>
+                            <li><strong>Dynamic Fields:</strong> Create custom fields by selecting a type, adding a label, and clicking "Add Field"</li>
+                            <li><strong>System Data Fields:</strong> Pre-configured fields (Client, Document Type) that are automatically populated from your system data</li>
+                            <li><strong>Select/Checkbox/Radio:</strong> For dropdown or multi-choice fields, enter options separated by commas (e.g., "Option 1, Option 2") or one per line</li>
+                            <li><strong>Reorder:</strong> Drag and drop fields in the preview panel to change their order</li>
+                        </ul>
+                    </div>
+                    <button className={styles.helpClose} onClick={() => setShowHelp(false)}>
+                        <X size={18} />
+                    </button>
+                </div>
+            )}
 
             <div className={styles.section}>
                 <div className={styles.formGroup}>
@@ -423,7 +466,7 @@ const FormBuilder: React.FC = () => {
                             className={`${styles.tab} ${activeTab === 'system' ? styles.activeTab : ''}`}
                             onClick={() => setActiveTab('system')}
                         >
-                            System Fields
+                            System Data Fields
                         </button>
                     </div>
 
@@ -432,7 +475,7 @@ const FormBuilder: React.FC = () => {
                             <div className={styles.fieldItem}>
                                 <div className={styles.fieldGrid}>
                                     <div className={styles.formGroup}>
-                                        <label className={styles.label}>Type</label>
+                                        <label className={styles.label}>Input Type</label>
                                         <CommonDropdown
                                             value={currentField.field_type}
                                             onChange={(value) => handleFieldChange('field_type', value)}

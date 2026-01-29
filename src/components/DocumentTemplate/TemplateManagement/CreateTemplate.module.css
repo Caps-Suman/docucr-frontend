@@ -68,7 +68,6 @@
 .leftSection {
   flex: 1;
   padding: 24px;
-  border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -195,7 +194,10 @@
 .rightSection {
   flex: 1;
   padding: 24px;
-  background: #fafbfc;
+  background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin: 24px;
 }
 
 .fieldDefinition {
@@ -216,14 +218,108 @@
   font-size: 18px;
   font-weight: 600;
   color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.infoButton {
+  background: #e0f2fe;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.infoButton:hover {
+  background-color: #bae6fd;
+  color: #0369a1;
+}
+
+.helpBannerInline {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%);
+  border: 1px solid #7dd3fc;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.15);
+  margin-bottom: 24px;
+}
+
+.helpIcon {
+  color: #0284c7;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.helpContent {
+  flex: 1;
+}
+
+.helpTitle {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0c4a6e;
+  letter-spacing: -0.01em;
+}
+
+.helpList {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #0369a1;
+  line-height: 1.7;
+}
+
+.helpList li {
+  margin-bottom: 6px;
+}
+
+.helpList li:last-child {
+  margin-bottom: 0;
+}
+
+.helpClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.helpClose:hover {
+  background: rgba(2, 132, 199, 0.1);
+  color: #0369a1;
+  transform: scale(1.05);
 }
 
 .newFieldCard {
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+}
+
+.newFieldCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .addFieldButton {
@@ -231,20 +327,23 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: #e2f3f9;
+  background: linear-gradient(135deg, #e2f3f9 0%, #d0ebf5 100%);
   color: #011926;
   border: 1px solid #83cee4;
-  padding: 12px 16px;
-  border-radius: 6px;
+  padding: 14px 20px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   transition: all 0.2s;
   flex: 1;
+  box-shadow: 0 2px 6px rgba(131, 206, 228, 0.2);
 }
 
 .addFieldButton:hover {
-  background: #83cee4;
+  background: linear-gradient(135deg, #83cee4 0%, #6bc4dd 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(131, 206, 228, 0.3);
 }
 
 .fieldsList {
@@ -295,7 +394,7 @@
 .fieldInputs {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .emptyFields {
@@ -414,17 +513,51 @@
   color: #d1d5db;
 }
 
-:global(.dark) .leftSection {
-  border-color: #374151;
-}
+
 
 :global(.dark) .templateInfo h2,
 :global(.dark) .fieldHeader h3 {
   color: #f9fafb;
 }
 
+:global(.dark) .infoButton {
+  color: #60a5fa;
+}
+
+:global(.dark) .infoButton:hover {
+  background-color: #1e3a8a;
+  color: #93c5fd;
+}
+
+:global(.dark) .helpBannerInline {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  border-color: #3b82f6;
+}
+
+:global(.dark) .helpIcon {
+  color: #60a5fa;
+}
+
+:global(.dark) .helpTitle {
+  color: #dbeafe;
+}
+
+:global(.dark) .helpList {
+  color: #bfdbfe;
+}
+
+:global(.dark) .helpClose {
+  color: #60a5fa;
+}
+
+:global(.dark) .helpClose:hover {
+  background: rgba(96, 165, 250, 0.1);
+  color: #93c5fd;
+}
+
 :global(.dark) .rightSection {
   background: #111827;
+  border-color: #4b5563;
 }
 
 :global(.dark) .fieldPreview,
