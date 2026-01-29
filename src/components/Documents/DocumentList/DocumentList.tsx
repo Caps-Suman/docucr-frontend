@@ -342,9 +342,11 @@ const DocumentList: React.FC = () => {
       try {
         const response = await documentListConfigService.getUserConfig();
         if (response.configuration) {
-          setColumnConfig(
-            response.configuration.columns.filter((c: any) => c.visible),
-          );
+          const sortedColumns = [...response.configuration.columns]
+  .sort((a: any, b: any) => a.order - b.order);
+
+setColumnConfig(sortedColumns);
+
         } else {
           // Default config if none saved
           setColumnConfig([
@@ -748,6 +750,7 @@ const DocumentList: React.FC = () => {
       "name",
       "type",
       "size",
+      "pages",
       "uploadedAt",
       "pages",
       "status",
@@ -785,7 +788,9 @@ const DocumentList: React.FC = () => {
 
     return [
       ...baseColumns,
-      ...columnConfig.map((col) => {
+...columnConfig
+  .filter((col) => col.visible)
+  .map((col) => {
         const isSystem = col.isSystem || systemIds.includes(col.id);
         if (isSystem) {
           switch (col.id) {
