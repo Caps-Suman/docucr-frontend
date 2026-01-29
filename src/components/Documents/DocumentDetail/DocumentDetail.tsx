@@ -308,14 +308,14 @@ const DocumentDetail: React.FC = () => {
               />
             </button>
           </span>
-          <span className="tooltip-wrapper" data-tooltip="Print">
+          {/* <span className="tooltip-wrapper" data-tooltip="Print">
             <button
               className={styles.actionButton}
               onClick={() => setShowPrintModal(true)}
             >
               <Printer size={16} />
             </button>
-          </span>
+          </span> */}
           <span className="tooltip-wrapper" data-tooltip="Share">
             <button
               className={styles.actionButton}

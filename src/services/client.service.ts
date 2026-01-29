@@ -3,26 +3,26 @@ import apiClient from '../utils/apiClient';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export interface Client {
-  id: string;
-  business_name?: string;
-  first_name?: string;
-  middle_name?: string;
-  last_name?: string;
-  npi?: string;
-  type?: string;
-  status_id?: number;
-  description?: string;
-  status_code?: string;
-  created_at: string;
-  updated_at: string;
-  is_user: boolean;
-  // ✅ NEW
-  address_line_1?: string;
-  address_line_2?: string;
-  state_code?: string;
-  state_name?: string;
-  zip_code?: string;
-  zip_extension?: string;
+    id: string;
+    business_name?: string;
+    first_name?: string;
+    middle_name?: string;
+    last_name?: string;
+    npi?: string;
+    type?: string;
+    status_id?: number;
+    description?: string;
+    status_code?: string;
+    created_at: string;
+    updated_at: string;
+    is_user: boolean;
+    // ✅ NEW
+    address_line_1?: string;
+    address_line_2?: string;
+    state_code?: string;
+    state_name?: string;
+    zip_code?: string;
+    zip_extension?: string;
 }
 
 export interface ClientStats {
@@ -152,6 +152,11 @@ const clientService = {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to create clients from bulk');
         }
+        return response.json();
+    },
+    lookupNPI: async (npi: string): Promise<any> => {
+        const response = await apiClient(`${API_URL}/api/clients/npi-lookup/${npi}`);
+        if (!response.ok) throw new Error('Failed to fetch NPI details');
         return response.json();
     }
 };
