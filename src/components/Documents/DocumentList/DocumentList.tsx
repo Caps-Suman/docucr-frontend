@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Eye,
   Download,
@@ -33,6 +34,7 @@ import documentTypeService, {
 } from "../../../services/documentType.service";
 import { useUploadStore, uploadStore } from "../../../store/uploadStore";
 import ShareDocumentsModal from "../ShareDocumentsModal/ShareDocumentsModal";
+import ActionLogModal from "./ActionLogModal";
 import styles from "./DocumentList.module.css";
 import formService from "../../../services/form.service";
 import CommonPagination from "../../Common/CommonPagination";
@@ -96,6 +98,9 @@ const DocumentList: React.FC = () => {
     dateTo: null,
     sharedOnly: false,
   });
+  const [showActionLogModal, setShowActionLogModal] = useState(false);
+  const [actionLogDocumentId, setActionLogDocumentId] = useState<string | null>(null);
+  const [actionLogDocumentName, setActionLogDocumentName] = useState<string | null>(null);
   const [formFields, setFormFields] = useState<any[]>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(
     new Set(),
@@ -112,6 +117,10 @@ const DocumentList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
   const [totalDocuments, setTotalDocuments] = useState(0);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [statusTooltipVisible, setStatusTooltipVisible] = useState(false);
+  const [statusTooltipPos, setStatusTooltipPos] = useState({ top: 0, left: 0 });
 
   const activeFilterCount = Object.entries(activeFilters).filter(
     ([key, value]) => {
@@ -149,6 +158,33 @@ const DocumentList: React.FC = () => {
     setActiveFilters(resetState);
     setCurrentPage(0);
   };
+
+  const checkScroll = () => {
+    if (tableContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tableContainerRef.current;
+      // Show shadow if the table is wider than the container 
+      // AND we haven't scrolled all the way to the right yet.
+      // Use a 5px threshold for subpixel and zoom issues.
+      const hasOverflow = scrollWidth > clientWidth;
+      const atTheEnd = scrollLeft + clientWidth >= scrollWidth - 5;
+      setIsScrolled(hasOverflow && !atTheEnd);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const container = tableContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", checkScroll);
+      window.addEventListener("resize", checkScroll);
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", checkScroll);
+      }
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [documents, loading]);
 
   const handleStatClick = (type: string) => {
     const newFilters = { ...activeFilters };
@@ -544,6 +580,12 @@ const DocumentList: React.FC = () => {
     }
   };
 
+  const handleActionLogClick = (document: DocumentListItem) => {
+    setActionLogDocumentId(document.id);
+    setActionLogDocumentName(document.originalFilename || document.name);
+    setShowActionLogModal(true);
+  };
+
   const handleArchive = async (id: string) => {
     try {
       await documentService.archiveDocument(id);
@@ -742,6 +784,8 @@ const DocumentList: React.FC = () => {
     }
   };
 
+
+
   const columns = React.useMemo(() => {
     if (columnConfig.length === 0) return [];
 
@@ -877,41 +921,19 @@ const DocumentList: React.FC = () => {
                       <span
                         className={styles.statusTooltipWrapper}
                         onMouseEnter={(e) => {
-                          const tooltip = e.currentTarget.querySelector(
-                            `.${styles.statusTooltip}`,
-                          ) as HTMLElement;
-                          if (tooltip) {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            tooltip.style.top = `${rect.bottom}px`;
-                            tooltip.style.left = `${rect.left + rect.width / 2}px`;
-                            tooltip.style.transform = "translateX(-50%)";
-                          }
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setStatusTooltipPos({
+                            top: rect.bottom,
+                            left: rect.left + rect.width / 2,
+                          });
+                          setStatusTooltipVisible(true);
                         }}
+                        onMouseLeave={() => setStatusTooltipVisible(false)}
                       >
                         <Info
                           size={14}
                           style={{ cursor: "help", color: "#64748b" }}
                         />
-                        <div className={styles.statusTooltip}>
-                          <div className={styles.statusTooltipItem}><Clock size={12} /> Queued: Waiting to start</div>
-                          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                          <div className={styles.statusTooltipItem}><UploadCloud size={12} /> Uploading: File transfer</div>
-                          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                          <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Uploaded: File ready for AI</div>
-                          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                          <div className={styles.statusTooltipItem}><Clock size={12} /> Processing: Being analyzed</div>
-                          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                          <div className={styles.statusTooltipItem}><Clock size={12} /> AI Queued: Waiting for AI</div>
-                          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                          <div className={styles.statusTooltipItem}><Loader2 size={12} /> Analyzing: AI processing</div>
-                          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-                          <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Completed: Finished analysis</div>
-                          <div className={styles.statusTooltipItem} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>Error States:</div>
-                          <div className={styles.statusTooltipItem}><X size={12} /> Upload Failed: Network error</div>
-                          <div className={styles.statusTooltipItem}><X size={12} /> Failed: General error</div>
-                          <div className={styles.statusTooltipItem}><X size={12} /> AI Failed: Analysis error</div>
-                          <div className={styles.statusTooltipItem}><Ban size={12} /> Cancelled: Manually stopped</div>
-                        </div>
                       </span>
                     </div>
                   ),
@@ -1185,6 +1207,20 @@ const DocumentList: React.FC = () => {
                               <Trash2 size={14} />
                             </button>
                           </span>
+
+                          {/* for action-log view */}
+                          <span
+                            className={styles.tooltipWrapper}
+                            data-tooltip="View Log"
+                          >
+                            <button
+                              className="action-btn view-log"
+                              onClick={() => handleActionLogClick(row)}
+                            >
+                              <FileText size={14} />
+                            </button>
+                          </span>
+
                         </>
                       )}
                       {row.isUploading && (
@@ -1465,12 +1501,26 @@ const DocumentList: React.FC = () => {
           <p>No documents uploaded yet</p>
         </div>
       ) : (
-        <div className={styles.tableContainer}>
+        <div
+          ref={tableContainerRef}
+          className={`${styles.tableContainer} ${isScrolled ? styles.hasScrollShadow : ""}`}
+        >
           <table className={styles.table}>
             <thead>
               <tr>
                 {columns.map((column: any) => (
-                  <th key={column.key}>{column.header}</th>
+                  <th
+                    key={column.key}
+                    className={
+                      column.key === "status"
+                        ? `${styles.stickyCol} ${styles.stickyStatus}`
+                        : column.key === "actions"
+                          ? `${styles.stickyCol} ${styles.stickyActions}`
+                          : ""
+                    }
+                  >
+                    {column.header}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -1509,7 +1559,16 @@ const DocumentList: React.FC = () => {
                 return filteredData.map((row: any, index: number) => (
                   <tr key={row.id || index}>
                     {columns.map((column: any) => (
-                      <td key={column.key}>
+                      <td
+                        key={column.key}
+                        className={
+                          column.key === "status"
+                            ? `${styles.stickyCol} ${styles.stickyStatus}`
+                            : column.key === "actions"
+                              ? `${styles.stickyCol} ${styles.stickyActions}`
+                              : ""
+                        }
+                      >
                         {column.render
                           ? column.render(row[column.key], row)
                           : row[column.key]}
@@ -1546,6 +1605,13 @@ const DocumentList: React.FC = () => {
         cancelText="Cancel"
         type="danger"
         loading={deleting}
+      />
+
+      <ActionLogModal
+        isOpen={showActionLogModal}
+        onClose={() => setShowActionLogModal(false)}
+        documentId={actionLogDocumentId}
+        documentName={actionLogDocumentName}
       />
 
       {toast && (
@@ -1753,6 +1819,41 @@ const DocumentList: React.FC = () => {
           </div>
         </div>
       </div>
+      {statusTooltipVisible && createPortal(
+        <div
+          className={styles.statusTooltip}
+          style={{
+            position: 'fixed',
+            top: statusTooltipPos.top,
+            left: statusTooltipPos.left,
+            transform: 'translateX(-50%)',
+            opacity: 1,
+            visibility: 'visible',
+            pointerEvents: 'none',
+            zIndex: 9999
+          }}
+        >
+          <div className={styles.statusTooltipItem}><Clock size={12} /> Queued: Waiting to start</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><UploadCloud size={12} /> Uploading: File transfer</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Uploaded: File ready for AI</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><Clock size={12} /> Processing: Being analyzed</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><Clock size={12} /> AI Queued: Waiting for AI</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><Loader2 size={12} /> Analyzing: AI processing</div>
+          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
+          <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Completed: Finished analysis</div>
+          <div className={styles.statusTooltipItem} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>Error States:</div>
+          <div className={styles.statusTooltipItem}><X size={12} /> Upload Failed: Network error</div>
+          <div className={styles.statusTooltipItem}><X size={12} /> Failed: General error</div>
+          <div className={styles.statusTooltipItem}><X size={12} /> AI Failed: Analysis error</div>
+          <div className={styles.statusTooltipItem}><Ban size={12} /> Cancelled: Manually stopped</div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

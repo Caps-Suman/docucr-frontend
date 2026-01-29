@@ -1,0 +1,305 @@
+/* Modal Overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+/* Modal Content */
+.content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    /* Increased width for table */
+    height: 80vh;
+    /* Fixed height */
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.2s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Modal Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.titleGroup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.headerIcon {
+    color: #3b82f6;
+    background: #eff6ff;
+    padding: 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 2px;
+    font-family: monospace;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    padding: 8px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.closeButton:hover {
+    background-color: #f1f5f9;
+    color: #1e293b;
+}
+
+/* Modal Body */
+.body {
+    padding: 0;
+    overflow: hidden;
+    /* Handled by table container */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Table */
+.tableContainer {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.table td {
+    padding: 12px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: top;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.nameCell {
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.emailCell {
+    color: #64748b;
+}
+
+.actionBadge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 12px;
+    text-transform: capitalize;
+    font-weight: 500;
+}
+
+.descriptionCell {
+    color: #475569;
+    max-width: 300px;
+    line-height: 1.5;
+}
+
+.dateCell {
+    white-space: nowrap;
+}
+
+.dateTime {
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+}
+
+.time {
+    color: #94a3b8;
+}
+
+/* States */
+.loadingState,
+.emptyState,
+.errorState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    color: #64748b;
+    gap: 16px;
+    height: 100%;
+}
+
+.emptyState svg {
+    color: #cbd5e1;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: #3b82f6;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.retryButton {
+    padding: 8px 16px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.retryButton:hover {
+    background-color: #2563eb;
+}
+
+/* Footer (Pagination) */
+.footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e2e8f0;
+    background: #fff;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* Dark mode */
+:global(.dark) .content {
+    background: #1f2937;
+}
+
+:global(.dark) .header {
+    border-bottom-color: #374151;
+}
+
+:global(.dark) .headerIcon {
+    background: #1e3a8a;
+    color: #60a5fa;
+}
+
+:global(.dark) .title {
+    color: #f9fafb;
+}
+
+:global(.dark) .subtitle {
+    color: #94a3b8;
+}
+
+:global(.dark) .closeButton {
+    color: #d1d5db;
+}
+
+:global(.dark) .closeButton:hover {
+    background-color: #374151;
+    color: #f9fafb;
+}
+
+:global(.dark) .table th {
+    background: #111827;
+    border-bottom-color: #374151;
+    color: #9ca3af;
+}
+
+:global(.dark) .table td {
+    border-bottom-color: #374151;
+    color: #cbd5e1;
+}
+
+:global(.dark) .nameCell {
+    color: #f3f4f6;
+}
+
+:global(.dark) .emailCell {
+    color: #9ca3af;
+}
+
+:global(.dark) .actionBadge {
+    background: #374151;
+    color: #d1d5db;
+}
+
+:global(.dark) .descriptionCell {
+    color: #9ca3af;
+}
+
+:global(.dark) .footer {
+    background: #1f2937;
+    border-top-color: #374151;
+}
