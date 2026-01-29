@@ -116,22 +116,22 @@ const SOPListing: React.FC = () => {
       //   })),
       // );
       setSops(
-  data.sops.map((sop: any) => ({
-    ...sop,
+        data.sops.map((sop: any) => ({
+          ...sop,
 
-    // 🔥 FIX 1: normalize provider info
-    providerInfo: sop.providerInfo ?? sop.provider_info ?? {},
+          // 🔥 FIX 1: normalize provider info
+          providerInfo: sop.providerInfo ?? sop.provider_info ?? {},
 
-    // 🔥 FIX 2: normalize updatedAt
-    updatedAt: sop.updatedAt ?? sop.updated_at ?? null,
+          // 🔥 FIX 2: normalize updatedAt
+          updatedAt: sop.updatedAt ?? sop.updated_at ?? null,
 
-    // existing category logic
-    category:
-      typeof sop.category === "string"
-        ? sop.category
-        : sop.category?.title ?? "—",
-  }))
-);
+          // existing category logic
+          category:
+            typeof sop.category === "string"
+              ? sop.category
+              : sop.category?.title ?? "—",
+        }))
+      );
       setTotalSOPs(data.total);
     } catch (error) {
       console.error("Failed to load SOPs:", error);
@@ -253,8 +253,8 @@ const SOPListing: React.FC = () => {
           </div>
           <div style={{ fontSize: "12px", color: "#6b7280" }}>
             {typeof row.providerInfo?.billingProviderName === "string"
-  ? row.providerInfo.billingProviderName
-  : getCategoryLabel(row.category)}
+              ? row.providerInfo.billingProviderName
+              : getCategoryLabel(row.category)}
 
           </div>
         </div>
@@ -675,10 +675,10 @@ const SOPListing: React.FC = () => {
                           ))}
                           {(!selectedSOP.billingGuidelines ||
                             selectedSOP.billingGuidelines.length === 0) && (
-                            <p style={{ color: "#9ca3af", fontSize: "14px" }}>
-                              No guidelines.
-                            </p>
-                          )}
+                              <p style={{ color: "#9ca3af", fontSize: "14px" }}>
+                                No guidelines.
+                              </p>
+                            )}
                         </div>
                       )}
                     </div>
@@ -818,10 +818,10 @@ const SOPListing: React.FC = () => {
                           ))}
                           {(!selectedSOP.codingRules ||
                             selectedSOP.codingRules.length === 0) && (
-                            <p style={{ color: "#9ca3af", fontSize: "14px" }}>
-                              No coding rules.
-                            </p>
-                          )}
+                              <p style={{ color: "#9ca3af", fontSize: "14px" }}>
+                                No coding rules.
+                              </p>
+                            )}
                         </div>
                       )}
                     </div>
