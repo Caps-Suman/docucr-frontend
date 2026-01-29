@@ -11,6 +11,7 @@ export interface Document {
     status: string; // Keep for compatibility
     file_size: number;
     upload_progress: number;
+    total_pages: number; // ✅ ADD THIS
     error_message?: string;
     created_at: string;
     updated_at: string;
@@ -21,6 +22,8 @@ export interface DocumentUploadResponse {
     filename: string;
     status: string;
     file_size: number;
+    upload_progress: number;
+    total_pages: number; // ✅ ADD
 }
 
 class DocumentService {

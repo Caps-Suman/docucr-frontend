@@ -44,6 +44,7 @@ interface DocumentListItem {
   type: string;
   size: number;
   uploadedAt: string;
+  totalPages?: number; // ✅ ADD
   status:
     | "processing"
     | "completed"
@@ -266,6 +267,7 @@ const DocumentList: React.FC = () => {
     activeFilters.document_type_id ||
     activeFilters.form_document_type ||
     undefined;
+
   const loadDocuments = async () => {
     try {
       setLoading(true);
@@ -324,12 +326,13 @@ const DocumentList: React.FC = () => {
         name: doc.filename,
         originalFilename: doc.original_filename || doc.filename,
         type: doc.filename.split(".").pop()?.toUpperCase() || "FILE",
-        size: doc.file_size / (1024 * 1024), // Convert to MB
+        size: doc.file_size / (1024 * 1024),
         uploadedAt: doc.created_at,
         status: (doc as any).is_archived
           ? "archived"
           : mapDocumentStatus(doc.statusCode),
         progress: doc.upload_progress,
+        totalPages: doc.total_pages ?? 0, // ✅ ADD
         errorMessage: doc.error_message,
         customFormData: (doc as any).custom_form_data || {},
         isArchived: (doc as any).is_archived || false,
@@ -339,15 +342,18 @@ const DocumentList: React.FC = () => {
       try {
         const response = await documentListConfigService.getUserConfig();
         if (response.configuration) {
-          setColumnConfig(
-            response.configuration.columns.filter((c: any) => c.visible),
-          );
+          const sortedColumns = [...response.configuration.columns]
+  .sort((a: any, b: any) => a.order - b.order);
+
+setColumnConfig(sortedColumns);
+
         } else {
           // Default config if none saved
           setColumnConfig([
             { id: "name", label: "Document Name", isSystem: true },
             { id: "type", label: "Type", isSystem: true },
             { id: "size", label: "Size", isSystem: true },
+            { id: "pages", label: "Pages", isSystem: true },
             { id: "uploadedAt", label: "Uploaded", isSystem: true },
             { id: "status", label: "Status", isSystem: true },
             { id: "actions", label: "Actions", isSystem: true },
@@ -360,6 +366,7 @@ const DocumentList: React.FC = () => {
           { id: "name", label: "Document Name", isSystem: true },
           { id: "type", label: "Type", isSystem: true },
           { id: "size", label: "Size", isSystem: true },
+          { id: "pages", label: "Pages", isSystem: true },
           { id: "uploadedAt", label: "Uploaded", isSystem: true },
           { id: "status", label: "Status", isSystem: true },
           { id: "actions", label: "Actions", isSystem: true },
@@ -469,11 +476,11 @@ const DocumentList: React.FC = () => {
         loadStats();
         loadDocuments();
       }
-      if (data.status === 'ARCHIVED' || data.status === 'UNARCHIVED') {
+      if (data.status === "ARCHIVED" || data.status === "UNARCHIVED") {
         loadDocuments();
         loadStats();
         return;
-        }
+      }
 
       const { updateUpload } = uploadStore.getState();
 
@@ -502,7 +509,6 @@ const DocumentList: React.FC = () => {
       }
 
       setDocuments((prev) => {
-
         const updated = prev.map((doc) =>
           String(doc.id) === String(data.document_id)
             ? {
@@ -540,41 +546,43 @@ const DocumentList: React.FC = () => {
 
   const handleArchive = async (id: string) => {
     try {
-        await documentService.archiveDocument(id);
+      await documentService.archiveDocument(id);
 
-        setDocuments(prev =>
-            prev.map(doc =>
-                doc.id === id ? { ...doc, isArchived: true, status: 'archived' } : doc
-            )
-        );
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === id
+            ? { ...doc, isArchived: true, status: "archived" }
+            : doc,
+        ),
+      );
 
-        loadStats(); // 🔥 REQUIRED
+      loadStats(); // 🔥 REQUIRED
 
-        setToast({ message: 'Document archived', type: 'success' });
+      setToast({ message: "Document archived", type: "success" });
     } catch {
-        setToast({ message: 'Failed to archive document', type: 'error' });
+      setToast({ message: "Failed to archive document", type: "error" });
     }
-};
+  };
 
-
-const handleUnarchive = async (id: string) => {
+  const handleUnarchive = async (id: string) => {
     try {
-        await documentService.unarchiveDocument(id);
+      await documentService.unarchiveDocument(id);
 
-        setDocuments(prev =>
-            prev.map(doc =>
-                doc.id === id ? { ...doc, isArchived: false, status: 'completed' } : doc
-            )
-        );
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === id
+            ? { ...doc, isArchived: false, status: "completed" }
+            : doc,
+        ),
+      );
 
-        loadStats(); // 🔥 REQUIRED
+      loadStats(); // 🔥 REQUIRED
 
-        setToast({ message: 'Document unarchived', type: 'success' });
+      setToast({ message: "Document unarchived", type: "success" });
     } catch {
-        setToast({ message: 'Failed to unarchive document', type: 'error' });
+      setToast({ message: "Failed to unarchive document", type: "error" });
     }
-};
-
+  };
 
   const handleBulkDownload = async () => {
     if (selectedDocuments.size === 0) return;
@@ -742,7 +750,9 @@ const handleUnarchive = async (id: string) => {
       "name",
       "type",
       "size",
+      "pages",
       "uploadedAt",
+      "pages",
       "status",
       "actions",
     ];
@@ -778,7 +788,9 @@ const handleUnarchive = async (id: string) => {
 
     return [
       ...baseColumns,
-      ...columnConfig.map((col) => {
+...columnConfig
+  .filter((col) => col.visible)
+  .map((col) => {
         const isSystem = col.isSystem || systemIds.includes(col.id);
         if (isSystem) {
           switch (col.id) {
@@ -824,6 +836,15 @@ const handleUnarchive = async (id: string) => {
                   );
                 },
               };
+            case "pages":
+              return {
+                key: "pages",
+                header: col.label,
+                render: (_: any, row: DocumentListItem) => (
+                  <span>{row.totalPages ?? "-"}</span>
+                ),
+              };
+
             case "uploadedAt":
               return {
                 key: "uploadedAt",
@@ -845,21 +866,32 @@ const handleUnarchive = async (id: string) => {
               return {
                 key: "status",
                 header: (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
                     {col.label}
                     <span
                       className={styles.statusTooltipWrapper}
                       onMouseEnter={(e) => {
-                        const tooltip = e.currentTarget.querySelector(`.${styles.statusTooltip}`) as HTMLElement;
+                        const tooltip = e.currentTarget.querySelector(
+                          `.${styles.statusTooltip}`,
+                        ) as HTMLElement;
                         if (tooltip) {
                           const rect = e.currentTarget.getBoundingClientRect();
                           tooltip.style.top = `${rect.bottom}px`;
                           tooltip.style.left = `${rect.left + rect.width / 2}px`;
-                          tooltip.style.transform = 'translateX(-50%)';
+                          tooltip.style.transform = "translateX(-50%)";
                         }
                       }}
                     >
-                      <Info size={14} style={{ cursor: 'help', color: '#64748b' }} />
+                      <Info
+                        size={14}
+                        style={{ cursor: "help", color: "#64748b" }}
+                      />
                       <div className={styles.statusTooltip}>
                         <div className={styles.statusTooltipItem}><Clock size={12} /> Queued: Waiting to start</div>
                         <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
