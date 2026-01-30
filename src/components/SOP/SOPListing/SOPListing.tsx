@@ -462,10 +462,7 @@ const SOPListing: React.FC = () => {
             </div>
             <div className={styles.modalBody}>
               {loadingDetails ? (
-                <div className={styles.loadingContainer}>
-                  <div className={styles.spinner}></div>
-                  <p>Loading details...</p>
-                </div>
+                <Loading message="Loading details..." />
               ) : (
                 <>
                   {/* Basic Information */}
