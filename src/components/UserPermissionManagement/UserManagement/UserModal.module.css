@@ -215,11 +215,11 @@
   .formRow {
     grid-template-columns: 1fr;
   }
-  
+
   .phoneInputGroup {
     flex-direction: column;
   }
-  
+
   .countryCodeSelect {
     flex: 1;
   }
@@ -292,6 +292,16 @@
 :global(.dark) .submitButton {
   background-color: #7dd0e9;
   color: #011926;
+}
+
+.loader {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+:global(.dark) .loader {
+  color: #9cb3c9;
 }
 
 :global(.dark) .nextButton:hover,

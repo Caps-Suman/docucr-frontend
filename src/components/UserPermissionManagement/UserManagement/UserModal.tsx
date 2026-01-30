@@ -34,6 +34,7 @@ interface UserModalProps {
   roles?: Array<{ id: string; name: string }>;
   // supervisors?: Array<{ id: string; name: string }>;
   clientName?: string;
+  isLoading?: boolean;
 }
 
 const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
@@ -46,6 +47,7 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
   // supervisors = [],
   clientName,
   isClientUser,
+  isLoading,
 }) => {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
@@ -112,35 +114,35 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
 
   useEffect(() => {
     if (!supervisorRole) {
-        setSupervisorOptions([]);
-        setSelectedSupervisor(null);
-        return;
+      setSupervisorOptions([]);
+      setSelectedSupervisor(null);
+      return;
     }
 
     let cancelled = false;
     setLoadingSupervisors(true);
 
     userService
-        .getUsersByRole(supervisorRole.value)
-        .then(users => {
-            if (cancelled) return;
+      .getUsersByRole(supervisorRole.value)
+      .then(users => {
+        if (cancelled) return;
 
-            setSupervisorOptions(
-                users.map((u: any) => ({
-                    value: u.id,
-                    label: `${u.first_name} ${u.last_name} (${u.username})`
-                }))
-            );
-        })
-        .catch(() => {
-            if (!cancelled) setSupervisorOptions([]);
-        })
-        .finally(() => {
-            if (!cancelled) setLoadingSupervisors(false);
-        });
+        setSupervisorOptions(
+          users.map((u: any) => ({
+            value: u.id,
+            label: `${u.first_name} ${u.last_name} (${u.username})`
+          }))
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setSupervisorOptions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSupervisors(false);
+      });
 
     return () => {
-        cancelled = true;
+      cancelled = true;
     };
   }, [supervisorRole]);
 
@@ -254,7 +256,24 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
           </button>
         </div>
         <form className={styles.form} onSubmit={handleSubmit}>
-          <div className={styles.formContent}>
+          <div className={styles.formContent} style={{ position: 'relative', minHeight: '200px' }}>
+            {isLoading && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(255, 255, 255, 0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+                borderRadius: '8px'
+              }}>
+                <div className={styles.loader}>Loading form data...</div>
+              </div>
+            )}
             {(step === 1 || isClientUser) && (
               <>
                 <div className={styles.formRow}>

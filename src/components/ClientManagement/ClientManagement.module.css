@@ -207,7 +207,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    margin-top: 20px;
+    padding: 20px;
 }
 
 .cancelButton {
@@ -280,7 +280,8 @@
 
 .userItem {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
     padding: 8px 0;
     border-bottom: 1px solid #f3f4f6;
 }
@@ -289,15 +290,100 @@
     border-bottom: none;
 }
 
+.userInfo {
+    display: flex;
+    flex-direction: column;
+}
+
 .userName {
     font-weight: 500;
     font-size: 14px;
+    color: #1e293b;
 }
 
 .userUsername {
     font-size: 12px;
-    color: #6b7280;
+    color: #64748b;
     margin-top: 2px;
+}
+
+.unassignUserBtn {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.unassignUserBtn:hover {
+    background: #fecaca;
+    color: #991b1b;
+    transform: scale(1.05);
+}
+
+:global(.dark) .userItem {
+    border-bottom-color: #374151;
+}
+
+:global(.dark) .userName {
+    color: #f9fafb;
+}
+
+:global(.dark) .userUsername {
+    color: #9ca3af;
+}
+
+:global(.dark) .unassignUserBtn {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+:global(.dark) .unassignUserBtn:hover {
+    background: #991b1b;
+    color: #fee2e2;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: #64748b;
+}
+
+.emptyIcon {
+    color: #cbd5e1;
+    margin-bottom: 12px;
+}
+
+:global(.dark) .emptyState {
+    color: #94a3b8;
+}
+
+:global(.dark) .emptyIcon {
+    color: #475569;
 }
 
 .addBtn:hover {

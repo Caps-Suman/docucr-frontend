@@ -138,6 +138,16 @@ const clientService = {
         }
     },
 
+    unassignUserFromClient: async (clientId: string, userId: string): Promise<void> => {
+        const response = await apiClient(`${API_URL}/api/clients/${clientId}/users/${userId}/unassign`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to unassign user');
+        }
+    },
+
     getUserClients: async (userId: string): Promise<Client[]> => {
         const response = await apiClient(`${API_URL}/api/clients/users/${userId}`);
         if (!response.ok) throw new Error('Failed to fetch user clients');
@@ -150,10 +160,10 @@ const clientService = {
         return response.json();
     },
     getMyClient: async (): Promise<Client> => {
-    const response = await apiClient(`${API_URL}/api/clients/me`);
-    if (!response.ok) throw new Error('Failed to fetch client for user');
-    return response.json();
-},
+        const response = await apiClient(`${API_URL}/api/clients/me`);
+        if (!response.ok) throw new Error('Failed to fetch client for user');
+        return response.json();
+    },
     createClientsFromBulk: async (clients: ClientCreateData[]): Promise<{ success: number; failed: number; errors: string[] }> => {
         const response = await apiClient(`${API_URL}/api/clients/bulk`, {
             method: 'POST',
