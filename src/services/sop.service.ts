@@ -23,8 +23,8 @@ const mapExampleToSOP = (data: any): SOP => ({
   providerInfo: data.provider_info || {},
 
   workflowProcess: {
-    description: data.workflow_process?.description || '',
-    eligibilityPortals: data.workflow_process?.eligibilityPortals || []
+    description: data.workflow_process?.description || data.workflow_process?.superbill_source || '',
+    eligibilityPortals: data.workflow_process?.eligibilityPortals || data.workflow_process?.eligibility_verification_portals || []
   },
 
   billingGuidelines: normalizeBillingGuidelines(data.billing_guidelines),
@@ -118,7 +118,7 @@ const sopService = {
     if (!response.ok) throw new Error('Failed to fetch SOPs');
     const data = await response.json();
     return {
-      sops: data.sops.map(normalizeSOP),
+      sops: data.sops.map(mapExampleToSOP),
       total: data.total
     };
   },
@@ -165,7 +165,7 @@ const sopService = {
     const response = await apiClient(`${API_URL}/api/sops/${id}`);
     if (!response.ok) throw new Error('Failed to fetch SOP');
     const data = await response.json();
-    return normalizeSOP(data);
+    return mapExampleToSOP(data);
   },
 
   createSOP: async (data: any): Promise<SOP> => {
