@@ -11,7 +11,14 @@
     border-bottom: 1px solid #e5e7eb;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .titleSection h1 {
@@ -36,13 +43,18 @@
 .backButton {
     background-color: white;
     border: 1px solid #e5e7eb;
-    padding: 8px 16px;
+    padding: 8px;
     border-radius: 8px;
     color: #6b7280;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    height: 36px;
+    width: 36px;
     align-items: center;
     gap: 8px;
     transition: all 0.2s;
@@ -69,6 +81,33 @@
     gap: 8px;
     transition: background-color 0.2s;
     min-height: 38px;
+}
+
+.resetButton {
+    background-color: white;
+    color: #ef4444;
+    border: 1px solid #fee2e2;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+    min-height: 38px;
+}
+
+.resetButton:hover {
+    background-color: #fef2f2;
+    border-color: #ef4444;
+}
+
+.resetButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .saveButton:hover {

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, X, Save, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, X, Save, ArrowLeft, Trash2, RotateCcw, Upload } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../../styles/selectStyles";
 import clientService, { Client } from "../../../services/client.service";
+import ConfirmModal from "../../Common/ConfirmModal";
 import {
   SOP,
   ProviderInfo,
@@ -70,7 +71,46 @@ const CreateSOP: React.FC = () => {
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleResetClick = () => {
+    setIsResetModalOpen(true);
+  };
+
+  const confirmReset = () => {
+    setTitle("");
+    setCategory("");
+    setProviderType("new");
+    setSelectedClientId("");
+    setProviderInfo({
+      providerName: "",
+      billingProviderName: "",
+      billingProviderNPI: "",
+      providerTaxID: "",
+      practiceName: "",
+      billingAddress: "",
+      software: "",
+      clearinghouse: "",
+    });
+    setWorkflowDescription("");
+    setEligibilityPortals([]);
+    setPostingCharges("");
+    setBillingGuidelines([]);
+    setCodingRules([]);
+    setNewCodingRule({
+      cptCode: "",
+      description: "",
+      ndcCode: "",
+      units: "",
+      chargePerUnit: "",
+      modifier: "",
+      replacementCPT: "",
+    });
+    setNewGuideline({ title: "", description: "" });
+    setErrors([]);
+    setIsResetModalOpen(false);
+  };
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -128,22 +168,39 @@ const CreateSOP: React.FC = () => {
       setLoading(false);
     }
   };
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
   const handleSOPUpload = async (file: File) => {
     try {
       setUploading(true);
 
-      const response = await sopService.uploadAndExtractSOP(file);
+      // Create new abort controller
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      const response = await sopService.uploadAndExtractSOP(file, controller.signal);
 
       if (!response?.extracted_data) {
         throw new Error("No extracted data returned from AI");
       }
 
       applyExtractedSOP(response.extracted_data);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to extract SOP from file");
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.log('SOP extraction cancelled');
+      } else {
+        console.error(err);
+        alert("Failed to extract SOP from file");
+      }
     } finally {
       setUploading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleCancelUpload = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
   };
 
@@ -352,6 +409,7 @@ const CreateSOP: React.FC = () => {
     });
   };
 
+
   const handleSave = async () => {
     if (!validateForm()) {
       return;
@@ -392,39 +450,70 @@ const CreateSOP: React.FC = () => {
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
-        <div className={styles.titleSection}>
-          <h1>{isEditMode ? "Edit SOP" : "Create New SOP"}</h1>
-          <p>
-            {isEditMode
-              ? "Update standard operating procedure details"
-              : "Define a new standard operating procedure"}
-          </p>
-        </div>
-        <div className={styles.headerActions}>
+        <div className={styles.headerLeft}>
           <button
             className={styles.backButton}
             onClick={() => navigate("/sops")}
+            title="Back to List"
           >
-            <ArrowLeft size={16} />
-            Back to List
+            <ArrowLeft size={20} />
+          </button>
+          <div className={styles.titleSection}>
+            <h1>{isEditMode ? "Edit SOP" : "Create New SOP"}</h1>
+            <p>
+              {isEditMode
+                ? "Update standard operating procedure details"
+                : "Define a new standard operating procedure"}
+            </p>
+          </div>
+        </div>
+        <div className={styles.headerActions}>
+          <button
+            className={styles.resetButton}
+            onClick={handleResetClick}
+            disabled={saving || uploading}
+          >
+            <RotateCcw size={16} />
+            Reset
           </button>
           <button
             className={styles.saveButton}
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || uploading}
           >
             <Save size={16} />
             {saving ? "Saving..." : "Save SOP"}
           </button>
 
-          <button
-            className={styles.saveButton}
-            type="button"
-            onClick={handleUploadClick}
-            disabled={uploading}
-          >
-            {uploading ? "Extracting..." : "Upload SOP"}
-          </button>
+          {uploading ? (
+            <>
+              <button
+                className={styles.saveButton}
+                type="button"
+                disabled
+              >
+                Extracting...
+              </button>
+              <button
+                className={styles.saveButton}
+                type="button"
+                onClick={handleCancelUpload}
+                style={{ backgroundColor: '#ef4444', borderColor: '#ef4444', color: 'white' }}
+              >
+                <X size={16} />
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              className={styles.saveButton}
+              type="button"
+              onClick={handleUploadClick}
+            >
+              <Upload size={16} />
+              Upload SOP
+            </button>
+          )}
 
           <input
             ref={fileInputRef}
@@ -531,8 +620,8 @@ const CreateSOP: React.FC = () => {
                     options={clients.map((c) => ({
                       value: c.id,
                       label: `${c.type === "individual"
-                          ? `${c.first_name || ""} ${c.middle_name || ""} ${c.last_name || ""}`.trim()
-                          : c.business_name || ""
+                        ? `${c.first_name || ""} ${c.middle_name || ""} ${c.last_name || ""}`.trim()
+                        : c.business_name || ""
                         } ${c.npi ? `(${c.npi})` : ""}`,
                     }))}
                     value={
@@ -546,8 +635,8 @@ const CreateSOP: React.FC = () => {
                               );
                               if (!client) return "";
                               return `${client.type === "individual"
-                                  ? `${client.first_name || ""} ${client.middle_name || ""} ${client.last_name || ""}`.trim()
-                                  : client.business_name || ""
+                                ? `${client.first_name || ""} ${client.middle_name || ""} ${client.last_name || ""}`.trim()
+                                : client.business_name || ""
                                 } ${client.npi ? `(${client.npi})` : ""}`;
                             })(),
                           }
@@ -939,6 +1028,15 @@ const CreateSOP: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        onConfirm={confirmReset}
+        title="Reset Form"
+        message="Are you sure you want to reset the form? All unsaved changes will be lost."
+        confirmText="Reset"
+        type="warning"
+      />
     </div>
   );
 };
