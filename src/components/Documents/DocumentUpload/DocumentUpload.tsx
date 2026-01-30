@@ -32,22 +32,22 @@ const DocumentUpload: React.FC = () => {
     const isClientUser = currentUser?.is_client === true;
     const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
 
-useEffect(() => {
-    if (!currentUser?.is_client) return;
-    if (!currentUser.client_id) return;
-    if (!selectedForm?.fields) return;
+    useEffect(() => {
+        if (!currentUser?.is_client) return;
+        if (!currentUser.client_id) return;
+        if (!selectedForm?.fields) return;
 
-    const clientField = selectedForm.fields.find(
-        f => f.is_system && f.label.toLowerCase() === 'client'
-    );
+        const clientField = selectedForm.fields.find(
+            f => f.is_system && f.label.toLowerCase() === 'client'
+        );
 
-    if (!clientField?.id) return;
+        if (!clientField?.id) return;
 
-    setFormData(prev => ({
-        ...prev,
-        [clientField.id!]: currentUser.client_id
-    }));
-}, [currentUser, selectedForm]);
+        setFormData(prev => ({
+            ...prev,
+            [clientField.id!]: currentUser.client_id
+        }));
+    }, [currentUser, selectedForm]);
 
 
     useEffect(() => {
@@ -114,29 +114,29 @@ useEffect(() => {
     };
 
     const initializeFormData = (form: Form) => {
-    const initialData: Record<string, any> = {};
+        const initialData: Record<string, any> = {};
 
-    form.fields?.forEach(field => {
-        // 🔥 AUTO-FILL CLIENT FIELD FOR CLIENT USER
-       if (
-    isClientUser &&
-    resolvedClientId &&
-    (field as any).is_system &&
-    field.label.toLowerCase() === 'client'
-) {
-    initialData[field.id || ''] = resolvedClientId;
-    return;
-}
+        form.fields?.forEach(field => {
+            // 🔥 AUTO-FILL CLIENT FIELD FOR CLIENT USER
+            if (
+                isClientUser &&
+                resolvedClientId &&
+                (field as any).is_system &&
+                field.label.toLowerCase() === 'client'
+            ) {
+                initialData[field.id || ''] = resolvedClientId;
+                return;
+            }
 
-        if (field.field_type === 'checkbox') {
-            initialData[field.id || ''] = [];
-        } else {
-            initialData[field.id || ''] = '';
-        }
-    });
+            if (field.field_type === 'checkbox') {
+                initialData[field.id || ''] = field.default_value || [];
+            } else {
+                initialData[field.id || ''] = field.default_value || '';
+            }
+        });
 
-    setFormData(initialData);
-};
+        setFormData(initialData);
+    };
 
 
     const handleFormFieldChange = async (fieldId: string, value: any) => {
@@ -293,55 +293,55 @@ useEffect(() => {
         }
     };
 
-const renderFormField = (field: FormField) => {
-    const fieldId = field.id || '';
-    const value = formData[fieldId] || '';
-    const hasError = !!formErrors[fieldId];
+    const renderFormField = (field: FormField) => {
+        const fieldId = field.id || '';
+        const value = formData[fieldId] || '';
+        const hasError = !!formErrors[fieldId];
 
-    // 🔒 CLIENT USERS: HIDE CLIENT FIELD COMPLETELY
-    if (
-        isClientUser &&
-        (field as any).is_system &&
-        field.label.toLowerCase() === 'client'
-    ) {
-        return null;
-    }
-
-    // Handle system fields
-    if ((field as any).is_system) {
-        if (field.label.toLowerCase() === 'client') {
-            return (
-                <CommonDropdown
-                    value={value}
-                    onChange={(val) => handleFormFieldChange(fieldId, val)}
-                    options={[
-                        { value: '', label: 'Select client' },
-                        ...clients.map(client => ({
-                            value: client.id,
-                            label: client.name
-                        }))
-                    ]}
-                    size="md"
-                />
-            );
+        // 🔒 CLIENT USERS: HIDE CLIENT FIELD COMPLETELY
+        if (
+            isClientUser &&
+            (field as any).is_system &&
+            field.label.toLowerCase() === 'client'
+        ) {
+            return null;
         }
 
-        if (field.label.toLowerCase().includes('document type')) {
-            return (
-                <CommonDropdown
-                    value={value}
-                    onChange={(val) => handleFormFieldChange(fieldId, val)}
-                    options={[
-                        { value: '', label: 'Select document type' },
-                        ...documentTypes.map(type => ({
-                            value: type.id,
-                            label: type.name
-                        }))
-                    ]}
-                    size="md"
-                />
-            );
-        }
+        // Handle system fields
+        if ((field as any).is_system) {
+            if (field.label.toLowerCase() === 'client') {
+                return (
+                    <CommonDropdown
+                        value={value}
+                        onChange={(val) => handleFormFieldChange(fieldId, val)}
+                        options={[
+                            { value: '', label: 'Select client' },
+                            ...clients.map(client => ({
+                                value: client.id,
+                                label: client.name
+                            }))
+                        ]}
+                        size="md"
+                    />
+                );
+            }
+
+            if (field.label.toLowerCase().includes('document type')) {
+                return (
+                    <CommonDropdown
+                        value={value}
+                        onChange={(val) => handleFormFieldChange(fieldId, val)}
+                        options={[
+                            { value: '', label: 'Select document type' },
+                            ...documentTypes.map(type => ({
+                                value: type.id,
+                                label: type.name
+                            }))
+                        ]}
+                        size="md"
+                    />
+                );
+            }
 
             if (field.label.toLowerCase().includes('document type')) {
                 return (
@@ -427,14 +427,14 @@ const renderFormField = (field: FormField) => {
                 return (
                     <CommonDatePicker
                         selected={value ? new Date(value) : null}
-onChange={(date: Date | null) =>
-    handleFormFieldChange(
-        fieldId,
-        date
-            ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-            : ''
-    )
-}
+                        onChange={(date: Date | null) =>
+                            handleFormFieldChange(
+                                fieldId,
+                                date
+                                    ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                                    : ''
+                            )
+                        }
                         className={`${styles.formInput} ${hasError ? styles.error : ''}`}
                         placeholderText={field.placeholder || 'Select date'}
                     />

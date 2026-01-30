@@ -144,7 +144,7 @@ const FormBuilder: React.FC = () => {
       placeholder: "",
       required: false,
       options: [],
-      default_value: undefined,  
+      default_value: undefined,
       order: 0,
     });
     setOptionsInput("");
@@ -186,13 +186,13 @@ const FormBuilder: React.FC = () => {
     const options =
       optionsSeparator === "comma"
         ? value
-            .split(",")
-            .map((opt) => opt.trim())
-            .filter((opt) => opt !== "")
+          .split(",")
+          .map((opt) => opt.trim())
+          .filter((opt) => opt !== "")
         : value
-            .split("\n")
-            .map((opt) => opt.trim())
-            .filter((opt) => opt !== "");
+          .split("\n")
+          .map((opt) => opt.trim())
+          .filter((opt) => opt !== "");
     handleFieldChange("options", options);
   };
 
@@ -216,13 +216,13 @@ const FormBuilder: React.FC = () => {
     const options =
       editOptionsSeparator === "comma"
         ? value
-            .split(",")
-            .map((opt) => opt.trim())
-            .filter((opt) => opt !== "")
+          .split(",")
+          .map((opt) => opt.trim())
+          .filter((opt) => opt !== "")
         : value
-            .split("\n")
-            .map((opt) => opt.trim())
-            .filter((opt) => opt !== "");
+          .split("\n")
+          .map((opt) => opt.trim())
+          .filter((opt) => opt !== "");
     handleEditFieldChange("options", options);
   };
 
@@ -280,34 +280,34 @@ const FormBuilder: React.FC = () => {
       return;
     }
     // Default value validations
-if (
-  fields.some(
-    f =>
-      f.required &&
-      (f.default_value === undefined || f.default_value === "")
-  )
-) {
-  setToast({
-    message: "Required fields must have a default value",
-    type: "error",
-  });
-  return;
-}
+    if (
+      fields.some(
+        f =>
+          f.required &&
+          (f.default_value === undefined || f.default_value === "")
+      )
+    ) {
+      setToast({
+        message: "Required fields must have a default value",
+        type: "error",
+      });
+      return;
+    }
 
-if (
-  fields.some(
-    f =>
-      f.field_type === "select" &&
-      f.default_value &&
-      !f.options?.includes(f.default_value)
-  )
-) {
-  setToast({
-    message: "Default value must be one of the options",
-    type: "error",
-  });
-  return;
-}
+    if (
+      fields.some(
+        f =>
+          f.field_type === "select" &&
+          f.default_value &&
+          !f.options?.includes(f.default_value)
+      )
+    ) {
+      setToast({
+        message: "Default value must be one of the options",
+        type: "error",
+      });
+      return;
+    }
 
     try {
       setSaving(true);
@@ -509,13 +509,13 @@ if (
                       </button>
                     </div>
                   </div>
-                 {field.field_type === "textarea" ? (
-  <textarea
-    className={styles.previewInput}
-    placeholder={field.placeholder}
-    value={field.default_value ?? ""}
-    readOnly
-  />
+                  {field.field_type === "textarea" ? (
+                    <textarea
+                      className={styles.previewInput}
+                      placeholder={field.placeholder}
+                      value={field.default_value ?? ""}
+                      readOnly
+                    />
 
                   ) : field.field_type === "select" ? (
                     // <CommonDropdown
@@ -534,14 +534,14 @@ if (
                     //   size="md"
                     // />
                     <CommonDropdown
-  value={field.default_value ?? ""}
-  onChange={() => {}}
-  options={[
-    { value: "", label: field.placeholder || "Select an option" },
-    ...(field.options?.map(opt => ({ value: opt, label: opt })) || [])
-  ]}
-  size="md"
-/>
+                      value={field.default_value ?? ""}
+                      onChange={() => { }}
+                      options={[
+                        { value: "", label: field.placeholder || "Select an option" },
+                        ...(field.options?.map(opt => ({ value: opt, label: opt })) || [])
+                      ]}
+                      size="md"
+                    />
 
                   ) : field.field_type === "checkbox" ? (
                     <div className={styles.previewOptions}>
@@ -636,45 +636,10 @@ if (
                       }
                       placeholder="Placeholder text"
                     />
-                    {/* Default Value */}
-{/* Default Value */}
-{!["checkbox", "radio"].includes(currentField.field_type) && (
-  <div className={styles.formGroup}>
-    <label className={styles.label}>Default Value</label>
-
-    {currentField.field_type === "select" ? (
-      <CommonDropdown
-        value={currentField.default_value ?? ""}
-        onChange={(value) =>
-          handleFieldChange("default_value", value)
-        }
-        options={(currentField.options || []).map((opt: string) => ({
-          value: opt,
-          label: opt,
-        }))}
-        size="md"
-      />
-    ) : (
-      <input
-        type={currentField.field_type}
-        className={styles.input}
-        value={currentField.default_value ?? ""}
-        onChange={(e) =>
-          handleFieldChange(
-            "default_value",
-            currentField.field_type === "number"
-              ? Number(e.target.value)
-              : e.target.value
-          )
-        }
-      />
-    )}
-  </div>
-)}
-
                   </div>
 
-                  
+
+
                   {/* Default Value */}
                   {!["checkbox", "radio"].includes(currentField.field_type) && (
                     <div className={styles.formGroup}>
@@ -713,61 +678,61 @@ if (
                   {["select", "checkbox", "radio"].includes(
                     currentField.field_type,
                   ) && (
-                    <>
-                      <div
-                        className={`${styles.formGroup} ${styles.fullWidth}`}
-                      >
-                        <label className={styles.label}>
-                          Options Separator
-                        </label>
-                        <CommonDropdown
-                          value={optionsSeparator}
-                          onChange={(value) => {
-                            setOptionsSeparator(value as "comma" | "newline");
-                            setOptionsInput("");
-                            handleFieldChange("options", []);
-                          }}
-                          options={[
-                            { value: "comma", label: "Comma separated" },
-                            { value: "newline", label: "New line separated" },
-                          ]}
-                          size="md"
-                        />
-                      </div>
-                      <div
-                        className={`${styles.formGroup} ${styles.fullWidth}`}
-                      >
-                        <label className={styles.label}>
-                          Options (
-                          {optionsSeparator === "comma"
-                            ? "comma separated"
-                            : "one per line"}
-                          )
-                        </label>
-                        {optionsSeparator === "comma" ? (
-                          <input
-                            type="text"
-                            className={styles.input}
-                            value={optionsInput}
-                            onChange={(e) =>
-                              handleOptionsChange(e.target.value)
-                            }
-                            placeholder="Option 1, Option 2, Option 3"
+                      <>
+                        <div
+                          className={`${styles.formGroup} ${styles.fullWidth}`}
+                        >
+                          <label className={styles.label}>
+                            Options Separator
+                          </label>
+                          <CommonDropdown
+                            value={optionsSeparator}
+                            onChange={(value) => {
+                              setOptionsSeparator(value as "comma" | "newline");
+                              setOptionsInput("");
+                              handleFieldChange("options", []);
+                            }}
+                            options={[
+                              { value: "comma", label: "Comma separated" },
+                              { value: "newline", label: "New line separated" },
+                            ]}
+                            size="md"
                           />
-                        ) : (
-                          <textarea
-                            className={styles.textarea}
-                            value={optionsInput}
-                            onChange={(e) =>
-                              handleOptionsChange(e.target.value)
-                            }
-                            placeholder="Option 1&#10;Option 2&#10;Option 3"
-                            rows={4}
-                          />
-                        )}
-                      </div>
-                    </>
-                  )}
+                        </div>
+                        <div
+                          className={`${styles.formGroup} ${styles.fullWidth}`}
+                        >
+                          <label className={styles.label}>
+                            Options (
+                            {optionsSeparator === "comma"
+                              ? "comma separated"
+                              : "one per line"}
+                            )
+                          </label>
+                          {optionsSeparator === "comma" ? (
+                            <input
+                              type="text"
+                              className={styles.input}
+                              value={optionsInput}
+                              onChange={(e) =>
+                                handleOptionsChange(e.target.value)
+                              }
+                              placeholder="Option 1, Option 2, Option 3"
+                            />
+                          ) : (
+                            <textarea
+                              className={styles.textarea}
+                              value={optionsInput}
+                              onChange={(e) =>
+                                handleOptionsChange(e.target.value)
+                              }
+                              placeholder="Option 1&#10;Option 2&#10;Option 3"
+                              rows={4}
+                            />
+                          )}
+                        </div>
+                      </>
+                    )}
 
                   <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                     <label className={styles.checkbox}>
@@ -828,13 +793,15 @@ if (
         </div>
       </div>
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {
+        toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )
+      }
 
       <EditFieldModal
         isOpen={editModalOpen}
@@ -861,3 +828,4 @@ if (
 };
 
 export default FormBuilder;
+
