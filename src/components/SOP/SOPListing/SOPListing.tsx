@@ -162,14 +162,20 @@ const SOPListing: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = async (id: string, currentStatusId?: number) => {
-    const isActive = currentStatusId === activeStatusId || !currentStatusId;
-    setConfirmModal({
-      isOpen: true,
-      sopId: id,
-      action: isActive ? "deactivate" : "activate",
-    });
-  };
+  const handleToggleStatus = (id: string, currentStatusId?: number) => {
+  const isActive = currentStatusId === activeStatusId;
+
+  setConfirmModal({
+    isOpen: true,
+    sopId: id,
+    action: isActive ? "deactivate" : "activate",
+  });
+};
+  useEffect(() => {
+  loadStatuses();
+  loadStats();
+}, []);
+
   const confirmToggleStatus = async () => {
     try {
       const newStatusId =
@@ -287,62 +293,58 @@ const SOPListing: React.FC = () => {
       render: (_: any, row: SOP) =>
         row.updatedAt ? new Date(row.updatedAt).toLocaleDateString() : "-",
     },
-    {
-      key: "actions",
-      header: "Actions",
-      width: "130px",
-      render: (_: any, row: SOP) => (
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button
-            className={styles.viewButton}
-            onClick={() => handleViewSOP(row)}
-            title="View SOP"
-          >
-            <Eye size={14} />
-          </button>
-          <button
-            className={styles.downloadButton}
-            onClick={() => handleDownloadPDF(row)}
-            disabled={downloadingId === row.id}
-            title="Download PDF"
-          >
-            {downloadingId === row.id ? (
-              <div className={styles.smallSpinner}></div>
-            ) : (
-              <Download size={14} />
-            )}
-          </button>
-          <button
-            className={styles.editButton}
-            onClick={() => navigate(`/sops/edit/${row.id}`)}
-            title="Edit SOP"
-          >
-            <Edit size={14} />
-          </button>
-          <button
-            className={
-              row.statusId === activeStatusId || !row.statusId
-                ? styles.deactivateButton
-                : styles.activateButton
-            }
-            onClick={() => handleToggleStatus(row.id, row.statusId)}
-            title={
-              row.statusId === activeStatusId || !row.statusId
-                ? "Deactivate SOP"
-                : "Activate SOP"
-            }
-          >
-            {row.statusId === activeStatusId || !row.statusId ? (
-              <StopCircle size={14} />
-            ) : (
-              <PlayCircle size={14} />
-            )}
-          </button>
-        </div>
-      ),
-    },
-  ];
+{
+  key: "actions",
+  header: "Actions",
+  width: "130px",
+  render: (_: any, row: SOP) => {
+    // ✅ CORRECT PLACE
+    const isActive = row.statusId === activeStatusId;
 
+    return (
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button
+          className={styles.viewButton}
+          onClick={() => handleViewSOP(row)}
+          title="View SOP"
+        >
+          <Eye size={14} />
+        </button>
+
+        <button
+          className={styles.downloadButton}
+          onClick={() => handleDownloadPDF(row)}
+          disabled={downloadingId === row.id}
+          title="Download PDF"
+        >
+          {downloadingId === row.id ? (
+            <div className={styles.smallSpinner}></div>
+          ) : (
+            <Download size={14} />
+          )}
+        </button>
+
+        <button
+          className={styles.editButton}
+          onClick={() => navigate(`/sops/edit/${row.id}`)}
+          title="Edit SOP"
+        >
+          <Edit size={14} />
+        </button>
+
+        {/* ✅ STATUS ACTION BUTTON */}
+        <button
+          className={isActive ? styles.deactivateButton : styles.activateButton}
+          onClick={() => handleToggleStatus(row.id, row.statusId)}
+          title={isActive ? "Deactivate SOP" : "Activate SOP"}
+        >
+          {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+        </button>
+      </div>
+    );
+  },
+}
+  ];
   return (
     <div className={styles.container}>
       {/* Stats Grid */}
