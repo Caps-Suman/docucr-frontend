@@ -112,6 +112,38 @@ const EditFieldModal: React.FC<EditFieldModalProps> = ({
                             </div>
                         </>
                     )}
+{/* Default Value */}
+{!["checkbox", "radio"].includes(field.field_type) && (
+  <div className={styles.formGroup}>
+    <label className={styles.label}>Default Value</label>
+
+    {field.field_type === "select" ? (
+      <CommonDropdown
+        value={field.default_value ?? ""}
+        onChange={(value) => onFieldChange("default_value", value)}
+        options={(field.options || []).map((opt: string) => ({
+          value: opt,
+          label: opt,
+        }))}
+        size="md"
+      />
+    ) : (
+      <input
+        type={field.field_type}
+        className={styles.input}
+        value={field.default_value ?? ""}
+        onChange={(e) =>
+          onFieldChange(
+            "default_value",
+            field.field_type === "number"
+              ? Number(e.target.value)
+              : e.target.value
+          )
+        }
+      />
+    )}
+  </div>
+)}
 
                     <div className={styles.formGroup}>
                         <label className={styles.checkbox}>
