@@ -1162,7 +1162,7 @@
 
 .stickyActions {
     right: 0;
-    width: 182px !important;
+    width: 224px !important;
     z-index: 20 !important;
     /* Increased from 11 to 20 to be definitely above status and shadows */
     overflow: visible !important;

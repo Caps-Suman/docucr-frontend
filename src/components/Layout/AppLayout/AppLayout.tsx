@@ -104,7 +104,7 @@ const AppLayout: React.FC = () => {
         setUser(currentUser);
 
         if (currentUser?.email) {
-            fetchUserRoleCount(currentUser.email);
+            fetchUserRoleCount();
             checkModuleAccess(currentUser.email);
         }
 
@@ -121,9 +121,9 @@ const AppLayout: React.FC = () => {
         }
     };
 
-    const fetchUserRoleCount = async (email: string) => {
+    const fetchUserRoleCount = async () => {
         try {
-            const response = await apiClient(`${API_BASE_URL}/api/users/email/${email}`);
+            const response = await apiClient(`${API_BASE_URL}/api/users/me`);
             if (response.ok) {
                 const userData = await response.json();
                 setUserRoleCount(userData.roles?.length || 0);

@@ -23,7 +23,7 @@ const RoleSelection: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const state = location.state as LocationState;
-    
+
     const [selectedRole, setSelectedRole] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -44,13 +44,18 @@ const RoleSelection: React.FC = () => {
             }
             setCurrentUser(user);
             // Fetch user's roles from API
-            fetchUserRoles(user.email);
+            fetchUserRoles();
         }
     }, []);
 
-    const fetchUserRoles = async (email: string) => {
+    const fetchUserRoles = async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/users/email/${email}`);
+            const token = authService.getToken();
+            const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/users/me`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (!response.ok) throw new Error('Failed to fetch user roles');
             const userData = await response.json();
             setUserRoles(userData.roles || []);

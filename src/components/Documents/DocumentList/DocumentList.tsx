@@ -376,7 +376,7 @@ const DocumentList: React.FC = () => {
 
       // Fetch column configuration
       try {
-        const response = await documentListConfigService.getUserConfig();
+        const response = await documentListConfigService.getMyConfig();
         if (response.configuration) {
           const sortedColumns = [...response.configuration.columns]
             .sort((a: any, b: any) => a.order - b.order);

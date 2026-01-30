@@ -32,6 +32,14 @@ class DocumentListConfigService {
         return response.json();
     }
 
+    async getMyConfig(): Promise<DocumentListConfigResponse> {
+        const response = await apiClient(`${API_BASE_URL}/api/document-list-config/me`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch document list configuration');
+        }
+        return response.json();
+    }
+
     async saveUserConfig(config: DocumentListConfigRequest): Promise<{ message: string; configuration: DocumentListConfigRequest }> {
         const response = await apiClient(`${API_BASE_URL}/api/document-list-config`, {
             method: 'PUT',

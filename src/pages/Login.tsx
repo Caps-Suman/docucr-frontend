@@ -53,15 +53,24 @@ const Login: React.FC = () => {
       if (user && token) {
         setUserInfo(user);
         setTempToken(token);
-        fetchUserRoles(user.email);
+        // Need to wait for token state to update? Actually we can pass it or use ref, 
+        // but here we are in useEffect so tempToken might not be set in state yet if we just called setTempToken.
+        // But wait, setTempToken is async state update.
+        // However, we can modify verifyUserRoles to accept token.
+        // Let's modify fetchUserRoles to accept token as arg to be safe.
+        fetchUserRoles(token);
         setShowRoleSelection(true);
       }
     }
   }, [location]);
 
-  const fetchUserRoles = async (email: string) => {
+  const fetchUserRoles = async (token: string) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/users/email/${email}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch user roles');
       const userData = await response.json();
       setRoles(userData.roles || []);
