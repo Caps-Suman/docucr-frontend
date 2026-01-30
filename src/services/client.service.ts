@@ -16,7 +16,7 @@ export interface Client {
     created_at: string;
     updated_at: string;
     is_user: boolean;
-    // ✅ NEW
+    // NEW
     address_line_1?: string;
     address_line_2?: string;
     state_code?: string;
