@@ -537,7 +537,7 @@ const ClientManagement: React.FC = () => {
                                     className={styles.assignBtn}
                                     onClick={openAssignModal}
                                 >
-                                    Assign to User ({selectedClients.length})
+                                    Assign ({selectedClients.length}) to User
                                 </button>
                             )}
                             <input
