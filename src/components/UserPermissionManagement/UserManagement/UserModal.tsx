@@ -488,6 +488,19 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
                     }}
                     options={roleOptions}
                     placeholder="Select role to choose supervisor from"
+                    styles={{
+                      ...getCustomSelectStyles(),
+                      menu: (base) => ({
+                        ...getCustomSelectStyles().menu(base),
+                        zIndex: 10000,
+                      }),
+                      menuPortal: (base) => ({
+                        ...base,
+                        zIndex: 10000,
+                      }),
+                    }}
+                    menuPortalTarget={document.body}
+                    menuPosition="fixed"
                   />
                 </div>
 
