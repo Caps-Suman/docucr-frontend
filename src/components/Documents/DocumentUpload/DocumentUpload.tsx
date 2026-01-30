@@ -30,7 +30,7 @@ const DocumentUpload: React.FC = () => {
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const currentUser = authService.getUser();
     const isClientUser = currentUser?.is_client === true;
-    const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
+    // const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
 
 useEffect(() => {
     if (!currentUser?.is_client) return;
