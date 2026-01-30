@@ -34,6 +34,7 @@ import documentTypeService, {
 } from "../../../services/documentType.service";
 import { useUploadStore, uploadStore } from "../../../store/uploadStore";
 import ShareDocumentsModal from "../ShareDocumentsModal/ShareDocumentsModal";
+import ActionLogModal from "./ActionLogModal";
 import styles from "./DocumentList.module.css";
 import formService from "../../../services/form.service";
 import CommonPagination from "../../Common/CommonPagination";
@@ -97,6 +98,9 @@ const DocumentList: React.FC = () => {
     dateTo: null,
     sharedOnly: false,
   });
+  const [showActionLogModal, setShowActionLogModal] = useState(false);
+  const [actionLogDocumentId, setActionLogDocumentId] = useState<string | null>(null);
+  const [actionLogDocumentName, setActionLogDocumentName] = useState<string | null>(null);
   const [formFields, setFormFields] = useState<any[]>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(
     new Set(),
@@ -576,6 +580,12 @@ const DocumentList: React.FC = () => {
     }
   };
 
+  const handleActionLogClick = (document: DocumentListItem) => {
+    setActionLogDocumentId(document.id);
+    setActionLogDocumentName(document.originalFilename || document.name);
+    setShowActionLogModal(true);
+  };
+
   const handleArchive = async (id: string) => {
     try {
       await documentService.archiveDocument(id);
@@ -773,6 +783,8 @@ const DocumentList: React.FC = () => {
       setDocumentToDelete(null);
     }
   };
+
+
 
   const columns = React.useMemo(() => {
     if (columnConfig.length === 0) return [];
@@ -1195,6 +1207,20 @@ const DocumentList: React.FC = () => {
                               <Trash2 size={14} />
                             </button>
                           </span>
+
+                          {/* for action-log view */}
+                          <span
+                            className={styles.tooltipWrapper}
+                            data-tooltip="View Log"
+                          >
+                            <button
+                              className="action-btn view-log"
+                              onClick={() => handleActionLogClick(row)}
+                            >
+                              <FileText size={14} />
+                            </button>
+                          </span>
+
                         </>
                       )}
                       {row.isUploading && (
@@ -1579,6 +1605,13 @@ const DocumentList: React.FC = () => {
         cancelText="Cancel"
         type="danger"
         loading={deleting}
+      />
+
+      <ActionLogModal
+        isOpen={showActionLogModal}
+        onClose={() => setShowActionLogModal(false)}
+        documentId={actionLogDocumentId}
+        documentName={actionLogDocumentName}
       />
 
       {toast && (
