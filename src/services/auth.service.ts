@@ -11,11 +11,13 @@ export interface AuthUser {
   email: string;
   first_name: string;
   last_name: string;
-  role?: { id: string; name: string };
-
-  // 🔥 ADD THESE
+  role?: {
+    id: string;
+    name: string;
+  };
   is_client?: boolean;
   client_id?: string | null;
+  client_name?: string | null;
 }
 
 export interface LoginResponse {
