@@ -26,8 +26,10 @@ export interface LoginResponse {
   token_type?: string;
   expires_in?: number;
   requires_role_selection?: boolean;
+  requires_2fa?: boolean;
   temp_token?: string;
   roles?: Array<{ id: string; name: string }>;
+  message?: string;
   user: AuthUser;
 }
 
@@ -43,6 +45,11 @@ export interface ForgotPasswordRequest {
 
 export interface ApiError {
   error: string;
+}
+
+export interface TwoFactorRequest {
+  email: string;
+  otp: string;
 }
 
 export interface ResetPasswordRequest {
@@ -72,6 +79,42 @@ class AuthService {
     }
 
     return result;
+  }
+
+  async verify2FA(data: TwoFactorRequest): Promise<LoginResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/verify-2fa`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error: any = await response.json();
+      throw new Error(error.error || error.detail || '2FA verification failed');
+    }
+
+    const result = await response.json();
+
+    if (result.user?.id) {
+      this.saveUserId(result.user.id);
+    }
+
+    return result;
+  }
+
+  async resend2FA(data: LoginRequest): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/resend-2fa`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error: any = await response.json();
+      throw new Error(error.error || error.detail || 'Failed to resend 2FA code');
+    }
+
+    return response.json();
   }
 
   async selectRole(data: RoleSelectionRequest, tempToken?: string): Promise<LoginResponse> {

@@ -24,12 +24,14 @@ const Login: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isOtpSent, setIsOtpSent] = useState(false);
+  const [is2FARequired, setIs2FARequired] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showRoleSelection, setShowRoleSelection] = useState(false);
   const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedRole, setSelectedRole] = useState('');
   const [userInfo, setUserInfo] = useState<any>(null);
   const [tempToken, setTempToken] = useState<string>('');
+  const [loginCredentials, setLoginCredentials] = useState<{ email: string; password: string; rememberMe: boolean } | null>(null);
   const [formData, setFormData] = useState<FormData & { otp?: string; confirmPassword?: string }>({
     email: '',
     password: '',
@@ -97,16 +99,22 @@ const Login: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
+    if (is2FARequired) {
+      if (!formData.otp) {
+        newErrors.otp = 'OTP is required';
+      }
+    } else if (!isForgotPassword) {
+      if (!formData.email) {
+        newErrors.email = 'Email is required';
+      } else if (!validateEmail(formData.email)) {
+        newErrors.email = 'Invalid email format';
+      }
 
-    if (!isForgotPassword && !formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (!isForgotPassword && !validatePassword(formData.password)) {
-      newErrors.password = 'Password must be at least 8 characters';
+      if (!formData.password) {
+        newErrors.password = 'Password is required';
+      } else if (!validatePassword(formData.password)) {
+        newErrors.password = 'Password must be at least 8 characters';
+      }
     }
 
     if (isForgotPassword && isOtpSent) {
@@ -165,8 +173,11 @@ const Login: React.FC = () => {
           remember_me: formData.rememberMe
         });
 
-        // Check if role selection is required
-        if (data.requires_role_selection && data.roles) {
+        if (data.requires_2fa) {
+          setLoginCredentials({ email: formData.email, password: formData.password, rememberMe: formData.rememberMe });
+          setIs2FARequired(true);
+          setMessage(data.message || '2FA code sent to your email');
+        } else if (data.requires_role_selection && data.roles) {
           setRoles(data.roles);
           setUserInfo(data.user);
           setTempToken(data.temp_token || '');
@@ -182,6 +193,58 @@ const Login: React.FC = () => {
       }
     } catch (error: any) {
       setErrors({ submit: error.message || 'Network error. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handle2FAVerification = async () => {
+    if (!formData.otp || !loginCredentials) {
+      setErrors({ otp: 'OTP is required' });
+      return;
+    }
+
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const data = await authService.verify2FA({
+        email: loginCredentials.email,
+        otp: formData.otp
+      });
+
+      if (data.requires_role_selection && data.roles) {
+        setRoles(data.roles);
+        setUserInfo(data.user);
+        setTempToken(data.temp_token || '');
+        setShowRoleSelection(true);
+        setIs2FARequired(false);
+      } else {
+        authService.saveToken(data.access_token!);
+        if (data.refresh_token) {
+          authService.saveRefreshToken(data.refresh_token);
+        }
+        authService.saveUser(data.user);
+        navigate('/dashboard');
+      }
+    } catch (error: any) {
+      setErrors({ otp: error.message || 'Invalid 2FA code' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend2FA = async () => {
+    if (!loginCredentials) return;
+
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const data = await authService.resend2FA(loginCredentials);
+      setMessage(data.message || '2FA code resent to your email');
+    } catch (error: any) {
+      setErrors({ submit: error.message || 'Failed to resend 2FA code' });
     } finally {
       setLoading(false);
     }
@@ -242,7 +305,73 @@ const Login: React.FC = () => {
       </div>
 
       <div className="login-right">
-        {showRoleSelection ? (
+        {is2FARequired ? (
+          <div className="login-form-wrapper">
+            <div className="role-selection-header">
+              <Shield size={40} className="role-icon" style={{ color: '#83cee4', marginBottom: '12px' }} />
+              <h2>Two-Factor Authentication</h2>
+              <p className="subtitle">
+                Enter the 6-digit code sent to your email
+              </p>
+              <p className="subtitle" style={{ marginTop: '0', marginBottom: '24px', fontSize: '14px' }}>
+                {loginCredentials?.email}
+              </p>
+            </div>
+
+            <div className="form-group">
+              <input
+                type="text"
+                name="otp"
+                placeholder="Enter 6-digit code"
+                value={formData.otp}
+                onChange={handleChange}
+                className={errors.otp ? 'error' : ''}
+                maxLength={6}
+                style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '8px', fontFamily: 'monospace' }}
+              />
+              {errors.otp && <span className="error-text">{errors.otp}</span>}
+            </div>
+
+            {errors.submit && <div className="error-message">{errors.submit}</div>}
+            {message && <div className="success-message">{message}</div>}
+
+            <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
+              <button
+                className="btn-primary"
+                onClick={handle2FAVerification}
+                disabled={loading || (formData.otp?.length ?? 0) !== 6}
+              >
+                {loading ? 'Verifying...' : 'Verify Code'}
+              </button>
+
+              <button
+                type="button"
+                className="forgot-link"
+                onClick={handleResend2FA}
+                disabled={loading}
+                style={{ alignSelf: 'center' }}
+              >
+                {loading ? 'Sending...' : 'Resend Code'}
+              </button>
+            </div>
+
+            <p className="toggle-text" style={{ marginTop: '16px' }}>
+              <button
+                className="forgot-link"
+                onClick={() => {
+                  setIs2FARequired(false);
+                  setLoginCredentials(null);
+                  setFormData(prev => ({ ...prev, otp: '' }));
+                  setErrors({});
+                  setMessage('');
+                }}
+                disabled={loading}
+              >
+                Back to Login
+              </button>
+            </p>
+          </div>
+        ) : showRoleSelection ? (
           <div className="login-form-wrapper">
             <div className="role-selection-header">
               <Shield size={40} className="role-icon" style={{ color: '#83cee4', marginBottom: '12px' }} />
