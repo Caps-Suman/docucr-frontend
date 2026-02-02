@@ -339,6 +339,7 @@ if (digits.length >= 9) {
             state_code: stateCode || undefined,
             state_name: stateName || undefined,
             zip_code: zipCode || undefined,
+            country:country || undefined,
         };
 
 
