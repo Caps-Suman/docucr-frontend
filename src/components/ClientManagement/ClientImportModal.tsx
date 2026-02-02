@@ -335,7 +335,11 @@ const ClientImportModal: React.FC<ClientImportModalProps> = ({ isOpen, onClose, 
                             Download Sample Template
                         </a>
                     </div>
+<<<<<<< HEAD
                     <p>Include headers like <strong>Type, Name, NPI, City, Address, State,Country, ZIP</strong>.</p>
+=======
+                    <p>Include headers like <strong>Type, Name, NPI, Address,City, State,Country, ZIP</strong>.</p>
+>>>>>>> 9bdf244855ef006734090a697efd81e2cffadd91
                 </div>
             </div>
         );
