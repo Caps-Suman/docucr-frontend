@@ -44,7 +44,11 @@ export interface BillingGuideline {
   title: string;
   description: string;
 }
-
+export interface PayerGuidelines {
+  id: string;
+  title: string;
+  description: string;
+}
 export interface InfusionNDCCode {
     id: string;
     cptCode: string;
@@ -99,6 +103,7 @@ export interface SOP {
   };
 
   billingGuidelines?: BillingGuideline[];
+  payerGuidelines?:PayerGuidelines[];
   codingRules?: CodingRule[];
 
   statusId?: number;

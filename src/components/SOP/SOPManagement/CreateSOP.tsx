@@ -56,6 +56,16 @@ const CreateSOP: React.FC = () => {
     description: "",
   });
 
+  const [payerGuidelines, setPayerGuidelines] = useState<
+  { id?: string; payer_name: string; description: string }[]
+>([]);
+
+const [newPayerGuideline, setNewPayerGuideline] = useState({
+  payer_name: "",
+  description: "",
+});
+
+
   // Coding Rules - Unified
   const [codingRules, setCodingRules] = useState<CodingRule[]>([]);
   const [newCodingRule, setNewCodingRule] = useState({
@@ -160,6 +170,16 @@ const CreateSOP: React.FC = () => {
       if (sop.billingGuidelines) {
         setBillingGuidelines(normalizeBillingGuidelines(sop.billingGuidelines));
       }
+      if (sop.payerGuidelines) {
+  setPayerGuidelines(
+    sop.payerGuidelines.map((pg: any, i: number) => ({
+      id: `pg_db_${i}`,
+      payer_name: pg.payer_name || "Unknown",
+      description: pg.description || "",
+    }))
+  );
+}
+
       if (sop.codingRules) setCodingRules(sop.codingRules);
     } catch (error) {
       console.error("Failed to load SOP:", error);
@@ -262,7 +282,15 @@ const CreateSOP: React.FC = () => {
         }))
       );
     }
-
+    if (Array.isArray(data.payer_guidelines)) {
+  setPayerGuidelines(
+    data.payer_guidelines.map((pg: any, i: number) => ({
+      id: `pg_ai_${i}`,
+      payer_name: pg?.payer_name || "Unknown",
+      description: pg?.description || "",
+    }))
+  );
+}
     // ---- CODING RULES ----
     if (Array.isArray(data.coding_rules)) {
       setCodingRules(
@@ -427,6 +455,7 @@ const CreateSOP: React.FC = () => {
         eligibility_verification_portals: eligibilityPortals,
       },
       billing_guidelines: billingGuidelines,
+      payer_guidelines: payerGuidelines, // 🔥 THIS WAS MISSING
       coding_rules: codingRules,
     };
 
@@ -840,6 +869,84 @@ const CreateSOP: React.FC = () => {
               ))}
             </div>
           </div>
+              {/* Payer Guidelines */}
+<div className={styles.section}>
+  <div className={styles.sectionTitle}>Payer Guidelines</div>
+
+  <div className={styles.formGridWithButton}>
+    <div className={styles.formGroup}>
+      <label className={styles.label}>Payer Name</label>
+      <input
+        className={styles.input}
+        value={newPayerGuideline.payer_name}
+        onChange={(e) =>
+          setNewPayerGuideline({
+            ...newPayerGuideline,
+            payer_name: e.target.value,
+          })
+        }
+        placeholder="e.g., Medicare, Aetna"
+      />
+    </div>
+
+    <div className={styles.formGroup}>
+      <label className={styles.label}>Description</label>
+      <input
+        className={styles.input}
+        value={newPayerGuideline.description}
+        onChange={(e) =>
+          setNewPayerGuideline({
+            ...newPayerGuideline,
+            description: e.target.value,
+          })
+        }
+      />
+    </div>
+
+    <div className={styles.formGroup}>
+      <label className={styles.label}>&nbsp;</label>
+      <button
+        type="button"
+        className={styles.saveButton}
+        onClick={() => {
+          if (
+            newPayerGuideline.payer_name.trim() &&
+            newPayerGuideline.description.trim()
+          ) {
+            setPayerGuidelines([
+              ...payerGuidelines,
+              { id: `pg_${Date.now()}`, ...newPayerGuideline },
+            ]);
+            setNewPayerGuideline({ payer_name: "", description: "" });
+          }
+        }}
+      >
+        <Plus size={16} /> Add Payer Rule
+      </button>
+    </div>
+  </div>
+
+  <div className={styles.cardList}>
+    {payerGuidelines.map((pg, i) => (
+      <div key={pg.id || i} className={styles.cardItem}>
+        <div className={styles.cardContent}>
+          <h4>{pg.payer_name}</h4>
+          <p>{pg.description}</p>
+        </div>
+        <button
+          className={styles.deleteButton}
+          onClick={() =>
+            setPayerGuidelines(
+              payerGuidelines.filter((_, idx) => idx !== i)
+            )
+          }
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
 
           {/* Coding Guidelines */}
           <div className={styles.section}>
