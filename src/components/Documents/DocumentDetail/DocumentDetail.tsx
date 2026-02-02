@@ -107,6 +107,21 @@ const DocumentDetail: React.FC = () => {
     const badgeNumber = index % 20;
     return `${styles.typeBadge} ${styles[`badge${badgeNumber}` as keyof typeof styles]}`;
   };
+  const getDerivedDocumentCounts = () => {
+  const counts: Record<string, number> = {};
+
+  document?.extracted_documents?.forEach((doc) => {
+    const key = doc.document_type || "Unknown";
+    counts[key] = (counts[key] || 0) + 1;
+  });
+
+  document?.unverified_documents?.forEach((doc) => {
+    const key = doc.suspected_type || "Unverified";
+    counts[key] = (counts[key] || 0) + 1;
+  });
+
+  return counts;
+};
 
   const fetchDocumentDetails = async () => {
     try {
@@ -415,7 +430,7 @@ const DocumentDetail: React.FC = () => {
               <h3 className={styles.cardTitle}>Derived Documents</h3>
             </div>
             <div className={styles.badgeList}>
-              {document.extracted_documents.map((ed, index) => (
+              {/* {document.extracted_documents.map((ed, index) => (
                 <span key={ed.id} className={getBadgeClass(index)}>
                   {ed.document_type || "Unknown"} |{" "}
                   {calculatePageCount(ed.page_range)}{" "}
@@ -433,7 +448,21 @@ const DocumentDetail: React.FC = () => {
                   {calculatePageCount(ud.page_range)}{" "}
                   {calculatePageCount(ud.page_range) === 1 ? "Page" : "Pages"}
                 </span>
-              ))}
+              ))} */}
+              {Object.entries(getDerivedDocumentCounts()).map(
+  ([type, count], index) => (
+    <span key={type} className={getBadgeClass(index)}>
+      {type}: {count}
+    </span>
+  )
+)}
+
+{Object.keys(getDerivedDocumentCounts()).length === 0 && (
+  <p className={styles.emptyMessage}>
+    No derived documents found.
+  </p>
+)}
+
               {document.extracted_documents.length === 0 &&
                 document.unverified_documents.length === 0 && (
                   <p className={styles.emptyMessage}>

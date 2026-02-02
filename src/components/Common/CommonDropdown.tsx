@@ -15,6 +15,7 @@ interface CommonDropdownProps {
     className?: string;
     menuPlacement?: 'auto' | 'top' | 'bottom';
     size?: 'sm' | 'md';
+    disabled?: boolean;   // ✅ ADD THIS
 }
 
 const CommonDropdown: React.FC<CommonDropdownProps> = ({

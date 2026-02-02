@@ -235,23 +235,19 @@ const ActivityLogPage: React.FC = () => {
             render: (value: string) => new Date(value).toLocaleString(),
             width: '150px'
         },
-        {
-            key: 'user',
-            header: 'User',
-            render: (user: any, row: ActivityLog) => (
-                <div className={styles.userCell}>
-                    <User size={16} color="var(--color-gray-400)" />
-                    <span title={user?.username || row.user_id || 'System'}>
-                        {user ? (
-                            user.first_name && user.last_name
-                                ? `${user.first_name} ${user.last_name}`
-                                : user.username
-                        ) : (row.user_id ? row.user_id.substring(0, 8) + '...' : 'System')}
-                    </span>
-                </div>
-            ),
-            width: '180px'
-        },
+    {
+  key: 'name',
+  header: 'User',
+  render: (_: any, row: ActivityLog) => (
+    <div className={styles.userCell}>
+      <User size={16} color="var(--color-gray-400)" />
+      <span title={row.email || row.user_id}>
+        {row.name || 'System'}
+      </span>
+    </div>
+  ),
+  width: '180px'
+},
         {
             key: 'action',
             header: 'Action',

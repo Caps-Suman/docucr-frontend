@@ -97,7 +97,6 @@ const UserDashboard: React.FC = () => {
                     <button 
                         className={styles.actionBtn}
                         onClick={() => navigate('/documents/upload')}
-                        disabled
                     >
                         <Upload size={16} />
                         Upload Document
@@ -105,7 +104,6 @@ const UserDashboard: React.FC = () => {
                     <button 
                         className={styles.actionBtn}
                         onClick={() => navigate('/documents')}
-                        disabled
                     >
                         <FileText size={16} />
                         View All Documents
