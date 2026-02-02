@@ -26,6 +26,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onCollapseChange }) => {
     const [collapsed, setCollapsed] = useState(false);
     const [modules, setModules] = useState<Module[]>([]);
     const [loading, setLoading] = useState(true);
+    const [hoveredModule, setHoveredModule] = useState<{ module: Module; top: number } | null>(null);
+    const sidebarRef = React.useRef<HTMLDivElement>(null);
 
     // Icon mapping
     const iconMap: Record<string, React.ReactNode> = {
@@ -77,6 +79,21 @@ const Sidebar: React.FC<SidebarProps> = ({ onCollapseChange }) => {
                 key={module.id}
                 to={module.route}
                 className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
+                onMouseEnter={(e) => {
+                    if (collapsed && sidebarRef.current) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const sidebarRect = sidebarRef.current.getBoundingClientRect();
+                        setHoveredModule({
+                            module,
+                            top: rect.top - sidebarRect.top
+                        });
+                    }
+                }}
+                onMouseLeave={() => {
+                    if (collapsed) {
+                        setHoveredModule(null);
+                    }
+                }}
             >
                 <div className={styles.navIcon}>{icon}</div>
                 <span className={styles.navLabel}>{module.label}</span>
@@ -127,7 +144,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onCollapseChange }) => {
     const modulesByCategory = getModulesByCategory();
 
     return (
-        <div className={`${styles.sidebar} ${collapsed ? styles.collapsed : styles.expanded}`}>
+        <div
+            ref={sidebarRef}
+            className={`${styles.sidebar} ${collapsed ? styles.collapsed : styles.expanded}`}
+        >
             {/* Header */}
             <div className={styles.header}>
                 {collapsed ? (
@@ -180,6 +200,21 @@ const Sidebar: React.FC<SidebarProps> = ({ onCollapseChange }) => {
             {/* Footer */}
             <div className={styles.footer}>
             </div>
+
+            {/* Hover Panel for Collapsed Mode */}
+            {collapsed && hoveredModule && (
+                <div
+                    className={styles.hoverPanel}
+                    style={{ top: hoveredModule.top }}
+                >
+                    <div className={styles.hoverPanelContent}>
+                        <div className={styles.hoverIcon}>
+                            {iconMap[hoveredModule.module.icon] || <FileText size={20} />}
+                        </div>
+                        <span className={styles.hoverLabel}>{hoveredModule.module.label}</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
