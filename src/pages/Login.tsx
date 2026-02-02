@@ -250,6 +250,84 @@ const Login: React.FC = () => {
     }
   };
 
+  const handleBackToLogin = () => {
+    setIs2FARequired(false);
+    setIsForgotPassword(false);
+    setIsOtpSent(false);
+    setLoginCredentials(null);
+    setFormData(prev => ({ ...prev, password: '', otp: '', confirmPassword: '' }));
+    setErrors({});
+    setMessage('');
+  };
+
+  const handleOtpBoxChange = (index: number, value: string) => {
+    // Only allow numbers
+    if (value && !/^\d+$/.test(value)) return;
+
+    const currentOtp = (formData.otp || '').padEnd(6, ' ').split('');
+    currentOtp[index] = value.slice(-1); // Take only the last character entered
+    const otpString = currentOtp.join('').trim();
+
+    setFormData(prev => ({ ...prev, otp: otpString }));
+
+    // Auto focus next
+    if (value && index < 5) {
+      const nextBox = document.querySelector(`input[name="otp-${index + 1}"]`) as HTMLInputElement;
+      nextBox?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !formData.otp?.[index] && index > 0) {
+      const prevBox = document.querySelector(`input[name="otp-${index - 1}"]`) as HTMLInputElement;
+      prevBox?.focus();
+    }
+
+    // Move focus forward if typing a number even if current box has value
+    if (/^\d$/.test(e.key) && formData.otp?.[index] && index < 5) {
+      const nextBox = document.querySelector(`input[name="otp-${index + 1}"]`) as HTMLInputElement;
+      setTimeout(() => {
+        const currentOtp = (formData.otp || '').padEnd(6, ' ').split('');
+        currentOtp[index + 1] = e.key;
+        setFormData(prev => ({ ...prev, otp: currentOtp.join('').trim() }));
+        nextBox?.focus();
+      }, 0);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData('text').slice(0, 6).replace(/\D/g, '');
+    if (pasteData) {
+      setFormData(prev => ({ ...prev, otp: pasteData }));
+      // Focus the last box filled or the next available box
+      const nextIndex = Math.min(pasteData.length, 5);
+      const nextBox = document.querySelector(`input[name="otp-${nextIndex}"]`) as HTMLInputElement;
+      nextBox?.focus();
+    }
+  };
+
+  const renderOtpInputs = () => {
+    return (
+      <div className="otp-input-grid" onPaste={handlePaste}>
+        {[0, 1, 2, 3, 4, 5].map((index) => (
+          <input
+            key={index}
+            type="text"
+            name={`otp-${index}`}
+            value={formData.otp?.[index] || ''}
+            onChange={(e) => handleOtpBoxChange(index, e.target.value)}
+            onKeyDown={(e) => handleOtpKeyDown(index, e)}
+            className={`otp-box ${errors.otp ? 'error' : ''}`}
+            maxLength={1}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+          />
+        ))}
+      </div>
+    );
+  };
+
   const handleRoleSelect = async () => {
     if (!selectedRole) {
       setErrors({ submit: 'Please select a role' });
@@ -319,23 +397,14 @@ const Login: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <input
-                type="text"
-                name="otp"
-                placeholder="Enter 6-digit code"
-                value={formData.otp}
-                onChange={handleChange}
-                className={errors.otp ? 'error' : ''}
-                maxLength={6}
-                style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '8px', fontFamily: 'monospace' }}
-              />
-              {errors.otp && <span className="error-text">{errors.otp}</span>}
+              {renderOtpInputs()}
+              {errors.otp && <span className="error-text" style={{ textAlign: 'center' }}>{errors.otp}</span>}
             </div>
 
             {errors.submit && <div className="error-message">{errors.submit}</div>}
             {message && <div className="success-message">{message}</div>}
 
-            <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', gap: '20px', flexDirection: 'column' }}>
               <button
                 className="btn-primary"
                 onClick={handle2FAVerification}
@@ -344,32 +413,26 @@ const Login: React.FC = () => {
                 {loading ? 'Verifying...' : 'Verify Code'}
               </button>
 
-              <button
-                type="button"
-                className="forgot-link"
-                onClick={handleResend2FA}
-                disabled={loading}
-                style={{ alignSelf: 'center' }}
-              >
-                {loading ? 'Sending...' : 'Resend Code'}
-              </button>
+              <div className="otp-footer-row">
+                <button
+                  type="button"
+                  className="forgot-link"
+                  onClick={handleResend2FA}
+                  disabled={loading}
+                >
+                  {loading ? 'Sending...' : 'Resend Code'}
+                </button>
+                <div className="dot-divider"></div>
+                <button
+                  type="button"
+                  className="forgot-link"
+                  onClick={handleBackToLogin}
+                  disabled={loading}
+                >
+                  Back to Login
+                </button>
+              </div>
             </div>
-
-            <p className="toggle-text" style={{ marginTop: '16px' }}>
-              <button
-                className="forgot-link"
-                onClick={() => {
-                  setIs2FARequired(false);
-                  setLoginCredentials(null);
-                  setFormData(prev => ({ ...prev, otp: '' }));
-                  setErrors({});
-                  setMessage('');
-                }}
-                disabled={loading}
-              >
-                Back to Login
-              </button>
-            </p>
           </div>
         ) : showRoleSelection ? (
           <div className="login-form-wrapper">
@@ -484,16 +547,8 @@ const Login: React.FC = () => {
               {isForgotPassword && isOtpSent && (
                 <>
                   <div className="form-group">
-                    <input
-                      type="text"
-                      name="otp"
-                      placeholder="Enter OTP"
-                      value={formData.otp}
-                      onChange={handleChange}
-                      className={errors.otp ? 'error' : ''}
-                      required
-                    />
-                    {errors.otp && <span className="error-text">{errors.otp}</span>}
+                    {renderOtpInputs()}
+                    {errors.otp && <span className="error-text" style={{ textAlign: 'center' }}>{errors.otp}</span>}
                   </div>
 
                   <div className="form-group">
