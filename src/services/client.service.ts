@@ -22,7 +22,7 @@ export interface Client {
     state_code?: string;
     state_name?: string;
     zip_code?: string;
-    zip_extension?: string;
+    country?:string;
 }
 
 export interface ClientStats {

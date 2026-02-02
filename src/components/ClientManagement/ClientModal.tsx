@@ -25,7 +25,7 @@ interface ClientModalProps {
         state_code?: string;
         state_name?: string;
         zip_code?: string;
-        zip_extension?: string;
+        country?:string;
     }) => void;
 
     initialData?: Client;
@@ -54,7 +54,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
     const [stateCode, setStateCode] = useState('');
     const [stateName, setStateName] = useState('');
     const [zipCode, setZipCode] = useState('');
-    const [zipExtension, setZipExtension] = useState('');
+    const [country, setCountry] = useState('United States');
+
     const [fetchingNpi, setFetchingNpi] = useState(false);
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -151,19 +152,15 @@ const ClientModal: React.FC<ClientModalProps> = ({
         }
 
         if (props.postcode) {
-            const postalCode = props.postcode;
-            if (postalCode.includes('-')) {
-                setZipCode(postalCode.split('-')[0]);
-                setZipExtension(postalCode.split('-')[1]);
-            } else if (postalCode.length > 5 && props.countrycode === 'US') {
-                setZipCode(postalCode.substring(0, 5));
-                setZipExtension(postalCode.substring(5, 9));
-            } else {
-                setZipCode(postalCode);
-                setZipExtension('');
-            }
-        }
-        setShowSuggestions(false);
+  const digits = props.postcode.replace(/\D/g, '');
+
+  if (digits.length >= 9) {
+    setZipCode(`${digits.slice(0, 5)}-${digits.slice(5, 9)}`);
+  } else {
+    setZipCode('');
+  }
+}
+  setShowSuggestions(false);
     };
 
     useEffect(() => {
@@ -181,7 +178,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
             setStateCode(initialData.state_code || '');
             setStateName(initialData.state_name || '');
             setZipCode(initialData.zip_code || '');
-            setZipExtension(initialData.zip_extension || '');
+            setCountry(initialData.country || 'United States');
         } else {
             setBusinessName('');
             setFirstName('');
@@ -196,7 +193,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
             setStateCode('');
             setStateName('');
             setZipCode('');
-            setZipExtension('');
+            setCountry('United States');
         }
         setErrors({});
     }, [initialData, isOpen]);
@@ -289,16 +286,14 @@ const ClientModal: React.FC<ClientModalProps> = ({
                     }
 
                     const postalCode = practiceAddress.postal_code || '';
-                    if (postalCode.includes('-')) {
-                        setZipCode(postalCode.split('-')[0]);
-                        setZipExtension(postalCode.split('-')[1]);
-                    } else if (postalCode.length > 5) {
-                        setZipCode(postalCode.substring(0, 5));
-                        setZipExtension(postalCode.substring(5, 9));
-                    } else {
-                        setZipCode(postalCode);
-                        setZipExtension('');
-                    }
+const digits = postalCode.replace(/\D/g, '');
+
+if (digits.length >= 9) {
+  setZipCode(`${digits.slice(0, 5)}-${digits.slice(5, 9)}`);
+} else {
+  setZipCode('');
+}
+
                 }
             } else {
                 setErrors({ npi: 'No provider found for this NPI' });
@@ -344,7 +339,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
             state_code: stateCode || undefined,
             state_name: stateName || undefined,
             zip_code: zipCode || undefined,
-            zip_extension: zipExtension || undefined,
         };
 
 
@@ -369,7 +363,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
     ];
 
     return (
-        <div className={styles.overlay} onClick={onClose}>
+        <div className={styles.overlay} >
             <div className={styles.content} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.header}>
                     <h2>{title}</h2>
@@ -554,33 +548,56 @@ const ClientModal: React.FC<ClientModalProps> = ({
                                     placeholder="California"
                                 />
                             </div>
+                            <div className={styles.formGroup}>
+  <label className={styles.label}>Country *</label>
+  <Select
+    value={{ value: country, label: country }}
+    onChange={(selected) => setCountry(selected?.value || 'United States')}
+    options={[
+      { value: 'United States', label: 'United States' },
+      { value: 'India', label: 'India' }
+      // add more later if needed
+    ]}
+    styles={{
+      ...getCustomSelectStyles(),
+      menuPortal: (base) => ({ ...base, zIndex: 10000 }),
+      menu: (base) => ({ ...base, zIndex: 10000 })
+    }}
+    menuPortalTarget={document.body}
+    menuPosition="fixed"
+  />
+</div>
 
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>ZIP</label>
-                                <input
-                                    className={styles.input}
-                                    maxLength={5}
-                                    value={zipCode}
-                                    onChange={(e) =>
-                                        setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))
-                                    }
-                                    placeholder="90210"
-                                />
-                            </div>
-                        </div>
+  <label className={styles.label}>ZIP Code *</label>
+  <input
+    className={styles.input}
+    value={zipCode}
+    placeholder="11111-1111"
+    maxLength={10}
+    onChange={(e) => {
+      let value = e.target.value.replace(/[^\d]/g, '');
 
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>ZIP Extension</label>
-                            <input
-                                className={styles.input}
-                                maxLength={4}
-                                value={zipExtension}
-                                onChange={(e) =>
-                                    setZipExtension(e.target.value.replace(/\D/g, '').slice(0, 4))
-                                }
-                                placeholder="1234"
-                            />
-                        </div>
+      if (value.length > 5) {
+        value = value.slice(0, 5) + '-' + value.slice(5, 9);
+      }
+
+      setZipCode(value);
+    }}
+    onBlur={() => {
+      if (zipCode && !/^\d{5}-\d{4}$/.test(zipCode)) {
+        setErrors((prev) => ({
+          ...prev,
+          zip_code: 'ZIP code must be in format 11111-1111'
+        }));
+      }
+    }}
+  />
+  {errors.zip_code && (
+    <span className={styles.errorText}>{errors.zip_code}</span>
+  )}
+</div>
+</div>
 
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Description</label>
