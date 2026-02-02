@@ -635,13 +635,7 @@ const ClientManagement: React.FC = () => {
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                 }}
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  width: "350px",
-                }}
+                className={styles.searchInput}
               />
               <button className={styles.addBtn} onClick={handleAddNew}>
                 Add Client
@@ -687,12 +681,11 @@ const ClientManagement: React.FC = () => {
 
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             {selectedClients.length > 0 && (
-              <div
-                style={{ display: "flex", gap: "8px", alignItems: "center" }}
-              >
-                <p style={{ color: "rgb(156, 163, 175)" }}>
-                  selected {selectedClients.length} clients
-                </p>
+              <div className={styles.selectionInfo}>
+                <span className={styles.selectionCount}>
+                  <Users size={16} />
+                  <strong>{selectedClients.length}</strong> clients selected
+                </span>
 
                 <button className={styles.assignBtn} onClick={openAssignModal}>
                   Click to Assign
@@ -706,13 +699,7 @@ const ClientManagement: React.FC = () => {
               onChange={(e) => {
                 setSearchTerm(e.target.value);
               }}
-              style={{
-                padding: "8px 12px",
-                border: "1px solid #e5e7eb",
-                borderRadius: "6px",
-                fontSize: "14px",
-                width: "350px",
-              }}
+              className={styles.searchInput}
             />
             <button className={styles.addBtn} onClick={handleAddNew}>
               Add Client
@@ -842,15 +829,15 @@ const ClientManagement: React.FC = () => {
         clientName={
           crossCreationData
             ? clients.find((c) => c.id === crossCreationData.client_id)
-                ?.business_name ||
-              [
-                crossCreationData.first_name,
-                crossCreationData.middle_name,
-                crossCreationData.last_name,
-              ]
-                .filter(Boolean)
-                .join(" ") ||
-              "Unknown Client"
+              ?.business_name ||
+            [
+              crossCreationData.first_name,
+              crossCreationData.middle_name,
+              crossCreationData.last_name,
+            ]
+              .filter(Boolean)
+              .join(" ") ||
+            "Unknown Client"
             : undefined
         }
         isClientUser={true}

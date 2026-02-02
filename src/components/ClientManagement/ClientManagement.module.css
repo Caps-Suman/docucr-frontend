@@ -122,23 +122,33 @@
     background-color: #e2f3f9;
     color: #011926;
     border: 1px solid #83cee4;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 0 16px;
+    height: 36px;
+    border-radius: 6px;
     font-weight: 600;
+    font-size: 13px;
     cursor: pointer;
     transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .assignBtn {
     background: #10b981;
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 14px;
+    padding: 0 12px;
+    height: 25px;
+    border-radius: 4px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .assignBtn:hover {
@@ -571,4 +581,87 @@
 
 :global(.dark) .actionBtn.delete:hover {
     background-color: #991b1b;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.selectionInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f8fafc;
+    padding: 0 10px;
+    height: 36px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+    animation: fadeIn 0.2s ease-out;
+    box-sizing: border-box;
+}
+
+.searchInput {
+    padding: 0 12px;
+    height: 36px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 13px;
+    width: 320px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+    border-color: #83cee4;
+}
+
+:global(.dark) .searchInput {
+    background: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+}
+
+:global(.dark) .searchInput:focus {
+    border-color: #83cee4;
+}
+
+.selectionCount {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.selectionCount strong {
+    color: #0c4a6e;
+    background: #e0f2fe;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+:global(.dark) .selectionInfo {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+:global(.dark) .selectionCount {
+    color: #94a3b8;
+}
+
+:global(.dark) .selectionCount strong {
+    color: #7dd3fc;
+    background: #0c4a6e;
 }
