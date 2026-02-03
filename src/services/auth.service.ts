@@ -15,6 +15,7 @@ export interface AuthUser {
     id: string;
     name: string;
   };
+  permissions?: Record<string, string[]>; // 🔥 REQUIRED
   is_client?: boolean;
   client_id?: string | null;
   client_name?: string | null;
@@ -72,6 +73,9 @@ class AuthService {
     }
 
     const result = await response.json();
+    if (!result.user?.permissions) {
+      console.warn("User permissions missing from login response");
+    }
 
     // Save user ID if available
     if (result.user?.id) {
@@ -101,6 +105,19 @@ class AuthService {
 
     return result;
   }
+  private authListeners: Array<() => void> = [];
+
+subscribe(listener: () => void) {
+  this.authListeners.push(listener);
+}
+
+unsubscribe(listener: () => void) {
+  this.authListeners = this.authListeners.filter(l => l !== listener);
+}
+
+notify() {
+  this.authListeners.forEach(l => l());
+}
 
   async resend2FA(data: LoginRequest): Promise<{ message: string }> {
     const response = await fetch(`${API_BASE_URL}/api/auth/resend-2fa`, {

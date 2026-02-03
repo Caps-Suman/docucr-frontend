@@ -23,6 +23,7 @@ import statusService, { Status } from "../../../services/status.service";
 import { BillingGuideline, SOP } from "../../../types/sop";
 import ConfirmModal from "../../Common/ConfirmModal";
 import Toast, { ToastType } from "../../Common/Toast";
+import { usePermission } from "../../../context/PermissionContext";
 
 const SOPListing: React.FC = () => {
   const navigate = useNavigate();
@@ -36,6 +37,9 @@ const SOPListing: React.FC = () => {
   >("all");
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedSOP, setSelectedSOP] = useState<SOP | null>(null);
+  const cptRules = selectedSOP?.codingRulesCPT ?? [];
+  const icdRules = selectedSOP?.codingRulesICD ?? [];
+
   const [expandedSections, setExpandedSections] = useState<{
     [key: string]: boolean;
   }>({});
@@ -56,6 +60,11 @@ const SOPListing: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [totalSOPs, setTotalSOPs] = useState(0);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const { can } = usePermission();
+
+  const canReadSOP = can("SOPS", "READ");
+  const canCreateSOP = can("SOPS", "CREATE");
+  const canUpdateSOP = can("SOPS", "UPDATE");
   const [stats, setStats] = useState({
     totalSOPs: 0,
     activeSOPs: 0,
@@ -129,8 +138,8 @@ const SOPListing: React.FC = () => {
           category:
             typeof sop.category === "string"
               ? sop.category
-              : sop.category?.title ?? "—",
-        }))
+              : (sop.category?.title ?? "—"),
+        })),
       );
       setTotalSOPs(data.total);
     } catch (error) {
@@ -163,18 +172,18 @@ const SOPListing: React.FC = () => {
   };
 
   const handleToggleStatus = (id: string, currentStatusId?: number) => {
-  const isActive = currentStatusId === activeStatusId;
+    const isActive = currentStatusId === activeStatusId;
 
-  setConfirmModal({
-    isOpen: true,
-    sopId: id,
-    action: isActive ? "deactivate" : "activate",
-  });
-};
+    setConfirmModal({
+      isOpen: true,
+      sopId: id,
+      action: isActive ? "deactivate" : "activate",
+    });
+  };
   useEffect(() => {
-  loadStatuses();
-  loadStats();
-}, []);
+    loadStatuses();
+    loadStats();
+  }, []);
 
   const confirmToggleStatus = async () => {
     try {
@@ -261,7 +270,6 @@ const SOPListing: React.FC = () => {
             {typeof row.providerInfo?.billingProviderName === "string"
               ? row.providerInfo.billingProviderName
               : getCategoryLabel(row.category)}
-
           </div>
         </div>
       ),
@@ -293,58 +301,83 @@ const SOPListing: React.FC = () => {
       render: (_: any, row: SOP) =>
         row.updatedAt ? new Date(row.updatedAt).toLocaleDateString() : "-",
     },
-{
-  key: "actions",
-  header: "Actions",
-  width: "130px",
-  render: (_: any, row: SOP) => {
-    // ✅ CORRECT PLACE
-    const isActive = row.statusId === activeStatusId;
+    {
+      key: "actions",
+      header: "Actions",
+      width: "130px",
+      render: (_: any, row: SOP) => {
+        // ✅ CORRECT PLACE
+        const isActive = row.statusId === activeStatusId;
 
+        return (
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              className={styles.viewButton}
+              onClick={() => handleViewSOP(row)}
+              title="View SOP"
+            >
+              <Eye size={14} />
+            </button>
+
+            <button
+              className={styles.downloadButton}
+              onClick={() => handleDownloadPDF(row)}
+              disabled={downloadingId === row.id}
+              title="Download PDF"
+            >
+              {downloadingId === row.id ? (
+                <div className={styles.smallSpinner}></div>
+              ) : (
+                <Download size={14} />
+              )}
+            </button>
+
+            <button
+              className={`${styles.editButton} ${!canUpdateSOP ? styles.disabled : ""}`}
+              disabled={!canUpdateSOP}
+              onClick={() => canUpdateSOP && navigate(`/sops/edit/${row.id}`)}
+              title={
+                canUpdateSOP
+                  ? "Edit SOP"
+                  : "You do not have permission to edit SOPs"
+              }
+            >
+              <Edit size={14} />
+            </button>
+
+            {/* ✅ STATUS ACTION BUTTON */}
+            <button
+              className={`${isActive ? styles.deactivateButton : styles.activateButton} ${
+                !canUpdateSOP ? styles.disabled : ""
+              }`}
+              disabled={!canUpdateSOP}
+              onClick={() =>
+                canUpdateSOP && handleToggleStatus(row.id, row.statusId)
+              }
+              title={
+                canUpdateSOP
+                  ? isActive
+                    ? "Deactivate SOP"
+                    : "Activate SOP"
+                  : "You do not have permission to update SOPs"
+              }
+            >
+              {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+            </button>
+          </div>
+        );
+      },
+    },
+  ];
+  if (!canReadSOP) {
     return (
-      <div style={{ display: "flex", gap: "8px" }}>
-        <button
-          className={styles.viewButton}
-          onClick={() => handleViewSOP(row)}
-          title="View SOP"
-        >
-          <Eye size={14} />
-        </button>
-
-        <button
-          className={styles.downloadButton}
-          onClick={() => handleDownloadPDF(row)}
-          disabled={downloadingId === row.id}
-          title="Download PDF"
-        >
-          {downloadingId === row.id ? (
-            <div className={styles.smallSpinner}></div>
-          ) : (
-            <Download size={14} />
-          )}
-        </button>
-
-        <button
-          className={styles.editButton}
-          onClick={() => navigate(`/sops/edit/${row.id}`)}
-          title="Edit SOP"
-        >
-          <Edit size={14} />
-        </button>
-
-        {/* ✅ STATUS ACTION BUTTON */}
-        <button
-          className={isActive ? styles.deactivateButton : styles.activateButton}
-          onClick={() => handleToggleStatus(row.id, row.statusId)}
-          title={isActive ? "Deactivate SOP" : "Activate SOP"}
-        >
-          {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
-        </button>
+      <div style={{ padding: "40px" }}>
+        <h2>Access Denied</h2>
+        <p>You do not have permission to view SOPs.</p>
       </div>
     );
-  },
-}
-  ];
+  }
+
   return (
     <div className={styles.container}>
       {/* Stats Grid */}
@@ -411,8 +444,14 @@ const SOPListing: React.FC = () => {
             />
           </div>
           <button
-            className={styles.createButton}
-            onClick={() => navigate("/sops/create")}
+            className={`${styles.createButton} ${!canCreateSOP ? styles.disabled : ""}`}
+            disabled={!canCreateSOP}
+            onClick={() => canCreateSOP && navigate("/sops/create")}
+            title={
+              canCreateSOP
+                ? "Create new SOP"
+                : "You do not have permission to create SOPs"
+            }
           >
             <Plus size={16} />
             Create New SOP
@@ -629,57 +668,55 @@ const SOPListing: React.FC = () => {
                       >
                         <span>
                           Billing Guidelines (
-                          {selectedSOP.billingGuidelines?.length || 0})
-                        </span>
-                        {expandedSections["guidelines"] ? (
-                          <ChevronUp size={16} />
-                        ) : (
-                          <ChevronDown size={16} />
-                        )}
-                      </div>
-                      {expandedSections["guidelines"] && (
-                        <div className={styles.accordionContent}>
                           {selectedSOP.billingGuidelines?.map((g, i) => (
                             <div
                               key={i}
                               style={{
-                                marginBottom: "12px",
+                                marginBottom: "16px",
                                 padding: "12px",
                                 background: "white",
                                 borderRadius: "8px",
                                 border: "1px solid #e2e8f0",
-                                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
                               }}
                             >
+                              {/* CATEGORY */}
                               <div
                                 style={{
                                   fontWeight: 600,
-                                  marginBottom: "6px",
+                                  marginBottom: "8px",
                                   color: "#334155",
                                   fontSize: "14px",
                                 }}
                               >
-                                {g.title}
+                                {g.category}
                               </div>
-                              <div
-                                style={{
-                                  color: "#0c4a6e",
-                                  fontSize: "13px",
-                                  lineHeight: "1.6",
-                                }}
-                              >
-                                {g.description || "—"}
-                              </div>
+
+                              {/* RULES */}
+                              <ul style={{ paddingLeft: "18px", margin: 0 }}>
+                                {g.rules.map((r, j) => (
+                                  <li
+                                    key={j}
+                                    style={{
+                                      color: "#0c4a6e",
+                                      fontSize: "13px",
+                                      lineHeight: "1.6",
+                                      marginBottom: "4px",
+                                    }}
+                                  >
+                                    {r.description}
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
                           ))}
                           {(!selectedSOP.billingGuidelines ||
                             selectedSOP.billingGuidelines.length === 0) && (
-                              <p style={{ color: "#9ca3af", fontSize: "14px" }}>
-                                No guidelines.
-                              </p>
-                            )}
-                        </div>
-                      )}
+                            <p style={{ color: "#9ca3af", fontSize: "14px" }}>
+                              No guidelines.
+                            </p>
+                          )}
+                        </span>
+                      </div>
                     </div>
 
                     <div className={styles.accordionItem}>
@@ -688,7 +725,10 @@ const SOPListing: React.FC = () => {
                         onClick={() => toggleSection("coding")}
                       >
                         <span>
-                          Coding Rules ({selectedSOP.codingRules?.length || 0})
+                          Coding Rules (
+                          {(selectedSOP.codingRulesCPT?.length || 0) +
+                            (selectedSOP.codingRulesICD?.length || 0)}
+                          )
                         </span>
                         {expandedSections["coding"] ? (
                           <ChevronUp size={16} />
@@ -698,129 +738,103 @@ const SOPListing: React.FC = () => {
                       </div>
                       {expandedSections["coding"] && (
                         <div className={styles.accordionContent}>
-                          {selectedSOP.codingRules?.map((r, i) => (
-                            <div
-                              key={i}
-                              style={{
-                                marginBottom: "10px",
-                                padding: "12px",
-                                background: "white",
-                                borderRadius: "8px",
-                                border: "1px solid #e2e8f0",
-                                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  marginBottom: "6px",
-                                }}
-                              >
-                                <span
+                          {cptRules?.length > 0 && (
+                            <>
+                              <h4 style={{ marginBottom: 8, color: "#0c4a6e" }}>
+                                CPT Codes
+                              </h4>
+                              {cptRules.map((r, i) => (
+                                <div
+                                  key={`cpt_${i}`}
                                   style={{
-                                    fontWeight: 600,
-                                    color: "#0c4a6e",
-                                    fontSize: "14px",
+                                    marginBottom: "10px",
+                                    padding: "12px",
+                                    background: "white",
+                                    borderRadius: "8px",
+                                    border: "1px solid #e2e8f0",
                                   }}
                                 >
-                                  {r.cptCode}
-                                </span>
-                                {r.description && (
-                                  <span
-                                    style={{
-                                      marginLeft: "8px",
-                                      color: "#64748b",
-                                      fontSize: "13px",
-                                    }}
+                                  <strong>{r.cptCode}</strong>
+                                  {r.description && (
+                                    <span> – {r.description}</span>
+                                  )}
+
+                                  <div
+                                    style={{ fontSize: "12px", marginTop: 6 }}
                                   >
-                                    - {r.description}
-                                  </span>
-                                )}
-                              </div>
-                              <div
+                                    {r.ndcCode && (
+                                      <span>
+                                        <b>NDC:</b> {r.ndcCode}{" "}
+                                      </span>
+                                    )}
+                                    {r.units && (
+                                      <span>
+                                        <b>Units:</b> {r.units}{" "}
+                                      </span>
+                                    )}
+                                    {r.chargePerUnit && (
+                                      <span>
+                                        <b>Charge:</b> {r.chargePerUnit}{" "}
+                                      </span>
+                                    )}
+                                    {r.modifier && (
+                                      <span>
+                                        <b>Mod:</b> {r.modifier}{" "}
+                                      </span>
+                                    )}
+                                    {r.replacementCPT && (
+                                      <span>
+                                        <b>Replace:</b> {r.replacementCPT}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                          {icdRules?.length > 0 && (
+                            <>
+                              <h4
                                 style={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: "12px",
-                                  fontSize: "12px",
-                                  color: "#64748b",
+                                  marginTop: 16,
+                                  marginBottom: 8,
+                                  color: "#7c2d12",
                                 }}
                               >
-                                {r.ndcCode && (
-                                  <span>
-                                    <strong>NDC:</strong>{" "}
-                                    <span
-                                      style={{
-                                        color: "#0c4a6e",
-                                        fontWeight: 500,
-                                      }}
+                                ICD Codes
+                              </h4>
+                              {icdRules.map((r, i) => (
+                                <div
+                                  key={`icd_${i}`}
+                                  style={{
+                                    marginBottom: "10px",
+                                    padding: "12px",
+                                    background: "white",
+                                    borderRadius: "8px",
+                                    border: "1px solid #e2e8f0",
+                                  }}
+                                >
+                                  <strong>{r.icdCode}</strong>
+                                  {r.description && (
+                                    <span> – {r.description}</span>
+                                  )}
+
+                                  {r.notes && (
+                                    <div
+                                      style={{ fontSize: "12px", marginTop: 6 }}
                                     >
-                                      {r.ndcCode}
-                                    </span>
-                                  </span>
-                                )}
-                                {r.units && (
-                                  <span>
-                                    <strong>Units:</strong>{" "}
-                                    <span
-                                      style={{
-                                        color: "#0c4a6e",
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      {r.units}
-                                    </span>
-                                  </span>
-                                )}
-                                {r.chargePerUnit && (
-                                  <span>
-                                    <strong>Charge:</strong>{" "}
-                                    <span
-                                      style={{
-                                        color: "#0c4a6e",
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      {r.chargePerUnit}
-                                    </span>
-                                  </span>
-                                )}
-                                {r.modifier && (
-                                  <span>
-                                    <strong>Mod:</strong>{" "}
-                                    <span
-                                      style={{
-                                        color: "#0c4a6e",
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      {r.modifier}
-                                    </span>
-                                  </span>
-                                )}
-                                {r.replacementCPT && (
-                                  <span>
-                                    <strong>Replace:</strong>{" "}
-                                    <span
-                                      style={{
-                                        color: "#0c4a6e",
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      {r.replacementCPT}
-                                    </span>
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                          {(!selectedSOP.codingRules ||
-                            selectedSOP.codingRules.length === 0) && (
-                              <p style={{ color: "#9ca3af", fontSize: "14px" }}>
-                                No coding rules.
-                              </p>
-                            )}
+                                      <b>Notes:</b> {r.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </>
+                          )}
+                          {cptRules.length === 0 && icdRules.length === 0 && (
+                            <p style={{ color: "#9ca3af", fontSize: "14px" }}>
+                              No coding rules.
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
