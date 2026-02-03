@@ -23,6 +23,7 @@ export interface Client {
     state_name?: string;
     zip_code?: string;
     country?:string;
+    user_count?: number;
 }
 
 export interface ClientStats {
@@ -138,13 +139,25 @@ const clientService = {
         }
     },
 
-    unassignUserFromClient: async (clientId: string, userId: string): Promise<void> => {
-        const response = await apiClient(`${API_URL}/api/clients/${clientId}/users/${userId}/unassign`, {
-            method: 'DELETE'
+    mapClientUsers: async (clientId: string, userIds: string[], assignedBy: string): Promise<void> => {
+        const response = await apiClient(`${API_URL}/api/clients/${clientId}/users/map`, {
+            method: 'POST',
+            body: JSON.stringify({ user_ids: userIds, assigned_by: assignedBy })
         });
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || 'Failed to unassign user');
+            throw new Error(error.detail || 'Failed to map users');
+        }
+    },
+
+    unassignClientUsers: async (clientId: string, userIds: string[]): Promise<void> => {
+        const response = await apiClient(`${API_URL}/api/clients/${clientId}/users/unassign`, {
+            method: 'POST',
+            body: JSON.stringify({ user_ids: userIds })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to unassign users');
         }
     },
 

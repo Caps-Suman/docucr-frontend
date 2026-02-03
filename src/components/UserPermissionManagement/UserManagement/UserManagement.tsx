@@ -309,9 +309,25 @@ const UserManagement: React.FC = () => {
             key: 'clients',
             header: 'Clients',
             render: (_: any, row: User) => {
+                const count = row.client_count ?? 0;
                 let text = 'No clients';
-                if (row.client_count === 1) text = '1 Client';
-                else if (row.client_count > 1) text = `${row.client_count} Clients`;
+
+                // Default styles for "No clients" (Gray/Neutral)
+                let style = {
+                    bg: '#f3f4f6',
+                    color: '#6b7280',
+                    hoverBg: '#e5e7eb'
+                };
+
+                if (count > 0) {
+                    text = count === 1 ? '1 Client' : `${count} Clients`;
+                    // Styles for Assigned Clients (Blue)
+                    style = {
+                        bg: '#e0f2fe',
+                        color: '#0369a1',
+                        hoverBg: '#bae6fd'
+                    };
+                }
 
                 return (
                     <div
@@ -319,16 +335,16 @@ const UserManagement: React.FC = () => {
                         style={{
                             display: 'inline-block',
                             padding: '4px 12px',
-                            background: '#e0f2fe',
-                            color: '#0369a1',
+                            background: style.bg,
+                            color: style.color,
                             borderRadius: '9999px',
                             fontSize: '12px',
                             fontWeight: 500,
                             cursor: 'pointer',
                             transition: 'background 0.2s'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#bae6fd'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = '#e0f2fe'}
+                        onMouseEnter={(e) => e.currentTarget.style.background = style.hoverBg}
+                        onMouseLeave={(e) => e.currentTarget.style.background = style.bg}
                     >
                         {text}
                     </div>

@@ -1,30 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Check, RefreshCw, Building2, UserCircle, Hash, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import userService, { User } from '../../../services/user.service';
-import clientService, { Client } from '../../../services/client.service';
-import Loading from '../../Common/Loading';
-import Toast, { ToastType } from '../../Common/Toast';
-import CommonPagination from '../../Common/CommonPagination';
-import styles from './UserModal.module.css';
-import './ClientMappingModal.css';
+import { X, Search, Check, RefreshCw, UserCircle, Hash, Calendar, Mail, Phone, User } from 'lucide-react';
+import userService, { User as AppUser } from '../../services/user.service';
+import clientService, { Client } from '../../services/client.service';
+import Loading from '../Common/Loading';
+import Toast, { ToastType } from '../Common/Toast';
+import CommonPagination from '../Common/CommonPagination';
+import styles from '../UserPermissionManagement/UserManagement/UserModal.module.css';
+import '../UserPermissionManagement/UserManagement/ClientMappingModal.css'; // Reuse existing styles
 
-interface ClientMappingModalProps {
+interface UserMappingModalProps {
     isOpen: boolean;
     onClose: () => void;
-    user: User | null;
+    client: Client | null;
     onUpdate: () => void;
 }
 
-const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose, user, onUpdate }) => {
+const UserMappingModal: React.FC<UserMappingModalProps> = ({ isOpen, onClose, client, onUpdate }) => {
     const [activeTab, setActiveTab] = useState<'assigned' | 'unassigned'>('assigned');
-    const [assignedClients, setAssignedClients] = useState<Client[]>([]);
-    const [unassignedClients, setUnassignedClients] = useState<Client[]>([]);
+    const [assignedUsers, setAssignedUsers] = useState<any[]>([]); // Using any for now as endpoint returns minimal user details
+    const [unassignedUsers, setUnassignedUsers] = useState<AppUser[]>([]);
     const [loading, setLoading] = useState(false);
     const [mappingLoading, setMappingLoading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
-    const [selectedAssignedIds, setSelectedAssignedIds] = useState<Set<string>>(new Set());
     const [unassignLoading, setUnassignLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+    const [selectedAssignedIds, setSelectedAssignedIds] = useState<Set<string>>(new Set());
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     // Pagination State (0-indexed)
@@ -33,9 +33,9 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
     const [itemsPerPage, setItemsPerPage] = useState(5);
 
     useEffect(() => {
-        if (isOpen && user) {
+        if (isOpen && client) {
             loadData();
-            setSelectedClientIds(new Set());
+            setSelectedUserIds(new Set());
             setSelectedAssignedIds(new Set());
             setActiveTab('assigned');
             setAssignedPage(0);
@@ -43,100 +43,106 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
             setSearchTerm('');
             setItemsPerPage(5);
         }
-    }, [isOpen, user]);
+    }, [isOpen, client]);
 
     const loadData = async () => {
-        if (!user) return;
+        if (!client) return;
         setLoading(true);
         try {
-            const assigned = await userService.getUserClients(user.id);
-            setAssignedClients(assigned);
+            // Fetch users assigned to this client
+            // NOTE: We need to ensure clientService.getClientUsers returns the format we need
+            const assigned = await clientService.getClientUsers(client.id);
+            setAssignedUsers(assigned);
 
-            const allClients = await clientService.getVisibleClients();
-            const assignedIds = new Set(assigned.map((c: any) => c.id));
-            const unassigned = allClients.filter(c => !assignedIds.has(c.id));
+            // Fetch all available users to calculate unassigned
+            // In a real large-scale app, we might want a specific API for "available users"
+            // For now, mirroring ClientMappingModal logic: fetch all and filter
+            const allUsersResp = await userService.getUsers(1, 1000); // Fetch mostly all
+            const allUsers = allUsersResp.users;
 
-            setUnassignedClients(unassigned);
+            const assignedIds = new Set(assigned.map((u: any) => u.id));
+            // Exclude SUPER_ADMIN from available list if needed, usually handled by API
+            const unassigned = allUsers.filter(u => !assignedIds.has(u.id));
+
+            setUnassignedUsers(unassigned);
         } catch (error) {
-            console.error('Failed to load client data:', error);
-            setToast({ message: 'Failed to load client data', type: 'error' });
+            console.error('Failed to load user data:', error);
+            setToast({ message: 'Failed to load user data', type: 'error' });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleMapClients = async () => {
-        if (!user || selectedClientIds.size === 0) return;
+    const handleMapUsers = async () => {
+        if (!client || selectedUserIds.size === 0) return;
 
         setMappingLoading(true);
         try {
             const storedUser = localStorage.getItem('user');
             const currentUser = storedUser ? JSON.parse(storedUser) : null;
-            const assignedBy = currentUser?.id || user.id;
+            const assignedBy = currentUser?.id || 'system';
 
-            await userService.mapUserClients(user.id, Array.from(selectedClientIds), assignedBy);
+            await clientService.mapClientUsers(client.id, Array.from(selectedUserIds), assignedBy);
 
-            setToast({ message: 'Clients mapped successfully', type: 'success' });
-            setSelectedClientIds(new Set());
+            setToast({ message: 'Users mapped successfully', type: 'success' });
+            setSelectedUserIds(new Set());
             loadData();
             onUpdate();
             setActiveTab('assigned');
         } catch (error: any) {
-            console.error('Failed to map clients:', error);
-            setToast({ message: error.message || 'Failed to map clients', type: 'error' });
+            console.error('Failed to map users:', error);
+            setToast({ message: error.message || 'Failed to map users', type: 'error' });
         } finally {
             setMappingLoading(false);
         }
     };
 
-    const handleUnassignClients = async () => {
-        if (!user || selectedAssignedIds.size === 0) return;
+    const handleUnassignUsers = async () => {
+        if (!client || selectedAssignedIds.size === 0) return;
 
         setUnassignLoading(true);
         try {
-            await userService.unassignUserClients(user.id, Array.from(selectedAssignedIds));
+            await clientService.unassignClientUsers(client.id, Array.from(selectedAssignedIds));
 
-            setToast({ message: 'Clients unassigned successfully', type: 'success' });
+            setToast({ message: 'Users unassigned successfully', type: 'success' });
             setSelectedAssignedIds(new Set());
             loadData();
             onUpdate();
         } catch (error: any) {
-            console.error('Failed to unassign clients:', error);
-            setToast({ message: error.message || 'Failed to unassign clients', type: 'error' });
+            console.error('Failed to unassign users:', error);
+            setToast({ message: error.message || 'Failed to unassign users', type: 'error' });
         } finally {
             setUnassignLoading(false);
         }
     };
 
-    const toggleAssignedSelection = (clientId: string) => {
-        const newSelection = new Set(selectedAssignedIds);
-        if (newSelection.has(clientId)) {
-            newSelection.delete(clientId);
+    const toggleSelection = (userId: string) => {
+        const newSelection = new Set(selectedUserIds);
+        if (newSelection.has(userId)) {
+            newSelection.delete(userId);
         } else {
-            newSelection.add(clientId);
+            newSelection.add(userId);
+        }
+        setSelectedUserIds(newSelection);
+    };
+
+    const toggleAssignedSelection = (userId: string) => {
+        const newSelection = new Set(selectedAssignedIds);
+        if (newSelection.has(userId)) {
+            newSelection.delete(userId);
+        } else {
+            newSelection.add(userId);
         }
         setSelectedAssignedIds(newSelection);
     };
 
-    const toggleSelection = (clientId: string) => {
-        const newSelection = new Set(selectedClientIds);
-        if (newSelection.has(clientId)) {
-            newSelection.delete(clientId);
-        } else {
-            newSelection.add(clientId);
-        }
-        setSelectedClientIds(newSelection);
-    };
-
     // Filter Logic
-    const filteredUnassigned = unassignedClients.filter(c => {
+    const filteredUnassigned = unassignedUsers.filter(u => {
         const searchLower = searchTerm.toLowerCase();
-        const businessNameMatch = c.business_name?.toLowerCase().includes(searchLower);
-        const firstNameMatch = c.first_name?.toLowerCase().includes(searchLower);
-        const lastNameMatch = c.last_name?.toLowerCase().includes(searchLower);
-        const npiMatch = c.npi?.includes(searchTerm);
-
-        return businessNameMatch || firstNameMatch || lastNameMatch || npiMatch;
+        const nameMatch = `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchLower);
+        const emailMatch = u.email?.toLowerCase().includes(searchLower);
+        const usernameMatch = u.username?.toLowerCase().includes(searchLower);
+        return nameMatch || emailMatch || usernameMatch;
     });
 
     // Reset page on search
@@ -145,28 +151,28 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
     }, [searchTerm]);
 
     // Pagination Logic
-    const getPaginatedData = (data: Client[], page: number) => {
+    const getPaginatedData = (data: any[], page: number) => {
         const start = page * itemsPerPage;
         const end = start + itemsPerPage;
         return data.slice(start, end);
     };
 
-    const totalAssignedPages = Math.ceil(assignedClients.length / itemsPerPage);
-    const paginatedAssigned = getPaginatedData(assignedClients, assignedPage);
+    const totalAssignedPages = Math.ceil(assignedUsers.length / itemsPerPage);
+    const paginatedAssigned = getPaginatedData(assignedUsers, assignedPage);
 
     const totalUnassignedPages = Math.ceil(filteredUnassigned.length / itemsPerPage);
     const paginatedUnassigned = getPaginatedData(filteredUnassigned, unassignedPage);
 
-    if (!isOpen || !user) return null;
+    if (!isOpen || !client) return null;
 
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="client-mapping-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                     <div>
-                        <h2>Manage Client Access</h2>
+                        <h2>Manage User Access</h2>
                         <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '4px' }}>
-                            For user <span style={{ fontWeight: 600, color: '#374151' }}>{user.first_name} {user.last_name}</span>
+                            For client <span style={{ fontWeight: 600, color: '#374151' }}> {client.first_name ? [client.first_name, client.middle_name, client.last_name].filter(Boolean).join(' ') : client.business_name}</span>
                         </div>
                     </div>
                     <button className="close-btn" onClick={onClose}><X size={20} /></button>
@@ -177,7 +183,7 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                         className={`tab-btn ${activeTab === 'assigned' ? 'active' : ''}`}
                         onClick={() => setActiveTab('assigned')}
                     >
-                        Assigned ({assignedClients.length})
+                        Assigned ({assignedUsers.length})
                     </button>
                     <button
                         className={`tab-btn ${activeTab === 'unassigned' ? 'active' : ''}`}
@@ -196,13 +202,13 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                         <>
                             {activeTab === 'assigned' && (
                                 <div className="tab-content">
-                                    {assignedClients.length === 0 ? (
+                                    {assignedUsers.length === 0 ? (
                                         <div className="no-data">
                                             <div className="no-data-icon">
-                                                <Building2 size={24} />
+                                                <UserCircle size={24} />
                                             </div>
-                                            <h3>No clients assigned</h3>
-                                            <p style={{ fontSize: '13px' }}>Switch to the "Available" tab to assign clients.</p>
+                                            <h3>No users assigned</h3>
+                                            <p style={{ fontSize: '13px' }}>Switch to the "Available" tab to assign users.</p>
                                         </div>
                                     ) : (
                                         <>
@@ -213,39 +219,52 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                                                             <th style={{ width: '40px', paddingLeft: '24px' }}>
                                                                 <div style={{ width: '16px' }} />
                                                             </th>
-                                                            <th>Client Details</th>
-                                                            <th>NPI Number</th>
-                                                            <th>Type</th>
+                                                            <th>User Details</th>
+                                                            <th>Contact</th>
                                                             <th>Assigned Date</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {paginatedAssigned.map((client: any) => (
+                                                        {paginatedAssigned.map((user: any) => (
                                                             <tr
-                                                                key={client.id}
-                                                                onClick={() => toggleAssignedSelection(client.id)}
-                                                                className={selectedAssignedIds.has(client.id) ? 'selected-row' : ''}
+                                                                key={user.id}
+                                                                onClick={() => toggleAssignedSelection(user.id)}
+                                                                className={selectedAssignedIds.has(user.id) ? 'selected-row' : ''}
                                                                 style={{ cursor: 'pointer' }}
                                                             >
                                                                 <td style={{ paddingLeft: '24px' }}>
                                                                     <div style={{ display: 'flex', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                                                                         <input
                                                                             type="checkbox"
-                                                                            checked={selectedAssignedIds.has(client.id)}
-                                                                            onChange={() => toggleAssignedSelection(client.id)}
+                                                                            checked={selectedAssignedIds.has(user.id)}
+                                                                            onChange={() => toggleAssignedSelection(user.id)}
                                                                         />
                                                                     </div>
                                                                 </td>
                                                                 <td>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                                        <span className="client-name">{client.business_name || `${client.first_name} ${client.last_name}`}</span>
+                                                                        {/* <div className="user-initials" style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600 }}>
+                                                                            {(user.name || user.username || '?').substring(0, 2).toUpperCase()}
+                                                                        </div> */}
+                                                                        <div>
+                                                                            <span className="client-name">{user.name}</span>
+                                                                            <div style={{ fontSize: '12px', color: '#6b7280' }}>@{user.username}</div>
+                                                                        </div>
                                                                     </div>
                                                                 </td>
                                                                 <td>
-                                                                    <span className="client-npi">{client.npi || 'N/A'}</span>
-                                                                </td>
-                                                                <td>
-                                                                    <span className="client-type-badge">{client.type || 'Standard'}</span>
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '13px', color: '#4b5563' }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                            <Mail size={12} color="#9ca3af" />
+                                                                            {user.email}
+                                                                        </div>
+                                                                        {user.phone_number && (
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                                <Phone size={12} color="#9ca3af" />
+                                                                                {user.phone_number}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </td>
                                                                 <td>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6b7280', fontSize: '13px' }}>
@@ -260,10 +279,10 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                                             </div>
                                             <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
                                                 <CommonPagination
-                                                    show={assignedClients.length > 0}
+                                                    show={assignedUsers.length > 0}
                                                     pageCount={totalAssignedPages}
                                                     currentPage={assignedPage}
-                                                    totalItems={assignedClients.length}
+                                                    totalItems={assignedUsers.length}
                                                     itemsPerPage={itemsPerPage}
                                                     onPageChange={(data) => setAssignedPage(data.selected)}
                                                     onItemsPerPageChange={(items) => {
@@ -284,7 +303,7 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                                         <Search size={16} />
                                         <input
                                             type="text"
-                                            placeholder="Search by client name or NPI..."
+                                            placeholder="Search by name, email or username..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                             autoFocus
@@ -297,44 +316,55 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                                                     <th style={{ width: '40px', paddingLeft: '24px' }}>
                                                         <div style={{ width: '16px' }} />
                                                     </th>
-                                                    <th>Client Details</th>
-                                                    <th>NPI Number</th>
-                                                    <th>Type</th>
+                                                    <th>Name</th>
+                                                    <th>Username</th>
+                                                    <th>Contact</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {paginatedUnassigned.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={4}>
+                                                        <td colSpan={3}>
                                                             <div className="no-data" style={{ padding: '40px 0' }}>
-                                                                <p>No matching clients found.</p>
+                                                                <p>No matching users found.</p>
                                                             </div>
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                    paginatedUnassigned.map(client => (
+                                                    paginatedUnassigned.map(user => (
                                                         <tr
-                                                            key={client.id}
-                                                            onClick={() => toggleSelection(client.id)}
-                                                            className={selectedClientIds.has(client.id) ? 'selected-row' : ''}
+                                                            key={user.id}
+                                                            onClick={() => toggleSelection(user.id)}
+                                                            className={selectedUserIds.has(user.id) ? 'selected-row' : ''}
                                                             style={{ cursor: 'pointer' }}
                                                         >
                                                             <td style={{ paddingLeft: '24px' }}>
                                                                 <div style={{ display: 'flex', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={selectedClientIds.has(client.id)}
-                                                                        onChange={() => toggleSelection(client.id)}
+                                                                        checked={selectedUserIds.has(user.id)}
+                                                                        onChange={() => toggleSelection(user.id)}
                                                                     />
                                                                 </div>
                                                             </td>
                                                             <td>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                                    <span className="client-name">{client.business_name || `${client.first_name} ${client.last_name}`}</span>
+                                                                    <div>
+                                                                        <span className="client-name">{user.first_name} {user.last_name}</span>
+                                                                    </div>
                                                                 </div>
                                                             </td>
-                                                            <td><span className="client-npi">{client.npi || 'N/A'}</span></td>
-                                                            <td><span className="client-type-badge">{client.type || 'Standard'}</span></td>
+                                                            <td>
+                                                                <div style={{ fontSize: '12px', color: '#6b7280' }}>@{user.username}</div>
+                                                            </td>
+                                                            <td>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '13px', color: '#4b5563' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                        <Mail size={12} color="#9ca3af" />
+                                                                        {user.email}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                     ))
                                                 )}
@@ -366,14 +396,14 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                     {activeTab === 'unassigned' && (
                         <>
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', color: '#6b7280', fontSize: '13px' }}>
-                                {selectedClientIds.size > 0 && (
+                                {selectedUserIds.size > 0 && (
                                     <span>
-                                        <span style={{ fontWeight: 600, color: '#2563eb' }}>{selectedClientIds.size}</span> client{selectedClientIds.size !== 1 ? 's' : ''} selected
+                                        <span style={{ fontWeight: 600, color: '#2563eb' }}>{selectedUserIds.size}</span> user{selectedUserIds.size !== 1 ? 's' : ''} selected
                                     </span>
                                 )}
                             </div>
-                            <button type="submit" className={styles.submitButton} disabled={selectedClientIds.size === 0 || mappingLoading} onClick={handleMapClients}>
-                                {mappingLoading ? 'Mapping...' : 'Map Selected Clients'}
+                            <button type="submit" className={styles.submitButton} disabled={selectedUserIds.size === 0 || mappingLoading} onClick={handleMapUsers}>
+                                {mappingLoading ? 'Mapping...' : 'Map Selected Users'}
                             </button>
                         </>
                     )}
@@ -382,7 +412,7 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', color: '#6b7280', fontSize: '13px' }}>
                                 {selectedAssignedIds.size > 0 && (
                                     <span>
-                                        <span style={{ fontWeight: 600, color: '#2563eb' }}>{selectedAssignedIds.size}</span> client{selectedAssignedIds.size !== 1 ? 's' : ''} selected
+                                        <span style={{ fontWeight: 600, color: '#2563eb' }}>{selectedAssignedIds.size}</span> user{selectedAssignedIds.size !== 1 ? 's' : ''} selected
                                     </span>
                                 )}
                             </div>
@@ -393,7 +423,7 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                                 type="button"
                                 className={styles.submitButton}
                                 disabled={selectedAssignedIds.size === 0 || unassignLoading}
-                                onClick={handleUnassignClients}
+                                onClick={handleUnassignUsers}
                                 style={selectedAssignedIds.size > 0 ? { background: '#ef4444', borderColor: '#ef4444' } : { background: '#9ca3af', borderColor: '#9ca3af', cursor: 'not-allowed' }}
                             >
                                 {unassignLoading ? 'Unassigning...' : 'Unassign'}
@@ -407,4 +437,4 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
     );
 };
 
-export default ClientMappingModal;
+export default UserMappingModal;
