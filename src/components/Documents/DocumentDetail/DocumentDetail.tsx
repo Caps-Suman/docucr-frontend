@@ -423,8 +423,6 @@ const DocumentDetail: React.FC = () => {
 
       <div className={styles.content}>
         <div className={styles.leftPanel}>
-          {id && <MetadataCard documentId={id} />}
-
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <h3 className={styles.cardTitle}>Derived Documents</h3>
@@ -471,6 +469,7 @@ const DocumentDetail: React.FC = () => {
                 )}
             </div>
           </div>
+          {id && <MetadataCard documentId={id} />}
 
           {id && document.analysis_report_s3_key && (
             <ExtractedReportCard documentId={id} />

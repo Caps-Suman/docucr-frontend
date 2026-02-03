@@ -33,17 +33,42 @@ export interface CodingRule {
     replacementCPT: string;
 }
 
+export type CodingRuleCPT = {
+  id?: string;
+  cptCode: string;
+  description?: string;
+  ndcCode?: string;
+  units?: string;
+  chargePerUnit?: string;
+  modifier?: string;
+  replacementCPT?: string;
+};
+
+export type CodingRuleICD = {
+  id?: string;
+  icdCode: string;
+  description?: string;
+  notes?: string;
+};
+
+
 export interface XrayCodeMapping {
     id: string;
     cptCode: string;
     modifier: string;
     replacementCPT: string;
 }
-export interface BillingGuideline {
-  id: string;
-  title: string;
+export interface BillingRule {
+  id?: string;
   description: string;
 }
+
+export interface BillingGuideline {
+  id?: string;
+  category: string;
+  rules: BillingRule[];
+}
+
 export interface PayerGuidelines {
   id: string;
   title: string;
@@ -104,8 +129,8 @@ export interface SOP {
 
   billingGuidelines?: BillingGuideline[];
   payerGuidelines?:PayerGuidelines[];
-  codingRules?: CodingRule[];
-
+  codingRulesCPT?: CodingRuleCPT[];
+  codingRulesICD?:CodingRuleICD[];
   statusId?: number;
     status?: SOPStatus;   // ✅ ADD THIS
     createdAt?: string;
