@@ -150,6 +150,17 @@ const userService = {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to map clients');
         }
+    },
+
+    unassignUserClients: async (userId: string, clientIds: string[]): Promise<void> => {
+        const response = await apiClient(`${API_URL}/api/users/unassign-clients`, {
+            method: 'POST',
+            body: JSON.stringify({ user_id: userId, client_ids: clientIds })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to unassign clients');
+        }
     }
 };
 
