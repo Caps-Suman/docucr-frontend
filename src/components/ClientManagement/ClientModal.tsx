@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Search } from "lucide-react";
+import { X, Search, Trash2, Plus } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../styles/selectStyles";
 import { Client } from "../../services/client.service";
@@ -27,7 +27,7 @@ interface ClientModalProps {
     zip_code?: string;
     country?: string;
     city?: string;
-  }) =>  Promise<Client>;
+  }) => Promise<Client>;
 
   initialData?: Client;
   title: string;
@@ -102,7 +102,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
       state_name: "",
       zip_code: "",
       country: "",
-      location_temp_id:"",
+      location_temp_id: "",
     },
   ]);
 
@@ -112,6 +112,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
     // 🔒 HARD RESET WIZARD STATE
     setStep(1);
     setIsProviderOrg(false);
+    setExtraAddresses([]); // Reset secondary addresses
 
     // optional but sane
     setProviders([
@@ -127,89 +128,89 @@ const ClientModal: React.FC<ClientModalProps> = ({
         state_name: "",
         zip_code: "",
         country: "",
-        location_temp_id:"",
+        location_temp_id: "",
       },
     ]);
   }, [isOpen]);
 
-const handleFinish = async () => {
-  const payload: any = {
-    type: type === "Group" ? "NPI2" : "NPI1",
-    description,
+  const handleFinish = async () => {
+    const payload: any = {
+      type: type === "Group" ? "NPI2" : "NPI1",
+      description,
+    };
+
+    if (type === "Group") {
+      payload.business_name = businessName;
+      payload.npi = npi;
+      payload.primary_temp_id = primaryTempId;
+      payload.locations = [
+        {
+          temp_id: primaryTempId,
+          address_line_1: addressLine1,
+          address_line_2: addressLine2,
+          city,
+          state_code: stateCode,
+          state_name: stateName,
+          zip_code: zipCode,
+          country,
+          is_primary: true
+        },
+        ...extraAddresses.map(a => ({
+          ...a,
+          temp_id: a.temp_id,
+          is_primary: false
+        }))
+      ];
+
+
+
+      // PRIMARY ORG ADDRESS
+      payload.address_line_1 = addressLine1;
+      payload.address_line_2 = addressLine2;
+      payload.city = city;
+      payload.state_code = stateCode;
+      payload.state_name = stateName;
+      payload.zip_code = zipCode;
+      payload.country = country;
+
+      if (isProviderOrg) {
+        payload.providers = providers; // ✅ providers carry THEIR OWN addresses
+      }
+    } else {
+      payload.first_name = firstName;
+      payload.middle_name = middleName;
+      payload.last_name = lastName;
+      payload.npi = npi;
+      payload.primary_temp_id = primaryTempId || providers[0].location_temp_id;
+      payload.address_line_1 = addressLine1;
+      payload.address_line_2 = addressLine2;
+      payload.city = city;
+      payload.state_code = stateCode;
+      payload.state_name = stateName;
+      payload.zip_code = zipCode;
+      payload.country = country;
+    }
+    console.log("CREATE CLIENT PAYLOAD:", JSON.stringify(payload, null, 2));
+
+    payload.providers?.forEach((p: any) => {
+      if (p.zip_code === "") {
+        throw new Error("Provider ZIP missing — cannot submit");
+      }
+    });
+    if (payload.providers) {
+      for (const p of payload.providers) {
+        if (!p.zip_code || !/^\d{5}-\d{4}$/.test(p.zip_code)) {
+          throw new Error("Each provider must have a valid ZIP code");
+        }
+      }
+    }
+    console.log("PROVIDERS FINAL:", providers);
+    console.log("PRIMARY TEMP:", primaryTempId);
+    console.log("EXTRA ADDRESSES BEFORE SEND:", extraAddresses);
+
+    return await onSubmit(payload);
+
   };
-
-  if (type === "Group") {
-    payload.business_name = businessName;
-    payload.npi = npi;
-    payload.primary_temp_id = primaryTempId;
-payload.locations = [
-  {
-    temp_id: primaryTempId,
-    address_line_1: addressLine1,
-    address_line_2: addressLine2,
-    city,
-    state_code: stateCode,
-    state_name: stateName,
-    zip_code: zipCode,
-    country,
-    is_primary: true
-  },
-  ...extraAddresses.map(a => ({
-    ...a,
-    temp_id: a.temp_id,
-    is_primary: false
-  }))
-];
-
-
-
-    // PRIMARY ORG ADDRESS
-    payload.address_line_1 = addressLine1;
-    payload.address_line_2 = addressLine2;
-    payload.city = city;
-    payload.state_code = stateCode;
-    payload.state_name = stateName;
-    payload.zip_code = zipCode;
-    payload.country = country;
-
-    if (isProviderOrg) {
-      payload.providers = providers; // ✅ providers carry THEIR OWN addresses
-    }
-  } else {
-    payload.first_name = firstName;
-    payload.middle_name = middleName;
-    payload.last_name = lastName;
-    payload.npi = npi;
-payload.primary_temp_id = primaryTempId || providers[0].location_temp_id;
-    payload.address_line_1 = addressLine1;
-    payload.address_line_2 = addressLine2;
-    payload.city = city;
-    payload.state_code = stateCode;
-    payload.state_name = stateName;
-    payload.zip_code = zipCode;
-    payload.country = country;
-  }
-  console.log("CREATE CLIENT PAYLOAD:", JSON.stringify(payload, null, 2));
-
-payload.providers?.forEach((p: any) => {
-  if (p.zip_code === "") {
-    throw new Error("Provider ZIP missing — cannot submit");
-  }
-});
-if (payload.providers) {
-  for (const p of payload.providers) {
-    if (!p.zip_code || !/^\d{5}-\d{4}$/.test(p.zip_code)) {
-      throw new Error("Each provider must have a valid ZIP code");
-    }
-  }
-}
-console.log("PROVIDERS FINAL:", providers);
-console.log("PRIMARY TEMP:", primaryTempId);
-console.log("EXTRA ADDRESSES BEFORE SEND:", extraAddresses);
-
-  return await onSubmit(payload);
-
-};
 
   const [providerErrors, setProviderErrors] = useState<string | null>(null);
 
@@ -280,10 +281,10 @@ console.log("EXTRA ADDRESSES BEFORE SEND:", extraAddresses);
   };
   const activeProvider = providers[activeProviderIndex];
 
-  const person = 
-  step===2
-    ? activeProvider
-    : {
+  const person =
+    step === 2
+      ? activeProvider
+      : {
         first_name: firstName,
         middle_name: middleName,
         last_name: lastName,
@@ -344,9 +345,9 @@ console.log("EXTRA ADDRESSES BEFORE SEND:", extraAddresses);
     const street = props.street || "";
     const houseNumber = props.housenumber || "";
     const fullAddress = `${houseNumber} ${street}`.trim() || props.name || "";
-      const digits = (props.postcode || "").replace(/\D/g, "");
-  const formattedZip =
-    digits.length >= 9 ? `${digits.slice(0, 5)}-${digits.slice(5, 9)}` : "";
+    const digits = (props.postcode || "").replace(/\D/g, "");
+    const formattedZip =
+      digits.length >= 9 ? `${digits.slice(0, 5)}-${digits.slice(5, 9)}` : "";
 
     setAddressLine1(fullAddress);
     if (props.city) setCity(props.city);
@@ -440,31 +441,31 @@ console.log("EXTRA ADDRESSES BEFORE SEND:", extraAddresses);
       if (statesMap[props.state]) {
         setStateCode(statesMap[props.state]);
       }
-if (isProviderStep) {
-    setProviders((p) => {
-      const copy = [...p];
-      copy[activeProviderIndex] = {
-        ...copy[activeProviderIndex],
-        address_line_1: fullAddress,
-        city: props.city || "",
-        state_code: statesMap[props.state] || "",
-        state_name: props.state || "",
-        zip_code: formattedZip,     // ALWAYS write ZIP
-        country,
-      };
-      return copy;
-    });
-  }
-else {
-    setAddressLine1(fullAddress);
-    setCity(props.city || "");
-    setStateCode(statesMap[props.state] || "");
-    setStateName(props.state || "");
-    setZipCode(formattedZip);
-  }
+      if (isProviderStep) {
+        setProviders((p) => {
+          const copy = [...p];
+          copy[activeProviderIndex] = {
+            ...copy[activeProviderIndex],
+            address_line_1: fullAddress,
+            city: props.city || "",
+            state_code: statesMap[props.state] || "",
+            state_name: props.state || "",
+            zip_code: formattedZip,     // ALWAYS write ZIP
+            country,
+          };
+          return copy;
+        });
+      }
+      else {
+        setAddressLine1(fullAddress);
+        setCity(props.city || "");
+        setStateCode(statesMap[props.state] || "");
+        setStateName(props.state || "");
+        setZipCode(formattedZip);
+      }
 
-  setShowSuggestions(false);
-};
+      setShowSuggestions(false);
+    };
 
     if (props.postcode) {
       const digits = props.postcode.replace(/\D/g, "");
@@ -484,7 +485,8 @@ else {
       setMiddleName(initialData.middle_name || "");
       setLastName(initialData.last_name || "");
       setNpi(initialData.npi || "");
-      setType(initialData.type || "Individual");
+      const t = initialData.type;
+      setType(t === "Individual" || t === "NPI1" ? "Individual" : "Group");
       setStatusId(initialData.status_id || "");
       setDescription(initialData.description || "");
       setAddressLine1(initialData.address_line_1 || "");
@@ -560,15 +562,16 @@ else {
     return Object.keys(newErrors).length === 0;
   };
 
-  const getCurrentNpi = () =>
-    step === 2 ? providers[activeProviderIndex].npi : npi;
+  const getCurrentNpi = (index?: number) =>
+    step === 2 ? providers[index ?? activeProviderIndex].npi : npi;
 
-  const applyNamesFromNPI = (basic: any) => {
+  const applyNamesFromNPI = (basic: any, index?: number) => {
     if (isProviderStep) {
       setProviders((p) => {
         const copy = [...p];
-        copy[0] = {
-          ...copy[0],
+        const idx = index ?? activeProviderIndex;
+        copy[idx] = {
+          ...copy[idx],
           first_name: basic.first_name || "",
           middle_name: basic.middle_name || "",
           last_name: basic.last_name || "",
@@ -582,9 +585,8 @@ else {
     }
   };
 
-  const handleFetchNPIDetails = async () => {
-    const currentNpi = getCurrentNpi();
-
+  const handleFetchNPIDetails = async (index?: number) => {
+    const currentNpi = getCurrentNpi(index);
     if (!currentNpi || !/^\d{10}$/.test(currentNpi)) {
       setErrors({ npi: "Please enter a valid 10-digit NPI" });
       return;
@@ -605,6 +607,7 @@ else {
       }
 
       const data = await clientService.lookupNPI(currentNpi);
+      console.log('currentNPI: ', data)
       if (data.results && data.results.length > 0) {
         const result = data.results[0];
         const basic = result.basic;
@@ -617,14 +620,14 @@ else {
         //   setType("Individual");
         // }
         if (result.enumeration_type === "NPI-1") {
-          applyNamesFromNPI(basic);
+          applyNamesFromNPI(basic, index);
         } else if (result.enumeration_type === "NPI-2") {
           if (step === 1) {
             setType("Group");
             setBusinessName(
               basic.organization_name ||
-                basic.authorized_official_organization_name ||
-                "",
+              basic.authorized_official_organization_name ||
+              "",
             );
           }
         } else {
@@ -646,12 +649,12 @@ else {
           addresses.find((addr: any) => addr.address_purpose === "LOCATION") ||
           addresses[0];
         if (practiceAddress) {
-          setAddressLine1(practiceAddress.address_1 || "");
-          setAddressLine2(practiceAddress.address_2 || "");
-
+          const addr1 = practiceAddress.address_1 || "";
+          const addr2 = practiceAddress.address_2 || "";
+          const cityVal = practiceAddress.city || "";
           const sCode = practiceAddress.state || "";
-          setStateCode(sCode);
 
+          let sName = "";
           // State Map for auto-filling State Name
           const statesMap: { [key: string]: string } = {
             AL: "Alabama",
@@ -705,16 +708,43 @@ else {
             WI: "Wisconsin",
             WY: "Wyoming",
           };
+
           if (statesMap[sCode]) {
-            setStateName(statesMap[sCode]);
+            sName = statesMap[sCode];
           }
 
           const postalCode = practiceAddress.postal_code || "";
           const digits = postalCode.replace(/\D/g, "");
+          let zipVal = "";
 
           if (digits.length >= 9) {
-            setZipCode(`${digits.slice(0, 5)}-${digits.slice(5, 9)}`);
-          } 
+            zipVal = `${digits.slice(0, 5)}-${digits.slice(5, 9)}`;
+          }
+
+          if (isProviderStep) {
+            setProviders((p) => {
+              const copy = [...p];
+              const idx = index ?? activeProviderIndex;
+              copy[idx] = {
+                ...copy[idx],
+                address_line_1: addr1,
+                address_line_2: addr2,
+                city: cityVal,
+                state_code: sCode,
+                state_name: sName,
+                zip_code: zipVal,
+                country: "United States" // default
+              };
+              return copy;
+            });
+          } else {
+            setAddressLine1(addr1);
+            setAddressLine2(addr2);
+            setCity(cityVal);
+            setStateCode(sCode);
+            setStateName(sName);
+            if (zipVal) setZipCode(zipVal);
+          }
         }
       } else {
         setErrors({ npi: "No provider found for this NPI" });
@@ -799,8 +829,8 @@ else {
   //     }
   //   };'
   const handleBackToStep1 = () => {
-  setStep(1);
-};
+    setStep(1);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -811,31 +841,31 @@ else {
 
       if (type === "Group" && isProviderOrg) {
         if (!zipCode) {
-    setErrors({ zip_code: "ZIP required" });
-    return;
-  }   
+          setErrors({ zip_code: "ZIP required" });
+          return;
+        }
 
-      const tempId = crypto.randomUUID();
-setPrimaryTempId(tempId);
+        const tempId = crypto.randomUUID();
+        setPrimaryTempId(tempId);
 
-const newProviders = [{
-  ...providers[0],
-  location_temp_id: tempId,
-  address_line_1: addressLine1,
-  city,
-  state_code: stateCode,
-  state_name: stateName,
-  zip_code: zipCode,
-  country
-}];
+        const newProviders = [{
+          ...providers[0],
+          location_temp_id: tempId,
+          address_line_1: addressLine1,
+          city,
+          state_code: stateCode,
+          state_name: stateName,
+          zip_code: zipCode,
+          country
+        }];
 
-setProviders(newProviders);
+        setProviders(newProviders);
 
         if (!zipCode || !/^\d{5}-\d{4}$/.test(zipCode)) {
           setErrors({ zip_code: "ZIP is required before adding providers" });
           return;
         }
-  
+
         setStep(2);
         return;
       }
@@ -881,7 +911,7 @@ setProviders(newProviders);
                 <Select
                   value={typeOptions.find((opt) => opt.value === type)}
                   onChange={(selected) =>
-                    setType(selected?.value || "Individual")
+                    setType(selected?.value || "Group")
                   }
                   options={typeOptions}
                   styles={getCustomSelectStyles()}
@@ -913,60 +943,40 @@ setProviders(newProviders);
                 menuPosition="fixed"
               />
             </div> */}
-            <div className={styles.formGroup}>
-              <label className={styles.label}>NPI *</label>
-              <div className={styles.npiInputWrapper}>
-                <input
-                  className={styles.input}
-                  value={step === 2 ? providers[0].npi : npi}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    if (value.length > 10) return;
-
-                    if (isProviderStep) {
-                      setProviders((p) => {
-                        const copy = [...p];
-                        copy[0] = { ...copy[0], npi: value };
-                        return copy;
-                      });
-                    } else {
-                      setNpi(value);
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className={styles.lookupButton}
-                  onClick={handleFetchNPIDetails}
-                  disabled={
-                    fetchingNpi ||
-                    (step === 2
-                      ? providers[0].npi.length !== 10
-                      : npi.length !== 10)
-                  }
-                  title="Lookup NPI details"
-                >
-                  {fetchingNpi ? (
-                    <div className={styles.spinner} />
-                  ) : (
-                    <Search size={18} />
-                  )}
-                </button>
-              </div>
-              {errors.npi && (
-                <span className={styles.errorText}>{errors.npi}</span>
-              )}
-            </div>
-            {uiMode === "ORG" ? (
+            {step === 1 && (
               <div className={styles.formGroup}>
-                <label className={styles.checkboxLabel}>
+                <label className={styles.label}>NPI *</label>
+                <div className={styles.npiInputWrapper}>
                   <input
-                    type="checkbox"
-                    checked={isProviderOrg}
-                    onChange={(e) => setIsProviderOrg(e.target.checked)}
+                    className={styles.input}
+                    value={npi}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      if (value.length > 10) return;
+                      setNpi(value);
+                    }}
                   />
-                  is_provider
-                </label>
+                  <button
+                    type="button"
+                    className={styles.lookupButton}
+                    onClick={() => handleFetchNPIDetails()}
+                    disabled={fetchingNpi || npi.length !== 10}
+                    title="Lookup NPI details"
+                  >
+                    {fetchingNpi ? (
+                      <div className={styles.spinner} />
+                    ) : (
+                      <Search size={18} />
+                    )}
+                  </button>
+                </div>
+                {errors.npi && (
+                  <span className={styles.errorText}>{errors.npi}</span>
+                )}
+              </div>
+            )}
+            {step === 1 && uiMode === "ORG" ? (
+              <div className={styles.formGroup}>
                 <label className={styles.label}>Business Name *</label>
                 <input
                   type="text"
@@ -984,377 +994,385 @@ setProviders(newProviders);
                   </span>
                 )}
               </div>
-            ) : (
+            ) : step === 1 ? (
               <div className={styles.formRowThree}>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>First Name *</label>
-                  {/* <input
-                    type="text"
-                    className={styles.input}
-                    value={step === 2 ? providers[0].first_name : firstName}
-
-                    onChange={(e) => {
-                      if (isProviderStep) {
-                        setProviders((p) => {
-                          const copy = [...p];
-                          copy[0] = {
-                            ...copy[0],
-                            first_name: e.target.value,
-                          };
-                          return copy;
-                        });
-                      } else {
-                        setFirstName(e.target.value);
-                      }
-                    }}
-                    placeholder="Enter first name"
-                    style={{
-                      borderColor: errors.firstName ? "#ef4444" : "#d1d5db",
-                    }}
-                  /> */}
                   <input
                     className={styles.input}
-                    value={person.first_name}
-                    onChange={(e) => {
-                      if (isProviderStep) {
-                        setProviders((p) => {
-                          const copy = [...p];
-                          copy[activeProviderIndex] = {
-                            ...copy[activeProviderIndex],
-                            first_name: e.target.value,
-                          };
-                          return copy;
-                        });
-                      } else {
-                        setFirstName(e.target.value);
-                      }
-                    }}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
                   />
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>Middle Name</label>
                   <input
                     className={styles.input}
-                    value={step === 2 ? providers[0].middle_name : middleName}
-                    onChange={(e) => {
-                      if (isProviderStep) {
-                        setProviders((p) => {
-                          const copy = [...p];
-                          copy[0] = {
-                            ...copy[0],
-                            middle_name: e.target.value,
-                          };
-                          return copy;
-                        });
-                      } else {
-                        setMiddleName(e.target.value);
-                      }
-                    }}
+                    value={middleName}
+                    onChange={(e) => setMiddleName(e.target.value)}
                   />
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>Last Name</label>
                   <input
                     className={styles.input}
-                    value={person.last_name}
-                    onChange={(e) => {
-                      if (isProviderStep) {
-                        setProviders((p) => {
-                          const copy = [...p];
-                          copy[activeProviderIndex] = {
-                            ...copy[activeProviderIndex],
-                            last_name: e.target.value,
-                          };
-                          return copy;
-                        });
-                      } else {
-                        setLastName(e.target.value);
-                      }
-                    }}
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                   />
                 </div>
               </div>
-            )}
-            <div className={styles.formGroup} style={{ position: "relative" }}>
-              <label className={styles.label}>Address Line 1</label>
-              <input
-                className={styles.input}
-                maxLength={250}
-                value={person.address_line_1}
-                onChange={(e) => {
-                  const value = e.target.value;
-
-                  if (isProviderStep) {
-                    setProviders((p) => {
-                      const copy = [...p];
-                      copy[activeProviderIndex] = {
-                        ...copy[activeProviderIndex],
-                        address_line_1: value,
-                      };
-                      return copy;
-                    });
-                  } else {
-                    setAddressLine1(value);
-                    handleAddressChange(e); // keep autocomplete for client
-                  }
-                }}
-                autoComplete="off"
-              />
-              {isSearchingAddress && <div className={styles.addressLoader} />}
-
-              {showSuggestions && (
-                <div
-                  className={styles.suggestionsContainer}
-                  ref={suggestionsRef}
-                >
-                  {suggestions.map((feature, index) => {
-                    const p = feature.properties;
-                    const label = [
-                      p.housenumber,
-                      p.street,
-                      p.city,
-                      p.state,
-                      p.postcode,
-                      p.country,
-                    ]
-                      .filter(Boolean)
-                      .join(", ");
-
-                    return (
-                      <div
-                        key={index}
-                        className={styles.suggestionItem}
-                        onClick={() => handleSuggestionClick(feature)}
-                      >
-                        <span className={styles.suggestionText}>{label}</span>
-                      </div>
-                    );
-                  })}
+            ) : (
+              /* STEP 2: PROVIDERS LIST */
+              <>
+                <div className={styles.formGroup}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#334155', margin: '0 0 12px 0' }}>Providers</h3>
                 </div>
-              )}
-            </div>
+                {providers.map((p, index) => (
+                  <div key={index} className={styles.secondaryAddressCard}>
+                    <div className={styles.cardHeader}>
+                      <strong>Provider {index + 1}</strong>
+                      <button
+                        type="button"
+                        className={styles.deleteButton}
+                        onClick={() => setProviders(prev => prev.filter((_, i) => i !== index))}
+                        title="Remove provider"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Address Line 2</label>
-              <input
-                className={styles.input}
-                maxLength={250}
-                value={person.address_line_2 || ""}
-                onChange={(e) => {
-                  const value = e.target.value;
+                    {/* NPI Row */}
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>NPI *</label>
+                      <div className={styles.npiInputWrapper}>
+                        <input
+                          className={styles.input}
+                          value={p.npi}
+                          onFocus={() => setActiveProviderIndex(index)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "");
+                            if (val.length > 10) return;
+                            setProviders(prev => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], npi: val };
+                              return copy;
+                            });
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className={styles.lookupButton}
+                          onClick={() => handleFetchNPIDetails(index)}
+                          title="Lookup NPI details"
+                        >
+                          <Search size={18} />
+                        </button>
+                      </div>
+                    </div>
 
-                  if (step === 2) {
-                    setProviders((prev) => {
-                      const copy = [...prev];
-                      copy[activeProviderIndex] = {
-                        ...copy[activeProviderIndex],
-                        address_line_2: value,
-                      };
-                      return copy;
-                    });
-                  } else {
-                    setAddressLine2(value);
-                  }
-                }}
-              />
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>City *</label>
-              <input
-                value={person.city}
-                onChange={(e) => {
-                  if (step === 2) {
-                    setProviders((prev) => {
-                      const copy = [...prev];
-                      copy[activeProviderIndex] = {
-                        ...copy[activeProviderIndex],
-                        city: e.target.value,
-                      };
-                      return copy;
-                    });
-                  } else {
-                    setCity(e.target.value);
-                  }
-                }}
-              />
-            </div>
+                    {/* Name Row */}
+                    <div className={styles.formRowThree}>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>First Name *</label>
+                        <input
+                          className={styles.input}
+                          value={p.first_name}
+                          onFocus={() => setActiveProviderIndex(index)}
+                          onChange={(e) => {
+                            setProviders(prev => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], first_name: e.target.value };
+                              return copy;
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Middle Name</label>
+                        <input
+                          className={styles.input}
+                          value={p.middle_name}
+                          onFocus={() => setActiveProviderIndex(index)}
+                          onChange={(e) => {
+                            setProviders(prev => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], middle_name: e.target.value };
+                              return copy;
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Last Name *</label>
+                        <input
+                          className={styles.input}
+                          value={p.last_name}
+                          onFocus={() => setActiveProviderIndex(index)}
+                          onChange={(e) => {
+                            setProviders(prev => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], last_name: e.target.value };
+                              return copy;
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
 
-            <div className={styles.formRowThree}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>State Code</label>
-                <input
-                  value={person.state_code}
-                  onChange={(e) => {
-                    const v = e.target.value.toUpperCase();
+                    {/* Address Fields */}
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Address Line 1</label>
+                      <input className={styles.input} value={p.address_line_1}
+                        onFocus={() => setActiveProviderIndex(index)}
+                        onChange={(e) => {
+                          setProviders(prev => {
+                            const copy = [...prev];
+                            copy[index] = { ...copy[index], address_line_1: e.target.value };
+                            return copy;
+                          });
+                        }}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Address Line 2</label>
+                      <input className={styles.input} value={p.address_line_2 || ""}
+                        onFocus={() => setActiveProviderIndex(index)}
+                        onChange={(e) => {
+                          setProviders(prev => {
+                            const copy = [...prev];
+                            copy[index] = { ...copy[index], address_line_2: e.target.value };
+                            return copy;
+                          });
+                        }}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>City *</label>
+                      <input className={styles.input} value={p.city}
+                        onFocus={() => setActiveProviderIndex(index)}
+                        onChange={(e) => {
+                          setProviders(prev => {
+                            const copy = [...prev];
+                            copy[index] = { ...copy[index], city: e.target.value };
+                            return copy;
+                          });
+                        }}
+                      />
+                    </div>
+                    <div className={styles.formRowSplit}>
+                      <input className={styles.input} placeholder="State Code" maxLength={2} value={p.state_code}
+                        onFocus={() => setActiveProviderIndex(index)}
+                        onChange={(e) => {
+                          setProviders(prev => {
+                            const copy = [...prev];
+                            copy[index] = { ...copy[index], state_code: e.target.value.toUpperCase() };
+                            return copy;
+                          });
+                        }}
+                      />
+                      <input className={styles.input} placeholder="State Name" value={p.state_name || ""}
+                        onFocus={() => setActiveProviderIndex(index)}
+                        onChange={(e) => {
+                          setProviders(prev => {
+                            const copy = [...prev];
+                            copy[index] = { ...copy[index], state_name: e.target.value };
+                            return copy;
+                          });
+                        }}
+                      />
+                      <Select
+                        value={{ value: p.country, label: p.country || "United States" }}
+                        onChange={(opt) => {
+                          setProviders(prev => {
+                            const copy = [...prev];
+                            copy[index] = { ...copy[index], country: opt?.value || "United States" };
+                            return copy;
+                          });
+                        }}
+                      />
+                      <input className={styles.input} placeholder="ZIP Code" value={p.zip_code}
+                        onFocus={() => setActiveProviderIndex(index)}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          const fmt = val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 9)}` : val;
+                          setProviders(prev => {
+                            const copy = [...prev];
+                            copy[index] = { ...copy[index], zip_code: fmt };
+                            return copy;
+                          });
+                        }}
+                      />
+                    </div>
 
-                    if (step === 2) {
-                      setProviders((prev) => {
-                        const copy = [...prev];
-                        copy[activeProviderIndex] = {
-                          ...copy[activeProviderIndex],
-                          state_code: v,
-                        };
-                        return copy;
-                      });
-                    } else {
-                      setStateCode(v);
-                    }
+                    {/* Location Dropdown */}
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Provider Location Link</label>
+                      <Select
+                        value={
+                          [
+                            { value: primaryTempId, label: `Primary: ${addressLine1}` },
+                            ...extraAddresses.map(a => ({
+                              value: a.temp_id,
+                              label: `${a.address_line_1} (${a.city})`
+                            }))
+                          ].find(opt => opt.value === p.location_temp_id)
+                        }
+                        onChange={(selected) => {
+                          setProviders(prev => {
+                            const copy = [...prev];
+                            copy[index] = {
+                              ...copy[index],
+                              location_temp_id: selected?.value || ""
+                            };
+                            return copy;
+                          });
+                        }}
+                        options={[
+                          { value: primaryTempId, label: `Primary: ${addressLine1}` },
+                          ...extraAddresses.map(a => ({
+                            value: a.temp_id,
+                            label: `${a.address_line_1} (${a.city})`
+                          }))
+                        ]}
+                        menuPortalTarget={document.body}
+                        styles={{ menuPortal: base => ({ ...base, zIndex: 10000 }) }}
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  className={styles.addAddressBtn}
+                  onClick={() => {
+                    setProviders((prev) => [
+                      ...prev,
+                      {
+                        first_name: "",
+                        middle_name: "",
+                        last_name: "",
+                        npi: "",
+                        address_line_1: "",
+                        address_line_2: "",
+                        city: "",
+                        state_code: "",
+                        state_name: "",
+                        zip_code: "",
+                        country: "United States",
+                        location_temp_id: primaryTempId,
+                      },
+                    ]);
+                    setActiveProviderIndex(providers.length);
                   }}
-                />
-              </div>
+                >
+                  <Plus size={16} /> Add Provider
+                </button>
+              </>
+            )}
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>State Name</label>
-                <input
-                  className={styles.input}
-                  maxLength={50}
-                  value={person.state_name || ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
+            {/* SHARED ADDRESS INPUTS FOR STEP 1 ONLY */}
+            {step === 1 && (
+              <>
+                <div className={styles.formGroup} style={{ position: "relative" }}>
+                  <label className={styles.label}>Address Line 1</label>
+                  <input
+                    className={styles.input}
+                    maxLength={250}
+                    value={addressLine1}
+                    onChange={handleAddressChange}
+                    autoComplete="off"
+                  />
+                  {isSearchingAddress && <div className={styles.addressLoader} />}
+                  {showSuggestions && (
+                    <div className={styles.suggestionsContainer} ref={suggestionsRef}>
+                      {suggestions.map((feature, index) => {
+                        const p = feature.properties;
+                        const label = [p.housenumber, p.street, p.city, p.state, p.postcode].filter(Boolean).join(", ");
+                        return (
+                          <div key={index} className={styles.suggestionItem} onClick={() => handleSuggestionClick(feature)}>
+                            <span className={styles.suggestionText}>{label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
-                    if (step === 2) {
-                      setProviders((prev) => {
-                        const copy = [...prev];
-                        copy[activeProviderIndex] = {
-                          ...copy[activeProviderIndex],
-                          state_name: value,
-                        };
-                        return copy;
-                      });
-                    } else {
-                      setStateName(value);
-                    }
-                  }}
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Country *</label>
-                <Select
-                  value={{ value: person.country, label: person.country }}
-                  onChange={(selected) => {
-                    const value = selected?.value || "United States";
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Address Line 2</label>
+                  <input className={styles.input} maxLength={250} value={addressLine2} onChange={(e) => setAddressLine2(e.target.value)} />
+                </div>
 
-                    if (step === 2) {
-                      setProviders((prev) => {
-                        const copy = [...prev];
-                        copy[activeProviderIndex] = {
-                          ...copy[activeProviderIndex],
-                          country: value,
-                        };
-                        return copy;
-                      });
-                    } else {
-                      setCountry(value);
-                    }
-                  }}
-                />
-              </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>City *</label>
+                  <input className={styles.input} value={city} onChange={(e) => setCity(e.target.value)} />
+                </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>ZIP Code *</label>
-                <input
-                  value={person.zip_code}
-                  onChange={(e) => {
-                    let digits = e.target.value.replace(/\D/g, "");
-                    let formatted =
-                      digits.length > 5
-                        ? `${digits.slice(0, 5)}-${digits.slice(5, 9)}`
-                        : digits;
+                <div className={styles.formRowSplit}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>State Code</label>
+                    <input className={styles.input} value={stateCode} onChange={(e) => setStateCode(e.target.value.toUpperCase())} />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>State Name</label>
+                    <input className={styles.input} value={stateName} onChange={(e) => setStateName(e.target.value)} />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Country *</label>
+                    <Select value={{ value: country, label: country }} onChange={(s) => setCountry(s?.value || "United States")} />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>ZIP Code *</label>
+                    <input className={styles.input} value={zipCode} onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, "");
+                      setZipCode(v.length > 5 ? `${v.slice(0, 5)}-${v.slice(5, 9)}` : v);
+                    }} />
+                    {errors.zip_code && <span className={styles.errorText}>{errors.zip_code}</span>}
+                  </div>
+                </div>
+              </>
+            )}
 
-                    if (step === 2) {
-                      setProviders((prev) => {
-                        const copy = [...prev];
-                        copy[activeProviderIndex] = {
-                          ...copy[activeProviderIndex],
-                          zip_code: formatted,
-                        };
-                        return copy;
-                      });
-                    } else {
-                      setZipCode(formatted);
-                    }
-                  }}
-                />
-
-                {errors.zip_code && (
-                  <span className={styles.errorText}>{errors.zip_code}</span>
-                )}
-              </div>
-            </div>
-            {uiMode === "ORG" && (
+            {uiMode === "ORG" && step === 1 && (
               <button
                 type="button"
                 className={styles.addAddressBtn}
                 onClick={() =>
-                 setExtraAddresses((prev) => [
-  ...prev,
-  {
-    temp_id: crypto.randomUUID(),
-    address_line_1: "",
-    address_line_2: "",
-    city: "",
-    state_code: "",
-    state_name: "",
-    zip_code: "",
-    country: "United States",
-  },
-])
+                  setExtraAddresses((prev) => [
+                    ...prev,
+                    {
+                      temp_id: crypto.randomUUID(),
+                      address_line_1: "",
+                      address_line_2: "",
+                      city: "",
+                      state_code: "",
+                      state_name: "",
+                      zip_code: "",
+                      country: "United States",
+                    },
+                  ])
                 }
               >
-                + Add Address
+                <Plus size={16} /> Add Additional Address
               </button>
             )}
-            {step === 2 && (
-  <div className={styles.formGroup}>
-    <label className={styles.label}>Provider's location *</label>
 
-    <Select
-      value={
-        [
-          { value: primaryTempId, label: `Primary: ${addressLine1}` },
-          ...extraAddresses.map(a => ({
-            value: a.temp_id,
-            label: `${a.address_line_1} (${a.city})`
-          }))
-        ].find(opt => opt.value === activeProvider.location_temp_id)
-      }
-      onChange={(selected) => {
-        const value = selected?.value || "";
-
-        setProviders(prev => {
-          const copy = [...prev];
-          copy[activeProviderIndex] = {
-            ...copy[activeProviderIndex],
-            location_temp_id: value
-          };
-          return copy;
-        });
-      }}
-      options={[
-        { value: primaryTempId, label: `Primary: ${addressLine1}` },
-        ...extraAddresses.map(a => ({
-          value: a.temp_id,
-          label: `${a.address_line_1} (${a.city})`
-        }))
-      ]}
-    />
-  </div>
-)}
-
-            {uiMode === "ORG" &&
+            {uiMode === "ORG" && step === 1 &&
               extraAddresses.map((addr, index) => (
                 <div key={index} className={styles.secondaryAddressCard}>
                   <div className={styles.cardHeader}>
                     <strong>Additional Address {index + 1}</strong>
                     <button
                       type="button"
+                      className={styles.deleteButton}
                       onClick={() =>
                         setExtraAddresses((prev) =>
-                          prev.filter((_, i) => i !== index),
+                          prev.filter((_, i) => i !== index)
                         )
                       }
+                      title="Remove address"
                     >
-                      <X size={14} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
 
@@ -1362,32 +1380,31 @@ setProviders(newProviders);
                     className={styles.input}
                     placeholder="Address Line 1"
                     value={addr.address_line_1}
-onChange={(e) => {
-  setExtraAddresses(prev => {
-    const copy = [...prev];
-    copy[index] = {
-      ...copy[index],
-      address_line_1: e.target.value
-    };
-    return copy;
-  });
-
+                    onChange={(e) => {
+                      setExtraAddresses((prev) => {
+                        const copy = [...prev];
+                        copy[index] = {
+                          ...copy[index],
+                          address_line_1: e.target.value,
+                        };
+                        return copy;
+                      });
                     }}
                   />
 
                   <input
                     className={styles.input}
                     placeholder="Address Line 2"
-                    value={addr.address_line_2}
+                    value={addr.address_line_2 || ""}
                     onChange={(e) => {
-setExtraAddresses(prev => {
-  const copy = [...prev];
-  copy[index] = {
-    ...copy[index],  // PRESERVE temp_id
-    address_line_2: e.target.value
-  };
-  return copy;
-});
+                      setExtraAddresses((prev) => {
+                        const copy = [...prev];
+                        copy[index] = {
+                          ...copy[index],
+                          address_line_2: e.target.value,
+                        };
+                        return copy;
+                      });
                     }}
                   />
 
@@ -1395,90 +1412,86 @@ setExtraAddresses(prev => {
                     className={styles.input}
                     placeholder="City"
                     value={addr.city}
-onChange={(e) => {
-  setExtraAddresses(prev => {
-    const copy = [...prev];
-    copy[index] = {
-      ...copy[index],
-      city: e.target.value
-    };
-    return copy;
-  });
-}}
-
-                  />
-
-                  <input
-                    className={styles.input}
-                    placeholder="State Code"
-                    maxLength={2}
-                    value={addr.state_code}
-                  onChange={(e) => {
-  setExtraAddresses(prev => {
-    const copy = [...prev];
-    copy[index] = {
-      ...copy[index],
-      state_code: e.target.value.toUpperCase()
-    };
-    return copy;
-  });
-}}
-
-                  />
-                  <input
-                    className={styles.input}
-                    placeholder="State name"
-                    value={addr.state_name}
                     onChange={(e) => {
-                     
-setExtraAddresses(prev => {
-  const copy = [...prev];
-  copy[index] = {
-    ...copy[index],  // PRESERVE temp_id
-    state_name: e.target.value
-  };
-  return copy;
-});
+                      setExtraAddresses((prev) => {
+                        const copy = [...prev];
+                        copy[index] = {
+                          ...copy[index],
+                          city: e.target.value,
+                        };
+                        return copy;
+                      });
                     }}
                   />
-                  <input
-                    className={styles.input}
-                    placeholder="Country"
-                    value={addr.country}
-                    onChange={(e) => {
-                      
-setExtraAddresses(prev => {
-  const copy = [...prev];
-  copy[index] = {
-    ...copy[index],  // PRESERVE temp_id
-    country: e.target.value
-  };
-  return copy;
-});
-                    }}
-                  />
-                  <input
-                    className={styles.input}
-                    placeholder="ZIP Code"
-                    value={addr.zip_code}
-                   onChange={(e) => {
-  const digits = e.target.value.replace(/\D/g, "");
-  const formatted =
-    digits.length > 5
-      ? `${digits.slice(0,5)}-${digits.slice(5,9)}`
-      : digits;
 
-  setExtraAddresses(prev => {
-    const copy = [...prev];
-    copy[index] = {
-      ...copy[index],
-      zip_code: formatted
-    };
-    return copy;
-  });
-}}
-
-                  />
+                  <div className={styles.formRowSplit}>
+                    <input
+                      className={styles.input}
+                      placeholder="State Code"
+                      maxLength={2}
+                      value={addr.state_code}
+                      onChange={(e) => {
+                        setExtraAddresses((prev) => {
+                          const copy = [...prev];
+                          copy[index] = {
+                            ...copy[index],
+                            state_code: e.target.value.toUpperCase(),
+                          };
+                          return copy;
+                        });
+                      }}
+                    />
+                    <input
+                      className={styles.input}
+                      placeholder="State Name"
+                      value={addr.state_name || ""}
+                      onChange={(e) => {
+                        setExtraAddresses((prev) => {
+                          const copy = [...prev];
+                          copy[index] = {
+                            ...copy[index],
+                            state_name: e.target.value,
+                          };
+                          return copy;
+                        });
+                      }}
+                    />
+                    <input
+                      className={styles.input}
+                      placeholder="Country"
+                      value={addr.country}
+                      onChange={(e) => {
+                        setExtraAddresses((prev) => {
+                          const copy = [...prev];
+                          copy[index] = {
+                            ...copy[index],
+                            country: e.target.value,
+                          };
+                          return copy;
+                        });
+                      }}
+                    />
+                    <input
+                      className={styles.input}
+                      placeholder="ZIP Code"
+                      value={addr.zip_code}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        const fmt =
+                          val.length > 5
+                            ? `${val.slice(0, 5)}-${val.slice(5, 9)}`
+                            : val;
+                        setExtraAddresses((prev) => {
+                          const copy = [...prev];
+                          copy[index] = {
+                            ...copy[index],
+                            zip_code: fmt,
+                          };
+                          return copy;
+                        });
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
 
@@ -1492,71 +1505,72 @@ setExtraAddresses(prev => {
                 rows={3}
               />
             </div>
+
           </div>
           <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.cancelButton}
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            {step === 2 && (
-    <>
-      {/* BACK BUTTON */}
-      <button
-        type="button"
-        className={styles.cancelButton}
-        onClick={handleBackToStep1}
-      >
-        ← Back
-      </button>
-      </>
-            )}
-            {step === 2 && (
-              <button
-                type="button"
-                className={styles.addAddressBtn}
-                onClick={() => {
-                  setProviders((prev) => [
-                    ...prev,
-                    {
-                      ...prev[0], // clone address
-                      first_name: "",
-                      middle_name: "",
-                      last_name: "",
-                      npi: "",
-                      location_temp_id: primaryTempId,
-                    },
-                  ]);
-                  setActiveProviderIndex(providers.length);
-                }}
-              >
-                + Add Provider
-              </button>
-            )}
-            <button
-              type="submit"
-              className={styles.submitButton}
-              disabled={isSubmitting}
-            >
-              {/* {isSubmitting
-                ? "Saving..."
-                : initialData
-                  ? "Update"
-                  : type === "Group" && isProviderOrg
-                    ? "Next"
-                    : "Create"} */}
-              {step === 2
-                ? "Create"
-                : type === "Group" && isProviderOrg
-                  ? "Next"
-                  : "Create"}
-            </button>
+            <div className={styles.footerContent}>
+              {/* Provider Toggle (Left Side) */}
+              <div>
+                {uiMode === "ORG" && step === 1 && (
+                  <div className={styles.providerToggle}>
+                    <input
+                      type="checkbox"
+                      id="isProvider"
+                      className={styles.toggleInput}
+                      checked={isProviderOrg}
+                      onChange={(e) => setIsProviderOrg(e.target.checked)}
+                    />
+                    <div className={styles.toggleText}>
+                      <label htmlFor="isProvider" className={styles.toggleLabel}>Is Provider Organization</label>
+                      <span className={styles.toggleDescription}>Enable if this organization has providers.</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons (Right Side) */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  type="button"
+                  className={styles.cancelButton}
+                  onClick={onClose}
+                >
+                  Cancel
+                </button>
+                {step === 2 && (
+                  <>
+                    {/* BACK BUTTON */}
+                    <button
+                      type="button"
+                      className={styles.cancelButton}
+                      onClick={handleBackToStep1}
+                    >
+                      ← Back
+                    </button>
+                  </>
+                )}
+                {step === 2 && (
+                  <button
+                    type="button"
+                    className={styles.cancelButton}
+                    onClick={handleBackToStep1}
+                  >
+                    ← Back
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className={styles.submitButton}
+                  disabled={isSubmitting}
+                >
+                  {step === 1 && isProviderOrg ? "Next →" : (initialData ? "Update" : "Create")}
+                </button>
+              </div>
+            </div>
           </div>
         </form>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 
