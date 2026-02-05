@@ -106,31 +106,87 @@ const ClientModal: React.FC<ClientModalProps> = ({
     },
   ]);
 
-  useEffect(() => {
-    if (!isOpen) return;
+useEffect(() => {
+  if (!initialData || !isOpen) return;
 
-    // 🔒 HARD RESET WIZARD STATE
-    setStep(1);
-    setIsProviderOrg(false);
+  // BASIC
+  setBusinessName(initialData.business_name || "");
+  setFirstName(initialData.first_name || "");
+  setMiddleName(initialData.middle_name || "");
+  setLastName(initialData.last_name || "");
+  setNpi(initialData.npi || "");
+  setType(initialData.type === "NPI2" ? "Group" : "Individual");
+  setDescription(initialData.description || "");
 
-    // optional but sane
-    setProviders([
-      {
-        first_name: "",
-        middle_name: "",
-        last_name: "",
-        npi: "",
-        address_line_1: "",
-        address_line_2: "",
-        city: "",
-        state_code: "",
-        state_name: "",
-        zip_code: "",
-        country: "",
-        location_temp_id:"",
-      },
-    ]);
-  }, [isOpen]);
+  // 🔵 LOCATIONS → convert to temp ids
+  const tempMap: Record<string, string> = {};
+
+  const primary = initialData.locations?.find(l => l.is_primary);
+  if (primary) {
+    const tempId = crypto.randomUUID();
+    tempMap[primary.id] = tempId;
+    setPrimaryTempId(tempId);
+
+    setAddressLine1(primary.address_line_1);
+    setAddressLine2(primary.address_line_2 || "");
+    setCity(primary.city);
+    setStateCode(primary.state_code);
+    setStateName(primary.state_name || "");
+    setZipCode(primary.zip_code);
+    setCountry(primary.country || "United States");
+  }
+
+  const extras = initialData.locations
+    ?.filter(l => !l.is_primary)
+    .map(l => {
+      const tempId = crypto.randomUUID();
+      tempMap[l.id] = tempId;
+
+      return {
+        temp_id: tempId,
+        address_line_1: l.address_line_1,
+        address_line_2: l.address_line_2,
+        city: l.city,
+        state_code: l.state_code,
+        state_name: l.state_name,
+        zip_code: l.zip_code,
+        country: l.country
+      };
+    }) || [];
+
+  setExtraAddresses(extras);
+
+  // 🔵 PROVIDERS
+  if (initialData.providers?.length) {
+    const mappedProviders = initialData.providers.map(p => ({
+      first_name: p.first_name,
+      middle_name: p.middle_name,
+      last_name: p.last_name,
+      npi: p.npi || "",
+      address_line_1: "",
+      address_line_2: "",
+      city: "",
+      state_code: "",
+      state_name: "",
+      zip_code: "",
+      country: "United States",
+      location_temp_id: tempMap[p.location_id] || ""
+    }));
+
+    setProviders(mappedProviders);
+    setIsProviderOrg(true);
+  }
+
+}, [initialData, isOpen]);
+
+useEffect(() => {
+  if (!initialData) return;
+
+  if (initialData.providers?.length) {
+  setIsProviderOrg(true);
+  setStep(2);   // 🔥 REQUIRED
+}
+}, [initialData]);
 
 const handleFinish = async () => {
   const payload: any = {
@@ -477,43 +533,6 @@ else {
     setShowSuggestions(false);
   };
 
-  useEffect(() => {
-    if (initialData) {
-      setBusinessName(initialData.business_name || "");
-      setFirstName(initialData.first_name || "");
-      setMiddleName(initialData.middle_name || "");
-      setLastName(initialData.last_name || "");
-      setNpi(initialData.npi || "");
-      setType(initialData.type || "Individual");
-      setStatusId(initialData.status_id || "");
-      setDescription(initialData.description || "");
-      setAddressLine1(initialData.address_line_1 || "");
-      setAddressLine2(initialData.address_line_2 || "");
-      setStateCode(initialData.state_code || "");
-      setStateName(initialData.state_name || "");
-      setZipCode(initialData.zip_code || "");
-      setCountry(initialData.country || "United States");
-      setCity(initialData?.city || "");
-    } else {
-      setBusinessName("");
-      setFirstName("");
-      setMiddleName("");
-      setLastName("");
-      setNpi("");
-      setType("Individual");
-      setStatusId("");
-      setDescription("");
-      setAddressLine1("");
-      setAddressLine2("");
-      setStateCode("");
-      setStateName("");
-      setZipCode("");
-      setCountry("United States");
-      setCity("");
-    }
-    setErrors({});
-  }, [initialData, isOpen]);
-
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
     if (step === 2) return true;
@@ -605,6 +624,7 @@ else {
       }
 
       const data = await clientService.lookupNPI(currentNpi);
+      console.log(data);
       if (data.results && data.results.length > 0) {
         const result = data.results[0];
         const basic = result.basic;
@@ -648,7 +668,7 @@ else {
         if (practiceAddress) {
           setAddressLine1(practiceAddress.address_1 || "");
           setAddressLine2(practiceAddress.address_2 || "");
-
+          setCity(practiceAddress.city || "");
           const sCode = practiceAddress.state || "";
           setStateCode(sCode);
 
@@ -801,6 +821,7 @@ else {
   const handleBackToStep1 = () => {
   setStep(1);
 };
+  const isEdit = !!initialData;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -815,27 +836,44 @@ else {
     return;
   }   
 
-      const tempId = crypto.randomUUID();
-setPrimaryTempId(tempId);
+      if (!initialData) {
+  const tempId = crypto.randomUUID();
+  setPrimaryTempId(tempId);
 
-const newProviders = [{
-  ...providers[0],
-  location_temp_id: tempId,
-  address_line_1: addressLine1,
-  city,
-  state_code: stateCode,
-  state_name: stateName,
-  zip_code: zipCode,
-  country
-}];
+  const newProviders = [{
+    ...providers[0],
+    location_temp_id: tempId,
+    address_line_1: addressLine1,
+    city,
+    state_code: stateCode,
+    state_name: stateName,
+    zip_code: zipCode,
+    country
+  }];
 
-setProviders(newProviders);
+  setProviders(newProviders);
+}
 
         if (!zipCode || !/^\d{5}-\d{4}$/.test(zipCode)) {
           setErrors({ zip_code: "ZIP is required before adding providers" });
           return;
         }
-  
+          if (!primaryTempId) {
+    const tempId = crypto.randomUUID();
+    setPrimaryTempId(tempId);
+
+    setProviders(prev => [{
+      ...prev[0],
+      location_temp_id: tempId,
+      address_line_1: addressLine1,
+      city,
+      state_code: stateCode,
+      state_name: stateName,
+      zip_code: zipCode,
+      country
+    }]);
+  }
+
         setStep(2);
         return;
       }
@@ -1535,24 +1573,14 @@ setExtraAddresses(prev => {
                 + Add Provider
               </button>
             )}
-            <button
-              type="submit"
-              className={styles.submitButton}
-              disabled={isSubmitting}
-            >
-              {/* {isSubmitting
-                ? "Saving..."
-                : initialData
-                  ? "Update"
-                  : type === "Group" && isProviderOrg
-                    ? "Next"
-                    : "Create"} */}
-              {step === 2
-                ? "Create"
-                : type === "Group" && isProviderOrg
-                  ? "Next"
-                  : "Create"}
-            </button>
+                <button type="submit" className={styles.submitButton}>
+  {step === 2
+    ? isEdit ? "Update" : "Create"
+    : type === "Group" && isProviderOrg
+      ? "Next"
+      : isEdit ? "Update" : "Create"}
+</button>
+
           </div>
         </form>
       </div>
