@@ -213,40 +213,43 @@ const ClientManagement: React.FC = () => {
     }
   };
 
-  const handleModalSubmit = async (data: any) => {
-    try {
-      if (editingClient) {
-        await clientService.updateClient(editingClient.id, data);
-        setToast({ message: "Client updated successfully", type: "success" });
-        handleModalClose();
-        loadClients();
-      } else {
-        const newClient = await clientService.createClient(data);
-        setToast({ message: "Client created successfully", type: "success" });
-        handleModalClose();
-        loadClients();
+const handleModalSubmit = async (data: any): Promise<Client> => {
+  try {
+    if (editingClient) {
+      const updated = await clientService.updateClient(editingClient.id, data);
+      setToast({ message: "Client updated successfully", type: "success" });
+      handleModalClose();
+      loadClients();
+      return updated; // ✅ RETURN
+    } else {
+      const newClient = await clientService.createClient(data);
+      setToast({ message: "Client created successfully", type: "success" });
+      handleModalClose();
+      loadClients();
 
-        // Setup and show cross-creation confirmation
-        setCrossCreationData({
-          client_id: newClient.id,
-          email: "", // Email not in client data, will be empty
-          username: "", // Username not in client data, will be empty
-          first_name: data.first_name || "",
-          middle_name: data.middle_name || "",
-          last_name: data.last_name || "",
-          roles: [], // empty roles
-          supervisor_id: undefined,
-        });
-        setShowCrossCreationConfirm(true);
-      }
-    } catch (error: any) {
-      console.error("Failed to save client:", error);
-      setToast({
-        message: error?.message || "Failed to save client",
-        type: "error",
+      setCrossCreationData({
+        client_id: newClient.id,
+        email: "",
+        username: "",
+        first_name: data.first_name || "",
+        middle_name: data.middle_name || "",
+        last_name: data.last_name || "",
+        roles: [],
+        supervisor_id: undefined,
       });
+      setShowCrossCreationConfirm(true);
+
+      return newClient; // ✅ RETURN
     }
-  };
+  } catch (error: any) {
+    console.error("Failed to save client:", error);
+    setToast({
+      message: error?.message || "Failed to save client",
+      type: "error",
+    });
+    throw error; // ✅ important for Promise<Client>
+  }
+};
 
   const [isAssigning, setIsAssigning] = useState(false);
 

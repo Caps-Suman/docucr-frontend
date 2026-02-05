@@ -160,13 +160,17 @@ const UserManagement: React.FC = () => {
     const handleClientModalSubmit = async (data: any) => {
         try {
             const payload = { ...data, user_id: crossCreationData?.user_id };
-            await clientService.createClient(payload);
+            const createdClient = await clientService.createClient(data);
             setToast({ message: 'Client created successfully', type: 'success' });
             setIsClientModalOpen(false);
             setCrossCreationData(null);
+            return createdClient; // ✅ THIS IS THE FIX
+
         } catch (error: any) {
             console.error('Failed to create client:', error);
             setToast({ message: error?.message || 'Failed to create client', type: 'error' });
+                throw error; // ✅ required for Promise<Client>
+
         }
     };
 
