@@ -2,6 +2,28 @@ import apiClient from '../utils/apiClient';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+export interface ClientLocation {
+    id: string;
+    address_line_1: string;
+    address_line_2?: string;
+    city: string;
+    state_code: string;
+    state_name?: string;
+    country?: string;
+    zip_code: string;
+    is_primary: boolean;
+}
+
+export interface Provider {
+    id: string;
+    first_name: string;
+    middle_name?: string;
+    last_name: string;
+    npi: string;
+    location_id?: string; // or linked location
+    created_at?: string;
+}
+
 export interface Client {
     id: string;
     business_name?: string;
@@ -25,6 +47,10 @@ export interface Client {
     country?:string;
     city?:string;
     user_count?: number;
+
+    // Detailed Edit Fields
+    locations?: ClientLocation[];
+    providers?: Provider[];
 }
 
 

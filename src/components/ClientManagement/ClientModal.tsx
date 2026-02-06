@@ -109,29 +109,159 @@ const ClientModal: React.FC<ClientModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    // 🔒 HARD RESET WIZARD STATE
+    // 🔒 HARD RESET WIZARD STATE CHECK
     setStep(1);
     setIsProviderOrg(false);
     setExtraAddresses([]); // Reset secondary addresses
 
-    // optional but sane
-    setProviders([
-      {
-        first_name: "",
-        middle_name: "",
-        last_name: "",
-        npi: "",
-        address_line_1: "",
-        address_line_2: "",
-        city: "",
-        state_code: "",
-        state_name: "",
-        zip_code: "",
-        country: "",
-        location_temp_id: "",
-      },
-    ]);
-  }, [isOpen]);
+    if (initialData) {
+      // 1. Basic Info
+      setBusinessName(initialData.business_name || "");
+      setFirstName(initialData.first_name || "");
+      setMiddleName(initialData.middle_name || "");
+      setLastName(initialData.last_name || "");
+      setNpi(initialData.npi || "");
+      setDescription(initialData.description || "");
+      setStatusId(initialData.status_id || "");
+
+      // Map backend type to frontend type
+      const t = initialData.type === "NPI2" ? "Group" : "Individual";
+      setType(t);
+
+      // 2. Locations Logic
+      // Check if we have the new `locations` array from detailed fetch
+      if (initialData.locations && initialData.locations.length > 0) {
+        const primary = initialData.locations.find(l => l.is_primary);
+        if (primary) {
+          setAddressLine1(primary.address_line_1);
+          setAddressLine2(primary.address_line_2 || "");
+          setCity(primary.city);
+          setStateCode(primary.state_code);
+          setStateName(primary.state_name || "");
+          setZipCode(primary.zip_code);
+          setCountry(primary.country || "United States");
+          setPrimaryTempId(primary.id); // IMPORTANT: Use real ID as temp ID for editing
+        }
+
+        // Additional Locations
+        const extras = initialData.locations.filter(l => !l.is_primary).map(l => ({
+          temp_id: l.id, // Use real ID
+          address_line_1: l.address_line_1,
+          address_line_2: l.address_line_2,
+          city: l.city,
+          state_code: l.state_code,
+          state_name: l.state_name,
+          zip_code: l.zip_code,
+          country: l.country || "United States"
+        }));
+        setExtraAddresses(extras);
+      } else {
+        // Fallback for legacy Individual / non-detailed
+        setAddressLine1(initialData.address_line_1 || "");
+        setAddressLine2(initialData.address_line_2 || "");
+        setCity(initialData.city || "");
+        setStateCode(initialData.state_code || "");
+        setStateName(initialData.state_name || "");
+        setZipCode(initialData.zip_code || "");
+        setCountry(initialData.country || "United States");
+        setPrimaryTempId(crypto.randomUUID()); // New random ID if no ID exists
+      }
+
+      // 3. Providers Logic
+      if (initialData.providers && initialData.providers.length > 0) {
+        setIsProviderOrg(true);
+        const mappedProviders = initialData.providers.map(p => ({
+          first_name: p.first_name,
+          middle_name: p.middle_name || "",
+          last_name: p.last_name,
+          npi: p.npi,
+          // Provider addresses are not stored directly on provider object in backend currently?
+          // Wait, backend Provider model HAS location_id. 
+          // Does Provider model have address fields? NO. 
+          // Provider is linked to a Location.
+          // BUT Frontend ProviderForm expects address fields physically on the card?
+          // Re-reading `ClientModal.tsx`:
+          // The ProviderForm interface has `address_line_1`, etc.
+          // When we create a provider, we enter specific address fields?
+          // Let's check `ClientModal.tsx` form.
+          // Yes, each provider card has address inputs.
+          // BUT backend `ProviderResponse` in `clients_router.py` ONLY has names + NPI + ID + created_at.
+          // AND `get_client_by_id` (service) populates providers.
+          // Wait, look at `client_service.py` Step 282:
+          // It maps `provider_rows` to dicts.
+          // It includes `address_line_1`... wait.
+          // `provider_rows` query joins `ClientLocation`.
+          // So the `providers` array from backend DOES have address fields!
+          // Let verify `client_service.py` logic around line 785 (from diffs).
+          // It performs a join and aliases location fields.
+          // Correct. Backend returns flattened provider + location fields.
+
+          address_line_1: (p as any).address_line_1 || "",
+          address_line_2: (p as any).address_line_2 || "",
+          city: (p as any).city || "",
+          state_code: (p as any).state_code || "",
+          state_name: (p as any).state_name || "",
+          country: (p as any).country || "United States",
+          zip_code: (p as any).zip_code || "",
+          location_temp_id: (p as any).location_id || "" // The link!
+        }));
+        setProviders(mappedProviders);
+      } else {
+        setProviders([
+          {
+            first_name: "",
+            middle_name: "",
+            last_name: "",
+            npi: "",
+            address_line_1: "",
+            address_line_2: "",
+            city: "",
+            state_code: "",
+            state_name: "",
+            zip_code: "",
+            country: "United States",
+            location_temp_id: "",
+          },
+        ]);
+      }
+
+    } else {
+      // Reset fields for ADD mode
+      setBusinessName("");
+      setFirstName("");
+      setMiddleName("");
+      setLastName("");
+      setNpi("");
+      setType("Individual"); // Reset to default
+      setStatusId("");
+      setDescription("");
+      setAddressLine1("");
+      setAddressLine2("");
+      setCity("");
+      setStateCode("");
+      setStateName("");
+      setZipCode("");
+      setCountry("United States");
+      setPrimaryTempId(crypto.randomUUID());
+
+      setProviders([
+        {
+          first_name: "",
+          middle_name: "",
+          last_name: "",
+          npi: "",
+          address_line_1: "",
+          address_line_2: "",
+          city: "",
+          state_code: "",
+          state_name: "",
+          zip_code: "",
+          country: "United States",
+          location_temp_id: "",
+        },
+      ]);
+    }
+  }, [isOpen, initialData]);
 
   const handleFinish = async () => {
     const payload: any = {
@@ -181,7 +311,24 @@ const ClientModal: React.FC<ClientModalProps> = ({
       payload.middle_name = middleName;
       payload.last_name = lastName;
       payload.npi = npi;
-      payload.primary_temp_id = primaryTempId || providers[0].location_temp_id;
+      //need to put this:  payload.primary_temp_id = primaryTempId || providers[0].location_temp_id;
+      payload.primary_temp_id = primaryTempId;
+
+      // Construct locations array for Individual client too
+      payload.locations = [
+        {
+          temp_id: primaryTempId,
+          address_line_1: addressLine1,
+          address_line_2: addressLine2,
+          city,
+          state_code: stateCode,
+          state_name: stateName,
+          zip_code: zipCode,
+          country,
+          is_primary: true
+        }
+      ];
+
       payload.address_line_1 = addressLine1;
       payload.address_line_2 = addressLine2;
       payload.city = city;
@@ -845,21 +992,26 @@ const ClientModal: React.FC<ClientModalProps> = ({
           return;
         }
 
-        const tempId = crypto.randomUUID();
+        const tempId = primaryTempId || crypto.randomUUID();
         setPrimaryTempId(tempId);
 
-        const newProviders = [{
-          ...providers[0],
-          location_temp_id: tempId,
-          address_line_1: addressLine1,
-          city,
-          state_code: stateCode,
-          state_name: stateName,
-          zip_code: zipCode,
-          country
-        }];
+        // Only initialize default provider if creating new and current provider is empty
+        const isEditing = !!initialData;
+        const hasExistingProviders = providers.length > 1 || (providers.length === 1 && !!providers[0].npi);
 
-        setProviders(newProviders);
+        if (!isEditing && !hasExistingProviders) {
+          const newProviders = [{
+            ...providers[0],
+            location_temp_id: tempId,
+            address_line_1: "",
+            city: "",
+            state_code: "",
+            state_name: "",
+            zip_code: "",
+            country: "United States"
+          }];
+          setProviders(newProviders);
+        }
 
         if (!zipCode || !/^\d{5}-\d{4}$/.test(zipCode)) {
           setErrors({ zip_code: "ZIP is required before adding providers" });
@@ -1025,7 +1177,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
               /* STEP 2: PROVIDERS LIST */
               <>
                 <div className={styles.formGroup}>
-                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#334155', margin: '0 0 12px 0' }}>Providers</h3>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#334155' }}>Fill the Provider details</h3>
                 </div>
                 {providers.map((p, index) => (
                   <div key={index} className={styles.secondaryAddressCard}>
@@ -1036,6 +1188,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
                         className={styles.deleteButton}
                         onClick={() => setProviders(prev => prev.filter((_, i) => i !== index))}
                         title="Remove provider"
+                        disabled={providers.length <= 1}
+                        style={{ opacity: providers.length <= 1 ? 0.5 : 1, cursor: providers.length <= 1 ? 'not-allowed' : 'pointer' }}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -1206,7 +1360,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
                     {/* Location Dropdown */}
                     <div className={styles.formGroup}>
-                      <label className={styles.label}>Provider Location Link</label>
+                      {/* <label className={styles.label}>Provider Location Link</label> */}
+                      <label className={styles.label}>Select Client Location *</label>
                       <Select
                         value={
                           [
@@ -1549,7 +1704,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
                     </button>
                   </>
                 )}
-                {step === 2 && (
+                {/* {step === 2 && (
                   <button
                     type="button"
                     className={styles.cancelButton}
@@ -1557,7 +1712,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
                   >
                     ← Back
                   </button>
-                )}
+                )} */}
                 <button
                   type="submit"
                   className={styles.submitButton}

@@ -159,9 +159,22 @@ const ClientManagement: React.FC = () => {
     setConfirmModal({ isOpen: true, client, action: "toggle" });
   };
 
-  const handleEdit = (client: Client) => {
-    setEditingClient(client);
-    setIsModalOpen(true);
+  const handleEdit = async (client: Client) => {
+    try {
+      if (client.type !== "Individual" && client.type !== "NPI1") {
+        setLoading(true);
+        const fullClient = await clientService.getClient(client.id);
+        setEditingClient(fullClient);
+      } else {
+        setEditingClient(client);
+      }
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch client details:", error);
+      setToast({ message: "Failed to load client details", type: "error" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddNew = () => {
@@ -213,43 +226,43 @@ const ClientManagement: React.FC = () => {
     }
   };
 
-const handleModalSubmit = async (data: any): Promise<Client> => {
-  try {
-    if (editingClient) {
-      const updated = await clientService.updateClient(editingClient.id, data);
-      setToast({ message: "Client updated successfully", type: "success" });
-      handleModalClose();
-      loadClients();
-      return updated; // ✅ RETURN
-    } else {
-      const newClient = await clientService.createClient(data);
-      setToast({ message: "Client created successfully", type: "success" });
-      handleModalClose();
-      loadClients();
+  const handleModalSubmit = async (data: any): Promise<Client> => {
+    try {
+      if (editingClient) {
+        const updated = await clientService.updateClient(editingClient.id, data);
+        setToast({ message: "Client updated successfully", type: "success" });
+        handleModalClose();
+        loadClients();
+        return updated; // ✅ RETURN
+      } else {
+        const newClient = await clientService.createClient(data);
+        setToast({ message: "Client created successfully", type: "success" });
+        handleModalClose();
+        loadClients();
 
-      setCrossCreationData({
-        client_id: newClient.id,
-        email: "",
-        username: "",
-        first_name: data.first_name || "",
-        middle_name: data.middle_name || "",
-        last_name: data.last_name || "",
-        roles: [],
-        supervisor_id: undefined,
+        setCrossCreationData({
+          client_id: newClient.id,
+          email: "",
+          username: "",
+          first_name: data.first_name || "",
+          middle_name: data.middle_name || "",
+          last_name: data.last_name || "",
+          roles: [],
+          supervisor_id: undefined,
+        });
+        setShowCrossCreationConfirm(true);
+
+        return newClient; // ✅ RETURN
+      }
+    } catch (error: any) {
+      console.error("Failed to save client:", error);
+      setToast({
+        message: error?.message || "Failed to save client",
+        type: "error",
       });
-      setShowCrossCreationConfirm(true);
-
-      return newClient; // ✅ RETURN
+      throw error; // ✅ important for Promise<Client>
     }
-  } catch (error: any) {
-    console.error("Failed to save client:", error);
-    setToast({
-      message: error?.message || "Failed to save client",
-      type: "error",
-    });
-    throw error; // ✅ important for Promise<Client>
-  }
-};
+  };
 
   const [isAssigning, setIsAssigning] = useState(false);
 
