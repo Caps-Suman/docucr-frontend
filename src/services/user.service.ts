@@ -15,6 +15,8 @@ export interface User {
     roles: Array<{ id: string; name: string }>;
     supervisor_id: string | null;
     client_count: number;
+    created_by_name?: string;
+    organisation_name?: string;
 }
 
 export interface UserStats {
