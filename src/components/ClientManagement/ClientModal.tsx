@@ -109,86 +109,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
 useEffect(() => {
   if (!initialData || !isOpen) return;
 
-<<<<<<< HEAD
-  // BASIC
-  setBusinessName(initialData.business_name || "");
-  setFirstName(initialData.first_name || "");
-  setMiddleName(initialData.middle_name || "");
-  setLastName(initialData.last_name || "");
-  setNpi(initialData.npi || "");
-  setType(initialData.type === "NPI2" ? "Group" : "Individual");
-  setDescription(initialData.description || "");
-
-  // 🔵 LOCATIONS → convert to temp ids
-  const tempMap: Record<string, string> = {};
-
-  const primary = initialData.locations?.find(l => l.is_primary);
-  if (primary) {
-    const tempId = crypto.randomUUID();
-    tempMap[primary.id] = tempId;
-    setPrimaryTempId(tempId);
-
-    setAddressLine1(primary.address_line_1);
-    setAddressLine2(primary.address_line_2 || "");
-    setCity(primary.city);
-    setStateCode(primary.state_code);
-    setStateName(primary.state_name || "");
-    setZipCode(primary.zip_code);
-    setCountry(primary.country || "United States");
-  }
-
-  const extras = initialData.locations
-    ?.filter(l => !l.is_primary)
-    .map(l => {
-      const tempId = crypto.randomUUID();
-      tempMap[l.id] = tempId;
-
-      return {
-        temp_id: tempId,
-        address_line_1: l.address_line_1,
-        address_line_2: l.address_line_2,
-        city: l.city,
-        state_code: l.state_code,
-        state_name: l.state_name,
-        zip_code: l.zip_code,
-        country: l.country
-      };
-    }) || [];
-
-  setExtraAddresses(extras);
-
-  // 🔵 PROVIDERS
-  if (initialData.providers?.length) {
-    const mappedProviders = initialData.providers.map(p => ({
-      first_name: p.first_name,
-      middle_name: p.middle_name,
-      last_name: p.last_name,
-      npi: p.npi || "",
-      address_line_1: "",
-      address_line_2: "",
-      city: "",
-      state_code: "",
-      state_name: "",
-      zip_code: "",
-      country: "United States",
-      location_temp_id: tempMap[p.location_id] || ""
-    }));
-
-    setProviders(mappedProviders);
-    setIsProviderOrg(true);
-  }
-
-}, [initialData, isOpen]);
-
-useEffect(() => {
-  if (!initialData) return;
-
-  if (initialData.providers?.length) {
-  setIsProviderOrg(true);
-  setStep(2);   // 🔥 REQUIRED
-}
-}, [initialData]);
-=======
     // 🔒 HARD RESET WIZARD STATE
     setStep(1);
     setIsProviderOrg(false);
@@ -212,7 +132,6 @@ useEffect(() => {
       },
     ]);
   }, [isOpen]);
->>>>>>> 7035aa65564308baac6a4744451e1cffd0533521
 
   const handleFinish = async () => {
     const payload: any = {
@@ -254,9 +173,23 @@ useEffect(() => {
       payload.zip_code = zipCode;
       payload.country = country;
 
-      if (isProviderOrg) {
-        payload.providers = providers; // ✅ providers carry THEIR OWN addresses
-      }
+  let fixedProviders: any[] = [];
+
+if (isProviderOrg) {
+  fixedProviders = providers.map(p => ({
+    ...p,
+    location_temp_id: p.location_temp_id || primaryTempId
+  }));
+
+  for (const p of fixedProviders) {
+    if (!p.location_temp_id) {
+      throw new Error("Provider missing location link");
+    }
+  }
+
+  payload.providers = fixedProviders;
+}
+
     } else {
       payload.first_name = firstName;
       payload.middle_name = middleName;
@@ -272,12 +205,6 @@ useEffect(() => {
       payload.country = country;
     }
     console.log("CREATE CLIENT PAYLOAD:", JSON.stringify(payload, null, 2));
-
-    payload.providers?.forEach((p: any) => {
-      if (p.zip_code === "") {
-        throw new Error("Provider ZIP missing — cannot submit");
-      }
-    });
     if (payload.providers) {
       for (const p of payload.providers) {
         if (!p.zip_code || !/^\d{5}-\d{4}$/.test(p.zip_code)) {
@@ -288,8 +215,12 @@ useEffect(() => {
     console.log("PROVIDERS FINAL:", providers);
     console.log("PRIMARY TEMP:", primaryTempId);
     console.log("EXTRA ADDRESSES BEFORE SEND:", extraAddresses);
+    // ensure all providers have location id
 
-    return await onSubmit(payload);
+console.log("PRIMARY:", primaryTempId);
+console.log("PROVIDERS:", providers);
+
+return await onSubmit(payload);
 
   };
 
@@ -559,8 +490,6 @@ useEffect(() => {
     setShowSuggestions(false);
   };
 
-<<<<<<< HEAD
-=======
   useEffect(() => {
     if (initialData) {
       setBusinessName(initialData.business_name || "");
@@ -599,7 +528,6 @@ useEffect(() => {
     setErrors({});
   }, [initialData, isOpen]);
 
->>>>>>> 7035aa65564308baac6a4744451e1cffd0533521
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
     if (step === 2) return true;
@@ -691,11 +619,7 @@ useEffect(() => {
       }
 
       const data = await clientService.lookupNPI(currentNpi);
-<<<<<<< HEAD
-      console.log(data);
-=======
       console.log('currentNPI: ', data)
->>>>>>> 7035aa65564308baac6a4744451e1cffd0533521
       if (data.results && data.results.length > 0) {
         const result = data.results[0];
         const basic = result.basic;
@@ -737,15 +661,9 @@ useEffect(() => {
           addresses.find((addr: any) => addr.address_purpose === "LOCATION") ||
           addresses[0];
         if (practiceAddress) {
-<<<<<<< HEAD
-          setAddressLine1(practiceAddress.address_1 || "");
-          setAddressLine2(practiceAddress.address_2 || "");
-          setCity(practiceAddress.city || "");
-=======
           const addr1 = practiceAddress.address_1 || "";
           const addr2 = practiceAddress.address_2 || "";
           const cityVal = practiceAddress.city || "";
->>>>>>> 7035aa65564308baac6a4744451e1cffd0533521
           const sCode = practiceAddress.state || "";
 
           let sName = "";
@@ -923,14 +841,8 @@ useEffect(() => {
   //     }
   //   };'
   const handleBackToStep1 = () => {
-<<<<<<< HEAD
-  setStep(1);
-};
-  const isEdit = !!initialData;
-=======
     setStep(1);
   };
->>>>>>> 7035aa65564308baac6a4744451e1cffd0533521
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -944,65 +856,30 @@ useEffect(() => {
           setErrors({ zip_code: "ZIP required" });
           return;
         }
+const tempId = crypto.randomUUID();
+setPrimaryTempId(tempId);
 
-<<<<<<< HEAD
-      if (!initialData) {
-  const tempId = crypto.randomUUID();
-  setPrimaryTempId(tempId);
-
-  const newProviders = [{
-    ...providers[0],
-    location_temp_id: tempId,
-    address_line_1: addressLine1,
-    city,
-    state_code: stateCode,
-    state_name: stateName,
-    zip_code: zipCode,
-    country
-  }];
-
-  setProviders(newProviders);
-}
-=======
-        const tempId = crypto.randomUUID();
-        setPrimaryTempId(tempId);
-
-        const newProviders = [{
-          ...providers[0],
-          location_temp_id: tempId,
-          address_line_1: addressLine1,
-          city,
-          state_code: stateCode,
-          state_name: stateName,
-          zip_code: zipCode,
-          country
-        }];
-
-        setProviders(newProviders);
->>>>>>> 7035aa65564308baac6a4744451e1cffd0533521
+setProviders([
+  {
+    first_name: "",
+    middle_name: "",
+    last_name: "",
+    npi: "",
+    address_line_1: "",
+    address_line_2: "",
+    city: "",
+    state_code: "",
+    state_name: "",
+    zip_code: "",
+    country: "United States",
+    location_temp_id: tempId
+  }
+]);
 
         if (!zipCode || !/^\d{5}-\d{4}$/.test(zipCode)) {
           setErrors({ zip_code: "ZIP is required before adding providers" });
           return;
         }
-<<<<<<< HEAD
-          if (!primaryTempId) {
-    const tempId = crypto.randomUUID();
-    setPrimaryTempId(tempId);
-
-    setProviders(prev => [{
-      ...prev[0],
-      location_temp_id: tempId,
-      address_line_1: addressLine1,
-      city,
-      state_code: stateCode,
-      state_name: stateName,
-      zip_code: zipCode,
-      country
-    }]);
-  }
-=======
->>>>>>> 7035aa65564308baac6a4744451e1cffd0533521
 
         setStep(2);
         return;
@@ -1646,57 +1523,6 @@ useEffect(() => {
 
           </div>
           <div className={styles.actions}>
-<<<<<<< HEAD
-            <button
-              type="button"
-              className={styles.cancelButton}
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            {step === 2 && (
-    <>
-      {/* BACK BUTTON */}
-      <button
-        type="button"
-        className={styles.cancelButton}
-        onClick={handleBackToStep1}
-      >
-        ← Back
-      </button>
-      </>
-            )}
-            {step === 2 && (
-              <button
-                type="button"
-                className={styles.addAddressBtn}
-                onClick={() => {
-                  setProviders((prev) => [
-                    ...prev,
-                    {
-                      ...prev[0], // clone address
-                      first_name: "",
-                      middle_name: "",
-                      last_name: "",
-                      npi: "",
-                      location_temp_id: primaryTempId,
-                    },
-                  ]);
-                  setActiveProviderIndex(providers.length);
-                }}
-              >
-                + Add Provider
-              </button>
-            )}
-                <button type="submit" className={styles.submitButton}>
-  {step === 2
-    ? isEdit ? "Update" : "Create"
-    : type === "Group" && isProviderOrg
-      ? "Next"
-      : isEdit ? "Update" : "Create"}
-</button>
-
-=======
             <div className={styles.footerContent}>
               {/* Provider Toggle (Left Side) */}
               <div>
@@ -1756,7 +1582,6 @@ useEffect(() => {
                 </button>
               </div>
             </div>
->>>>>>> 7035aa65564308baac6a4744451e1cffd0533521
           </div>
         </form>
       </div >
