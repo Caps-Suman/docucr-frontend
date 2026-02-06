@@ -7,7 +7,7 @@ export interface Organisation {
     first_name: string;
     middle_name?: string;
     last_name: string;
-    name: string;
+    name: string; // Now mapping to backend column
     phone_country_code?: string;
     phone_number?: string;
     status_id?: number;

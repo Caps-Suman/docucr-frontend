@@ -199,12 +199,23 @@ const OrganisationManagement: React.FC = () => {
                     }}>
                         {row.first_name.charAt(0)}{row.last_name.charAt(0)}
                     </div> */}
-                    <span>{row.name}</span>
+                    <span style={{ fontWeight: 600 }}>{row.name}</span>
                 </div>
             )
         },
-        { key: 'email', header: 'Email' },
-        { key: 'username', header: 'Username' },
+
+        {
+            key: 'username',
+            header: 'Details',
+            render: (_: any, row: Organisation) => (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontWeight: 600 }}>
+                        {row.first_name} {row.middle_name ? row.middle_name + ' ' : ''}{row.last_name}
+                    </span >
+                    <span style={{ fontWeight: 400, fontSize: 12, color: "#6c757d" }}>{row.username}</span>
+                </div>
+            )
+        },
         {
             key: 'phone',
             header: 'Phone',
@@ -219,6 +230,7 @@ const OrganisationManagement: React.FC = () => {
                 );
             }
         },
+        { key: 'email', header: 'Email' },
         {
             key: 'statusCode',
             header: 'Status',
@@ -344,6 +356,7 @@ const OrganisationManagement: React.FC = () => {
                 onSubmit={handleModalSubmit}
                 initialData={editingOrg ? {
                     id: editingOrg.id,
+                    name: editingOrg.name, // Added name
                     email: editingOrg.email,
                     username: editingOrg.username,
                     first_name: editingOrg.first_name,
