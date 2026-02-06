@@ -228,6 +228,7 @@ const ClientManagement: React.FC = () => {
   };
 
   const handleModalSubmit = async (data: any): Promise<Client> => {
+    console.log("ClientManagement received data:", JSON.stringify(data, null, 2));
     try {
       if (editingClient) {
         const updated = await clientService.updateClient(editingClient.id, data);

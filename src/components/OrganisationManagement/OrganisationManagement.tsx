@@ -185,7 +185,7 @@ const OrganisationManagement: React.FC = () => {
             header: 'Organisation Name',
             render: (_: any, row: Organisation) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div className="avatar-placeholder" style={{
+                    {/* <div className="avatar-placeholder" style={{
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
@@ -198,7 +198,7 @@ const OrganisationManagement: React.FC = () => {
                         fontWeight: 600
                     }}>
                         {row.first_name.charAt(0)}{row.last_name.charAt(0)}
-                    </div>
+                    </div> */}
                     <span>{row.name}</span>
                 </div>
             )
