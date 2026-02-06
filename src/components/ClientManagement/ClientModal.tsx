@@ -1078,7 +1078,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
     setStep(1);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // STEP 1 (ORG or INDIVIDUAL)
@@ -1121,14 +1121,29 @@ const ClientModal: React.FC<ClientModalProps> = ({
         return;
       }
 
-      handleFinish();
+      setIsSubmitting(true);
+      try {
+        await handleFinish();
+      } catch (err) {
+        console.error("Failed to submit:", err);
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
     // STEP 2 (PROVIDERS ONLY)
     if (step === 2) {
       if (!validateProviders()) return;
-      handleFinish();
+
+      setIsSubmitting(true);
+      try {
+        await handleFinish();
+      } catch (err) {
+        console.error("Failed to submit:", err);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
