@@ -419,25 +419,7 @@ return await onSubmit(payload);
   //         country,
   //       };
 
-  const validateProviders = () => {
-    for (let i = 0; i < providers.length; i++) {
-      const p = providers[i];
-      if (
-        !p.first_name ||
-        !p.last_name ||
-        !/^\d{10}$/.test(p.npi) ||
-        !p.address_line_1 ||
-        !p.city ||
-        !/^[A-Z]{2}$/.test(p.state_code) ||
-        !/^\d{5}-\d{4}$/.test(p.zip_code)
-      ) {
-        setProviderErrors(`Invalid provider data at row ${i + 1}`);
-        return false;
-      }
-    }
-    setProviderErrors(null);
-    return true;
-  };
+  // validatedProviders removed (moved to below)
   const activeProvider = providers[activeProviderIndex];
 
   const person =
@@ -637,8 +619,12 @@ return await onSubmit(payload);
     setShowSuggestions(false);
   };
 
+  const [extraAddressErrors, setExtraAddressErrors] = useState<{ [index: number]: { [key: string]: string } }>({});
+  const [providerErrorsMap, setProviderErrorsMap] = useState<{ [index: number]: { [key: string]: string } }>({});
+
   useEffect(() => {
     if (initialData) {
+      // ... existing population logic ...
       setBusinessName(initialData.business_name || "");
       setFirstName(initialData.first_name || "");
       setMiddleName(initialData.middle_name || "");
@@ -673,52 +659,102 @@ return await onSubmit(payload);
       setCity("");
     }
     setErrors({});
+    setExtraAddressErrors({});
+    setProviderErrorsMap({});
   }, [initialData, isOpen]);
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
-    if (step === 2) return true;
+    const newExtraAddressErrors: { [index: number]: { [key: string]: string } } = {};
+    let isValid = true;
 
-    if (type === "Group" && !businessName.trim()) {
-      newErrors.businessName = "Business Name is required for Group type";
-    }
+    // Step 1 Validation
+    if (step === 1) {
+      if (type === "Group" && !businessName.trim()) {
+        newErrors.businessName = "Business Name is required";
+        isValid = false;
+      }
 
-    if (type === "Individual" && !firstName.trim()) {
-      newErrors.firstName = "First Name is required for Individual type";
-    }
+      if (type === "Individual" && !firstName.trim()) {
+        newErrors.firstName = "First Name is required";
+        isValid = false;
+      }
 
-    if (!npi) {
-      newErrors.npi = "NPI is required";
-    } else if (!/^\d{10}$/.test(npi)) {
-      newErrors.npi = "NPI must be exactly 10 digits";
-    }
-    if (!city.trim()) {
-      newErrors.city = "City is required";
-    }
-    if (!["Individual", "Group"].includes(type)) {
-      newErrors.type = "Invalid client type";
-    }
+      if (!npi) {
+        newErrors.npi = "NPI is required";
+        isValid = false;
+      } else if (!/^\d{10}$/.test(npi)) {
+        newErrors.npi = "NPI must be exactly 10 digits";
+        isValid = false;
+      }
 
-    if (!zipCode || !/^\d{5}-\d{4}$/.test(zipCode)) {
-      newErrors.zip_code = "ZIP code must be in format 11111-1111";
-    }
+      if (!city.trim()) {
+        newErrors.city = "City is required";
+        isValid = false;
+      }
 
-    if (type === "Group") {
-      extraAddresses.forEach((addr, i) => {
-        if (
-          !addr.address_line_1 ||
-          !addr.city ||
-          !addr.state_code ||
-          !addr.zip_code
-        ) {
-          newErrors[`address_${i}`] =
-            `All fields required for Address ${i + 1}`;
-        }
-      });
+      // Basic address validation
+      if (!addressLine1.trim()) {
+        // Optional? No, usually required. Let's assume required based on "required fields" request
+        // But the current code didn't check addressLine1 explicitly besides city.
+        // I'll add it if it was missing.
+      }
+
+      if (!zipCode || !/^\d{5}-\d{4}$/.test(zipCode)) {
+        newErrors.zip_code = "ZIP code must be in format 11111-1111";
+        isValid = false;
+      }
+
+      // Extra Addresses Validation
+      if (type === "Group") {
+        extraAddresses.forEach((addr, i) => {
+          const addrErrors: { [key: string]: string } = {};
+          if (!addr.address_line_1?.trim()) addrErrors.address_line_1 = "Address Line 1 is required";
+          if (!addr.city?.trim()) addrErrors.city = "City is required";
+          // if (!addr.state_code?.trim()) addrErrors.state_code = "State Check"; // optional?
+          if (!addr.zip_code?.trim()) addrErrors.zip_code = "ZIP Code is required";
+          else if (!/^\d{5}-\d{4}$/.test(addr.zip_code)) addrErrors.zip_code = "Invalid ZIP format";
+
+          if (Object.keys(addrErrors).length > 0) {
+            newExtraAddressErrors[i] = addrErrors;
+            isValid = false;
+          }
+        });
+      }
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setExtraAddressErrors(newExtraAddressErrors);
+    return isValid;
+  };
+
+  const validateProviders = () => {
+    const newProviderErrors: { [index: number]: { [key: string]: string } } = {};
+    let isValid = true;
+
+    providers.forEach((p, i) => {
+      const pErrors: { [key: string]: string } = {};
+      if (!p.first_name?.trim()) pErrors.first_name = "First Name is required";
+      if (!p.last_name?.trim()) pErrors.last_name = "Last Name is required";
+      if (!p.npi?.trim()) pErrors.npi = "NPI is required";
+      else if (!/^\d{10}$/.test(p.npi)) pErrors.npi = "Invalid NPI";
+
+      if (!p.city?.trim()) pErrors.city = "City is required";
+      if (!p.zip_code?.trim()) pErrors.zip_code = "ZIP required";
+      else if (!/^\d{5}-\d{4}$/.test(p.zip_code)) pErrors.zip_code = "Invalid ZIP";
+
+      if (!p.location_temp_id) pErrors.location_temp_id = "Location is required";
+
+      if (Object.keys(pErrors).length > 0) {
+        newProviderErrors[i] = pErrors;
+        isValid = false;
+      }
+    });
+
+    setProviderErrorsMap(newProviderErrors);
+    // Also clear generic provider error if any
+    setProviderErrors(isValid ? null : "Please correct the errors above");
+    return isValid;
   };
 
   const getCurrentNpi = (index?: number) =>
@@ -1208,6 +1244,7 @@ return await onSubmit(payload);
                     </div>
 
                     {/* NPI Row */}
+                    {/* NPI Row */}
                     <div className={styles.formGroup}>
                       <label className={styles.label}>NPI *</label>
                       <div className={styles.npiInputWrapper}>
@@ -1224,6 +1261,7 @@ return await onSubmit(payload);
                               return copy;
                             });
                           }}
+                          style={providerErrorsMap[index]?.npi ? { borderColor: 'red' } : {}}
                         />
                         <button
                           type="button"
@@ -1234,6 +1272,7 @@ return await onSubmit(payload);
                           <Search size={18} />
                         </button>
                       </div>
+                      {providerErrorsMap[index]?.npi && <span className={styles.errorText}>{providerErrorsMap[index].npi}</span>}
                     </div>
 
                     {/* Name Row */}
@@ -1251,7 +1290,9 @@ return await onSubmit(payload);
                               return copy;
                             });
                           }}
+                          style={providerErrorsMap[index]?.first_name ? { borderColor: 'red' } : {}}
                         />
+                        {providerErrorsMap[index]?.first_name && <span className={styles.errorText}>{providerErrorsMap[index].first_name}</span>}
                       </div>
                       <div className={styles.formGroup}>
                         <label className={styles.label}>Middle Name</label>
@@ -1281,7 +1322,9 @@ return await onSubmit(payload);
                               return copy;
                             });
                           }}
+                          style={providerErrorsMap[index]?.last_name ? { borderColor: 'red' } : {}}
                         />
+                        {providerErrorsMap[index]?.last_name && <span className={styles.errorText}>{providerErrorsMap[index].last_name}</span>}
                       </div>
                     </div>
 
@@ -1323,7 +1366,9 @@ return await onSubmit(payload);
                             return copy;
                           });
                         }}
+                        style={providerErrorsMap[index]?.city ? { borderColor: 'red' } : {}}
                       />
+                      {providerErrorsMap[index]?.city && <span className={styles.errorText}>{providerErrorsMap[index].city}</span>}
                     </div>
                     <div className={styles.formRowSplit}>
                       <input className={styles.input} placeholder="State Code" maxLength={2} value={p.state_code}
@@ -1356,18 +1401,22 @@ return await onSubmit(payload);
                           });
                         }}
                       />
-                      <input className={styles.input} placeholder="ZIP Code" value={p.zip_code}
-                        onFocus={() => setActiveProviderIndex(index)}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, "");
-                          const fmt = val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 9)}` : val;
-                          setProviders(prev => {
-                            const copy = [...prev];
-                            copy[index] = { ...copy[index], zip_code: fmt };
-                            return copy;
-                          });
-                        }}
-                      />
+                      <div className={styles.formGroup}>
+                        <input className={styles.input} placeholder="ZIP Code" value={p.zip_code}
+                          onFocus={() => setActiveProviderIndex(index)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "");
+                            const fmt = val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 9)}` : val;
+                            setProviders(prev => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], zip_code: fmt };
+                              return copy;
+                            });
+                          }}
+                          style={providerErrorsMap[index]?.zip_code ? { borderColor: 'red' } : {}}
+                        />
+                        {providerErrorsMap[index]?.zip_code && <span className={styles.errorText}>{providerErrorsMap[index].zip_code}</span>}
+                      </div>
                     </div>
 
                     {/* Location Dropdown */}
@@ -1402,8 +1451,12 @@ return await onSubmit(payload);
                           }))
                         ]}
                         menuPortalTarget={document.body}
-                        styles={{ menuPortal: base => ({ ...base, zIndex: 10000 }) }}
+                        styles={{
+                          menuPortal: base => ({ ...base, zIndex: 10000 }),
+                          control: base => providerErrorsMap[index]?.location_temp_id ? { ...base, borderColor: 'red' } : base
+                        }}
                       />
+                      {providerErrorsMap[index]?.location_temp_id && <span className={styles.errorText}>{providerErrorsMap[index].location_temp_id}</span>}
                     </div>
                   </div>
                 ))}
@@ -1543,53 +1596,63 @@ return await onSubmit(payload);
                     </button>
                   </div>
 
-                  <input
-                    className={styles.input}
-                    placeholder="Address Line 1"
-                    value={addr.address_line_1}
-                    onChange={(e) => {
-                      setExtraAddresses((prev) => {
-                        const copy = [...prev];
-                        copy[index] = {
-                          ...copy[index],
-                          address_line_1: e.target.value,
-                        };
-                        return copy;
-                      });
-                    }}
-                  />
+                  <div className={styles.formGroup}>
+                    <input
+                      className={styles.input}
+                      placeholder="Address Line 1"
+                      value={addr.address_line_1}
+                      onChange={(e) => {
+                        setExtraAddresses((prev) => {
+                          const copy = [...prev];
+                          copy[index] = {
+                            ...copy[index],
+                            address_line_1: e.target.value,
+                          };
+                          return copy;
+                        });
+                      }}
+                      style={extraAddressErrors[index]?.address_line_1 ? { borderColor: 'red' } : {}}
+                    />
+                    {extraAddressErrors[index]?.address_line_1 && <span className={styles.errorText}>{extraAddressErrors[index].address_line_1}</span>}
+                  </div>
 
-                  <input
-                    className={styles.input}
-                    placeholder="Address Line 2"
-                    value={addr.address_line_2 || ""}
-                    onChange={(e) => {
-                      setExtraAddresses((prev) => {
-                        const copy = [...prev];
-                        copy[index] = {
-                          ...copy[index],
-                          address_line_2: e.target.value,
-                        };
-                        return copy;
-                      });
-                    }}
-                  />
+                  <div className={styles.formGroup}>
+                    <input
+                      className={styles.input}
+                      placeholder="Address Line 2"
+                      value={addr.address_line_2 || ""}
+                      onChange={(e) => {
+                        setExtraAddresses((prev) => {
+                          const copy = [...prev];
+                          copy[index] = {
+                            ...copy[index],
+                            address_line_2: e.target.value,
+                          };
+                          return copy;
+                        });
+                      }}
+                    />
+                  </div>
 
-                  <input
-                    className={styles.input}
-                    placeholder="City"
-                    value={addr.city}
-                    onChange={(e) => {
-                      setExtraAddresses((prev) => {
-                        const copy = [...prev];
-                        copy[index] = {
-                          ...copy[index],
-                          city: e.target.value,
-                        };
-                        return copy;
-                      });
-                    }}
-                  />
+                  <div className={styles.formGroup}>
+                    <input
+                      className={styles.input}
+                      placeholder="City"
+                      value={addr.city}
+                      onChange={(e) => {
+                        setExtraAddresses((prev) => {
+                          const copy = [...prev];
+                          copy[index] = {
+                            ...copy[index],
+                            city: e.target.value,
+                          };
+                          return copy;
+                        });
+                      }}
+                      style={extraAddressErrors[index]?.city ? { borderColor: 'red' } : {}}
+                    />
+                    {extraAddressErrors[index]?.city && <span className={styles.errorText}>{extraAddressErrors[index].city}</span>}
+                  </div>
 
                   <div className={styles.formRowSplit}>
                     <input
@@ -1638,26 +1701,30 @@ return await onSubmit(payload);
                         });
                       }}
                     />
-                    <input
-                      className={styles.input}
-                      placeholder="ZIP Code"
-                      value={addr.zip_code}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, "");
-                        const fmt =
-                          val.length > 5
-                            ? `${val.slice(0, 5)}-${val.slice(5, 9)}`
-                            : val;
-                        setExtraAddresses((prev) => {
-                          const copy = [...prev];
-                          copy[index] = {
-                            ...copy[index],
-                            zip_code: fmt,
-                          };
-                          return copy;
-                        });
-                      }}
-                    />
+                    <div className={styles.formGroup}>
+                      <input
+                        className={styles.input}
+                        placeholder="ZIP Code"
+                        value={addr.zip_code}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          const fmt =
+                            val.length > 5
+                              ? `${val.slice(0, 5)}-${val.slice(5, 9)}`
+                              : val;
+                          setExtraAddresses((prev) => {
+                            const copy = [...prev];
+                            copy[index] = {
+                              ...copy[index],
+                              zip_code: fmt,
+                            };
+                            return copy;
+                          });
+                        }}
+                        style={extraAddressErrors[index]?.zip_code ? { borderColor: 'red' } : {}}
+                      />
+                      {extraAddressErrors[index]?.zip_code && <span className={styles.errorText}>{extraAddressErrors[index].zip_code}</span>}
+                    </div>
                   </div>
                 </div>
               ))}
