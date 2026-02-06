@@ -1302,8 +1302,9 @@ const ClientModal: React.FC<ClientModalProps> = ({
                         className={styles.deleteButton}
                         onClick={() => setProviders(prev => prev.filter((_, i) => i !== index))}
                         title="Remove provider"
-                        disabled={providers.length <= 1}
-                        style={{ opacity: providers.length <= 1 ? 0.5 : 1, cursor: providers.length <= 1 ? 'not-allowed' : 'pointer' }}
+                        style={{ cursor: 'pointer' }}
+                      // disabled={providers.length <= 1}
+                      // style={{ opacity: providers.length <= 1 ? 0.5 : 1, cursor: providers.length <= 1 ? 'not-allowed' : 'pointer' }}
                       >
                         <Trash2 size={16} />
                       </button>
