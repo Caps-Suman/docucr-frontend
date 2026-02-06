@@ -266,7 +266,11 @@ useEffect(() => {
   }, [isOpen, initialData]);
 
   const handleFinish = async () => {
+    const pid = primaryTempId || crypto.randomUUID();
+
+    // Construct Payload
     const payload: any = {
+      is_user: false,
       type: type === "Group" ? "NPI2" : "NPI1",
       description,
     };
@@ -274,11 +278,11 @@ useEffect(() => {
     if (type === "Group") {
       payload.business_name = businessName;
       payload.npi = npi;
-      payload.primary_temp_id = primaryTempId;
+      payload.primary_temp_id = pid;
       payload.locations = [
         // Construct locations array for Individual client too
         {
-          temp_id: primaryTempId,
+          temp_id: pid,
           address_line_1: addressLine1,
           address_line_2: addressLine2,
           city,
@@ -329,12 +333,12 @@ if (isProviderOrg) {
       payload.last_name = lastName;
       payload.npi = npi;
       //need to put this:  payload.primary_temp_id = primaryTempId || providers[0].location_temp_id;
-      payload.primary_temp_id = primaryTempId;
+      payload.primary_temp_id = pid;
 
       // Construct locations array for Individual client too
       payload.locations = [
         {
-          temp_id: primaryTempId,
+          temp_id: pid,
           address_line_1: addressLine1,
           address_line_2: addressLine2,
           city,
