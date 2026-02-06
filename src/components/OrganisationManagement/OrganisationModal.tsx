@@ -20,6 +20,7 @@ interface OrganisationModalProps {
     }) => void;
     initialData?: {
         id?: string;
+        name: string; // Added name field
         email: string;
         username: string;
         first_name: string;
@@ -40,6 +41,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
     title,
     isLoading,
 }) => {
+    const [name, setName] = useState(""); // Added name state
     const [email, setEmail] = useState("");
     const [username, setUsername] = useState("");
     const [firstName, setFirstName] = useState("");
@@ -54,6 +56,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
 
     useEffect(() => {
         if (initialData) {
+            setName((initialData as any).name || ""); // Initialize name
             setEmail(initialData.email);
             setUsername(initialData.username);
             setFirstName(initialData.first_name);
@@ -63,6 +66,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
             setPhoneNumber(initialData.phone_number || "");
             setPassword("");
         } else {
+            setName("");
             setEmail("");
             setUsername("");
             setFirstName("");
@@ -77,6 +81,9 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
 
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
+
+        if (!name.trim()) newErrors.name = "Organisation Name is required";
+        if (name.length > 100) newErrors.name = "Name cannot exceed 100 characters";
 
         if (!email.trim()) newErrors.email = "Email is required";
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
@@ -119,6 +126,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
         }
 
         const data: any = {
+            name: name.trim(), // Include name
             email: email.trim(),
             username: username.trim(),
             first_name: firstName.trim(),
@@ -175,6 +183,26 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                 <div className={styles.loader}>Loading form data...</div>
                             </div>
                         )}
+
+                        {/* Name Field */}
+                        <div className={styles.formRow}>
+                            <div className={styles.formGroup} style={{ width: '100%' }}>
+                                <label className={styles.label}>Organisation Name *</label>
+                                <input
+                                    type="text"
+                                    className={styles.input}
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="Enter organisation name"
+                                    style={{
+                                        borderColor: errors.name ? "#ef4444" : "#d1d5db",
+                                    }}
+                                />
+                                {errors.name && (
+                                    <span className={styles.errorText}>{errors.name}</span>
+                                )}
+                            </div>
+                        </div>
 
                         <div className={styles.formRow}>
                             <div className={styles.formGroup}>
