@@ -33,6 +33,7 @@ interface ClientModalProps {
   title: string;
 }
 export type ProviderForm = {
+  id?: string; // Backend ID
   first_name: string;
   middle_name?: string;
   last_name: string;
@@ -45,7 +46,7 @@ export type ProviderForm = {
   state_name?: string;
   country: string;
   zip_code: string;
-  location_temp_id: string;  // ← IMPORTANT
+  location_temp_id: string;
 };
 
 const ClientModal: React.FC<ClientModalProps> = ({
@@ -78,6 +79,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
   const [extraAddresses, setExtraAddresses] = useState<
     Array<{
+      id?: string; // Backend ID
       temp_id: string;
       address_line_1: string;
       address_line_2?: string;
@@ -274,6 +276,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
       payload.npi = npi;
       payload.primary_temp_id = primaryTempId;
       payload.locations = [
+        // Construct locations array for Individual client too
         {
           temp_id: primaryTempId,
           address_line_1: addressLine1,
@@ -326,7 +329,12 @@ const ClientModal: React.FC<ClientModalProps> = ({
           zip_code: zipCode,
           country,
           is_primary: true
-        }
+        },
+        ...extraAddresses.map(a => ({
+          ...a,
+          temp_id: a.temp_id,
+          is_primary: false
+        }))
       ];
 
       payload.address_line_1 = addressLine1;
@@ -584,8 +592,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
           };
           return copy;
         });
-      }
-      else {
+      } else {
         setAddressLine1(fullAddress);
         setCity(props.city || "");
         setStateCode(statesMap[props.state] || "");
@@ -595,16 +602,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
       setShowSuggestions(false);
     };
-
-    if (props.postcode) {
-      const digits = props.postcode.replace(/\D/g, "");
-
-      if (digits.length >= 9) {
-        setZipCode(`${digits.slice(0, 5)}-${digits.slice(5, 9)}`);
-      }
-    }
-
-    setShowSuggestions(false);
   };
 
   const [extraAddressErrors, setExtraAddressErrors] = useState<{ [index: number]: { [key: string]: string } }>({});
@@ -612,7 +609,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
   useEffect(() => {
     if (initialData) {
-      // ... existing population logic ...
+      // 1. Basic Fields
       setBusinessName(initialData.business_name || "");
       setFirstName(initialData.first_name || "");
       setMiddleName(initialData.middle_name || "");
@@ -629,6 +626,60 @@ const ClientModal: React.FC<ClientModalProps> = ({
       setZipCode(initialData.zip_code || "");
       setCountry(initialData.country || "United States");
       setCity(initialData?.city || "");
+
+      // 2. Locations logic
+      // Find primary ID and set primaryTempId
+      const primaryLoc = initialData.locations?.find((l: any) => l.is_primary);
+      const pTempId = primaryLoc?.id || crypto.randomUUID();
+      setPrimaryTempId(pTempId);
+
+      // Populate extraAddresses (Secondary Locations)
+      if (initialData.locations) {
+        const secondary = initialData.locations.filter((l: any) => !l.is_primary);
+        setExtraAddresses(secondary.map((l: any) => ({
+          id: l.id, // Keep ID for backend update
+          temp_id: l.id, // Use ID as temp_id for existing
+          address_line_1: l.address_line_1,
+          address_line_2: l.address_line_2,
+          city: l.city,
+          state_code: l.state_code,
+          state_name: l.state_name,
+          zip_code: l.zip_code,
+          country: l.country
+        })));
+      }
+
+      // 3. Providers logic
+      if (initialData.providers && initialData.providers.length > 0) {
+        const hasProviders = initialData.providers.length > 0;
+        setIsProviderOrg(hasProviders);
+
+        setProviders(initialData.providers.map((p: any) => ({
+          id: p.id,
+          first_name: p.first_name,
+          middle_name: p.middle_name,
+          last_name: p.last_name,
+          npi: p.npi,
+          address_line_1: p.address_line_1,
+          address_line_2: p.address_line_2,
+          city: p.city,
+          state_code: p.state_code,
+          state_name: p.state_name,
+          zip_code: p.zip_code,
+          country: p.country,
+          // Map backend location_id to frontend location_temp_id
+          location_temp_id: p.location_id || pTempId
+        })));
+      } else {
+        setIsProviderOrg(false);
+        // Reset to one empty provider if none
+        setProviders([{
+          first_name: "", middle_name: "", last_name: "", npi: "",
+          address_line_1: "", address_line_2: "", city: "", state_code: "",
+          state_name: "", zip_code: "", country: "United States", location_temp_id: ""
+        }]);
+      }
+
     } else {
       setBusinessName("");
       setFirstName("");
@@ -645,6 +696,14 @@ const ClientModal: React.FC<ClientModalProps> = ({
       setZipCode("");
       setCountry("United States");
       setCity("");
+      setPrimaryTempId(""); // Reset
+      setExtraAddresses([]);
+      setProviders([{
+        first_name: "", middle_name: "", last_name: "", npi: "",
+        address_line_1: "", address_line_2: "", city: "", state_code: "",
+        state_name: "", zip_code: "", country: "United States", location_temp_id: ""
+      }]);
+      setIsProviderOrg(false);
     }
     setErrors({});
     setExtraAddressErrors({});
