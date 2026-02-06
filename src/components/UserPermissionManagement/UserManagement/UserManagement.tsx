@@ -8,6 +8,7 @@ import ChangePasswordModal from './ChangePasswordModal';
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
 import userService, { User, UserStats } from '../../../services/user.service';
+import authService from '../../../services/auth.service';
 import roleService from '../../../services/role.service';
 import statusService, { Status } from '../../../services/status.service';
 import './UserManagement.css';
@@ -16,6 +17,7 @@ import clientService from '../../../services/client.service';
 import ClientMappingModal from './ClientMappingModal';
 
 const UserManagement: React.FC = () => {
+    const currentUser = authService.getUser();
     const [currentPage, setCurrentPage] = useState(0);
     const [itemsPerPage, setItemsPerPage] = useState(25);
     const [users, setUsers] = useState<User[]>([]);
@@ -169,7 +171,7 @@ const UserManagement: React.FC = () => {
         } catch (error: any) {
             console.error('Failed to create client:', error);
             setToast({ message: error?.message || 'Failed to create client', type: 'error' });
-                throw error; // ✅ required for Promise<Client>
+            throw error; // ✅ required for Promise<Client>
 
         }
     };
@@ -286,6 +288,16 @@ const UserManagement: React.FC = () => {
         },
         { key: 'email', header: 'Email' },
         { key: 'username', header: 'Username' },
+        {
+            key: 'created_by_name',
+            header: 'Created By',
+            render: (_: any, row: User) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>System</span>
+        },
+        ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
+            key: 'organisation_name',
+            header: 'Organisation',
+            render: (_: any, row: User) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
+        }] : []),
         {
             key: 'phone',
             header: 'Phone',

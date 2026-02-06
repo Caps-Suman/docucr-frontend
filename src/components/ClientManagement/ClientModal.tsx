@@ -1725,13 +1725,28 @@ return await onSubmit(payload);
                     ← Back
                   </button>
                 )} */}
-                <button
+                {/* <button
                   type="submit"
                   className={styles.submitButton}
                   disabled={isSubmitting}
                 >
                   {step === 1 && isProviderOrg ? "Next →" : (initialData ? "Update" : "Create")}
+                </button> */}
+
+                <button
+                  type="submit"
+                  className={styles.submitButton}
+                  disabled={isSubmitting}
+                >
+                  {
+                    step === 1 && isProviderOrg
+                      ? "Next →"
+                      : initialData
+                        ? (isSubmitting ? "Updating..." : "Update")
+                        : (isSubmitting ? "Creating..." : "Create")
+                  }
                 </button>
+
               </div>
             </div>
           </div>

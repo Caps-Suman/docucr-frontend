@@ -47,6 +47,7 @@ export interface Client {
     country?:string;
     city?:string;
     user_count?: number;
+    provider_count?: number;
 
     // Detailed Edit Fields
     locations?: ClientLocation[];
@@ -62,6 +63,13 @@ export interface ClientStats {
 
 export interface ClientListResponse {
     clients: Client[];
+    total: number;
+    page: number;
+    page_size: number;
+}
+
+export interface ProviderListResponse {
+    providers: Provider[];
     total: number;
     page: number;
     page_size: number;
@@ -266,6 +274,15 @@ const clientService = {
         if (!response.ok) throw new Error('Failed to check existing NPIs');
         const data = await response.json();
         return data.existing_npis;
+    },
+
+    getClientProviders: async (clientId: string, page: number = 1, pageSize: number = 10, search?: string): Promise<ProviderListResponse> => {
+        const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
+        if (search) params.append('search', search);
+
+        const response = await apiClient(`${API_URL}/api/clients/${clientId}/providers?${params}`);
+        if (!response.ok) throw new Error('Failed to fetch client providers');
+        return response.json();
     }
 };
 

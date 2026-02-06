@@ -22,6 +22,7 @@ import Toast, { ToastType } from "../Common/Toast";
 import ClientModal from "./ClientModal";
 import ClientImportModal from "./ClientImportModal";
 import UserMappingModal from "./UserMappingModal";
+import ClientProvidersModal from "./ClientProvidersModal"; // Imported
 import clientService, {
   Client,
   ClientStats,
@@ -319,6 +320,14 @@ const ClientManagement: React.FC = () => {
     }
   };
 
+  const [showProvidersModal, setShowProvidersModal] = useState(false);
+  const [selectedProviderClient, setSelectedProviderClient] = useState<{ id: string, name: string } | null>(null);
+
+  const handleShowClientProviders = (clientId: string, clientName: string) => {
+    setSelectedProviderClient({ id: clientId, name: clientName });
+    setShowProvidersModal(true);
+  };
+
 
 
   const handleConfirmAction = async () => {
@@ -471,6 +480,62 @@ const ClientManagement: React.FC = () => {
             }}
             onMouseEnter={(e) => e.currentTarget.style.background = style.hoverBg}
             onMouseLeave={(e) => e.currentTarget.style.background = style.bg}
+          >
+            {text}
+          </div>
+        );
+      }
+    },
+    {
+      key: 'providers',
+      header: 'Providers',
+      render: (_: any, row: Client) => {
+        if (row.type === 'Individual') {
+          return <span style={{ color: '#9ca3af' }}>.....</span>;
+        }
+        const count = row.provider_count ?? 0;
+        let text = 'No Providers';
+        let isClickable = false;
+
+        // Default styles for "No Providers" (Gray/Neutral)
+        let style = {
+          bg: '#f3f4f6',
+          color: '#9ca3af', // Gray text
+          hoverBg: '#f3f4f6',
+          cursor: 'default'
+        };
+
+        if (count > 0) {
+          text = count === 1 ? '1 Provider' : `${count} Providers`;
+          isClickable = true;
+          // Styles for Active Providers (Blue) - Matching Users column style
+          style = {
+            bg: '#e0f2fe',
+            color: '#0369a1',
+            hoverBg: '#bae6fd',
+            cursor: 'pointer'
+          };
+        }
+
+        return (
+          <div
+            onClick={() => isClickable && handleShowClientProviders(row.id, row.business_name || `${row.first_name} ${row.last_name}`)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px 12px',
+              background: style.bg,
+              color: style.color,
+              borderRadius: '9999px',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: style.cursor,
+              transition: 'background 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseEnter={(e) => { if (isClickable) e.currentTarget.style.background = style.hoverBg; }}
+            onMouseLeave={(e) => { if (isClickable) e.currentTarget.style.background = style.bg; }}
           >
             {text}
           </div>
@@ -800,6 +865,13 @@ const ClientManagement: React.FC = () => {
         onSubmit={handleModalSubmit}
         initialData={editingClient || undefined}
         title={editingClient ? "Edit Client" : "Add New Client"}
+      />
+
+      <ClientProvidersModal
+        isOpen={showProvidersModal}
+        onClose={() => setShowProvidersModal(false)}
+        clientId={selectedProviderClient?.id || null}
+        clientName={selectedProviderClient?.name || ''}
       />
 
       <ClientImportModal
