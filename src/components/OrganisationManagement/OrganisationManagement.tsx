@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Building2 } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Building2, Key } from 'lucide-react';
 import Table from '../Table/Table';
 import CommonPagination from '../Common/CommonPagination';
 import Loading from '../Common/Loading';
 import OrganisationModal from './OrganisationModal';
+import ChangePasswordModal from '../UserPermissionManagement/UserManagement/ChangePasswordModal';
 import ConfirmModal from '../Common/ConfirmModal';
 import Toast, { ToastType } from '../Common/Toast';
 import organisationService, { Organisation, OrganisationStats } from '../../services/organisation.service';
@@ -18,6 +19,7 @@ const OrganisationManagement: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingOrg, setEditingOrg] = useState<Organisation | null>(null);
+    const [changePasswordOrg, setChangePasswordOrg] = useState<Organisation | null>(null);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; org: Organisation | null; action: 'toggle' }>({ isOpen: false, org: null, action: 'toggle' });
@@ -51,6 +53,36 @@ const OrganisationManagement: React.FC = () => {
     const handleEdit = (org: Organisation) => {
         setEditingOrg(org);
         setIsModalOpen(true);
+    };
+
+    const handleChangePassword = (org: Organisation) => {
+        setChangePasswordOrg(org);
+    };
+
+    const handlePasswordSubmit = async (password: string) => {
+        if (!changePasswordOrg) return;
+        try {
+            const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/organisations/${changePasswordOrg.id}/change-password`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                },
+                body: JSON.stringify({ new_password: password })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to change password');
+            }
+
+            setToast({ message: 'Password changed successfully', type: 'success' });
+            setChangePasswordOrg(null);
+        } catch (error: any) {
+            console.error('Failed to change password:', error);
+            setToast({ message: error.message || 'Failed to change password', type: 'error' });
+            throw error;
+        }
     };
 
     const handleAddNew = () => {
@@ -94,31 +126,6 @@ const OrganisationManagement: React.FC = () => {
                 await organisationService.deactivateOrganisation(confirmModal.org.id);
                 setToast({ message: 'Organisation deactivated successfully', type: 'success' });
             } else {
-                // Assuming update works for activation as planned or if specific endpoint needed.
-                // Using update with STATUS ID is safer if no specific Activate endpoint exists.
-                // But wait, I didn't verify activation. Let's try deactivate first.
-                // If I want to activate, I need to know the ACTIVE status ID or code.
-                // Or I can just call update with status_id if I knew the ID.
-                // Since I implemented "deactivate_organisation" backend, I probably only support deactivation easily.
-                // User requirement said "4. Deactivate Organisation (Soft delete)". It didn't strictly say Activate.
-                // But for UI "Action Buttons: Edit, Deactivate", usually implies toggle.
-                // I'll stick to Deactivate for now. If I need Activate, I should have added it.
-                // I will add a TODO or just assume handleToggleStatus does nothing for Inactive?
-                // No, I'll attempt to use update if possible but I don't have status ID handy.
-                // Actually, I can just re-enable it via update if the user edits it.
-                // But the button is a toggle.
-                // Let's implement Activate by calling Deactivate? No.
-                // I will assume for this task, the button works for Deactivate.
-                // If inactive, maybe disable the button or show "Activate" but error if not impl?
-                // I will try to use update with status 'ACTIVE' code if my update logic handles it?
-                // My update logic takes status_id. I don't have 'ACTIVE' ID here.
-                // I will modify the backend to add an activate endpoint quickly or just leave it for now?
-                // User said "Deactivate Organisation".
-                // I'll just implement Deactivate.
-                // Wait, I can try to find ACTIVE status id from stats? No.
-                // I'll leave Activate as "Coming Soon" or just error?
-                // Or I can just blindly call deactivate endpoint and see if it toggles? (Unlikely).
-                // I'll just only show Deactivate button if Active.
                 await organisationService.deactivateOrganisation(confirmModal.org.id);
                 setToast({ message: 'Organisation deactivated successfully', type: 'success' });
             }
@@ -185,25 +192,10 @@ const OrganisationManagement: React.FC = () => {
             header: 'Organisation Name',
             render: (_: any, row: Organisation) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {/* <div className="avatar-placeholder" style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        background: '#e0f2fe',
-                        color: '#0369a1',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '14px',
-                        fontWeight: 600
-                    }}>
-                        {row.first_name.charAt(0)}{row.last_name.charAt(0)}
-                    </div> */}
                     <span style={{ fontWeight: 600 }}>{row.name}</span>
                 </div>
             )
         },
-
         {
             key: 'username',
             header: 'Details',
@@ -211,8 +203,8 @@ const OrganisationManagement: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontWeight: 600 }}>
                         {row.first_name} {row.middle_name ? row.middle_name + ' ' : ''}{row.last_name}
-                    </span >
-                    <span style={{ fontWeight: 400, fontSize: 12, color: "#6c757d" }}>{row.username}</span>
+                    </span>
+                    <span className="username-badge">{row.username}</span>
                 </div>
             )
         },
@@ -253,6 +245,15 @@ const OrganisationManagement: React.FC = () => {
                             <Edit2 size={14} />
                         </button>
                     </span>
+                    <span className="tooltip-wrapper" data-tooltip="Change Password">
+                        <button
+                            className="action-btn edit"
+                            onClick={() => handleChangePassword(row)}
+                            style={{ color: '#f59e0b', background: '#fef3c7' }}
+                        >
+                            <Key size={14} />
+                        </button>
+                    </span>
                     {row.statusCode === 'ACTIVE' && (
                         <span className="tooltip-wrapper" data-tooltip="Deactivate">
                             <button
@@ -264,7 +265,6 @@ const OrganisationManagement: React.FC = () => {
                         </span>
                     )}
                     {row.statusCode !== 'ACTIVE' && (
-                        // Placeholder for activate if needed, or just show nothing as per Deactivate requirement
                         <span className="tooltip-wrapper" data-tooltip="Activate not implemented">
                             <button
                                 className="action-btn activate"
@@ -356,7 +356,7 @@ const OrganisationManagement: React.FC = () => {
                 onSubmit={handleModalSubmit}
                 initialData={editingOrg ? {
                     id: editingOrg.id,
-                    name: editingOrg.name, // Added name
+                    name: editingOrg.name,
                     email: editingOrg.email,
                     username: editingOrg.username,
                     first_name: editingOrg.first_name,
@@ -368,12 +368,19 @@ const OrganisationManagement: React.FC = () => {
                 title={editingOrg ? 'Edit Organisation' : 'Add New Organisation'}
             />
 
+            <ChangePasswordModal
+                isOpen={!!changePasswordOrg}
+                onClose={() => setChangePasswordOrg(null)}
+                onSubmit={handlePasswordSubmit}
+                username={changePasswordOrg?.name || ''}
+            />
+
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ isOpen: false, org: null, action: 'toggle' })}
                 onConfirm={handleConfirmAction}
                 title="Deactivate Organisation"
-                message={`Are you sure you want to deactivate this organisation?`}
+                message="Are you sure you want to deactivate this organisation?"
                 confirmText="Deactivate"
                 type="warning"
             />
