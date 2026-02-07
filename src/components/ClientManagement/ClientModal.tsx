@@ -386,11 +386,9 @@ return await onSubmit(payload);
   const [providerErrors, setProviderErrors] = useState<string | null>(null);
 
   const [fetchingNpi, setFetchingNpi] = useState(false);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  // Address autocomplete state removed
   const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  const suggestionsRef = React.useRef<HTMLDivElement>(null);
+
   const [activeProviderIndex, setActiveProviderIndex] = useState(0);
 
   type FormMode = "CLIENT_NPI1" | "PROVIDER_NPI1";
@@ -451,173 +449,169 @@ return await onSubmit(payload);
         country,
       };
 
-  const fetchSuggestions = async (query: string) => {
-    if (!query || query.length < 3) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
 
-    setIsSearchingAddress(true);
+
+  const fetchZipDetails = async (zip: string) => {
+    const cleanZip = zip.replace(/\D/g, "");
+    if (cleanZip.length < 5) return;
+
     try {
+      // Change country code if needed: us / in / ca etc.
       const response = await fetch(
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=50`,
+        `https://api.zippopotam.us/us/${cleanZip}`
       );
-      if (!response.ok) throw new Error("Photon search failed");
+
+      if (!response.ok) return;
       const data = await response.json();
 
-      // Filter for US and India only
-      const filteredFeatures = (data.features || [])
-        .filter((f: any) => ["US", "IN"].includes(f.properties?.countrycode))
-        .slice(0, 5);
+      if (data.places && data.places.length > 0) {
+        const place = data.places[0];
 
-      setSuggestions(filteredFeatures);
-      setShowSuggestions(filteredFeatures.length > 0);
+        // Mapping response into your existing structure
+        const props = {
+          city: place["place name"],
+          state: place["state"],
+          state_code: place["state abbreviation"],
+          country: data.country
+        };
+
+        if (props.city) setCity(props.city);
+        if (props.state) setStateName(props.state);
+        if (props.state_code) setStateCode(props.state_code);
+        if (props.country) setCountry(props.country);
+      }
     } catch (error) {
-      console.error("Error searching address:", error);
-    } finally {
-      setIsSearchingAddress(false);
+      console.error("Error fetching ZIP details:", error);
     }
   };
 
-  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setAddressLine1(value);
+
+  const fetchZipDetailsFromPhoton = async (zip: string) => {
+    const cleanZip = zip.replace(/\D/g, "");
+    if (cleanZip.length < 5) return;
+
+    try {
+      const response = await fetch(
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(cleanZip)}&limit=1`
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+
+      if (data.features && data.features.length > 0) {
+        const props = data.features[0].properties;
+
+        if (props.city) {
+          setCity(props.city);
+        } else if (props.name) {
+          setCity(props.name);
+        }
+        if (props.state) {
+          setStateName(props.state);
+
+          const statesMap: { [key: string]: string } = {
+            Alabama: "AL", Alaska: "AK", Arizona: "AZ", Arkansas: "AR", California: "CA",
+            Colorado: "CO", Connecticut: "CT", Delaware: "DE", Florida: "FL", Georgia: "GA",
+            Hawaii: "HI", Idaho: "ID", Illinois: "IL", Indiana: "IN", Iowa: "IA",
+            Kansas: "KS", Kentucky: "KY", Louisiana: "LA", Maine: "ME", Maryland: "MD",
+            Massachusetts: "MA", Michigan: "MI", Minnesota: "MN", Mississippi: "MS",
+            Missouri: "MO", Montana: "MT", Nebraska: "NE", Nevada: "NV", "New Hampshire": "NH",
+            "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY", "North Carolina": "NC",
+            "North Dakota": "ND", Ohio: "OH", Oklahoma: "OK", Oregon: "OR", Pennsylvania: "PA",
+            "Rhode Island": "RI", "South Carolina": "SC", "South Dakota": "SD", Tennessee: "TN",
+            Texas: "TX", "Utah": "UT", Vermont: "VT", "Virginia": "VA", "Washington": "WA",
+            "West Virginia": "WV", "Wisconsin": "WI", Wyoming: "WY",
+            "Andhra Pradesh": "AP", "Arunachal Pradesh": "AR", Assam: "AS", Bihar: "BR",
+            Chhattisgarh: "CT", Goa: "GA", Gujarat: "GJ", Haryana: "HR", "Himachal Pradesh": "HP",
+            "Jammu and Kashmir": "JK", Jharkhand: "JH", Karnataka: "KA", Kerala: "KL",
+            "Madhya Pradesh": "MP", Maharashtra: "MH", Manipur: "MN", Meghalaya: "ML",
+            Mizoram: "MZ", Nagaland: "NL", Odisha: "OR", Punjab: "PB", Rajasthan: "RJ",
+            Sikkim: "SK", "Tamil Nadu": "TN", Telangana: "TG", Tripura: "TR", "Uttar Pradesh": "UP",
+            Uttarakhand: "UT", "West Bengal": "WB"
+          };
+
+          if (statesMap[props.state]) {
+            setStateCode(statesMap[props.state]);
+          }
+        }
+        if (props.country) setCountry(props.country);
+      }
+    } catch (error) {
+      console.error("Error fetching ZIP details:", error);
+    }
+  };
+
+  const handleZipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, "");
+    const formatted = val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 9)}` : val;
+    setZipCode(formatted);
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    searchTimeoutRef.current = setTimeout(() => {
-      fetchSuggestions(value);
-    }, 500);
+    if (val.length >= 5) {
+      searchTimeoutRef.current = setTimeout(() => {
+        fetchZipDetails(val.slice(0, 5));
+      }, 500);
+    }
   };
 
-  const handleSuggestionClick = (feature: any) => {
-    const props = feature.properties;
-    const street = props.street || "";
-    const houseNumber = props.housenumber || "";
-    const fullAddress = `${houseNumber} ${street}`.trim() || props.name || "";
-    const digits = (props.postcode || "").replace(/\D/g, "");
-    const formattedZip =
-      digits.length >= 9 ? `${digits.slice(0, 5)}-${digits.slice(5, 9)}` : "";
+  const fetchZipDetailsForExtraAddress = async (index: number, zip: string) => {
+    const cleanZip = zip.replace(/\D/g, "");
+    if (cleanZip.length < 5) return;
 
-    setAddressLine1(fullAddress);
-    if (props.city) setCity(props.city);
+    try {
+      const response = await fetch(`https://api.zippopotam.us/us/${cleanZip}`);
+      if (!response.ok) return;
+      const data = await response.json();
 
-    if (props.state) {
-      setStateName(props.state);
-
-      // Map state name to code for US/India if possible
-      const statesMap: { [key: string]: string } = {
-        Alabama: "AL",
-        Alaska: "AK",
-        Arizona: "AZ",
-        Arkansas: "AR",
-        California: "CA",
-        Colorado: "CO",
-        Connecticut: "CT",
-        Delaware: "DE",
-        Florida: "FL",
-        Georgia: "GA",
-        Hawaii: "HI",
-        Idaho: "ID",
-        Illinois: "IL",
-        Indiana: "IN",
-        Iowa: "IA",
-        Kansas: "KS",
-        Kentucky: "KY",
-        Louisiana: "LA",
-        Maine: "ME",
-        Maryland: "MD",
-        Massachusetts: "MA",
-        Michigan: "MI",
-        Minnesota: "MN",
-        Mississippi: "MS",
-        Missouri: "MO",
-        Montana: "MT",
-        Nebraska: "NE",
-        Nevada: "NV",
-        "New Hampshire": "NH",
-        "New Jersey": "NJ",
-        "New Mexico": "NM",
-        "New York": "NY",
-        "North Carolina": "NC",
-        "North Dakota": "ND",
-        Ohio: "OH",
-        Oklahoma: "OK",
-        Oregon: "OR",
-        Pennsylvania: "PA",
-        "Rhode Island": "RI",
-        "South Carolina": "SC",
-        "South Dakota": "SD",
-        Tennessee: "TN",
-        Texas: "TX",
-        Utah: "UT",
-        Vermont: "VT",
-        Virginia: "VA",
-        Washington: "WA",
-        "West Virginia": "WV",
-        Wisconsin: "WI",
-        Wyoming: "WY",
-        // India States
-        "Andhra Pradesh": "AP",
-        "Arunachal Pradesh": "AR",
-        Assam: "AS",
-        Bihar: "BR",
-        Chhattisgarh: "CT",
-        Goa: "GA",
-        Gujarat: "GJ",
-        Haryana: "HR",
-        "Himachal Pradesh": "HP",
-        "Jammu and Kashmir": "JK",
-        Jharkhand: "JH",
-        Karnataka: "KA",
-        Kerala: "KL",
-        "Madhya Pradesh": "MP",
-        Maharashtra: "MH",
-        Manipur: "MN",
-        Meghalaya: "ML",
-        Mizoram: "MZ",
-        Nagaland: "NL",
-        Odisha: "OR",
-        Punjab: "PB",
-        Rajasthan: "RJ",
-        Sikkim: "SK",
-        "Tamil Nadu": "TN",
-        Telangana: "TG",
-        Tripura: "TR",
-        "Uttar Pradesh": "UP",
-        Uttarakhand: "UT",
-        "West Bengal": "WB",
-      };
-      if (statesMap[props.state]) {
-        setStateCode(statesMap[props.state]);
-      }
-      if (isProviderStep) {
-        setProviders((p) => {
-          const copy = [...p];
-          copy[activeProviderIndex] = {
-            ...copy[activeProviderIndex],
-            address_line_1: fullAddress,
-            city: props.city || "",
-            state_code: statesMap[props.state] || "",
-            state_name: props.state || "",
-            zip_code: formattedZip,     // ALWAYS write ZIP
-            country,
+      if (data.places && data.places.length > 0) {
+        const place = data.places[0];
+        setExtraAddresses((prev) => {
+          const copy = [...prev];
+          if (!copy[index]) return prev;
+          copy[index] = {
+            ...copy[index],
+            city: place["place name"] || copy[index].city,
+            state_name: place["state"] || copy[index].state_name,
+            state_code: place["state abbreviation"] || copy[index].state_code,
+            country: data.country || copy[index].country,
           };
           return copy;
         });
-      } else {
-        setAddressLine1(fullAddress);
-        setCity(props.city || "");
-        setStateCode(statesMap[props.state] || "");
-        setStateName(props.state || "");
-        setZipCode(formattedZip);
       }
+    } catch (error) {
+      console.error("Error fetching extra address ZIP details:", error);
+    }
+  };
 
-      setShowSuggestions(false);
-    };
+  const fetchZipDetailsForProvider = async (index: number, zip: string) => {
+    const cleanZip = zip.replace(/\D/g, "");
+    if (cleanZip.length < 5) return;
+
+    try {
+      const response = await fetch(`https://api.zippopotam.us/us/${cleanZip}`);
+      if (!response.ok) return;
+      const data = await response.json();
+
+      if (data.places && data.places.length > 0) {
+        const place = data.places[0];
+        setProviders((prev) => {
+          const copy = [...prev];
+          if (!copy[index]) return prev;
+          copy[index] = {
+            ...copy[index],
+            city: place["place name"] || copy[index].city,
+            state_name: place["state"] || copy[index].state_name,
+            state_code: place["state abbreviation"] || copy[index].state_code,
+            country: data.country || copy[index].country,
+          };
+          return copy;
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching provider ZIP details:", error);
+    }
   };
 
   const [extraAddressErrors, setExtraAddressErrors] = useState<{ [index: number]: { [key: string]: string } }>({});
@@ -776,7 +770,7 @@ return await onSubmit(payload);
           if (!addr.city?.trim()) addrErrors.city = "City is required";
           // if (!addr.state_code?.trim()) addrErrors.state_code = "State Check"; // optional?
           if (!addr.zip_code?.trim()) addrErrors.zip_code = "ZIP Code is required";
-          else if (!/^\d{5}-\d{4}$/.test(addr.zip_code)) addrErrors.zip_code = "Invalid ZIP format";
+          else if (!/^\d{5}-\d{4}$/.test(addr.zip_code)) addrErrors.zip_code = "ZIP code must be in format 11111-1111";
 
           if (Object.keys(addrErrors).length > 0) {
             newExtraAddressErrors[i] = addrErrors;
@@ -804,7 +798,7 @@ return await onSubmit(payload);
 
       if (!p.city?.trim()) pErrors.city = "City is required";
       if (!p.zip_code?.trim()) pErrors.zip_code = "ZIP required";
-      else if (!/^\d{5}-\d{4}$/.test(p.zip_code)) pErrors.zip_code = "Invalid ZIP";
+      else if (!/^\d{5}-\d{4}$/.test(p.zip_code)) pErrors.zip_code = "ZIP code must be in format 11111-1111";
 
       if (!p.location_temp_id) pErrors.location_temp_id = "Location is required";
 
@@ -1491,6 +1485,15 @@ return await onSubmit(payload);
                               copy[index] = { ...copy[index], zip_code: fmt };
                               return copy;
                             });
+
+                            if (searchTimeoutRef.current) {
+                              clearTimeout(searchTimeoutRef.current);
+                            }
+                            if (val.length >= 5) {
+                              searchTimeoutRef.current = setTimeout(() => {
+                                fetchZipDetailsForProvider(index, val.slice(0, 5));
+                              }, 500);
+                            }
                           }}
                           style={providerErrorsMap[index]?.zip_code ? { borderColor: 'red' } : {}}
                         />
@@ -1572,29 +1575,15 @@ return await onSubmit(payload);
             {/* SHARED ADDRESS INPUTS FOR STEP 1 ONLY */}
             {step === 1 && (
               <>
-                <div className={styles.formGroup} style={{ position: "relative" }}>
-                  <label className={styles.label}>Address Line 1</label>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Address Line 1 *</label>
                   <input
                     className={styles.input}
                     maxLength={250}
                     value={addressLine1}
-                    onChange={handleAddressChange}
+                    onChange={(e) => setAddressLine1(e.target.value)}
                     autoComplete="off"
                   />
-                  {isSearchingAddress && <div className={styles.addressLoader} />}
-                  {showSuggestions && (
-                    <div className={styles.suggestionsContainer} ref={suggestionsRef}>
-                      {suggestions.map((feature, index) => {
-                        const p = feature.properties;
-                        const label = [p.housenumber, p.street, p.city, p.state, p.postcode].filter(Boolean).join(", ");
-                        return (
-                          <div key={index} className={styles.suggestionItem} onClick={() => handleSuggestionClick(feature)}>
-                            <span className={styles.suggestionText}>{label}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
 
                 <div className={styles.formGroup}>
@@ -1622,12 +1611,20 @@ return await onSubmit(payload);
                   </div>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>ZIP Code *</label>
-                    <input className={styles.input} value={zipCode} onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, "");
-                      setZipCode(v.length > 5 ? `${v.slice(0, 5)}-${v.slice(5, 9)}` : v);
-                    }} />
+                    <input className={styles.input} value={zipCode} onChange={handleZipChange} />
                     {errors.zip_code && <span className={styles.errorText}>{errors.zip_code}</span>}
                   </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Description</label>
+                  <textarea
+                    className={styles.textarea}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Enter description"
+                    rows={3}
+                  />
                 </div>
               </>
             )}
@@ -1799,6 +1796,15 @@ return await onSubmit(payload);
                             };
                             return copy;
                           });
+
+                          if (searchTimeoutRef.current) {
+                            clearTimeout(searchTimeoutRef.current);
+                          }
+                          if (val.length >= 5) {
+                            searchTimeoutRef.current = setTimeout(() => {
+                              fetchZipDetailsForExtraAddress(index, val.slice(0, 5));
+                            }, 500);
+                          }
                         }}
                         style={extraAddressErrors[index]?.zip_code ? { borderColor: 'red' } : {}}
                       />
@@ -1808,7 +1814,7 @@ return await onSubmit(payload);
                 </div>
               ))}
 
-            <div className={styles.formGroup}>
+            {/* <div className={styles.formGroup}>
               <label className={styles.label}>Description</label>
               <textarea
                 className={styles.textarea}
@@ -1817,7 +1823,7 @@ return await onSubmit(payload);
                 placeholder="Enter description"
                 rows={3}
               />
-            </div>
+            </div> */}
 
           </div>
           <div className={styles.actions}>
