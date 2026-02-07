@@ -261,41 +261,6 @@ const UserManagement: React.FC = () => {
         setCurrentPage(0);
     };
 
-<<<<<<< HEAD
-const userStats: StatCard[] = [
-{
-    title: 'Total Users',
-    value: String(stats?.total_users ?? 0),
-    icon: Users,
-    color: 'blue',
-    onClick: () => handleStatClick('total'),
-    active: statusFilter === null
-},
-{
-    title: 'Active Users',
-    value: String(stats?.active_users ?? 0),
-    icon: UserCheck,
-    color: 'green',
-    onClick: () => handleStatClick('active'),
-    active: statusFilter === 'ACTIVE'
-},
-{
-    title: 'Inactive Users',
-    value: String(stats?.inactive_users ?? 0),
-    icon: UserX,
-    color: 'red',
-    onClick: () => handleStatClick('inactive'),
-    active: statusFilter === 'INACTIVE'
-},
-{
-    title: 'Admin Users',
-    value: String(stats?.admin_users ?? 0),
-    icon: Shield,
-    color: 'purple'
-}
-];
-
-=======
     interface StatItem {
         title: string;
         value: string;
@@ -332,7 +297,6 @@ const userStats: StatCard[] = [
         },
         // { title: 'Admin Users', value: stats?.admin_users.toString() || '0', icon: Shield, color: 'purple', onClick: undefined, active: false }
     ];
->>>>>>> 9602c9face15dceeee420263e4170637cc87adea
 
     const userColumns = [
         {
