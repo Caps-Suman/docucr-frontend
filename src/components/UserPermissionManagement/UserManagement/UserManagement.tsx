@@ -261,6 +261,7 @@ const UserManagement: React.FC = () => {
         setCurrentPage(0);
     };
 
+<<<<<<< HEAD
 const userStats: StatCard[] = [
 {
     title: 'Total Users',
@@ -294,6 +295,44 @@ const userStats: StatCard[] = [
 }
 ];
 
+=======
+    interface StatItem {
+        title: string;
+        value: string;
+        icon: React.ElementType;
+        color: string;
+        onClick?: () => void;
+        active?: boolean;
+    }
+
+    const userStats: StatItem[] = [
+        {
+            title: 'Total Users',
+            value: stats?.total_users.toString() || '0',
+            icon: Users,
+            color: 'blue',
+            onClick: () => handleStatClick('total'),
+            active: statusFilter === null
+        },
+        {
+            title: 'Active Users',
+            value: stats?.active_users.toString() || '0',
+            icon: UserCheck,
+            color: 'green',
+            onClick: () => handleStatClick('active'),
+            active: statusFilter === 'ACTIVE'
+        },
+        {
+            title: 'Inactive Users',
+            value: stats?.inactive_users.toString() || '0',
+            icon: UserX,
+            color: 'red',
+            onClick: () => handleStatClick('inactive'),
+            active: statusFilter === 'INACTIVE'
+        },
+        // { title: 'Admin Users', value: stats?.admin_users.toString() || '0', icon: Shield, color: 'purple', onClick: undefined, active: false }
+    ];
+>>>>>>> 9602c9face15dceeee420263e4170637cc87adea
 
     const userColumns = [
         {
@@ -303,16 +342,6 @@ const userStats: StatCard[] = [
         },
         { key: 'email', header: 'Email' },
         { key: 'username', header: 'Username' },
-        {
-            key: 'created_by_name',
-            header: 'Created By',
-            render: (_: any, row: User) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>System</span>
-        },
-        ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
-            key: 'organisation_name',
-            header: 'Organisation',
-            render: (_: any, row: User) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
-        }] : []),
         {
             key: 'phone',
             header: 'Phone',
@@ -327,6 +356,16 @@ const userStats: StatCard[] = [
                 );
             }
         },
+        ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' ? [{
+            key: 'created_by_name',
+            header: 'Created By',
+            render: (_: any, row: User) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>
+        }] : []),
+        ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
+            key: 'organisation_name',
+            header: 'Organisation',
+            render: (_: any, row: User) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
+        }] : []),
         {
             key: 'roles',
             header: 'Roles',

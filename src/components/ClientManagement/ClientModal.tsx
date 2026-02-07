@@ -1090,7 +1090,7 @@ return await onSubmit(payload);
     setStep(1);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // STEP 1 (ORG or INDIVIDUAL)
@@ -1133,14 +1133,29 @@ return await onSubmit(payload);
         return;
       }
 
-      handleFinish();
+      setIsSubmitting(true);
+      try {
+        await handleFinish();
+      } catch (err) {
+        console.error("Failed to submit:", err);
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
     // STEP 2 (PROVIDERS ONLY)
     if (step === 2) {
       if (!validateProviders()) return;
-      handleFinish();
+
+      setIsSubmitting(true);
+      try {
+        await handleFinish();
+      } catch (err) {
+        console.error("Failed to submit:", err);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -1299,8 +1314,9 @@ return await onSubmit(payload);
                         className={styles.deleteButton}
                         onClick={() => setProviders(prev => prev.filter((_, i) => i !== index))}
                         title="Remove provider"
-                        disabled={providers.length <= 1}
-                        style={{ opacity: providers.length <= 1 ? 0.5 : 1, cursor: providers.length <= 1 ? 'not-allowed' : 'pointer' }}
+                        style={{ cursor: 'pointer' }}
+                      // disabled={providers.length <= 1}
+                      // style={{ opacity: providers.length <= 1 ? 0.5 : 1, cursor: providers.length <= 1 ? 'not-allowed' : 'pointer' }}
                       >
                         <Trash2 size={16} />
                       </button>

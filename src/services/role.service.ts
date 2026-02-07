@@ -10,6 +10,8 @@ export interface Role {
   statusCode: string | null;
   can_edit: boolean;
   users_count: number;
+  created_by_name: string | null;
+  organisation_name: string | null;
 }
 
 export interface RoleListResponse {

@@ -52,6 +52,8 @@ export interface Client {
     // Detailed Edit Fields
     locations?: ClientLocation[];
     providers?: Provider[];
+
+    organisation_name?: string;
 }
 
 

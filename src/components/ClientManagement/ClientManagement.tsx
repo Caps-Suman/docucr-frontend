@@ -33,8 +33,10 @@ import userService from "../../services/user.service";
 import roleService from "../../services/role.service";
 import styles from "./ClientManagement.module.css";
 import { debounce } from "../../utils/debounce";
+import authService from "../../services/auth.service";
 
 const ClientManagement: React.FC = () => {
+  const currentUser = authService.getUser();
   const [currentPage, setCurrentPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [clients, setClients] = useState<Client[]>([]);
@@ -554,6 +556,11 @@ const ClientManagement: React.FC = () => {
         return new Date(value).toLocaleDateString();
       },
     },
+    ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
+      key: 'organisation_name',
+      header: 'Organisation',
+      render: (_: any, row: Client) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
+    }] : []),
     {
       key: "actions",
       header: "Actions",
