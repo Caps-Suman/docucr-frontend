@@ -21,6 +21,8 @@ import ConfirmModal from "../Common/ConfirmModal";
 import Toast, { ToastType } from "../Common/Toast";
 import ClientModal from "./ClientModal";
 import ClientImportModal from "./ClientImportModal";
+import UserMappingModal from "./UserMappingModal";
+import ClientProvidersModal from "./ClientProvidersModal"; // Imported
 import clientService, {
   Client,
   ClientStats,
@@ -31,8 +33,10 @@ import userService from "../../services/user.service";
 import roleService from "../../services/role.service";
 import styles from "./ClientManagement.module.css";
 import { debounce } from "../../utils/debounce";
+import authService from "../../services/auth.service";
 
 const ClientManagement: React.FC = () => {
+  const currentUser = authService.getUser();
   const [currentPage, setCurrentPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [clients, setClients] = useState<Client[]>([]);
@@ -46,11 +50,7 @@ const ClientManagement: React.FC = () => {
     Array<{ id: string; name: string; roles: string }>
   >([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [showUsersModal, setShowUsersModal] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [clientUsers, setClientUsers] = useState<
-    Array<{ id: string; username: string; name: string }>
-  >([]);
+
   const [usersLoading, setUsersLoading] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -162,9 +162,22 @@ const ClientManagement: React.FC = () => {
     setConfirmModal({ isOpen: true, client, action: "toggle" });
   };
 
-  const handleEdit = (client: Client) => {
-    setEditingClient(client);
-    setIsModalOpen(true);
+  const handleEdit = async (client: Client) => {
+    try {
+      if (client.type !== "Individual" && client.type !== "NPI1") {
+        setLoading(true);
+        const fullClient = await clientService.getClient(client.id);
+        setEditingClient(fullClient);
+      } else {
+        setEditingClient(client);
+      }
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch client details:", error);
+      setToast({ message: "Failed to load client details", type: "error" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddNew = () => {
@@ -216,31 +229,34 @@ const ClientManagement: React.FC = () => {
     }
   };
 
-  const handleModalSubmit = async (data: any) => {
+  const handleModalSubmit = async (data: any): Promise<Client> => {
+    console.log("ClientManagement received data:", JSON.stringify(data, null, 2));
     try {
       if (editingClient) {
-        await clientService.updateClient(editingClient.id, data);
+        const updated = await clientService.updateClient(editingClient.id, data);
         setToast({ message: "Client updated successfully", type: "success" });
         handleModalClose();
         loadClients();
+        return updated; // ✅ RETURN
       } else {
         const newClient = await clientService.createClient(data);
         setToast({ message: "Client created successfully", type: "success" });
         handleModalClose();
         loadClients();
 
-        // Setup and show cross-creation confirmation
         setCrossCreationData({
           client_id: newClient.id,
-          email: "", // Email not in client data, will be empty
-          username: "", // Username not in client data, will be empty
+          email: "",
+          username: "",
           first_name: data.first_name || "",
           middle_name: data.middle_name || "",
           last_name: data.last_name || "",
-          roles: [], // empty roles
+          roles: [],
           supervisor_id: undefined,
         });
         setShowCrossCreationConfirm(true);
+
+        return newClient; // ✅ RETURN
       }
     } catch (error: any) {
       console.error("Failed to save client:", error);
@@ -248,6 +264,7 @@ const ClientManagement: React.FC = () => {
         message: error?.message || "Failed to save client",
         type: "error",
       });
+      throw error; // ✅ important for Promise<Client>
     }
   };
 
@@ -295,43 +312,26 @@ const ClientManagement: React.FC = () => {
     }
   };
 
-  const handleShowClientUsers = async (clientId: string) => {
-    try {
-      setSelectedClientId(clientId);
-      const users = await clientService.getClientUsers(clientId);
-      setClientUsers(users);
-      setShowUsersModal(true);
-    } catch (error) {
-      console.error("Failed to load client users:", error);
-      setToast({ message: "Failed to load client users", type: "error" });
+  const [showUserMappingModal, setShowUserMappingModal] = useState(false);
+  const [selectedMappingClient, setSelectedMappingClient] = useState<Client | null>(null);
+
+  const handleShowClientUsers = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      setSelectedMappingClient(client);
+      setShowUserMappingModal(true);
     }
   };
 
-  const [unassigningUserId, setUnassigningUserId] = useState<string | null>(
-    null,
-  );
+  const [showProvidersModal, setShowProvidersModal] = useState(false);
+  const [selectedProviderClient, setSelectedProviderClient] = useState<{ id: string, name: string } | null>(null);
 
-  const handleUnassignUser = async (userId: string) => {
-    if (!selectedClientId) return;
-    try {
-      setUnassigningUserId(userId);
-      await clientService.unassignUserFromClient(selectedClientId, userId);
-      setToast({ message: "User unassigned successfully", type: "success" });
-      // Refresh the users list in the modal
-      const users = await clientService.getClientUsers(selectedClientId);
-      setClientUsers(users);
-      // Refresh the main clients list to update the count in the table
-      loadClients();
-    } catch (error: any) {
-      console.error("Failed to unassign user:", error);
-      setToast({
-        message: error?.message || "Failed to unassign user",
-        type: "error",
-      });
-    } finally {
-      setUnassigningUserId(null);
-    }
+  const handleShowClientProviders = (clientId: string, clientName: string) => {
+    setSelectedProviderClient({ id: clientId, name: clientName });
+    setShowProvidersModal(true);
   };
+
+
 
   const handleConfirmAction = async () => {
     if (!confirmModal.client) return;
@@ -441,40 +441,109 @@ const ClientManagement: React.FC = () => {
       },
     },
     {
-      key: "assigned_users",
-      header: "Assigned Users",
-      render: (value: string[], row: Client) => {
-        if (!value || value.length === 0) {
-          return (
-            <span style={{ color: "#9ca3af", fontStyle: "italic" }}>
-              Unassigned
-            </span>
-          );
+      key: 'users',
+      header: 'Users',
+      render: (_: any, row: Client) => {
+        const count = row.user_count ?? 0;
+        let text = 'No users';
+
+        // Default styles for "No users" (Gray/Neutral)
+        let style = {
+          bg: '#f3f4f6',
+          color: '#6b7280',
+          hoverBg: '#e5e7eb'
+        };
+
+        if (count > 0) {
+          text = count === 1 ? '1 User' : `${count} Users`;
+          // Styles for Active Users (Blue)
+          style = {
+            bg: '#e0f2fe',
+            color: '#0369a1',
+            hoverBg: '#bae6fd'
+          };
         }
-        if (value.length === 1) {
-          return value[0];
-        }
+
         return (
-          <span>
-            {value[0]}
-            <button
-              onClick={() => handleShowClientUsers(row.id)}
-              style={{
-                marginLeft: "8px",
-                background: "#e2f3f9",
-                border: "1px solid #83cee4",
-                borderRadius: "12px",
-                padding: "2px 8px",
-                fontSize: "12px",
-                cursor: "pointer",
-                color: "#011926",
-              }}
-            >
-              +{value.length - 1}
-            </button>
-          </span>
+          <div
+            onClick={() => handleShowClientUsers(row.id)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px 12px',
+              background: style.bg,
+              color: style.color,
+              borderRadius: '9999px',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = style.hoverBg}
+            onMouseLeave={(e) => e.currentTarget.style.background = style.bg}
+          >
+            {text}
+          </div>
         );
-      },
+      }
+    },
+    {
+      key: 'providers',
+      header: 'Providers',
+      render: (_: any, row: Client) => {
+        if (row.type === 'Individual') {
+          return <span style={{ color: '#9ca3af' }}>.....</span>;
+        }
+        const count = row.provider_count ?? 0;
+        let text = 'No Providers';
+        let isClickable = false;
+
+        // Default styles for "No Providers" (Gray/Neutral)
+        let style = {
+          bg: '#f3f4f6',
+          color: '#9ca3af', // Gray text
+          hoverBg: '#f3f4f6',
+          cursor: 'default'
+        };
+
+        if (count > 0) {
+          text = count === 1 ? '1 Provider' : `${count} Providers`;
+          isClickable = true;
+          // Styles for Active Providers (Blue) - Matching Users column style
+          style = {
+            bg: '#e0f2fe',
+            color: '#0369a1',
+            hoverBg: '#bae6fd',
+            cursor: 'pointer'
+          };
+        }
+
+        return (
+          <div
+            onClick={() => isClickable && handleShowClientProviders(row.id, row.business_name || `${row.first_name} ${row.last_name}`)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px 12px',
+              background: style.bg,
+              color: style.color,
+              borderRadius: '9999px',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: style.cursor,
+              transition: 'background 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseEnter={(e) => { if (isClickable) e.currentTarget.style.background = style.hoverBg; }}
+            onMouseLeave={(e) => { if (isClickable) e.currentTarget.style.background = style.bg; }}
+          >
+            {text}
+          </div>
+        );
+      }
     },
     {
       key: "created_at",
@@ -487,6 +556,11 @@ const ClientManagement: React.FC = () => {
         return new Date(value).toLocaleDateString();
       },
     },
+    ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
+      key: 'organisation_name',
+      header: 'Organisation',
+      render: (_: any, row: Client) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
+    }] : []),
     {
       key: "actions",
       header: "Actions",
@@ -500,7 +574,7 @@ const ClientManagement: React.FC = () => {
               <Edit2 size={14} />
             </button>
           </span>
-          {!row.is_user && (
+          {/* {!row.is_user && (
             <span className="tooltip-wrapper" data-tooltip="Create User">
               <button
                 className={`${styles.actionBtn} ${styles.createUser}`}
@@ -530,7 +604,7 @@ const ClientManagement: React.FC = () => {
                 <UserCheck size={14} />
               </button>
             </span>
-          )}
+          )} */}
           <span
             className="tooltip-wrapper"
             data-tooltip={
@@ -801,6 +875,13 @@ const ClientManagement: React.FC = () => {
         title={editingClient ? "Edit Client" : "Add New Client"}
       />
 
+      <ClientProvidersModal
+        isOpen={showProvidersModal}
+        onClose={() => setShowProvidersModal(false)}
+        clientId={selectedProviderClient?.id || null}
+        clientName={selectedProviderClient?.name || ''}
+      />
+
       <ClientImportModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
@@ -932,53 +1013,13 @@ const ClientManagement: React.FC = () => {
         </div>
       )}
 
-      {showUsersModal && (
-        <div
-          className={styles.overlay}
-          onClick={() => setShowUsersModal(false)}
-        >
-          <div
-            className={styles.usersModal}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={styles.usersModalHeader}>
-              <h3>Assigned Users</h3>
-              <button onClick={() => setShowUsersModal(false)}>×</button>
-            </div>
-            <div className={styles.usersModalBody}>
-              {clientUsers.length > 0 ? (
-                clientUsers.map((user) => (
-                  <div key={user.id} className={styles.userItem}>
-                    <div className={styles.userInfo}>
-                      <span className={styles.userName}>{user.name}</span>
-                      <span className={styles.userUsername}>
-                        @{user.username}
-                      </span>
-                    </div>
-                    <span className="tooltip-wrapper" data-tooltip="Unassign">
-                      <button
-                        className={styles.unassignUserBtn}
-                        onClick={() => handleUnassignUser(user.id)}
-                        disabled={unassigningUserId === user.id}
-                      >
-                        {unassigningUserId === user.id ? (
-                          <Loader2 size={14} className={styles.spin} />
-                        ) : (
-                          <UserMinus size={14} />
-                        )}
-                      </button>
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className={styles.emptyState}>
-                  <Info size={40} className={styles.emptyIcon} />
-                  <p>No users assigned to this client yet.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {showUserMappingModal && (
+        <UserMappingModal
+          isOpen={showUserMappingModal}
+          onClose={() => setShowUserMappingModal(false)}
+          client={selectedMappingClient}
+          onUpdate={loadClients}
+        />
       )}
 
       {toast && (

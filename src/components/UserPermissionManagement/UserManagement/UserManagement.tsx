@@ -8,6 +8,7 @@ import ChangePasswordModal from './ChangePasswordModal';
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
 import userService, { User, UserStats } from '../../../services/user.service';
+import authService from '../../../services/auth.service';
 import roleService from '../../../services/role.service';
 import statusService, { Status } from '../../../services/status.service';
 import './UserManagement.css';
@@ -15,7 +16,17 @@ import ClientModal from '../../ClientManagement/ClientModal';
 import clientService from '../../../services/client.service';
 import ClientMappingModal from './ClientMappingModal';
 
+type StatCard = {
+    title: string
+    value: string
+    icon: any
+    color: string
+    onClick?: () => void
+    active?: boolean
+}
+
 const UserManagement: React.FC = () => {
+    const currentUser = authService.getUser();
     const [currentPage, setCurrentPage] = useState(0);
     const [itemsPerPage, setItemsPerPage] = useState(25);
     const [users, setUsers] = useState<User[]>([]);
@@ -160,13 +171,17 @@ const UserManagement: React.FC = () => {
     const handleClientModalSubmit = async (data: any) => {
         try {
             const payload = { ...data, user_id: crossCreationData?.user_id };
-            await clientService.createClient(payload);
+            const createdClient = await clientService.createClient(data);
             setToast({ message: 'Client created successfully', type: 'success' });
             setIsClientModalOpen(false);
             setCrossCreationData(null);
+            return createdClient; // ✅ THIS IS THE FIX
+
         } catch (error: any) {
             console.error('Failed to create client:', error);
             setToast({ message: error?.message || 'Failed to create client', type: 'error' });
+            throw error; // ✅ required for Promise<Client>
+
         }
     };
 
@@ -246,7 +261,16 @@ const UserManagement: React.FC = () => {
         setCurrentPage(0);
     };
 
-    const userStats = [
+    interface StatItem {
+        title: string;
+        value: string;
+        icon: React.ElementType;
+        color: string;
+        onClick?: () => void;
+        active?: boolean;
+    }
+
+    const userStats: StatItem[] = [
         {
             title: 'Total Users',
             value: stats?.total_users.toString() || '0',
@@ -271,7 +295,7 @@ const UserManagement: React.FC = () => {
             onClick: () => handleStatClick('inactive'),
             active: statusFilter === 'INACTIVE'
         },
-        { title: 'Admin Users', value: stats?.admin_users.toString() || '0', icon: Shield, color: 'purple', onClick: undefined, active: false }
+        // { title: 'Admin Users', value: stats?.admin_users.toString() || '0', icon: Shield, color: 'purple', onClick: undefined, active: false }
     ];
 
     const userColumns = [
@@ -296,6 +320,16 @@ const UserManagement: React.FC = () => {
                 );
             }
         },
+        ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' ? [{
+            key: 'created_by_name',
+            header: 'Created By',
+            render: (_: any, row: User) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>
+        }] : []),
+        ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
+            key: 'organisation_name',
+            header: 'Organisation',
+            render: (_: any, row: User) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
+        }] : []),
         {
             key: 'roles',
             header: 'Roles',
@@ -309,9 +343,25 @@ const UserManagement: React.FC = () => {
             key: 'clients',
             header: 'Clients',
             render: (_: any, row: User) => {
+                const count = row.client_count ?? 0;
                 let text = 'No clients';
-                if (row.client_count === 1) text = '1 Client';
-                else if (row.client_count > 1) text = `${row.client_count} Clients`;
+
+                // Default styles for "No clients" (Gray/Neutral)
+                let style = {
+                    bg: '#f3f4f6',
+                    color: '#6b7280',
+                    hoverBg: '#e5e7eb'
+                };
+
+                if (count > 0) {
+                    text = count === 1 ? '1 Client' : `${count} Clients`;
+                    // Styles for Assigned Clients (Blue)
+                    style = {
+                        bg: '#e0f2fe',
+                        color: '#0369a1',
+                        hoverBg: '#bae6fd'
+                    };
+                }
 
                 return (
                     <div
@@ -319,16 +369,16 @@ const UserManagement: React.FC = () => {
                         style={{
                             display: 'inline-block',
                             padding: '4px 12px',
-                            background: '#e0f2fe',
-                            color: '#0369a1',
+                            background: style.bg,
+                            color: style.color,
                             borderRadius: '9999px',
                             fontSize: '12px',
                             fontWeight: 500,
                             cursor: 'pointer',
                             transition: 'background 0.2s'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#bae6fd'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = '#e0f2fe'}
+                        onMouseEnter={(e) => e.currentTarget.style.background = style.hoverBg}
+                        onMouseLeave={(e) => e.currentTarget.style.background = style.bg}
                     >
                         {text}
                     </div>

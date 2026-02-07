@@ -18,7 +18,7 @@
   background: white;
   border-radius: 12px;
   width: 90%;
-  max-width: 600px;
+  max-width: 640px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -84,6 +84,12 @@
 .formRowThree {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.formRowSplit {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
   gap: 16px;
 }
 
@@ -264,7 +270,9 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .formRowThree {
+
+  .formRowThree,
+  .formRowSplit {
     grid-template-columns: 1fr;
     gap: 16px;
   }
@@ -347,4 +355,193 @@
 
 :global(.dark) .suggestionText {
   color: #f9fafb;
+}
+
+/* Secondary Address Card */
+.secondaryAddressCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 6px;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.secondaryAddressCard:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cardHeader strong {
+  font-size: 14px;
+  color: #334155;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardHeader strong::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 16px;
+  background: #83cee4;
+  border-radius: 2px;
+}
+
+.deleteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #fee2e2;
+  background: white;
+  color: #ef4444;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deleteButton:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+}
+
+/* Add Address Button */
+.addAddressBtn {
+  width: 100%;
+  padding: 14px;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.addAddressBtn:hover {
+  border-color: #83cee4;
+  color: #0c4a6e;
+  background: #f0f9ff;
+  transform: translateY(-1px);
+}
+
+/* Dark mode adjustments */
+:global(.dark) .secondaryAddressCard {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+:global(.dark) .secondaryAddressCard:hover {
+  border-color: #6b7280;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+:global(.dark) .cardHeader {
+  border-color: #4b5563;
+}
+
+:global(.dark) .cardHeader strong {
+  color: #f3f4f6;
+}
+
+:global(.dark) .deleteButton {
+  background: #1f2937;
+  border-color: #7f1d1d;
+  color: #f87171;
+}
+
+:global(.dark) .deleteButton:hover {
+  background: #374151;
+  border-color: #ef4444;
+}
+
+:global(.dark) .addAddressBtn {
+  background: rgba(55, 65, 81, 0.5);
+  border-color: #4b5563;
+  color: #9ca3af;
+}
+
+:global(.dark) .addAddressBtn:hover {
+  border-color: #7dd0e9;
+  color: #e0f2fe;
+  background: rgba(125, 208, 233, 0.1);
+}
+
+/* Footer Content */
+.footerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.providerToggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.toggleInput {
+  margin-top: 4px;
+  accent-color: #83cee4;
+  cursor: pointer;
+}
+
+.toggleText {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggleLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.toggleDescription {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+:global(.dark) .providerToggle {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+:global(.dark) .toggleLabel {
+  color: #f3f4f6;
+}
+
+:global(.dark) .toggleDescription {
+  color: #9ca3af;
 }

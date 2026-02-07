@@ -15,6 +15,8 @@ export interface User {
     roles: Array<{ id: string; name: string }>;
     supervisor_id: string | null;
     client_count: number;
+    created_by_name?: string;
+    organisation_name?: string;
 }
 
 export interface UserStats {
@@ -149,6 +151,17 @@ const userService = {
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to map clients');
+        }
+    },
+
+    unassignUserClients: async (userId: string, clientIds: string[]): Promise<void> => {
+        const response = await apiClient(`${API_URL}/api/users/unassign-clients`, {
+            method: 'POST',
+            body: JSON.stringify({ user_id: userId, client_ids: clientIds })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to unassign clients');
         }
     }
 };

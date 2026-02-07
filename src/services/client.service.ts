@@ -2,6 +2,28 @@ import apiClient from '../utils/apiClient';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+export interface ClientLocation {
+    id: string;
+    address_line_1: string;
+    address_line_2?: string;
+    city: string;
+    state_code: string;
+    state_name?: string;
+    country?: string;
+    zip_code: string;
+    is_primary: boolean;
+}
+
+export interface Provider {
+    id: string;
+    first_name: string;
+    middle_name?: string;
+    last_name: string;
+    npi: string;
+    location_id?: string; // or linked location
+    created_at?: string;
+}
+
 export interface Client {
     id: string;
     business_name?: string;
@@ -23,7 +45,17 @@ export interface Client {
     state_name?: string;
     zip_code?: string;
     country?:string;
+    city?:string;
+    user_count?: number;
+    provider_count?: number;
+
+    // Detailed Edit Fields
+    locations?: ClientLocation[];
+    providers?: Provider[];
+
+    organisation_name?: string;
 }
+
 
 export interface ClientStats {
     total_clients: number;
@@ -33,6 +65,13 @@ export interface ClientStats {
 
 export interface ClientListResponse {
     clients: Client[];
+    total: number;
+    page: number;
+    page_size: number;
+}
+
+export interface ProviderListResponse {
+    providers: Provider[];
     total: number;
     page: number;
     page_size: number;
@@ -98,6 +137,34 @@ const clientService = {
         }
         return response.json();
     },
+   addProviders: async (
+    clientId: string,
+    providers: {
+        first_name: string;
+        middle_name?: string;
+        last_name: string;
+        npi: string;
+        address_line_1: string;
+        address_line_2?: string;
+        city: string;
+        state_code: string;
+        zip_code: string;
+        country?: string;
+    }[]
+): Promise<void> => {
+    const response = await apiClient(
+        `${API_URL}/api/clients/${clientId}/providers`,
+        {
+            method: "POST",
+            body: JSON.stringify(providers),
+        }
+    );
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to add providers");
+    }
+},
 
     updateClient: async (id: string, data: ClientUpdateData): Promise<Client> => {
         const response = await apiClient(`${API_URL}/api/clients/${id}`, {
@@ -138,13 +205,25 @@ const clientService = {
         }
     },
 
-    unassignUserFromClient: async (clientId: string, userId: string): Promise<void> => {
-        const response = await apiClient(`${API_URL}/api/clients/${clientId}/users/${userId}/unassign`, {
-            method: 'DELETE'
+    mapClientUsers: async (clientId: string, userIds: string[], assignedBy: string): Promise<void> => {
+        const response = await apiClient(`${API_URL}/api/clients/${clientId}/users/map`, {
+            method: 'POST',
+            body: JSON.stringify({ user_ids: userIds, assigned_by: assignedBy })
         });
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || 'Failed to unassign user');
+            throw new Error(error.detail || 'Failed to map users');
+        }
+    },
+
+    unassignClientUsers: async (clientId: string, userIds: string[]): Promise<void> => {
+        const response = await apiClient(`${API_URL}/api/clients/${clientId}/users/unassign`, {
+            method: 'POST',
+            body: JSON.stringify({ user_ids: userIds })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to unassign users');
         }
     },
 
@@ -197,6 +276,15 @@ const clientService = {
         if (!response.ok) throw new Error('Failed to check existing NPIs');
         const data = await response.json();
         return data.existing_npis;
+    },
+
+    getClientProviders: async (clientId: string, page: number = 1, pageSize: number = 10, search?: string): Promise<ProviderListResponse> => {
+        const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
+        if (search) params.append('search', search);
+
+        const response = await apiClient(`${API_URL}/api/clients/${clientId}/providers?${params}`);
+        if (!response.ok) throw new Error('Failed to fetch client providers');
+        return response.json();
     }
 };
 

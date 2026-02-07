@@ -13,8 +13,10 @@ import privilegeService, { Privilege } from '../../../services/privilege.service
 import statusService, { Status } from '../../../services/status.service';
 import '../UserManagement/UserManagement.css';
 import styles from './RoleManagement.module.css';
+import authService from '../../../services/auth.service';
 
 const RoleManagement: React.FC = () => {
+    const currentUser = authService.getUser();
     const [currentPage, setCurrentPage] = useState(0);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [roles, setRoles] = useState<Role[]>([]);
@@ -208,6 +210,22 @@ const RoleManagement: React.FC = () => {
     const roleColumns = [
         { key: 'name', header: 'Role Name' },
         { key: 'description', header: 'Description' },
+        // {
+        //     key: 'created_by_name',
+        //     header: 'Created By',
+        //     render: (_: any, row: Role) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>
+        // },
+        // ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
+        ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
+            key: 'organisation_name',
+            header: 'Organisation',
+            render: (_: any, row: Role) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
+        }] : []),
+        ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
+            key: 'organisation_name',
+            header: 'Organisation',
+            render: (_: any, row: Role) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
+        }] : []),
         {
             key: 'statusCode',
             header: 'Status',

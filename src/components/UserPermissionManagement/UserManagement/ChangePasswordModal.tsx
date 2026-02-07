@@ -64,7 +64,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                 </div>
 
                 <div style={{ padding: '24px 24px 16px', color: '#6b7280', fontSize: '14px' }}>
-                    Set a new password for user <strong>{username}</strong>.
+                    Set a new password for - <strong>{username}</strong>.
                 </div>
 
                 <form className={styles.form} onSubmit={handleSubmit}>

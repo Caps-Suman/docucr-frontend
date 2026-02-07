@@ -1,0 +1,192 @@
+/* Reuse UserModal styles as much as possible, copying structure */
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.content {
+    background: white;
+    border-radius: 12px;
+    width: 600px;
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+.header {
+    padding: 24px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.closeButton:hover {
+    background-color: #f1f5f9;
+    color: #1e293b;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+}
+
+.formContent {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.formRow {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.formGroup {
+    flex: 1;
+    margin-bottom: 16px;
+}
+
+.label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.input {
+    width: 100%;
+    height: 40px;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+    background-color: white;
+    color: #1f2937;
+}
+
+.input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.errorText {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #ef4444;
+}
+
+.phoneInputGroup {
+    display: flex;
+    gap: 12px;
+}
+
+.countryCodeSelect {
+    width: 100px;
+}
+
+.phoneNumberInput {
+    flex: 1;
+    height: 40px;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.phoneNumberInput:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.actions {
+    padding: 16px 24px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background-color: #f8fafc;
+}
+
+.cancelButton, .submitButton {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelButton {
+    background-color: white;
+    border: 1px solid #d1d5db;
+    color: #374151;
+}
+
+.cancelButton:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.submitButton {
+    background-color: #3b82f6;
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.submitButton:hover {
+    background-color: #2563eb;
+}
+
+.submitButton:disabled {
+    background-color: #93c5fd;
+    cursor: not-allowed;
+}
+
+.loader {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
+}
