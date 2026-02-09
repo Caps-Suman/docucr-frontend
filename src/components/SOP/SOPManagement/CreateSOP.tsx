@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Plus,
   X,
@@ -37,6 +37,9 @@ const CreateSOP: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
+  const location = useLocation();
+  const [providerIds, setProviderIds] = useState<string[]>([]);
+  const [selectedProvidersList, setSelectedProvidersList] = useState<any[]>([]);
 
   const [providerInfo, setProviderInfo] = useState<ProviderInfo>({
     providerName: "",
@@ -77,28 +80,11 @@ const CreateSOP: React.FC = () => {
   });
 
   // Coding Rules - Unified
- const [codingType, setCodingType] = useState<"CPT" | "ICD">("CPT");
+  const [codingType, setCodingType] = useState<"CPT" | "ICD">("CPT");
 
-const [codingRulesCPT, setCodingRulesCPT] = useState<CodingRuleCPT[]>([]);
-const [codingRulesICD, setCodingRulesICD] = useState<CodingRuleICD[]>([]);
-const [newCpt, setNewCpt] = useState<CodingRuleCPT>({
-  cptCode: "",
-  description: "",
-  ndcCode: "",
-  units: "",
-  chargePerUnit: "",
-  modifier: "",
-  replacementCPT: "",
-});
-
-const [newIcd, setNewIcd] = useState<CodingRuleICD>({
-  icdCode: "",
-  description: "",
-  notes: "",
-});
-
-const resetCpt = () =>
-  setNewCpt({
+  const [codingRulesCPT, setCodingRulesCPT] = useState<CodingRuleCPT[]>([]);
+  const [codingRulesICD, setCodingRulesICD] = useState<CodingRuleICD[]>([]);
+  const [newCpt, setNewCpt] = useState<CodingRuleCPT>({
     cptCode: "",
     description: "",
     ndcCode: "",
@@ -108,12 +94,29 @@ const resetCpt = () =>
     replacementCPT: "",
   });
 
-const resetIcd = () =>
-  setNewIcd({
+  const [newIcd, setNewIcd] = useState<CodingRuleICD>({
     icdCode: "",
     description: "",
     notes: "",
   });
+
+  const resetCpt = () =>
+    setNewCpt({
+      cptCode: "",
+      description: "",
+      ndcCode: "",
+      units: "",
+      chargePerUnit: "",
+      modifier: "",
+      replacementCPT: "",
+    });
+
+  const resetIcd = () =>
+    setNewIcd({
+      icdCode: "",
+      description: "",
+      notes: "",
+    });
 
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -147,9 +150,9 @@ const resetIcd = () =>
     setPostingCharges("");
     setBillingGuidelines([]);
     setCodingRulesCPT([]);
-setCodingRulesICD([]);
-resetCpt();
-resetIcd();
+    setCodingRulesICD([]);
+    resetCpt();
+    resetIcd();
     setNewGuideline({ title: "", description: "" });
     setErrors([]);
     setIsResetModalOpen(false);
@@ -159,13 +162,13 @@ resetIcd();
     fileInputRef.current?.click();
   };
   useEffect(() => {
-  if (!canCreateSOP && !isEditMode) {
-    navigate("/unauthorized");
-  }
-  if (isEditMode && !canUpdateSOP) {
-    navigate("/unauthorized");
-  }
-}, [canCreateSOP, canUpdateSOP, isEditMode, navigate]);
+    if (!canCreateSOP && !isEditMode) {
+      navigate("/unauthorized");
+    }
+    if (isEditMode && !canUpdateSOP) {
+      navigate("/unauthorized");
+    }
+  }, [canCreateSOP, canUpdateSOP, isEditMode, navigate]);
   // --- Effects ---
   useEffect(() => {
     loadClients();
@@ -173,6 +176,19 @@ resetIcd();
       loadSOP(id);
     }
   }, [id]);
+
+  useEffect(() => {
+    if (location.state?.clientId) {
+      setProviderType("existing");
+      setSelectedClientId(location.state.clientId);
+      if (location.state.providerIds) {
+        setProviderIds(location.state.providerIds);
+        if (location.state.selectedProviders) {
+          setSelectedProvidersList(location.state.selectedProviders);
+        }
+      }
+    }
+  }, [location.state]);
 
   const loadSOP = async (sopId: string) => {
     try {
@@ -221,7 +237,7 @@ resetIcd();
       }
 
       if (sop.codingRulesCPT) setCodingRulesCPT(sop.codingRulesCPT);
-if (sop.codingRulesICD) setCodingRulesICD(sop.codingRulesICD);
+      if (sop.codingRulesICD) setCodingRulesICD(sop.codingRulesICD);
 
     } catch (error) {
       console.error("Failed to load SOP:", error);
@@ -303,8 +319,8 @@ if (sop.codingRulesICD) setCodingRulesICD(sop.codingRulesICD);
 
     // ---- WORKFLOW (THIS IS THE PART YOU BROKE) ----
     if (data.workflow_process) {
-     setWorkflowDescription(data.workflow_process.description ?? "");
-     setPostingCharges(data.workflow_process.posting_charges_rules ?? "");
+      setWorkflowDescription(data.workflow_process.description ?? "");
+      setPostingCharges(data.workflow_process.posting_charges_rules ?? "");
 
 
       setEligibilityPortals(
@@ -315,11 +331,11 @@ if (sop.codingRulesICD) setCodingRulesICD(sop.codingRulesICD);
     }
 
     // ---- BILLING GUIDELINES ----
- if (Array.isArray(data.billing_guidelines)) {
-  setBillingGuidelines(
-    normalizeBillingGuidelines(data.billing_guidelines)
-  );
-}
+    if (Array.isArray(data.billing_guidelines)) {
+      setBillingGuidelines(
+        normalizeBillingGuidelines(data.billing_guidelines)
+      );
+    }
     if (Array.isArray(data.payer_guidelines)) {
       setPayerGuidelines(
         data.payer_guidelines.map((pg: any, i: number) => ({
@@ -330,13 +346,13 @@ if (sop.codingRulesICD) setCodingRulesICD(sop.codingRulesICD);
       );
     }
     // ---- CODING RULES ----
-if (Array.isArray(data.coding_rules_cpt)) {
-  setCodingRulesCPT(data.coding_rules_cpt);
-}
+    if (Array.isArray(data.coding_rules_cpt)) {
+      setCodingRulesCPT(data.coding_rules_cpt);
+    }
 
-if (Array.isArray(data.coding_rules_icd)) {
-  setCodingRulesICD(data.coding_rules_icd);
-}
+    if (Array.isArray(data.coding_rules_icd)) {
+      setCodingRulesICD(data.coding_rules_icd);
+    }
   }
 
   useEffect(() => {
@@ -407,19 +423,19 @@ if (Array.isArray(data.coding_rules_icd)) {
 
   const handleAddGuideline = () => {
     if (newGuideline.title.trim() && newGuideline.description.trim()) {
-     setBillingGuidelines([
-  ...billingGuidelines,
-  {
-    id: `bg_${Date.now()}`,
-    category: newGuideline.title,
-    rules: [
-      {
-        id: `rule_${Date.now()}`,
-        description: newGuideline.description,
-      },
-    ],
-  },
-]);
+      setBillingGuidelines([
+        ...billingGuidelines,
+        {
+          id: `bg_${Date.now()}`,
+          category: newGuideline.title,
+          rules: [
+            {
+              id: `rule_${Date.now()}`,
+              description: newGuideline.description,
+            },
+          ],
+        },
+      ]);
 
       setNewGuideline({ title: "", description: "" });
     }
@@ -431,68 +447,68 @@ if (Array.isArray(data.coding_rules_icd)) {
     );
   };
 
-const handleAddCodingRule = () => {
-  if (codingType === "CPT" && newCpt.cptCode.trim()) {
-    setCodingRulesCPT(prev => [
-      ...prev,
-      { id: `cpt_${Date.now()}`, ...newCpt },
-    ]);
-    resetCpt();
-  }
-
-  if (codingType === "ICD" && newIcd.icdCode.trim()) {
-    setCodingRulesICD(prev => [
-      ...prev,
-      { id: `icd_${Date.now()}`, ...newIcd },
-    ]);
-    resetIcd();
-  }
-};
-const handleRemoveCpt = (id: string) => {
-  setCodingRulesCPT(prev => prev.filter(r => r.id !== id));
-};
-
-const handleRemoveIcd = (id: string) => {
-  setCodingRulesICD(prev => prev.filter(r => r.id !== id));
-};
-
-const normalizeBillingGuidelines = (input: any[]): BillingGuideline[] => {
-  return input.map((g, i) => {
-    // Already correct shape
-    if (g?.category && Array.isArray(g.rules)) {
-      return {
-        id: g.id || `bg_norm_${i}`,
-        category: g.category,
-        rules: g.rules.map((r: any, j: number) => ({
-          id: r.id || `rule_${i}_${j}`,
-          description: r.description || "",
-        })),
-      };
+  const handleAddCodingRule = () => {
+    if (codingType === "CPT" && newCpt.cptCode.trim()) {
+      setCodingRulesCPT(prev => [
+        ...prev,
+        { id: `cpt_${Date.now()}`, ...newCpt },
+      ]);
+      resetCpt();
     }
 
-    // Old AI / legacy shape
-    if (g?.title || g?.description) {
-      return {
-        id: g.id || `bg_norm_${i}`,
-        category: g.title || `Guideline ${i + 1}`,
-        rules: [
-          {
-            id: `rule_${i}_0`,
-            description: g.description || "",
-          },
-        ],
-      };
+    if (codingType === "ICD" && newIcd.icdCode.trim()) {
+      setCodingRulesICD(prev => [
+        ...prev,
+        { id: `icd_${Date.now()}`, ...newIcd },
+      ]);
+      resetIcd();
     }
+  };
+  const handleRemoveCpt = (id: string) => {
+    setCodingRulesCPT(prev => prev.filter(r => r.id !== id));
+  };
 
-    // Fallback
-    return {
-      id: `bg_norm_${i}`,
-      category: `Guideline ${i + 1}`,
-      rules: [],
-    };
-  });
-};
-  
+  const handleRemoveIcd = (id: string) => {
+    setCodingRulesICD(prev => prev.filter(r => r.id !== id));
+  };
+
+  const normalizeBillingGuidelines = (input: any[]): BillingGuideline[] => {
+    return input.map((g, i) => {
+      // Already correct shape
+      if (g?.category && Array.isArray(g.rules)) {
+        return {
+          id: g.id || `bg_norm_${i}`,
+          category: g.category,
+          rules: g.rules.map((r: any, j: number) => ({
+            id: r.id || `rule_${i}_${j}`,
+            description: r.description || "",
+          })),
+        };
+      }
+
+      // Old AI / legacy shape
+      if (g?.title || g?.description) {
+        return {
+          id: g.id || `bg_norm_${i}`,
+          category: g.title || `Guideline ${i + 1}`,
+          rules: [
+            {
+              id: `rule_${i}_0`,
+              description: g.description || "",
+            },
+          ],
+        };
+      }
+
+      // Fallback
+      return {
+        id: `bg_norm_${i}`,
+        category: `Guideline ${i + 1}`,
+        rules: [],
+      };
+    });
+  };
+
   const handleSave = async () => {
     if (!validateForm()) {
       return;
@@ -504,21 +520,22 @@ const normalizeBillingGuidelines = (input: any[]): BillingGuideline[] => {
       provider_type: providerType,
       client_id: selectedClientId || null,
       provider_info: providerInfo,
-workflow_process: {
-  description: workflowDescription,           // ✅ REQUIRED
-  superbill_source: workflowDescription,       // optional, legacy
-  posting_charges_rules: postingCharges,
-  eligibility_verification_portals: eligibilityPortals,
-},
-billing_guidelines: billingGuidelines.map(bg => ({
-  category: bg.category,
-  rules: (bg.rules ?? []).map(r => ({
-    description: r.description
-  }))
-})),
+      workflow_process: {
+        description: workflowDescription,           // ✅ REQUIRED
+        superbill_source: workflowDescription,       // optional, legacy
+        posting_charges_rules: postingCharges,
+        eligibility_verification_portals: eligibilityPortals,
+      },
+      billing_guidelines: billingGuidelines.map(bg => ({
+        category: bg.category,
+        rules: (bg.rules ?? []).map(r => ({
+          description: r.description
+        }))
+      })),
       payer_guidelines: payerGuidelines, // 🔥 THIS WAS MISSING
-coding_rules_cpt: codingRulesCPT,
-coding_rules_icd: codingRulesICD,
+      coding_rules_cpt: codingRulesCPT,
+      coding_rules_icd: codingRulesICD,
+      provider_ids: providerIds,
     };
 
     try {
@@ -699,7 +716,13 @@ coding_rules_icd: codingRulesICD,
                         ? "New Provider"
                         : "Existing Client",
                   }}
-                  onChange={(option) => setProviderType(option?.value as any)}
+                  onChange={(option) => {
+                    setProviderType(option?.value as any);
+                    if (option?.value === 'new') {
+                      setProviderIds([]);
+                      setSelectedProvidersList([]);
+                    }
+                  }}
                   styles={getCustomSelectStyles()}
                 />
               </div>
@@ -710,39 +733,85 @@ coding_rules_icd: codingRulesICD,
                   <Select
                     options={clients.map((c) => ({
                       value: c.id,
-                      label: `${
-                        c.type === "individual"
-                          ? `${c.first_name || ""} ${c.middle_name || ""} ${c.last_name || ""}`.trim()
-                          : c.business_name || ""
-                      } ${c.npi ? `(${c.npi})` : ""}`,
+                      label: `${c.type === "individual"
+                        ? `${c.first_name || ""} ${c.middle_name || ""} ${c.last_name || ""}`.trim()
+                        : c.business_name || ""
+                        } ${c.npi ? `(${c.npi})` : ""}`,
                     }))}
                     value={
                       selectedClientId
                         ? clients.find((c) => c.id === selectedClientId)
                           ? {
-                              value: selectedClientId,
-                              label: (() => {
-                                const client = clients.find(
-                                  (c) => c.id === selectedClientId,
-                                );
-                                if (!client) return "";
-                                return `${
-                                  client.type === "individual"
-                                    ? `${client.first_name || ""} ${client.middle_name || ""} ${client.last_name || ""}`.trim()
-                                    : client.business_name || ""
+                            value: selectedClientId,
+                            label: (() => {
+                              const client = clients.find(
+                                (c) => c.id === selectedClientId,
+                              );
+                              if (!client) return "";
+                              return `${client.type === "individual"
+                                ? `${client.first_name || ""} ${client.middle_name || ""} ${client.last_name || ""}`.trim()
+                                : client.business_name || ""
                                 } ${client.npi ? `(${client.npi})` : ""}`;
-                              })(),
-                            }
+                            })(),
+                          }
                           : null
                         : null
                     }
-                    onChange={(option) =>
-                      setSelectedClientId(option?.value || "")
-                    }
+                    onChange={(option) => {
+                      const newValue = option?.value || "";
+                      if (newValue !== selectedClientId) {
+                        setSelectedClientId(newValue);
+                        setProviderIds([]);
+                        setSelectedProvidersList([]);
+                      }
+                    }}
                     isDisabled={loadingClients}
                     placeholder="Select a client"
                     styles={getCustomSelectStyles()}
                   />
+                </div>
+              )}
+
+              {selectedProvidersList.length > 0 && (
+                <div className={styles.formGroup} style={{ gridColumn: "1 / -1" }}>
+                  <label className={styles.label}>Selected Providers ({selectedProvidersList.length})</label>
+                  <div style={{
+                    padding: "10px",
+                    background: "#f8fafc",
+                    borderRadius: "8px",
+                    border: "1px solid #e2e8f0",
+                    fontSize: "13px",
+                    color: "#334155",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "8px"
+                  }}>
+                    {selectedProvidersList.map((p, i) => (
+                      <span key={p.id || i} style={{
+                        background: "white",
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                        border: "1px solid #cbd5e1",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px"
+                      }}>
+                        {p.first_name} {p.last_name} {p.npi ? `(${p.npi})` : ''}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newIds = providerIds.filter(pid => pid !== p.id);
+                            const newList = selectedProvidersList.filter(sp => sp.id !== p.id);
+                            setProviderIds(newIds);
+                            setSelectedProvidersList(newList);
+                          }}
+                          style={{ border: "none", background: "none", cursor: "pointer", padding: 0, color: "#94a3b8" }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -836,14 +905,14 @@ coding_rules_icd: codingRulesICD,
                 />
               </div>
               <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-  <label className={styles.label}>Posting Charges Rules</label>
-  <textarea
-    className={styles.textarea}
-    value={postingCharges}
-    onChange={(e) => setPostingCharges(e.target.value)}
-    placeholder="Describe charge posting rules..."
-  />
-</div>
+                <label className={styles.label}>Posting Charges Rules</label>
+                <textarea
+                  className={styles.textarea}
+                  value={postingCharges}
+                  onChange={(e) => setPostingCharges(e.target.value)}
+                  placeholder="Describe charge posting rules..."
+                />
+              </div>
 
               <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                 <label className={styles.label}>
@@ -928,23 +997,23 @@ coding_rules_icd: codingRulesICD,
 
             <div className={styles.cardList}>
               {billingGuidelines.map((g, i) => (
-  <div key={i} className={styles.cardItem}>
-    <div className={styles.cardContent}>
-      <h4>{g.category}</h4>
-      <ul style={{ paddingLeft: "18px", margin: 0 }}>
-{(g.rules ?? []).map((r, j) => (
-          <li key={j}>{r.description}</li>
-        ))}
-      </ul>
-    </div>
-    <button
-      className={styles.deleteButton}
-      onClick={() => handleRemoveGuideline(g.id, i)}
-    >
-      <Trash2 size={16} />
-    </button>
-  </div>
-))}
+                <div key={i} className={styles.cardItem}>
+                  <div className={styles.cardContent}>
+                    <h4>{g.category}</h4>
+                    <ul style={{ paddingLeft: "18px", margin: 0 }}>
+                      {(g.rules ?? []).map((r, j) => (
+                        <li key={j}>{r.description}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <button
+                    className={styles.deleteButton}
+                    onClick={() => handleRemoveGuideline(g.id, i)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
           {/* Payer Guidelines */}
@@ -1025,198 +1094,198 @@ coding_rules_icd: codingRulesICD,
               ))}
             </div>
           </div>
-           {/* Coding Guidelines */}
-<div className={styles.section}>
-  <div className={styles.sectionTitle}>Coding Guidelines</div>
+          {/* Coding Guidelines */}
+          <div className={styles.section}>
+            <div className={styles.sectionTitle}>Coding Guidelines</div>
 
-  <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-    <button
-      type="button"
-      className={codingType === "CPT" ? styles.activeTab : styles.tab}
-      onClick={() => setCodingType("CPT")}
-    >
-      CPT Codes
-    </button>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <button
+                type="button"
+                className={codingType === "CPT" ? styles.activeTab : styles.tab}
+                onClick={() => setCodingType("CPT")}
+              >
+                CPT Codes
+              </button>
 
-    <button
-      type="button"
-      className={codingType === "ICD" ? styles.activeTab : styles.tab}
-      onClick={() => setCodingType("ICD")}
-    >
-      ICD Codes
-    </button>
-  </div>
+              <button
+                type="button"
+                className={codingType === "ICD" ? styles.activeTab : styles.tab}
+                onClick={() => setCodingType("ICD")}
+              >
+                ICD Codes
+              </button>
+            </div>
             {/* Existing CPT Rules */}
-{codingRulesCPT.length > 0 && (
-  <div className={styles.cardList}>
-    <h4>CPT Coding Rules</h4>
+            {codingRulesCPT.length > 0 && (
+              <div className={styles.cardList}>
+                <h4>CPT Coding Rules</h4>
 
-    {codingRulesCPT.map((rule) => (
-      <div key={rule.id} className={styles.cardItem}>
-        <div className={styles.cardContent}>
-          <strong>{rule.cptCode}</strong> – {rule.description}
-          {rule.ndcCode && <div>NDC: {rule.ndcCode}</div>}
-          {rule.units && <div>Units: {rule.units}</div>}
-          {rule.chargePerUnit && <div>Charge: {rule.chargePerUnit}</div>}
-          {rule.modifier && <div>Modifier: {rule.modifier}</div>}
+                {codingRulesCPT.map((rule) => (
+                  <div key={rule.id} className={styles.cardItem}>
+                    <div className={styles.cardContent}>
+                      <strong>{rule.cptCode}</strong> – {rule.description}
+                      {rule.ndcCode && <div>NDC: {rule.ndcCode}</div>}
+                      {rule.units && <div>Units: {rule.units}</div>}
+                      {rule.chargePerUnit && <div>Charge: {rule.chargePerUnit}</div>}
+                      {rule.modifier && <div>Modifier: {rule.modifier}</div>}
+                    </div>
+
+                    <button
+                      className={styles.deleteButton}
+                      onClick={() => rule.id && handleRemoveCpt(rule.id)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {codingRulesICD.length > 0 && (
+              <div className={styles.cardList}>
+                <h4>ICD Coding Rules</h4>
+
+                {codingRulesICD.map((rule) => (
+                  <div key={rule.id} className={styles.cardItem}>
+                    <div className={styles.cardContent}>
+                      <strong>{rule.icdCode}</strong> – {rule.description}
+                      {rule.notes && <div>Notes: {rule.notes}</div>}
+                    </div>
+
+                    <button
+                      className={styles.deleteButton}
+                      onClick={() => rule.id && handleRemoveIcd(rule.id)}        >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+
+            <div className={styles.formGrid}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  {codingType === "CPT" ? "CPT Code" : "ICD Code"}
+                </label>
+
+                <input
+                  className={styles.input}
+                  value={codingType === "CPT" ? newCpt.cptCode : newIcd.icdCode}
+                  onChange={(e) =>
+                    codingType === "CPT"
+                      ? setNewCpt({ ...newCpt, cptCode: e.target.value })
+                      : setNewIcd({ ...newIcd, icdCode: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Description</label>
+                <input
+                  className={styles.input}
+                  value={codingType === "CPT" ? newCpt.description : newIcd.description}
+                  onChange={(e) =>
+                    codingType === "CPT"
+                      ? setNewCpt({ ...newCpt, description: e.target.value })
+                      : setNewIcd({ ...newIcd, description: e.target.value })
+                  }
+                />
+              </div>
+              {codingType === "ICD" && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Notes</label>
+                  <textarea
+                    className={styles.textarea}
+                    value={newIcd.notes}
+                    onChange={(e) =>
+                      setNewIcd({ ...newIcd, notes: e.target.value })
+                    }
+                    placeholder="Optional ICD-specific notes or rules"
+                  />
+                </div>
+              )}
+
+              {codingType === "CPT" && (
+                <>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>NDC Code</label>
+                    <input
+                      className={styles.input}
+                      value={newCpt.ndcCode}
+                      onChange={(e) =>
+                        setNewCpt({ ...newCpt, ndcCode: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Units</label>
+                    <input
+                      className={styles.input}
+                      value={newCpt.units}
+                      onChange={(e) =>
+                        setNewCpt({ ...newCpt, units: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Charge per Unit</label>
+                    <input
+                      className={styles.input}
+                      value={newCpt.chargePerUnit}
+                      onChange={(e) =>
+                        setNewCpt({ ...newCpt, chargePerUnit: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Modifier</label>
+                    <input
+                      className={styles.input}
+                      value={newCpt.modifier}
+                      onChange={(e) =>
+                        setNewCpt({ ...newCpt, modifier: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Replacement CPT</label>
+                    <input
+                      className={styles.input}
+                      value={newCpt.replacementCPT}
+                      onChange={(e) =>
+                        setNewCpt({ ...newCpt, replacementCPT: e.target.value })
+                      }
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>&nbsp;</label>
+                <button
+                  type="button"
+                  className={styles.saveButton}
+                  onClick={handleAddCodingRule}
+                >
+                  <Plus size={16} /> Add
+                </button>
+              </div>
+            </div>
+          </div>
+          <ConfirmModal
+            isOpen={isResetModalOpen}
+            onClose={() => setIsResetModalOpen(false)}
+            onConfirm={confirmReset}
+            title="Reset Form"
+            message="Are you sure you want to reset the form? All unsaved changes will be lost."
+            confirmText="Reset"
+            type="warning"
+          />
         </div>
-
-        <button
-          className={styles.deleteButton}
-          onClick={() => rule.id && handleRemoveCpt(rule.id)}
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-    ))}
-  </div>
-)}
-{codingRulesICD.length > 0 && (
-  <div className={styles.cardList}>
-    <h4>ICD Coding Rules</h4>
-
-    {codingRulesICD.map((rule) => (
-      <div key={rule.id} className={styles.cardItem}>
-        <div className={styles.cardContent}>
-          <strong>{rule.icdCode}</strong> – {rule.description}
-          {rule.notes && <div>Notes: {rule.notes}</div>}
-        </div>
-
-        <button
-          className={styles.deleteButton}
-onClick={() => rule.id && handleRemoveIcd(rule.id)}        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-    ))}
-  </div>
-)}
-
-
-  <div className={styles.formGrid}>
-    <div className={styles.formGroup}>
-      <label className={styles.label}>
-        {codingType === "CPT" ? "CPT Code" : "ICD Code"}
-      </label>
-
-      <input
-        className={styles.input}
-        value={codingType === "CPT" ? newCpt.cptCode : newIcd.icdCode}
-        onChange={(e) =>
-          codingType === "CPT"
-            ? setNewCpt({ ...newCpt, cptCode: e.target.value })
-            : setNewIcd({ ...newIcd, icdCode: e.target.value })
-        }
-      />
-    </div>
-
-    <div className={styles.formGroup}>
-      <label className={styles.label}>Description</label>
-      <input
-        className={styles.input}
-        value={codingType === "CPT" ? newCpt.description : newIcd.description}
-        onChange={(e) =>
-          codingType === "CPT"
-            ? setNewCpt({ ...newCpt, description: e.target.value })
-            : setNewIcd({ ...newIcd, description: e.target.value })
-        }
-      />
-    </div>
-    {codingType === "ICD" && (
-  <div className={styles.formGroup}>
-    <label className={styles.label}>Notes</label>
-    <textarea
-      className={styles.textarea}
-      value={newIcd.notes}
-      onChange={(e) =>
-        setNewIcd({ ...newIcd, notes: e.target.value })
-      }
-      placeholder="Optional ICD-specific notes or rules"
-    />
-  </div>
-)}
-
-        {codingType === "CPT" && (
-  <>
-    <div className={styles.formGroup}>
-      <label className={styles.label}>NDC Code</label>
-      <input
-        className={styles.input}
-        value={newCpt.ndcCode}
-        onChange={(e) =>
-          setNewCpt({ ...newCpt, ndcCode: e.target.value })
-        }
-      />
-    </div>
-
-    <div className={styles.formGroup}>
-      <label className={styles.label}>Units</label>
-      <input
-        className={styles.input}
-        value={newCpt.units}
-        onChange={(e) =>
-          setNewCpt({ ...newCpt, units: e.target.value })
-        }
-      />
-    </div>
-
-    <div className={styles.formGroup}>
-      <label className={styles.label}>Charge per Unit</label>
-      <input
-        className={styles.input}
-        value={newCpt.chargePerUnit}
-        onChange={(e) =>
-          setNewCpt({ ...newCpt, chargePerUnit: e.target.value })
-        }
-      />
-    </div>
-
-    <div className={styles.formGroup}>
-      <label className={styles.label}>Modifier</label>
-      <input
-        className={styles.input}
-        value={newCpt.modifier}
-        onChange={(e) =>
-          setNewCpt({ ...newCpt, modifier: e.target.value })
-        }
-      />
-    </div>
-
-    <div className={styles.formGroup}>
-      <label className={styles.label}>Replacement CPT</label>
-      <input
-        className={styles.input}
-        value={newCpt.replacementCPT}
-        onChange={(e) =>
-          setNewCpt({ ...newCpt, replacementCPT: e.target.value })
-        }
-      />
-    </div>
-  </>
-)}
-
-    <div className={styles.formGroup}>
-      <label className={styles.label}>&nbsp;</label>
-      <button
-        type="button"
-        className={styles.saveButton}
-        onClick={handleAddCodingRule}
-      >
-        <Plus size={16} /> Add
-      </button>
-    </div>
-  </div>
-</div>
-        <ConfirmModal
-        isOpen={isResetModalOpen}
-        onClose={() => setIsResetModalOpen(false)}
-        onConfirm={confirmReset}
-        title="Reset Form"
-        message="Are you sure you want to reset the form? All unsaved changes will be lost."
-        confirmText="Reset"
-        type="warning"
-      />
-      </div>
       )}
     </div>
   );
