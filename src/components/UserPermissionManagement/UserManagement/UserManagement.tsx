@@ -29,6 +29,8 @@ type StatCard = {
 
 const UserManagement: React.FC = () => {
     const currentUser = authService.getUser();
+    console.log("CURRENT USER:", currentUser);
+
     const [currentPage, setCurrentPage] = useState(0);
     const [itemsPerPage, setItemsPerPage] = useState(25);
     const [users, setUsers] = useState<User[]>([]);
@@ -53,6 +55,7 @@ const [userType, setUserType] = useState<"internal" | "client" | null>(null);
 
 const canChooseUserType =
   currentUser?.role?.name === "ORGANISATION_ROLE";
+
 
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; user: User | null; action: 'toggle' }>({ isOpen: false, user: null, action: 'toggle' });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -166,10 +169,23 @@ const canChooseUserType =
         }
     };
 
+// const handleAddNew = () => {
+//   setEditingUser(null);
+//   setSelectedClient(null);
+
+//   if (canChooseUserType) {
+//     setUserTypeModalOpen(true);
+//   } else {
+//     // not organisation role → directly open modal
+//     setSelectedUserType("internal");
+//     setIsModalOpen(true);
+//   }
+// };
 const handleAddNew = () => {
   setEditingUser(null);
   setIsModalOpen(true);
 };
+
 
 useEffect(() => {
   loadRoles();
@@ -541,7 +557,13 @@ const handleClientSelected = (client: any) => {
   title="Add User"
   roles={roles}
   clientAdminRoleId={clientAdminRoleId}
+
+  allowUserTypeSelection={
+    currentUser?.role?.name === "ORGANISATION_ROLE"
+  }
 />
+
+
 
 
             <ChangePasswordModal
