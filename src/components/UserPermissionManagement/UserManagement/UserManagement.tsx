@@ -47,6 +47,9 @@ const [selectedUserType, setSelectedUserType] = useState<"internal" | "client" |
 const [clientSelectionOpen, setClientSelectionOpen] = useState(false);
 const [selectedClient, setSelectedClient] = useState<any>(null);
 
+const clientAdminRoleId = roles.find(r => r.name === "CLIENT_ADMIN")?.id;
+const [step, setStep] = useState<0 | 1 | 2>(0);
+const [userType, setUserType] = useState<"internal" | "client" | null>(null);
 
 const canChooseUserType =
   currentUser?.role?.name === "ORGANISATION_ROLE";
@@ -78,10 +81,6 @@ const canChooseUserType =
     useEffect(() => {
         loadData();
     }, [currentPage, itemsPerPage, statusFilter]);
-
-    useEffect(() => {
-        loadRoles();
-    }, []);
 
     const loadRoles = async () => {
         try {
@@ -168,16 +167,13 @@ const canChooseUserType =
     };
 
 const handleAddNew = () => {
-    setEditingUser(null);
-    setSelectedClient(null);
-
-    if (canChooseUserType) {
-        setUserTypeModalOpen(true);
-    } else {
-        setIsModalOpen(true);
-    }
+  setEditingUser(null);
+  setIsModalOpen(true);
 };
 
+useEffect(() => {
+  loadRoles();
+}, []);
 
     const handleModalClose = () => {
         setIsModalOpen(false);
@@ -526,15 +522,27 @@ const handleClientSelected = (client: any) => {
                     setCurrentPage(0);
                 }}
             />
+            <UserTypeModal
+  isOpen={userTypeModalOpen}
+  onClose={() => setUserTypeModalOpen(false)}
+  onNext={handleUserTypeNext}
+/>
+
+<ClientSelectionModal
+  isOpen={clientSelectionOpen}
+  onClose={() => setClientSelectionOpen(false)}
+  onSelect={handleClientSelected}
+/>
+
 <UserModal
   isOpen={isModalOpen}
   onClose={handleModalClose}
   onSubmit={handleModalSubmit}
   title="Add User"
   roles={roles}
-  isClientUser={selectedUserType === "client"}
-  clientName={selectedClient?.name}
+  clientAdminRoleId={clientAdminRoleId}
 />
+
 
             <ChangePasswordModal
                 isOpen={!!changePasswordUser}
@@ -585,18 +593,6 @@ const handleClientSelected = (client: any) => {
                 user={clientMappingModal.user}
                 onUpdate={loadData}
             />
-
-<UserTypeModal
-  isOpen={userTypeModalOpen}
-  onClose={() => setUserTypeModalOpen(false)}
-  onNext={handleUserTypeNext}
-/>
-
-<ClientSelectionModal
-  isOpen={clientSelectionOpen}
-  onClose={() => setClientSelectionOpen(false)}
-  onSelect={handleClientSelected}
-/>
 
         </div>
     );

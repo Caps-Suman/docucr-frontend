@@ -74,50 +74,8 @@ const ClientManagement: React.FC = () => {
   } | null>(null);
 
   // Cross-creation state
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [crossCreationData, setCrossCreationData] = useState<any>(null);
-  const [showCrossCreationConfirm, setShowCrossCreationConfirm] =
     useState(false);
-  const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
   // const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
-
-  const openAssignModal = () => {
-    setShowAssignModal(true);
-    if (users.length === 0 && !usersLoading) {
-      loadUserFormData();
-    }
-  };
-
-  const loadUserFormData = async () => {
-    try {
-      setUsersLoading(true);
-
-      const [rolesData, usersData] = await Promise.all([
-        roleService.getAssignableRoles(1, 100),
-        userService.getUsers(1, 1000),
-      ]);
-
-      setRoles(rolesData.roles.map((r) => ({ id: r.id, name: r.name })));
-
-      // setSupervisors(usersData.users.map(u => ({
-      //     id: u.id,
-      //     name: `${u.first_name} ${u.last_name} (${u.username})`
-      // })));
-
-      setUsers(
-        usersData.users.map((u) => ({
-          id: u.id,
-          name: `${u.first_name} ${u.last_name} (${u.username})`,
-          roles: u.roles.map((r) => r.name).join(", ") || "No roles",
-        })),
-      );
-    } catch (error) {
-      console.error("Failed to load user form data:", error);
-      setToast({ message: "Failed to load users", type: "error" });
-    } finally {
-      setUsersLoading(false);
-    }
-  };
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
@@ -133,6 +91,30 @@ const ClientManagement: React.FC = () => {
 
     debouncedHandler(searchTerm);
   }, [searchTerm]);
+const openAssignModal = async () => {
+  setShowAssignModal(true);
+
+  if (users.length === 0 && !usersLoading) {
+    try {
+      setUsersLoading(true);
+
+      const usersData = await userService.getUsers(1, 1000);
+
+      setUsers(
+        usersData.users.map((u) => ({
+          id: u.id,
+          name: `${u.first_name} ${u.last_name} (${u.username})`,
+          roles: u.roles.map((r) => r.name).join(", ") || "No roles",
+        }))
+      );
+    } catch (error) {
+      console.error("Failed to load users:", error);
+      setToast({ message: "Failed to load users", type: "error" });
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+};
 
   const loadClients = async () => {
     try {
@@ -199,74 +181,33 @@ const ClientManagement: React.FC = () => {
     setToast({ message: "Clients imported successfully", type: "success" });
   };
 
-  const handleCrossCreationConfirm = async () => {
-    setShowCrossCreationConfirm(false);
-    loadUserFormData();
 
-    const clientRole = roles.find((r) => r.name.toUpperCase() === "CLIENT");
 
-    setCrossCreationData((prev: any) => ({
-      ...prev,
-      roles: clientRole ? [{ id: clientRole.id, name: clientRole.name }] : [],
-    }));
-
-    setIsUserModalOpen(true);
-  };
-
-  const handleUserModalSubmit = async (data: any) => {
-    try {
-      const payload = { ...data, client_id: crossCreationData?.client_id };
-      await userService.createUser(payload);
-      setToast({ message: "User created successfully", type: "success" });
-      setIsUserModalOpen(false);
-      setCrossCreationData(null);
-    } catch (error: any) {
-      console.error("Failed to create user:", error);
-      setToast({
-        message: error?.message || "Failed to create user",
-        type: "error",
-      });
+const handleModalSubmit = async (data: any): Promise<Client> => {
+  try {
+    if (editingClient) {
+      const updated = await clientService.updateClient(editingClient.id, data);
+      setToast({ message: "Client updated successfully", type: "success" });
+      handleModalClose();
+      loadClients();
+      return updated;
     }
-  };
 
-  const handleModalSubmit = async (data: any): Promise<Client> => {
-    console.log("ClientManagement received data:", JSON.stringify(data, null, 2));
-    try {
-      if (editingClient) {
-        const updated = await clientService.updateClient(editingClient.id, data);
-        setToast({ message: "Client updated successfully", type: "success" });
-        handleModalClose();
-        loadClients();
-        return updated; // ✅ RETURN
-      } else {
-        const newClient = await clientService.createClient(data);
-        setToast({ message: "Client created successfully", type: "success" });
-        handleModalClose();
-        loadClients();
+    const newClient = await clientService.createClient(data);
+    setToast({ message: "Client created successfully", type: "success" });
+    handleModalClose();
+    loadClients();
+    return newClient;   // ← YOU FORGOT THIS
+  } catch (error: any) {
+    console.error("Failed to save client:", error);
+    setToast({
+      message: error?.message || "Failed to save client",
+      type: "error",
+    });
+    throw error;
+  }
+};
 
-        setCrossCreationData({
-          client_id: newClient.id,
-          email: "",
-          username: "",
-          first_name: data.first_name || "",
-          middle_name: data.middle_name || "",
-          last_name: data.last_name || "",
-          roles: [],
-          supervisor_id: undefined,
-        });
-        setShowCrossCreationConfirm(true);
-
-        return newClient; // ✅ RETURN
-      }
-    } catch (error: any) {
-      console.error("Failed to save client:", error);
-      setToast({
-        message: error?.message || "Failed to save client",
-        type: "error",
-      });
-      throw error; // ✅ important for Promise<Client>
-    }
-  };
 
   const [isAssigning, setIsAssigning] = useState(false);
 
@@ -886,42 +827,6 @@ const ClientManagement: React.FC = () => {
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onSuccess={handleImportSuccess}
-      />
-
-      <ConfirmModal
-        isOpen={showCrossCreationConfirm}
-        onClose={() => setShowCrossCreationConfirm(false)}
-        onConfirm={handleCrossCreationConfirm}
-        title="Create Linked User"
-        message="Client created successfully. Do you want to create a linked User account for this client?"
-        confirmText="Yes, Create User"
-        type="info"
-      />
-
-      <UserModal
-        isOpen={isUserModalOpen}
-        onClose={() => setIsUserModalOpen(false)}
-        onSubmit={handleUserModalSubmit}
-        initialData={crossCreationData}
-        title="Create Linked User"
-        roles={roles}
-        isLoading={usersLoading}
-        // supervisors={supervisors}
-        clientName={
-          crossCreationData
-            ? clients.find((c) => c.id === crossCreationData.client_id)
-              ?.business_name ||
-            [
-              crossCreationData.first_name,
-              crossCreationData.middle_name,
-              crossCreationData.last_name,
-            ]
-              .filter(Boolean)
-              .join(" ") ||
-            "Unknown Client"
-            : undefined
-        }
-        isClientUser={true}
       />
 
       {showAssignModal && (

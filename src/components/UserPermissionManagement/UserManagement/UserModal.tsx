@@ -4,6 +4,8 @@ import Select from "react-select";
 import { getCustomSelectStyles } from "../../../styles/selectStyles";
 import styles from "./UserModal.module.css";
 import userService from "../../../services/user.service";
+import clientService from "../../../services/client.service";
+import ClientSelectionModal from "../../SOP/SOPListing/ClientSelectionModal";
 
 interface UserModalProps {
   isOpen: boolean;
@@ -30,14 +32,16 @@ interface UserModalProps {
     roles: Array<{ id: string; name: string }>;
     supervisor_id?: string;
   };
-  title: string;
+  title?: string;
   roles?: Array<{ id: string; name: string }>;
   // supervisors?: Array<{ id: string; name: string }>;
   clientName?: string;
+  clientAdminRoleId?: string;
+  canChooseUserType?: boolean;
   isLoading?: boolean;
 }
 
-const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
+const UserModal: React.FC<UserModalProps > = ({
   isOpen,
   onClose,
   onSubmit,
@@ -46,7 +50,8 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
   roles = [],
   // supervisors = [],
   clientName,
-  isClientUser,
+  clientAdminRoleId,
+  canChooseUserType,   // ← add here
   isLoading,
 }) => {
   const [step, setStep] = useState(1);
@@ -63,6 +68,7 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
   const [userRoles, setUserRoles] = useState<
     { value: string; label: string }[]
   >([]);
+const isClientMode = !!clientAdminRoleId;
 
   const [supervisorRole, setSupervisorRole] = useState<{
     value: string;
@@ -80,6 +86,11 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+const [userType, setUserType] = useState<"internal" | "client" | null>(null);
+const [selectedClient, setSelectedClient] = useState<any>(null);
+const [clients, setClients] = useState<any[]>([]);
+
+const [clientModalOpen, setClientModalOpen] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -146,6 +157,14 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
     };
   }, [supervisorRole]);
 
+  useEffect(() => {
+  if (userType === "client") {
+    clientService.getClients(1, 1000).then(res => {
+      setClients(res.clients);
+    });
+  }
+}, [userType]);
+
   const validateStep1 = () => {
     const newErrors: { [key: string]: string } = {};
 
@@ -193,38 +212,59 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
     setStep(1);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateStep1()) {
-      setStep(1);
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!validateStep1()) return;
+
+  const payload: any = {
+    email: email.trim(),
+    username: username.trim(),
+    first_name: firstName.trim(),
+    middle_name: middleName.trim() || undefined,
+    last_name: lastName.trim(),
+    phone_country_code: phoneCountryCode,
+    phone_number: phoneNumber || undefined,
+    supervisor_id: selectedSupervisor || undefined,
+  };
+
+  if (!initialData?.id) payload.password = password;
+
+  if (userType === "client") {
+    if (!selectedClient) {
+      alert("Select client");
       return;
     }
 
-    const data: any = {
-      email: email.trim(),
-      username: username.trim(),
-      first_name: firstName.trim(),
-      middle_name: middleName.trim() || undefined,
-      last_name: lastName.trim(),
-      phone_country_code: phoneCountryCode,
-      phone_number: phoneNumber || undefined,
-      role_ids: userRoles.map((r) => r.value),
-      supervisor_id: selectedSupervisor || undefined,
-    };
+if (!clientAdminRoleId) {
+  alert("CLIENT_ADMIN role not found");
+  return;
+}
 
-    if (!initialData?.id) {
-      data.password = password;
-    }
+payload.role_ids = [clientAdminRoleId];
+    payload.client_id = selectedClient.id;
+  }
 
-    setIsSubmitting(true);
-    try {
-      await onSubmit(data);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  if (userType === "internal") {
+    payload.role_ids = userRoles.map(r => r.value);
+  }
+
+  setIsSubmitting(true);
+  try {
+    await onSubmit(payload);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
 
   if (!isOpen) return null;
+const handleClientSelected = (client: any) => {
+  setSelectedClient(client);
+  setClientModalOpen(false);
+};
 
   const roleOptions = roles.map((r) => ({ value: r.id, label: r.name }));
   const countryCodeOptions = [
@@ -237,7 +277,7 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
       <div className={styles.content} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2>
-            {title} {isClientUser ? "" : `- Step ${step} of 2`}
+{title} {!isClientMode && `- Step ${step} of 2`}
             {clientName && (
               <div
                 style={{
@@ -274,9 +314,51 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
                 <div className={styles.loader}>Loading form data...</div>
               </div>
             )}
-            {(step === 1 || isClientUser) && (
+            {!userType && (
+  <div className={styles.typeSelector}>
+    <button
+      onClick={() => setUserType("internal")}
+      className={styles.typeBtn}
+    >
+      Internal User
+    </button>
+
+    <button
+      onClick={() => setUserType("client")}
+      className={styles.typeBtn}
+    >
+      Client User
+    </button>
+  </div>
+)}
+            {step === 1 && (
+
+              
               <>
                 <div className={styles.formRow}>
+
+                  {userType === "client" && (
+  <div className={styles.formGroup}>
+    <label>Client</label>
+
+    <div style={{ display: "flex", gap: 10 }}>
+      <input
+        value={selectedClient?.name || ""}
+        readOnly
+        placeholder="Select client"
+        className={styles.input}
+      />
+
+      <button
+        type="button"
+        onClick={() => setClientModalOpen(true)}
+      >
+        Select
+      </button>
+    </div>
+  </div>
+)}
+
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Email *</label>
                     <input
@@ -447,7 +529,7 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
               </>
             )}
 
-            {step === 2 && !isClientUser && (
+{step === 2 &&  userType === "internal" &&  (
               <>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>Roles</label>
@@ -560,47 +642,31 @@ const UserModal: React.FC<UserModalProps & { isClientUser?: boolean }> = ({
             )}
           </div>
 
-          <div className={styles.actions}>
-            {step === 2 && !isClientUser && (
-              <button
-                type="button"
-                className={styles.backButton}
-                onClick={handleBack}
-              >
-                <ChevronLeft size={16} /> Back
-              </button>
-            )}
-            <button
-              type="button"
-              className={styles.cancelButton}
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            {step === 1 && !isClientUser ? (
-              <button
-                type="button"
-                className={styles.nextButton}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleNext();
-                }}
-              >
-                Next <ChevronRight size={16} />
-              </button>
-            ) : (
-              <button
-                type="submit"
-                className={styles.submitButton}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Saving..." : initialData ? "Update" : "Create"}
-              </button>
-            )}
-          </div>
+<div className={styles.actions}>
+  {userType === "internal" && step === 1 && (
+    <button type="button" onClick={handleNext}>
+      Next
+    </button>
+  )}
+
+  {(userType === "client" || step === 2) && (
+    <button type="submit" disabled={isSubmitting}>
+      {isSubmitting ? "Saving..." : "Create"}
+    </button>
+  )}
+</div>
+
         </form>
       </div>
+      <ClientSelectionModal
+  isOpen={clientModalOpen}
+  onClose={() => setClientModalOpen(false)}
+  onSelect={handleClientSelected}
+/>
+
     </div>
+
+    
   );
 };
 
