@@ -7,6 +7,8 @@ import apiClient, { API_BASE_URL } from '../../../utils/apiClient';
 import Sidebar from '../../Sidebar/Sidebar';
 import './AppLayout.css';
 
+const HIDE_SIDEBAR_ROUTES = ["/sops/create", "/sops/edit"];
+
 const AppLayout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -19,6 +21,7 @@ const AppLayout: React.FC = () => {
         return saved === 'dark';
     });
     const logoutRef = useRef<HTMLDivElement>(null);
+    const hideSidebar = HIDE_SIDEBAR_ROUTES.some(route => location.pathname.startsWith(route));
 
     const getBreadcrumbs = () => {
         const path = location.pathname;
@@ -159,7 +162,8 @@ const AppLayout: React.FC = () => {
 
     return (
         <div className="app-layout">
-            <Sidebar />
+            {/* <Sidebar /> */}
+            {!hideSidebar && <Sidebar />}
             <div className="app-content">
                 <header className="app-header">
                     <div className="breadcrumb">

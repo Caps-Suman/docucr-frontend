@@ -8,6 +8,7 @@ import {
   Trash2,
   RotateCcw,
   Upload,
+  Edit2,
 } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../../styles/selectStyles";
@@ -24,6 +25,12 @@ import {
 import sopService from "../../../services/sop.service";
 import styles from "./CreateSOP.module.css";
 import { usePermission } from "../../../context/PermissionContext";
+import Table from "../../Table/Table";
+import CommonPagination from "../../Common/CommonPagination";
+import { Check, CheckCircle2, ChevronRight, Circle, Briefcase, Loader2, Search } from "lucide-react";
+import { debounce } from "../../../utils/debounce";
+import Toast, { ToastType } from "../../Common/Toast";
+import Loading from "../../Common/Loading";
 
 const CreateSOP: React.FC = () => {
   const navigate = useNavigate();
@@ -33,13 +40,33 @@ const CreateSOP: React.FC = () => {
   // --- State ---
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [providerType, setProviderType] = useState<"new" | "existing">("new");
+  const [providerType, setProviderType] = useState<"new" | "existing">("existing");
   const [selectedClientId, setSelectedClientId] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
   const location = useLocation();
   const [providerIds, setProviderIds] = useState<string[]>([]);
   const [selectedProvidersList, setSelectedProvidersList] = useState<any[]>([]);
+
+  // --- Stepper State ---
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // --- Client Selection State (Step 2) ---
+  const [clientSearchTerm, setClientSearchTerm] = useState("");
+  const [debouncedClientSearch, setDebouncedClientSearch] = useState("");
+  const [clientPage, setClientPage] = useState(0);
+  const [clientItemsPerPage, setClientItemsPerPage] = useState(10);
+  const [totalClients, setTotalClients] = useState(0);
+  // Reusing `clients` state for the list
+
+  // --- Provider Selection State (Step 3) ---
+  const [providerSearchTerm, setProviderSearchTerm] = useState("");
+  const [debouncedProviderSearch, setDebouncedProviderSearch] = useState("");
+  const [providerPage, setProviderPage] = useState(0);
+  const [providerItemsPerPage, setProviderItemsPerPage] = useState(10);
+  const [modalProviders, setModalProviders] = useState<any[]>([]);
+  const [totalProviders, setTotalProviders] = useState(0);
+  const [loadingProviders, setLoadingProviders] = useState(false);
 
   const [providerInfo, setProviderInfo] = useState<ProviderInfo>({
     providerName: "",
@@ -118,6 +145,12 @@ const CreateSOP: React.FC = () => {
       notes: "",
     });
 
+
+  const [toast, setToast] = useState<{
+    message: string;
+    type: ToastType;
+  } | null>(null);
+
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -171,11 +204,45 @@ const CreateSOP: React.FC = () => {
   }, [canCreateSOP, canUpdateSOP, isEditMode, navigate]);
   // --- Effects ---
   useEffect(() => {
-    loadClients();
+    // Initial fetch if needed, but Step 2 handles client loading now
     if (isEditMode && id) {
       loadSOP(id);
     }
   }, [id]);
+
+  // Debounce Client Search
+  useEffect(() => {
+    const handler = debounce((term: string) => {
+      setDebouncedClientSearch(term);
+      setClientPage(0);
+    }, 500);
+    handler(clientSearchTerm);
+  }, [clientSearchTerm]);
+
+  // Debounce Provider Search
+  useEffect(() => {
+    const handler = debounce((term: string) => {
+      setDebouncedProviderSearch(term);
+      setProviderPage(0);
+    }, 500);
+    handler(providerSearchTerm);
+  }, [providerSearchTerm]);
+
+  // Load Clients when Step 1 is active (Client Selection)
+  useEffect(() => {
+    // If Step 1 is "Select Client", load clients
+    if (getSteps().find(s => s.number === currentStep)?.title === "Select Client") {
+      // Only trigger load if not already loaded (handled inside loadClientsPaginated now)
+      loadClientsPaginated();
+    }
+  }, [currentStep]); // Remove dependencies that shouldn't trigger a RE-FETCH from API
+
+  // Load Providers when Step 2 is active (Provider Selection) and client selected
+  useEffect(() => {
+    if (getSteps().find(s => s.number === currentStep)?.title === "Select Providers" && selectedClientId) {
+      loadProvidersPaginated();
+    }
+  }, [currentStep, providerPage, providerItemsPerPage, debouncedProviderSearch, selectedClientId]);
 
   useEffect(() => {
     if (location.state?.clientId) {
@@ -375,39 +442,205 @@ const CreateSOP: React.FC = () => {
   }, [selectedClientId, providerType, clients]);
 
   // --- Helpers ---
-  const loadClients = async () => {
+  // State to store ALL fetched clients from the new API
+  const [allClients, setAllClients] = useState<any[]>([]);
+
+  // Ref to track if we are currently fetching to prevent duplicate calls
+  const isFetchingClients = React.useRef(false);
+
+  const fetchAllClients = async () => {
+    if (isFetchingClients.current) return;
+    isFetchingClients.current = true;
+
     try {
       setLoadingClients(true);
-      const clients = await clientService.getVisibleClients();
-      setClients(clients);
+      const data = await clientService.getClientsForSOP();
+      setAllClients(data);
+      setTotalClients(data.length);
+
+      // Initialize view
+      const startIndex = 0;
+      const sliced = data.slice(startIndex, clientItemsPerPage);
+      setClients(sliced as any);
     } catch (error) {
       console.error("Failed to load clients:", error);
     } finally {
       setLoadingClients(false);
+      // We keep isFetchingClients true if successful? 
+      // No, we should reset it, BUT since we check allClients.length > 0 in loadClientsPaginated, 
+      // ensuring we don't fetch if data exists is key.
+      // Resetting it allows re-fetch if we manually clear allClients.
+      isFetchingClients.current = false;
     }
   };
 
-  const validateForm = (): boolean => {
+  const loadClientsPaginated = async () => {
+    // If we already have clients loaded, don't fetch again unless explicitly needed
+    if (allClients.length > 0 || isFetchingClients.current) return;
+    await fetchAllClients();
+  };
+
+  // Effect to handle client-side filtering/pagination when search/page changes
+  useEffect(() => {
+    // If we are using the bulk list (allClients has data)
+    if (allClients.length > 0) {
+      let filtered = allClients;
+      if (debouncedClientSearch) {
+        const lower = debouncedClientSearch.toLowerCase();
+        filtered = allClients.filter(c =>
+          c.name.toLowerCase().includes(lower) ||
+          (c.npi && c.npi.includes(lower))
+        );
+      }
+
+      setTotalClients(filtered.length);
+      const startIndex = clientPage * clientItemsPerPage;
+      const sliced = filtered.slice(startIndex, startIndex + clientItemsPerPage);
+      setClients(sliced as any);
+    } else if (currentStep === 1 && !loadingClients) {
+      // If empty and step 1, maybe re-fetch? Or it's just empty.
+    }
+  }, [clientPage, clientItemsPerPage, debouncedClientSearch, allClients]);
+
+  const loadProvidersPaginated = async () => {
+    if (!selectedClientId) return;
+    try {
+      setLoadingProviders(true);
+      const data = await clientService.getClientProviders(
+        selectedClientId,
+        providerPage + 1,
+        providerItemsPerPage,
+        debouncedProviderSearch
+      );
+      setModalProviders(data.providers);
+      setTotalProviders(data.total);
+    } catch (error) {
+      console.error("Failed to load providers:", error);
+    } finally {
+      setLoadingProviders(false);
+    }
+  };
+
+  const isIndividualClient = (c?: Client) => {
+    const client = c || clients.find(cl => cl.id === selectedClientId);
+    return client?.type === 'Individual';
+  };
+
+  const handleNextStep = () => {
+    const steps = getSteps();
+    const isLastStep = currentStep === steps.length;
+
+    // Current Step 1: Client Selection
+    if (currentStep === 1) {
+      // Validate Client
+      // If skipping/new provider -> Go to Basic Info (Step 3 or 2 depending on logic)
+      // Actually, "New Provider" button inside Client Selection might just set providerType='new' and move to Basic Info?
+      // Let's assume there is a 'Skip / New Provider' button in the Client Step.
+
+      if (providerType === 'new') {
+        // Skip Provider Selection, Go to Basic Info (which is next available step)
+        // It will be the "Basic Information" step. 
+        // In getSteps(), if selectedClientId is empty or new, step 2 (Providers) is NOT added. 
+        // So Basic Info is Step 2.
+        setCurrentStep(2);
+        return;
+      }
+
+      if (!selectedClientId) {
+        // setErrors(["Please select a client to proceed."]); // User asked for toast/alert
+        // alert("Client selection is required");
+        setToast({ message: "Client selection is required", type: "warning" });
+        return;
+      }
+
+      // Valid client selected
+      // We need to find the client object. 
+      // Since we might be using allClients or clients, let's look it up properly.
+      const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
+
+      if (client && client.type !== 'Individual') {
+        // Go to Provider Selection (Step 2)
+        setCurrentStep(2);
+      } else {
+        // Individual -> Skip Provider Selection
+        setCurrentStep(2);
+      }
+    }
+    // Current Step 2: Provider Selection (Only if visible)
+    else if (currentStep === 2 && getSteps().find(s => s.number === 2)?.title === "Select Providers") {
+      if (providerIds.length === 0) {
+        setToast({ message: "Select atleast one provider", type: "warning" });
+        return;
+      }
+      // Moving to Basic Info
+      setCurrentStep(3);
+    }
+    // Step 2 or 3: Basic Information
+    else if (getSteps().find(s => s.number === currentStep)?.title === "Basic Information") {
+      if (validateStep1()) {
+        setCurrentStep(currentStep + 1);
+      }
+    }
+    // Preview
+    else if (isLastStep) {
+      return;
+    }
+  };
+
+  const handleBackStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const validateStep1 = () => {
     const newErrors: string[] = [];
     if (!title.trim()) newErrors.push("SOP Title is required");
     if (!category.trim()) newErrors.push("Category is required");
-    if (providerType === "existing" && !selectedClientId)
-      newErrors.push("Please select an existing client");
+    if (!workflowDescription.trim()) newErrors.push("Workflow Description is required");
+
     if (providerType === "new") {
-      if (!providerInfo.providerName.trim())
-        newErrors.push("Provider Name is required");
+      if (!providerInfo.providerName.trim()) newErrors.push("Provider Name is required");
       if (!providerInfo.billingProviderNPI.trim()) {
         newErrors.push("Billing Provider NPI is required");
       } else if (!/^\d{10}$/.test(providerInfo.billingProviderNPI)) {
         newErrors.push("Billing Provider NPI must be exactly 10 digits");
       }
     }
-    if (!workflowDescription.trim())
-      newErrors.push("Workflow Description is required");
 
     setErrors(newErrors);
     return newErrors.length === 0;
   };
+
+  const getSteps = () => {
+    const steps = [
+      { number: 1, title: "Select Client", desc: "Choose a client" }
+    ];
+
+    // Step 2: Select Providers (Conditional)
+    const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
+    let stepCount = 1;
+
+    // Logic: 
+    // If client is Organization AND has providers -> Show Provider Step
+    // Otherwise -> Skip Provider Step
+
+    if (client && client.type !== 'Individual' && (client.provider_count > 0)) {
+      stepCount++;
+      steps.push({ number: stepCount, title: "Select Providers", desc: "Link providers" });
+    }
+
+    // Step 3 (or 2): Basic Information
+    steps.push({ number: stepCount + 1, title: "Basic Information", desc: "SOP details & workflow" });
+    stepCount++;
+
+    // Step 4 (or 3): Preview & Save
+    steps.push({ number: stepCount + 1, title: "Preview & Save", desc: "Review details" });
+
+    return steps;
+  };
+
+  // const loadClients = async () => ... REMOVED
 
   // --- Handlers ---
   const handleAddPortal = () => {
@@ -510,7 +743,16 @@ const CreateSOP: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!validateForm()) {
+    // Validate Basic Info (Step 1)
+    if (!validateStep1()) {
+      setCurrentStep(1);
+      return;
+    }
+
+    // Validate Client Selection (Step 2)
+    if (providerType === "existing" && !selectedClientId) {
+      setCurrentStep(2);
+      setErrors(["Please select a client to proceed."]);
       return;
     }
 
@@ -564,15 +806,13 @@ const CreateSOP: React.FC = () => {
             onClick={() => navigate("/sops")}
             title="Back to List"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
           </button>
           <div className={styles.titleSection}>
-            <h1>{isEditMode ? "Edit SOP" : "Create New SOP"}</h1>
-            <p>
-              {isEditMode
-                ? "Update standard operating procedure details"
-                : "Define a new standard operating procedure"}
-            </p>
+            <h1 style={{ marginTop: "5px" }}>{isEditMode ? "Edit SOP" : "Create New SOP"}</h1>
+            {/* <p>
+              Step {currentStep}: {getSteps().find(s => s.number === currentStep)?.title}
+            </p> */}
           </div>
         </div>
         <div className={styles.headerActions}>
@@ -584,15 +824,12 @@ const CreateSOP: React.FC = () => {
             <RotateCcw size={16} />
             Reset
           </button>
-          <button
-            className={styles.saveButton}
-            onClick={handleSave}
-            disabled={saving || uploading}
-          >
-            <Save size={16} />
-            {saving ? "Saving..." : "Save SOP"}
-          </button>
-
+          {/* Header Actions mainly for Reset/Cancel. Main Save/Next is in footer now? 
+              The prompt says "Footer buttons: Back / Next". 
+              I will keep the "Upload" button here in the header? 
+              Upload is for filling Step 1. So it should probably be in Step 1 or Global.
+              Let's keep it in the header for now.
+          */}
           {uploading ? (
             <>
               <button className={styles.saveButton} type="button" disabled>
@@ -617,12 +854,12 @@ const CreateSOP: React.FC = () => {
               className={styles.saveButton}
               type="button"
               onClick={handleUploadClick}
+              disabled={currentStep !== 1} // Only allow upload on step 1?
             >
               <Upload size={16} />
               Upload SOP
             </button>
           )}
-
           <input
             ref={fileInputRef}
             type="file"
@@ -632,660 +869,1025 @@ const CreateSOP: React.FC = () => {
               const file = e.target.files?.[0];
               if (file) {
                 handleSOPUpload(file);
-                e.target.value = ""; // 🔥 REQUIRED
+                e.target.value = "";
               }
             }}
           />
         </div>
       </div>
 
-      {/* Scrollable Content */}
-      {loading ? (
-        <div className={styles.loadingContainer}>
-          <div className={styles.spinner}></div>
-          <p>Loading SOP...</p>
-        </div>
-      ) : (
-        <div className={styles.content}>
-          {errors.length > 0 && (
-            <div
-              className={styles.section}
-              style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2" }}
-            >
-              <div
-                className={styles.sectionTitle}
-                style={{ color: "#ef4444", marginBottom: "8px" }}
-              >
-                Please fix the following errors:
-              </div>
-              <ul
-                style={{
-                  listStyle: "disc",
-                  paddingLeft: "20px",
-                  color: "#b91c1c",
-                  margin: 0,
-                }}
-              >
-                {errors.map((err, i) => (
-                  <li key={i}>{err}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Basic Info */}
-          <div className={styles.section}>
-            <div className={styles.sectionTitle}>Basic Information</div>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>SOP Title *</label>
-                <input
-                  className={styles.input}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Dr. John Smith - Cardiology"
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Category *</label>
-                <input
-                  className={styles.input}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="e.g., Rheumatology"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Provider Info */}
-          <div className={styles.section}>
-            <div className={styles.sectionTitle}>Provider Information</div>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Provider Type *</label>
-                <Select
-                  options={[
-                    { value: "new", label: "New Provider" },
-                    { value: "existing", label: "Existing Client" },
-                  ]}
-                  value={{
-                    value: providerType,
-                    label:
-                      providerType === "new"
-                        ? "New Provider"
-                        : "Existing Client",
-                  }}
-                  onChange={(option) => {
-                    setProviderType(option?.value as any);
-                    if (option?.value === 'new') {
-                      setProviderIds([]);
-                      setSelectedProvidersList([]);
-                    }
-                  }}
-                  styles={getCustomSelectStyles()}
-                />
-              </div>
-
-              {providerType === "existing" && (
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Select Client *</label>
-                  <Select
-                    options={clients.map((c) => ({
-                      value: c.id,
-                      label: `${c.type === "individual"
-                        ? `${c.first_name || ""} ${c.middle_name || ""} ${c.last_name || ""}`.trim()
-                        : c.business_name || ""
-                        } ${c.npi ? `(${c.npi})` : ""}`,
-                    }))}
-                    value={
-                      selectedClientId
-                        ? clients.find((c) => c.id === selectedClientId)
-                          ? {
-                            value: selectedClientId,
-                            label: (() => {
-                              const client = clients.find(
-                                (c) => c.id === selectedClientId,
-                              );
-                              if (!client) return "";
-                              return `${client.type === "individual"
-                                ? `${client.first_name || ""} ${client.middle_name || ""} ${client.last_name || ""}`.trim()
-                                : client.business_name || ""
-                                } ${client.npi ? `(${client.npi})` : ""}`;
-                            })(),
-                          }
-                          : null
-                        : null
-                    }
-                    onChange={(option) => {
-                      const newValue = option?.value || "";
-                      if (newValue !== selectedClientId) {
-                        setSelectedClientId(newValue);
-                        setProviderIds([]);
-                        setSelectedProvidersList([]);
-                      }
-                    }}
-                    isDisabled={loadingClients}
-                    placeholder="Select a client"
-                    styles={getCustomSelectStyles()}
-                  />
-                </div>
-              )}
-
-              {selectedProvidersList.length > 0 && (
-                <div className={styles.formGroup} style={{ gridColumn: "1 / -1" }}>
-                  <label className={styles.label}>Selected Providers ({selectedProvidersList.length})</label>
-                  <div style={{
-                    padding: "10px",
-                    background: "#f8fafc",
-                    borderRadius: "8px",
-                    border: "1px solid #e2e8f0",
-                    fontSize: "13px",
-                    color: "#334155",
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "8px"
-                  }}>
-                    {selectedProvidersList.map((p, i) => (
-                      <span key={p.id || i} style={{
-                        background: "white",
-                        padding: "4px 8px",
-                        borderRadius: "4px",
-                        border: "1px solid #cbd5e1",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px"
-                      }}>
-                        {p.first_name} {p.last_name} {p.npi ? `(${p.npi})` : ''}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newIds = providerIds.filter(pid => pid !== p.id);
-                            const newList = selectedProvidersList.filter(sp => sp.id !== p.id);
-                            setProviderIds(newIds);
-                            setSelectedProvidersList(newList);
-                          }}
-                          style={{ border: "none", background: "none", cursor: "pointer", padding: 0, color: "#94a3b8" }}
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    ))}
+      <div className={styles.mainLayout}>
+        {/* Left Panel: Stepper */}
+        <div className={styles.leftPanel}>
+          <div className={styles.stepperContainer}>
+            {getSteps().map((step) => {
+              const isActive = step.number === currentStep;
+              const isCompleted = step.number < currentStep;
+              return (
+                <div key={step.number} className={`${styles.stepItem} ${isActive ? styles.active : ''} ${isCompleted ? styles.completed : ''}`}>
+                  <div className={styles.stepIndicator}>
+                    {isCompleted ? <Check size={18} /> : step.number}
+                  </div>
+                  <div className={styles.stepContent}>
+                    <div className={styles.stepTitle}>{step.title}</div>
+                    <div className={styles.stepDesc}>{step.desc}</div>
                   </div>
                 </div>
-              )}
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Provider Name {providerType === "new" && "*"}
-                </label>
-                <input
-                  className={styles.input}
-                  value={providerInfo.providerName}
-                  onChange={(e) =>
-                    setProviderInfo({
-                      ...providerInfo,
-                      providerName: e.target.value,
-                    })
-                  }
-                  disabled={providerType === "existing"}
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Billing Provider NPI *</label>
-                <input
-                  className={styles.input}
-                  value={providerInfo.billingProviderNPI}
-                  onChange={(e) =>
-                    setProviderInfo({
-                      ...providerInfo,
-                      billingProviderNPI: e.target.value
-                        .replace(/\D/g, "")
-                        .slice(0, 10),
-                    })
-                  }
-                  disabled={providerType === "existing"}
-                  placeholder="10-digit NPI"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Software</label>
-                <input
-                  className={styles.input}
-                  value={providerInfo.software}
-                  onChange={(e) =>
-                    setProviderInfo({
-                      ...providerInfo,
-                      software: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Billing Address</label>
-                <input
-                  className={styles.input}
-                  value={providerInfo.billingAddress}
-                  onChange={(e) =>
-                    setProviderInfo({
-                      ...providerInfo,
-                      billingAddress: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Clearing house</label>
-                <input
-                  className={styles.input}
-                  value={providerInfo.clearinghouse}
-                  onChange={(e) =>
-                    setProviderInfo({
-                      ...providerInfo,
-                      clearinghouse: e.target.value,
-                    })
-                  }
-                />
-              </div>
-            </div>
+              );
+            })}
           </div>
+        </div>
 
-          {/* Workflow */}
-          <div className={styles.section}>
-            <div className={styles.sectionTitle}>Workflow Process</div>
-            <div className={styles.formGrid}>
-              <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                <label className={styles.label}>Workflow Description *</label>
-                <textarea
-                  className={styles.textarea}
-                  value={workflowDescription}
-                  onChange={(e) => setWorkflowDescription(e.target.value)}
-                  placeholder="Describe how superbills are received and processed..."
-                />
-              </div>
-              <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                <label className={styles.label}>Posting Charges Rules</label>
-                <textarea
-                  className={styles.textarea}
-                  value={postingCharges}
-                  onChange={(e) => setPostingCharges(e.target.value)}
-                  placeholder="Describe charge posting rules..."
-                />
-              </div>
-
-              <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                <label className={styles.label}>
-                  Eligibility Verification Portals
-                </label>
-                <div className={styles.addWrapper}>
-                  <input
-                    className={styles.input}
-                    value={newPortal}
-                    onChange={(e) => setNewPortal(e.target.value)}
-                    placeholder="e.g., Availity"
-                    onKeyPress={(e) => e.key === "Enter" && handleAddPortal()}
-                  />
-                  <button
-                    type="button"
-                    className={styles.addButton}
-                    onClick={handleAddPortal}
-                  >
-                    <Plus size={16} />
-                  </button>
+        {/* Right Panel: Content */}
+        <div className={styles.rightPanel}>
+          <div className={styles.scrollableContent}>
+            {/* {errors.length > 0 && (
+              <div
+                className={styles.section}
+                style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2" }}
+              >
+                <div
+                  className={styles.sectionTitle}
+                  style={{ color: "#ef4444", marginBottom: "8px" }}
+                >
+                  Please fix the following errors:
                 </div>
-                <div className={styles.tagsList}>
-                  {eligibilityPortals.map((portal, idx) => (
-                    <span key={idx} className={styles.tag}>
-                      {portal}
-                      <div
-                        className={styles.removeTag}
-                        onClick={() => handleRemovePortal(idx)}
-                      >
-                        <X size={12} />
-                      </div>
-                    </span>
+                <ul
+                  style={{
+                    listStyle: "disc",
+                    paddingLeft: "20px",
+                    color: "#b91c1c",
+                    margin: 0,
+                  }}
+                >
+                  {errors.map((err, i) => (
+                    <li key={i}>{err}</li>
                   ))}
+                </ul>
+              </div>
+            )} */}
+
+            {/* Step 1: Select Client */}
+            {getSteps().find(s => s.number === currentStep)?.title === "Select Client" && (
+              <div className={styles.stepContainer}>
+                {/* ... Client Selection UI ... */}
+                <div style={{ marginBottom: '16px', position: 'relative' }}>
+                  <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                  <input
+                    className={styles.input}
+                    style={{ paddingLeft: '32px' }}
+                    placeholder="Search clients..."
+                    value={clientSearchTerm}
+                    onChange={(e) => setClientSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                {loadingClients ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+                    <Loading message="Loading Clients..." />
+                  </div>
+                ) : (
+                  <Table
+                    columns={[
+                      {
+                        key: 'select',
+                        header: 'Select',
+                        render: (_, row) => (
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '50%',
+                              border: selectedClientId === row.id ? '5px solid #3b82f6' : '1px solid #cbd5e1',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                              if (selectedClientId !== row.id) {
+                                setProviderIds([]);
+                                setSelectedProvidersList([]);
+                              }
+                              setSelectedClientId(row.id);
+                              setProviderType("existing");
+                            }}
+                          />
+                        ),
+                        width: '60px'
+                      },
+                      {
+                        key: 'name',
+                        header: 'Client Name',
+                        render: (_, row) => (
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontWeight: 500 }}>{row.name}</span>
+                            {row.email && <span style={{ fontSize: '12px', color: '#64748b' }}>{row.email}</span>}
+                          </div>
+                        )
+                      },
+                      { key: 'type', header: 'Type' },
+                      { key: 'npi', header: 'NPI', render: (v) => v || '-' },
+                      {
+                        key: 'provider_count',
+                        header: 'Providers',
+                        render: (v) => (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            backgroundColor: '#f1f5f9',
+                            color: '#475569',
+                            fontSize: '12px',
+                            fontWeight: 500
+                          }}>
+                            {v || '0'}
+                          </div>
+                        )
+                      },
+                    ]}
+                    data={clients}
+                    maxHeight="calc(100vh - 350px)"
+                    stickyHeader
+                  />
+                )}
+
+                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {/* <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className={styles.resetButton}
+                      onClick={() => {
+                        setSelectedClientId("");
+                        setProviderType("new");
+                      }}
+                      style={{ fontSize: '12px', padding: '6px 12px' }}
+                    >
+                      Skip / New Provider
+                    </button>
+                  </div> */}
+                  <CommonPagination
+                    show={totalClients > 0}
+                    pageCount={Math.ceil(totalClients / clientItemsPerPage)}
+                    currentPage={clientPage}
+                    totalItems={totalClients}
+                    itemsPerPage={clientItemsPerPage}
+                    onPageChange={(d) => setClientPage(d.selected)}
+                    onItemsPerPageChange={(n) => setClientItemsPerPage(n)}
+                    renderInPlace
+                  />
                 </div>
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Billing Guidelines */}
-          <div className={styles.section}>
-            <div className={styles.sectionTitle}>Billing Guidelines</div>
-            <div className={styles.helperText}>
-              <div className={styles.formGridWithButton}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Title</label>
+            {/* Step 2: Select Providers (Conditional) */}
+            {getSteps().find(s => s.number === currentStep)?.title === "Select Providers" && (
+              <div className={styles.stepContainer}>
+                <div style={{ marginBottom: '16px', position: 'relative' }}>
+                  <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                   <input
                     className={styles.input}
-                    value={newGuideline.title}
-                    onChange={(e) =>
-                      setNewGuideline({
-                        ...newGuideline,
-                        title: e.target.value,
-                      })
-                    }
+                    style={{ paddingLeft: '32px' }}
+                    placeholder="Search providers..."
+                    value={providerSearchTerm}
+                    onChange={(e) => setProviderSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Description</label>
-                  <input
-                    className={styles.input}
-                    value={newGuideline.description}
-                    onChange={(e) =>
-                      setNewGuideline({
-                        ...newGuideline,
-                        description: e.target.value,
-                      })
-                    }
+
+                {loadingProviders ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+                    <Loading message="Loading Providers..." />
+                  </div>
+                ) : (
+                  <Table
+                    columns={[
+                      {
+                        key: 'select',
+                        header: 'Select',
+                        render: (_, row) => (
+                          <div
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              borderRadius: '4px',
+                              border: providerIds.includes(row.id) ? 'none' : '1px solid #cbd5e1',
+                              backgroundColor: providerIds.includes(row.id) ? '#3b82f6' : 'white',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            onClick={() => {
+                              setProviderIds(prev =>
+                                prev.includes(row.id)
+                                  ? prev.filter(id => id !== row.id)
+                                  : [...prev, row.id]
+                              );
+                              // Maintain selected providers list for preview
+                              setSelectedProvidersList(prev => {
+                                const exists = prev.find(p => p.id === row.id);
+                                if (exists) return prev.filter(p => p.id !== row.id);
+                                return [...prev, row];
+                              });
+                            }}
+                          >
+                            {providerIds.includes(row.id) && <Check size={12} color="white" />}
+                          </div>
+                        ),
+                        width: '50px'
+                      },
+                      { key: 'name', header: 'Provider Name' },
+                      { key: 'npi', header: 'NPI', render: (v) => v || '-' },
+                      { key: 'type', header: 'Type' }
+                    ]}
+                    data={modalProviders}
+                    maxHeight="calc(100vh - 350px)"
+                    stickyHeader
                   />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>&nbsp;</label>
-                  <button
-                    type="button"
-                    className={styles.saveButton}
-                    onClick={handleAddGuideline}
+                )}
+
+                {!loadingProviders && (
+                  <>
+                    <div style={{ marginTop: '16px' }}>
+                      <CommonPagination
+                        show={totalProviders > 0}
+                        pageCount={Math.ceil(totalProviders / providerItemsPerPage)}
+                        currentPage={providerPage}
+                        totalItems={totalProviders}
+                        itemsPerPage={providerItemsPerPage}
+                        onPageChange={(d) => setProviderPage(d.selected)}
+                        onItemsPerPageChange={(n) => setProviderItemsPerPage(n)}
+                        renderInPlace
+                      />
+                    </div>
+
+                    <div style={{ marginTop: '16px', fontSize: '13px', color: '#64748b' }}>
+                      Selected: {selectedProvidersList.length} providers
+                    </div>
+                  </>
+                )}
+
+
+              </div>
+            )}
+
+            {/* Step 3 (or 2): Basic Information */}
+            {getSteps().find(s => s.number === currentStep)?.title === "Basic Information" && (
+
+              <div className={styles.stepContainer}>
+
+                {errors.length > 0 && (
+                  <div
+                    className={styles.section}
+                    style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2" }}
                   >
-                    <Plus size={16} /> Add Guideline
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.cardList}>
-              {billingGuidelines.map((g, i) => (
-                <div key={i} className={styles.cardItem}>
-                  <div className={styles.cardContent}>
-                    <h4>{g.category}</h4>
-                    <ul style={{ paddingLeft: "18px", margin: 0 }}>
-                      {(g.rules ?? []).map((r, j) => (
-                        <li key={j}>{r.description}</li>
+                    <div
+                      className={styles.sectionTitle}
+                      style={{ color: "#ef4444", marginBottom: "8px" }}
+                    >
+                      Please fix the following errors:
+                    </div>
+                    <ul
+                      style={{
+                        listStyle: "disc",
+                        paddingLeft: "20px",
+                        color: "#b91c1c",
+                        margin: 0,
+                      }}
+                    >
+                      {errors.map((err, i) => (
+                        <li key={i}>{err}</li>
                       ))}
                     </ul>
                   </div>
-                  <button
-                    className={styles.deleteButton}
-                    onClick={() => handleRemoveGuideline(g.id, i)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Payer Guidelines */}
-          <div className={styles.section}>
-            <div className={styles.sectionTitle}>Payer Guidelines</div>
+                )}
 
-            <div className={styles.formGridWithButton}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Payer Name</label>
-                <input
-                  className={styles.input}
-                  value={newPayerGuideline.payer_name}
-                  onChange={(e) =>
-                    setNewPayerGuideline({
-                      ...newPayerGuideline,
-                      payer_name: e.target.value,
-                    })
-                  }
-                  placeholder="e.g., Medicare, Aetna"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Description</label>
-                <input
-                  className={styles.input}
-                  value={newPayerGuideline.description}
-                  onChange={(e) =>
-                    setNewPayerGuideline({
-                      ...newPayerGuideline,
-                      description: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>&nbsp;</label>
-                <button
-                  type="button"
-                  className={styles.saveButton}
-                  onClick={() => {
-                    if (
-                      newPayerGuideline.payer_name.trim() &&
-                      newPayerGuideline.description.trim()
-                    ) {
-                      setPayerGuidelines([
-                        ...payerGuidelines,
-                        { id: `pg_${Date.now()}`, ...newPayerGuideline },
-                      ]);
-                      setNewPayerGuideline({ payer_name: "", description: "" });
-                    }
-                  }}
-                >
-                  <Plus size={16} /> Add Payer Rule
-                </button>
-              </div>
-            </div>
-
-            <div className={styles.cardList}>
-              {payerGuidelines.map((pg, i) => (
-                <div key={pg.id || i} className={styles.cardItem}>
-                  <div className={styles.cardContent}>
-                    <h4>{pg.payer_name}</h4>
-                    <p>{pg.description}</p>
+                {/* Basic Info Form */}
+                <div className={styles.section}>
+                  <div className={styles.sectionTitle}>Basic Information</div>
+                  <div className={styles.formGrid}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>SOP Title *</label>
+                      <input
+                        className={styles.input}
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g., Dr. John Smith - Cardiology"
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Category *</label>
+                      <input
+                        className={styles.input}
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        placeholder="e.g., Rheumatology"
+                      />
+                    </div>
                   </div>
-                  <button
-                    className={styles.deleteButton}
-                    onClick={() =>
-                      setPayerGuidelines(
-                        payerGuidelines.filter((_, idx) => idx !== i),
-                      )
-                    }
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
-          {/* Coding Guidelines */}
-          <div className={styles.section}>
-            <div className={styles.sectionTitle}>Coding Guidelines</div>
 
-            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-              <button
-                type="button"
-                className={codingType === "CPT" ? styles.activeTab : styles.tab}
-                onClick={() => setCodingType("CPT")}
-              >
-                CPT Codes
-              </button>
+                {/* Provider Info */}
+                <div className={styles.section}>
+                  <div className={styles.sectionTitle}>Provider Information</div>
 
-              <button
-                type="button"
-                className={codingType === "ICD" ? styles.activeTab : styles.tab}
-                onClick={() => setCodingType("ICD")}
-              >
-                ICD Codes
-              </button>
-            </div>
-            {/* Existing CPT Rules */}
-            {codingRulesCPT.length > 0 && (
-              <div className={styles.cardList}>
-                <h4>CPT Coding Rules</h4>
+                  {/* If Existing Client Selected, show read-only info or select */}
+                  {/* {providerType === "existing" && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Selected Client</label>
+                      <div style={{ padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: '#64748b' }}>
+                        {selectedClientId
+                          ? (() => {
+                            const c = (allClients.length > 0 ? allClients : clients).find(cl => cl.id === selectedClientId);
+                            return c ? c.name : "Client Selected"; 
+                          })()
+                          : "No Client Selected (Using New Provider Mode)"
+                        }
+                      </div>
+                    </div>
+                  )} */}
 
-                {codingRulesCPT.map((rule) => (
-                  <div key={rule.id} className={styles.cardItem}>
-                    <div className={styles.cardContent}>
-                      <strong>{rule.cptCode}</strong> – {rule.description}
-                      {rule.ndcCode && <div>NDC: {rule.ndcCode}</div>}
-                      {rule.units && <div>Units: {rule.units}</div>}
-                      {rule.chargePerUnit && <div>Charge: {rule.chargePerUnit}</div>}
-                      {rule.modifier && <div>Modifier: {rule.modifier}</div>}
+                  <div className={styles.formGrid}>
+                    {/* Always show provider fields, but maybe pre-filled? */}
+                    {/* If new, editable. If existing, editable but pre-filled? */}
+
+                    <>
+                      {/* <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                          Provider Name *
+                        </label>
+                        <input
+                          className={styles.input}
+                          value={providerInfo.providerName}
+                          onChange={(e) =>
+                            setProviderInfo({
+                              ...providerInfo,
+                              providerName: e.target.value,
+                            })
+                          }
+                          disabled={providerType === 'existing'} 
+                        />
+                      </div> */}
+
+                      {/* <div className={styles.formGroup}>
+                        <label className={styles.label}>Billing Provider NPI *</label>
+                        <input
+                          className={styles.input}
+                          value={providerInfo.billingProviderNPI}
+                          onChange={(e) =>
+                            setProviderInfo({
+                              ...providerInfo,
+                              billingProviderNPI: e.target.value
+                                .replace(/\D/g, "")
+                                .slice(0, 10),
+                            })
+                          }
+                          placeholder="10-digit NPI"
+                          disabled={providerType === 'existing'}
+                        />
+                      </div> */}
+
+                      {/* Additional Fields */}
+                      {/* <div className={styles.formGroup}>
+                        <label className={styles.label}>Provider Tax ID</label>
+                        <input
+                          className={styles.input}
+                          value={providerInfo.providerTaxID}
+                          onChange={(e) =>
+                            setProviderInfo({
+                              ...providerInfo,
+                              providerTaxID: e.target.value,
+                            })
+                          }
+                        />
+                      </div> */}
+
+                      {/* <div className={styles.formGroup}>
+                        <label className={styles.label}>Practice Name</label>
+                        <input
+                          className={styles.input}
+                          value={providerInfo.practiceName}
+                          onChange={(e) =>
+                            setProviderInfo({
+                              ...providerInfo,
+                              practiceName: e.target.value,
+                            })
+                          }
+                        />
+                      </div> */}
+
+
+
+                      {/* Requested Fields */}
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Software</label>
+                        <input
+                          className={styles.input}
+                          value={providerInfo.software}
+                          onChange={(e) =>
+                            setProviderInfo({
+                              ...providerInfo,
+                              software: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Billing Address</label>
+                        <input
+                          className={styles.input}
+                          value={providerInfo.billingAddress}
+                          onChange={(e) =>
+                            setProviderInfo({
+                              ...providerInfo,
+                              billingAddress: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Clearing house</label>
+                        <input
+                          className={styles.input}
+                          value={providerInfo.clearinghouse}
+                          onChange={(e) =>
+                            setProviderInfo({
+                              ...providerInfo,
+                              clearinghouse: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </>
+
+                  </div>
+                </div>
+
+                {/* Workflow */}
+                <div className={styles.section}>
+                  <div className={styles.sectionTitle}>Workflow Process</div>
+                  <div className={styles.formGrid}>
+                    <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                      <label className={styles.label}>Workflow Description *</label>
+                      <textarea
+                        className={styles.textarea}
+                        value={workflowDescription}
+                        onChange={(e) => setWorkflowDescription(e.target.value)}
+                        placeholder="Describe how superbills are received and processed..."
+                      />
+                    </div>
+                    {/* ... rest of workflow ... */}
+                    <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                      <label className={styles.label}>Posting Charges Rules</label>
+                      <textarea
+                        className={styles.textarea}
+                        value={postingCharges}
+                        onChange={(e) => setPostingCharges(e.target.value)}
+                        placeholder="Rules for posting charges..."
+                      />
                     </div>
 
+                    <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                      <label className={styles.label}>Eligibility Verification Portals</label>
+                      <div className={styles.addWrapper}>
+                        <div style={{ display: "flex", gap: "8px", flex: 1 }}>
+                          <input
+                            className={styles.input}
+                            value={newPortal}
+                            onChange={(e) => setNewPortal(e.target.value)}
+                            placeholder="Add portal URL or name..."
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddPortal();
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className={styles.saveButton}
+                            onClick={handleAddPortal}
+                            style={{ minWidth: "auto", padding: "8px 12px" }}
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                        <div className={styles.tagsList}>
+                          {eligibilityPortals.map((portal, idx) => (
+                            <span key={idx} className={styles.tag}>
+                              {portal}
+                              <div
+                                className={styles.removeTag}
+                                onClick={() => handleRemovePortal(idx)}
+                              >
+                                <X size={12} />
+                              </div>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Billing Guidelines */}
+                <div className={styles.section}>
+                  <div className={styles.sectionTitle}>Billing Guidelines</div>
+                  <div className={styles.helperText}>
+                    <div className={styles.formGridWithButton}>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Title</label>
+                        <input
+                          className={styles.input}
+                          value={newGuideline.title}
+                          onChange={(e) =>
+                            setNewGuideline({
+                              ...newGuideline,
+                              title: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Description</label>
+                        <input
+                          className={styles.input}
+                          value={newGuideline.description}
+                          onChange={(e) =>
+                            setNewGuideline({
+                              ...newGuideline,
+                              description: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>&nbsp;</label>
+                        <button
+                          type="button"
+                          className={styles.saveButton}
+                          onClick={handleAddGuideline}
+                        >
+                          <Plus size={16} /> Add Guideline
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.cardList}>
+                    {billingGuidelines.map((g, i) => (
+                      <div key={i} className={styles.cardItem}>
+                        <div className={styles.cardContent}>
+                          <h4>{g.category}</h4>
+                          <ul style={{ paddingLeft: "18px", margin: 0 }}>
+                            {(g.rules ?? []).map((r, j) => (
+                              <li key={j}>{r.description}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <button
+                          className={styles.deleteButton}
+                          onClick={() => handleRemoveGuideline(g.id, i)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Payer Guidelines */}
+                <div className={styles.section}>
+                  <div className={styles.sectionTitle}>Payer Guidelines</div>
+
+                  <div className={styles.formGridWithButton}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Payer Name</label>
+                      <input
+                        className={styles.input}
+                        value={newPayerGuideline.payer_name}
+                        onChange={(e) =>
+                          setNewPayerGuideline({
+                            ...newPayerGuideline,
+                            payer_name: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., Medicare, Aetna"
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Description</label>
+                      <input
+                        className={styles.input}
+                        value={newPayerGuideline.description}
+                        onChange={(e) =>
+                          setNewPayerGuideline({
+                            ...newPayerGuideline,
+                            description: e.target.value,
+                          })
+                        }
+                        placeholder="Enter guideline..."
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>&nbsp;</label>
+                      <button
+                        type="button"
+                        className={styles.saveButton}
+                        onClick={() => {
+                          if (newPayerGuideline.payer_name && newPayerGuideline.description) {
+                            setPayerGuidelines([...payerGuidelines, { ...newPayerGuideline, id: `pg_temp_${Date.now()}` }]);
+                            setNewPayerGuideline({ payer_name: "", description: "" });
+                          }
+                        }}
+                      >
+                        <Plus size={16} /> Add
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={styles.cardList}>
+                    {payerGuidelines.map((pg, i) => (
+                      <div key={pg.id || i} className={styles.cardItem}>
+                        <div className={styles.cardContent}>
+                          <h4>{pg.payer_name}</h4>
+                          <p>{pg.description}</p>
+                        </div>
+                        <button
+                          className={styles.deleteButton}
+                          onClick={() => setPayerGuidelines(prev => prev.filter((_, idx) => idx !== i))}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Coding Rules */}
+                <div className={styles.section}>
+                  <div className={styles.sectionTitle}>Coding Rules</div>
+                  {/* ... Coding Rules existing UI ... */}
+                  <div className={styles.toggleGroup}>
                     <button
-                      className={styles.deleteButton}
-                      onClick={() => rule.id && handleRemoveCpt(rule.id)}
+                      className={`${styles.toggleButton} ${codingType === "CPT" ? styles.active : ""}`}
+                      onClick={() => setCodingType("CPT")}
                     >
-                      <Trash2 size={16} />
+                      CPT Codes
                     </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {codingRulesICD.length > 0 && (
-              <div className={styles.cardList}>
-                <h4>ICD Coding Rules</h4>
-
-                {codingRulesICD.map((rule) => (
-                  <div key={rule.id} className={styles.cardItem}>
-                    <div className={styles.cardContent}>
-                      <strong>{rule.icdCode}</strong> – {rule.description}
-                      {rule.notes && <div>Notes: {rule.notes}</div>}
-                    </div>
-
                     <button
-                      className={styles.deleteButton}
-                      onClick={() => rule.id && handleRemoveIcd(rule.id)}        >
-                      <Trash2 size={16} />
+                      className={`${styles.toggleButton} ${codingType === "ICD" ? styles.active : ""}`}
+                      onClick={() => setCodingType("ICD")}
+                    >
+                      ICD Codes
                     </button>
                   </div>
-                ))}
+
+                  <div className={styles.helperText}>
+                    {codingType === "CPT" ? (
+                      <div className={styles.formGridWithButton}>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>CPT Code</label>
+                          <input className={styles.input} value={newCpt.cptCode} onChange={e => setNewCpt({ ...newCpt, cptCode: e.target.value })} />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Description</label>
+                          <input className={styles.input} value={newCpt.description} onChange={e => setNewCpt({ ...newCpt, description: e.target.value })} />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>&nbsp;</label>
+                          <button type="button" className={styles.saveButton} onClick={handleAddCodingRule}>
+                            <Plus size={16} /> Add
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={styles.formGridWithButton}>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>ICD Code</label>
+                          <input className={styles.input} value={newIcd.icdCode} onChange={e => setNewIcd({ ...newIcd, icdCode: e.target.value })} />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Description</label>
+                          <input className={styles.input} value={newIcd.description} onChange={e => setNewIcd({ ...newIcd, description: e.target.value })} />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>&nbsp;</label>
+                          <button type="button" className={styles.saveButton} onClick={handleAddCodingRule}>
+                            <Plus size={16} /> Add
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.cardList}>
+                    {codingType === "CPT" ? (
+                      codingRulesCPT.map((r, i) => (
+                        <div key={i} className={styles.cardItem}>
+                          <div className={styles.cardContent}>
+                            <h4>{r.cptCode}</h4>
+                            <p>{r.description}</p>
+                          </div>
+                          <button className={styles.deleteButton} onClick={() => handleRemoveCpt(r.id!)}><Trash2 size={16} /></button>
+                        </div>
+                      ))
+                    ) : (
+                      codingRulesICD.map((r, i) => (
+                        <div key={i} className={styles.cardItem}>
+                          <div className={styles.cardContent}>
+                            <h4>{r.icdCode}</h4>
+                            <p>{r.description}</p>
+                          </div>
+                          <button className={styles.deleteButton} onClick={() => handleRemoveIcd(r.id!)}><Trash2 size={16} /></button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+
               </div>
             )}
 
+            {/* Step 4: Preview & Save */}
+            {getSteps().find(s => s.number === currentStep)?.title === "Preview & Save" && (
+              <div className={styles.stepContainer}>
+                <div className={styles.section}>
+                  <div className={styles.sectionTitle}>Review & Submit</div>
 
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  {codingType === "CPT" ? "CPT Code" : "ICD Code"}
-                </label>
+                  <div className={styles.previewSection}>
+                    <div className={styles.previewHeaderRow}>
+                      <h3 className={styles.previewHeader}>Basic Information</h3>
+                      <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(1)} title="Edit Basic Info">
+                        <Edit2 size={14} />
+                      </button>
+                    </div>
+                    <div className={styles.previewGrid}>
+                      <div className={styles.previewItem}>
+                        <label>Title</label>
+                        <span>{title}</span>
+                      </div>
+                      <div className={styles.previewItem}>
+                        <label>Category</label>
+                        <span>{category}</span>
+                      </div>
+                      <div className={styles.previewItem}>
+                        <label>Provider Type</label>
+                        <span>{providerType === 'new' ? 'New Provider' : 'Existing Client'}</span>
+                      </div>
+                    </div>
+                  </div>
 
-                <input
-                  className={styles.input}
-                  value={codingType === "CPT" ? newCpt.cptCode : newIcd.icdCode}
-                  onChange={(e) =>
-                    codingType === "CPT"
-                      ? setNewCpt({ ...newCpt, cptCode: e.target.value })
-                      : setNewIcd({ ...newIcd, icdCode: e.target.value })
-                  }
-                />
-              </div>
+                  {providerType === 'new' && (
+                    <div className={styles.previewSection}>
+                      <div className={styles.previewHeaderRow}>
+                        <h3 className={styles.previewHeader}>Provider Information</h3>
+                        <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(1)} title="Edit Provider Info">
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                      <div className={styles.previewGrid}>
+                        <div className={styles.previewItem}>
+                          <label>Name</label>
+                          <span>{providerInfo.providerName}</span>
+                        </div>
+                        <div className={styles.previewItem}>
+                          <label>NPI</label>
+                          <span>{providerInfo.billingProviderNPI}</span>
+                        </div>
+                        <div className={styles.previewItem}>
+                          <label>Software</label>
+                          <span>{providerInfo.software || '-'}</span>
+                        </div>
+                        <div className={styles.previewItem}>
+                          <label>Billing Address</label>
+                          <span>{providerInfo.billingAddress || '-'}</span>
+                        </div>
+                        <div className={styles.previewItem}>
+                          <label>Clearing house</label>
+                          <span>{providerInfo.clearinghouse || '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Description</label>
-                <input
-                  className={styles.input}
-                  value={codingType === "CPT" ? newCpt.description : newIcd.description}
-                  onChange={(e) =>
-                    codingType === "CPT"
-                      ? setNewCpt({ ...newCpt, description: e.target.value })
-                      : setNewIcd({ ...newIcd, description: e.target.value })
-                  }
-                />
-              </div>
-              {codingType === "ICD" && (
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Notes</label>
-                  <textarea
-                    className={styles.textarea}
-                    value={newIcd.notes}
-                    onChange={(e) =>
-                      setNewIcd({ ...newIcd, notes: e.target.value })
-                    }
-                    placeholder="Optional ICD-specific notes or rules"
-                  />
+                  {/* Workflow Process */}
+                  <div className={styles.previewSection}>
+                    <div className={styles.previewHeaderRow}>
+                      <h3 className={styles.previewHeader}>Workflow Process</h3>
+                      <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(1)} title="Edit Workflow">
+                        <Edit2 size={14} />
+                      </button>
+                    </div>
+                    <div className={styles.previewItem} style={{ marginBottom: '12px' }}>
+                      <label>Workflow Description</label>
+                      <p className={styles.previewText}>{workflowDescription || '-'}</p>
+                    </div>
+                    <div className={styles.previewItem} style={{ marginBottom: '12px' }}>
+                      <label>Posting Charges Rules</label>
+                      <p className={styles.previewText}>{postingCharges || '-'}</p>
+                    </div>
+                    {eligibilityPortals.length > 0 && (
+                      <div className={styles.previewItem}>
+                        <label>Eligibility Verification Portals</label>
+                        <ul className={styles.previewList}>
+                          {eligibilityPortals.map((portal, i) => (
+                            <li key={i}>{portal}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Billing Guidelines */}
+                  {billingGuidelines.length > 0 && (
+                    <div className={styles.previewSection}>
+                      <div className={styles.previewHeaderRow}>
+                        <h3 className={styles.previewHeader}>Billing Guidelines</h3>
+                        <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(1)} title="Edit Billing Guidelines">
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                      {billingGuidelines.map((bg, i) => (
+                        <div key={i} className={styles.previewSubItem}>
+                          <strong>{bg.category}</strong>
+                          <ul className={styles.previewListBullet}>
+                            {bg.rules?.map((r, j) => (
+                              <li key={j}>{r.description}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Payer Guidelines */}
+                  {payerGuidelines.length > 0 && (
+                    <div className={styles.previewSection}>
+                      <div className={styles.previewHeaderRow}>
+                        <h3 className={styles.previewHeader}>Payer Guidelines</h3>
+                        <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(1)} title="Edit Payer Guidelines">
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                      {payerGuidelines.map((pg, i) => (
+                        <div key={i} className={styles.previewSubItem}>
+                          <strong>{pg.payer_name}</strong>
+                          <p>{pg.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Coding Guidelines */}
+                  {(codingRulesCPT.length > 0 || codingRulesICD.length > 0) && (
+                    <div className={styles.previewSection}>
+                      <div className={styles.previewHeaderRow}>
+                        <h3 className={styles.previewHeader}>Coding Guidelines</h3>
+                        <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(1)} title="Edit Coding Guidelines">
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+
+                      {codingRulesCPT.length > 0 && (
+                        <div className={styles.previewSubGroup}>
+                          <h4 className={styles.previewSubHeader}>CPT Codes</h4>
+                          <div className={styles.cardList}>
+                            {codingRulesCPT.map((rule, i) => (
+                              <div key={i} className={styles.previewCard}>
+                                <div className={styles.cardContent}>
+                                  <div><strong>{rule.cptCode}</strong> – {rule.description}</div>
+                                  {rule.ndcCode && <div className={styles.mutedText}>NDC: {rule.ndcCode}</div>}
+                                  {rule.units && <div className={styles.mutedText}>Units: {rule.units}</div>}
+                                  {rule.chargePerUnit && <div className={styles.mutedText}>Charge: {rule.chargePerUnit}</div>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {codingRulesICD.length > 0 && (
+                        <div className={styles.previewSubGroup}>
+                          <h4 className={styles.previewSubHeader}>ICD Codes</h4>
+                          <div className={styles.cardList}>
+                            {codingRulesICD.map((rule, i) => (
+                              <div key={i} className={styles.previewCard}>
+                                <div className={styles.cardContent}>
+                                  <div><strong>{rule.icdCode}</strong> – {rule.description}</div>
+                                  {rule.notes && <div className={styles.mutedText}>Notes: {rule.notes}</div>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedClientId && (
+                    <div className={styles.previewSection}>
+                      <div className={styles.previewHeaderRow}>
+                        <h3 className={styles.previewHeader}>Selected Client</h3>
+                        <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(1)} title="Edit Client">
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                      <div className={styles.previewGrid}>
+                        {(() => {
+                          const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
+                          return client ? (
+                            <>
+                              <div className={styles.previewItem}>
+                                <label>Client Name</label>
+                                <span>{client.name || (client.type === 'individual' ? `${client.first_name} ${client.last_name}` : client.business_name)}</span>
+                              </div>
+                              <div className={styles.previewItem}>
+                                <label>NPI</label>
+                                <span>{client.npi}</span>
+                              </div>
+                            </>
+                          ) : <div>No client selected</div>;
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedProvidersList.length > 0 && (
+                    <div className={styles.previewSection}>
+                      <div className={styles.previewHeaderRow}>
+                        <h3 className={styles.previewHeader}>Selected Providers ({selectedProvidersList.length})</h3>
+                        <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(2)} title="Edit Providers">
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                      <ul className={styles.previewList}>
+                        {selectedProvidersList.map(p => (
+                          <li key={p.id}>{p.first_name} {p.last_name} <span className={styles.mutedText}>({p.npi})</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
-              {codingType === "CPT" && (
+          </div>
+
+          {/* Footer */}
+          <div className={styles.footer}>
+            {currentStep == 1 && (
+              <button
+                className={styles.backButton}
+                onClick={() => navigate("/sops")}
+              >
+                Close
+              </button>
+            )}
+
+            {currentStep > 1 && (
+              <button
+                className={styles.backButton}
+                onClick={handleBackStep}
+              >
+                Back
+              </button>
+            )}
+
+            <button
+              className={styles.saveButton}
+              onClick={currentStep === getSteps().length ? handleSave : handleNextStep}
+              disabled={saving}
+            >
+              {currentStep === getSteps().length ? (
                 <>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>NDC Code</label>
-                    <input
-                      className={styles.input}
-                      value={newCpt.ndcCode}
-                      onChange={(e) =>
-                        setNewCpt({ ...newCpt, ndcCode: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Units</label>
-                    <input
-                      className={styles.input}
-                      value={newCpt.units}
-                      onChange={(e) =>
-                        setNewCpt({ ...newCpt, units: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Charge per Unit</label>
-                    <input
-                      className={styles.input}
-                      value={newCpt.chargePerUnit}
-                      onChange={(e) =>
-                        setNewCpt({ ...newCpt, chargePerUnit: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Modifier</label>
-                    <input
-                      className={styles.input}
-                      value={newCpt.modifier}
-                      onChange={(e) =>
-                        setNewCpt({ ...newCpt, modifier: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Replacement CPT</label>
-                    <input
-                      className={styles.input}
-                      value={newCpt.replacementCPT}
-                      onChange={(e) =>
-                        setNewCpt({ ...newCpt, replacementCPT: e.target.value })
-                      }
-                    />
-                  </div>
+                  <Save size={16} />
+                  {saving ? "Creating..." : "Create SOP"}
+                </>
+              ) : (
+                <>
+                  Next <ChevronRight size={16} />
                 </>
               )}
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>&nbsp;</label>
-                <button
-                  type="button"
-                  className={styles.saveButton}
-                  onClick={handleAddCodingRule}
-                >
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-            </div>
+            </button>
           </div>
-          <ConfirmModal
-            isOpen={isResetModalOpen}
-            onClose={() => setIsResetModalOpen(false)}
-            onConfirm={confirmReset}
-            title="Reset Form"
-            message="Are you sure you want to reset the form? All unsaved changes will be lost."
-            confirmText="Reset"
-            type="warning"
-          />
         </div>
+      </div>
+
+      <ConfirmModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        onConfirm={confirmReset}
+        title="Reset Form"
+        message="Are you sure you want to reset the form? All unsaved changes will be lost."
+        confirmText="Reset"
+        type="warning"
+      />
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

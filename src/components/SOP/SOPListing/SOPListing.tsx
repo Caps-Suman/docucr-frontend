@@ -264,7 +264,7 @@ const SOPListing: React.FC = () => {
   };
 
   const handleCreateSOP = () => {
-    setClientModalOpen(true);
+    navigate("/sops/create");
   };
 
   const handleClientSelect = (client: { id: string, name: string, npi: string, type: string }) => {
