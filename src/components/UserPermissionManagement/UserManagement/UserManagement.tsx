@@ -15,6 +15,8 @@ import './UserManagement.css';
 import ClientModal from '../../ClientManagement/ClientModal';
 import clientService from '../../../services/client.service';
 import ClientMappingModal from './ClientMappingModal';
+import ClientSelectionModal from '../../SOP/SOPListing/ClientSelectionModal';
+import { UserTypeModal } from './UserTypeModal';
 
 type StatCard = {
     title: string
@@ -39,6 +41,15 @@ const UserManagement: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
     // const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
+const [userTypeModalOpen, setUserTypeModalOpen] = useState(false);
+const [selectedUserType, setSelectedUserType] = useState<"internal" | "client" | null>(null);
+
+const [clientSelectionOpen, setClientSelectionOpen] = useState(false);
+const [selectedClient, setSelectedClient] = useState<any>(null);
+
+
+const canChooseUserType =
+  currentUser?.role?.name === "ORGANISATION_ROLE";
 
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; user: User | null; action: 'toggle' }>({ isOpen: false, user: null, action: 'toggle' });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -156,10 +167,17 @@ const UserManagement: React.FC = () => {
         }
     };
 
-    const handleAddNew = () => {
-        setEditingUser(null);
+const handleAddNew = () => {
+    setEditingUser(null);
+    setSelectedClient(null);
+
+    if (canChooseUserType) {
+        setUserTypeModalOpen(true);
+    } else {
         setIsModalOpen(true);
-    };
+    }
+};
+
 
     const handleModalClose = () => {
         setIsModalOpen(false);
@@ -184,41 +202,49 @@ const UserManagement: React.FC = () => {
 
         }
     };
-
+    
     const handleCrossCreationConfirm = () => {
         setShowCrossCreationConfirm(false);
         setIsClientModalOpen(true);
     };
 
-    const handleModalSubmit = async (data: any) => {
-        try {
-            if (editingUser) {
-                await userService.updateUser(editingUser.id, data);
-                setToast({ message: 'User updated successfully', type: 'success' });
-                handleModalClose();
-                loadData();
-            } else {
-                const newUser = await userService.createUser(data);
-                setToast({ message: 'User created successfully', type: 'success' });
-                handleModalClose();
-                loadData();
+const handleModalSubmit = async (data: any) => {
+  try {
+    if (selectedUserType === "client" && selectedClient) {
+      data.client_id = selectedClient.id;
+    }
 
-                // Setup and show cross-creation confirmation
-                setCrossCreationData({
-                    user_id: newUser.id,
-                    first_name: data.first_name,
-                    middle_name: data.middle_name,
-                    last_name: data.last_name,
-                    description: `Linked user: ${data.username}`
-                });
-                setShowCrossCreationConfirm(true);
-            }
-        } catch (error: any) {
-            console.error('Failed to save user:', error);
-            const errorMessage = error?.message || 'Failed to save user';
-            setToast({ message: errorMessage, type: 'error' });
-        }
-    };
+    await userService.createUser(data);
+
+    setToast({ message: "User created", type: "success" });
+    setIsModalOpen(false);
+    loadData();
+
+    setSelectedClient(null);
+    setSelectedUserType(null);
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+const handleUserTypeNext = (type: "internal" | "client") => {
+  setSelectedUserType(type);
+  setUserTypeModalOpen(false);
+
+  if (type === "internal") {
+    setIsModalOpen(true);
+    return;
+  }
+
+  // client user
+  setClientSelectionOpen(true);
+};
+
+const handleClientSelected = (client: any) => {
+  setSelectedClient(client);
+  setClientSelectionOpen(false);
+  setIsModalOpen(true);
+};
 
     const handleToggleStatus = (user: User) => {
         if (user.is_superuser) {
@@ -500,23 +526,15 @@ const UserManagement: React.FC = () => {
                     setCurrentPage(0);
                 }}
             />
-            <UserModal
-                isOpen={isModalOpen}
-                onClose={handleModalClose}
-                onSubmit={handleModalSubmit}
-                initialData={editingUser ? {
-                    id: editingUser.id,
-                    email: editingUser.email,
-                    username: editingUser.username,
-                    first_name: editingUser.first_name || '',
-                    middle_name: editingUser.middle_name || '',
-                    last_name: editingUser.last_name || '',
-                    roles: editingUser.roles,
-                    supervisor_id: editingUser.supervisor_id || undefined
-                } : undefined}
-                title={editingUser ? 'Edit User' : 'Add New User'}
-                roles={roles}
-            />
+<UserModal
+  isOpen={isModalOpen}
+  onClose={handleModalClose}
+  onSubmit={handleModalSubmit}
+  title="Add User"
+  roles={roles}
+  isClientUser={selectedUserType === "client"}
+  clientName={selectedClient?.name}
+/>
 
             <ChangePasswordModal
                 isOpen={!!changePasswordUser}
@@ -567,6 +585,19 @@ const UserManagement: React.FC = () => {
                 user={clientMappingModal.user}
                 onUpdate={loadData}
             />
+
+<UserTypeModal
+  isOpen={userTypeModalOpen}
+  onClose={() => setUserTypeModalOpen(false)}
+  onNext={handleUserTypeNext}
+/>
+
+<ClientSelectionModal
+  isOpen={clientSelectionOpen}
+  onClose={() => setClientSelectionOpen(false)}
+  onSelect={handleClientSelected}
+/>
+
         </div>
     );
 };
