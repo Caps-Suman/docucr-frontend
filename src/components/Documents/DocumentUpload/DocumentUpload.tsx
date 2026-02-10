@@ -131,16 +131,24 @@ const fetchSystemFieldData = async (fields: FormField[]) => {
         ]);
       } else {
         // 🔓 NON-CLIENT USERS → ASSIGNED / VISIBLE CLIENTS
-        const res = await clientService.getVisibleClients();
+        // const res = await clientService.getVisibleClients();
+        const res = await clientService.getAllClients();
 
-        setClients(
+         setClients(
           res.map(c => ({
             id: c.id,
-            name:
-              c.business_name ||
-              `${c.first_name} ${c.last_name}`.trim()
+            name: c.name.trim()
           }))
         );
+
+        // setClients(
+        //   res.map(c => ({
+        //     id: c.id,
+        //     name:
+        //       c.business_name ||
+        //       `${c.first_name} ${c.last_name}`.trim()
+        //   }))
+        // );
       }
     }
     
@@ -174,10 +182,27 @@ const initializeFormData = (form: Form) => {
         return; // keep auto-filled client
       }
 
-      next[field.id!] =
-        field.field_type === "checkbox"
-          ? field.default_value ?? []
-          : field.default_value ?? "";
+ if (field.field_type === "checkbox") {
+  next[field.id!] = field.default_value ?? [];
+}
+
+else if (field.field_type === "date") {
+  const today = new Date();
+
+  const formatted =
+    today.getFullYear() +
+    "-" +
+    String(today.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(today.getDate()).padStart(2, "0");
+
+  next[field.id!] = field.default_value ?? formatted;
+}
+
+else {
+  next[field.id!] = field.default_value ?? "";
+}
+
     });
 
     return next;
