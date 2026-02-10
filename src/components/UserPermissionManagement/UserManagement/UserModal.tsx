@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { X, ChevronRight, ChevronLeft } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { X, ChevronRight, ChevronLeft, Building2, User2, Search } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../../styles/selectStyles";
 import styles from "./UserModal.module.css";
 import userService from "../../../services/user.service";
 import clientService from "../../../services/client.service";
-import ClientSelectionModal from "../../SOP/SOPListing/ClientSelectionModal";
+import CommonPagination from "../../Common/CommonPagination"; // Added import
+import Loading from "../../Common/Loading";
 
 interface UserModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface UserModalProps {
     phone_number?: string;
     role_ids: string[];
     supervisor_id?: string;
+    client_id?: string | null; // Added | null for explicit unmapping
   }) => void;
   initialData?: {
     id?: string;
@@ -29,8 +31,13 @@ interface UserModalProps {
     first_name: string;
     middle_name?: string;
     last_name: string;
+    password?: string;
+    phone_country_code?: string;
+    phone_number?: string;
     roles: Array<{ id: string; name: string }>;
     supervisor_id?: string;
+    client_id?: string;
+    client_name?: string;
   };
   title?: string;
   roles?: Array<{ id: string; name: string }>;
@@ -43,7 +50,7 @@ interface UserModalProps {
   isLoading?: boolean;
 }
 
-const UserModal: React.FC<UserModalProps > = ({
+const UserModal: React.FC<UserModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
@@ -58,7 +65,7 @@ const UserModal: React.FC<UserModalProps > = ({
   canChooseUserType,   // ← add here
   isLoading,
 }) => {
-const [step, setStep] = useState(0);
+  const [step, setStep] = useState(0);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -73,7 +80,7 @@ const [step, setStep] = useState(0);
     { value: string; label: string }[]
   >([]);
 
-const isClientMode = isClientUser;
+  const isClientMode = isClientUser;
 
   const [supervisorRole, setSupervisorRole] = useState<{
     value: string;
@@ -92,55 +99,99 @@ const isClientMode = isClientUser;
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-const [clients, setClients] = useState<any[]>([]);
-const [userType, setUserType] =
-  useState<"internal" | "client" | null>(null);
-const isEditMode = !!initialData?.id;
+  // Client Selection State
+  const [clients, setClients] = useState<any[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [userType, setUserType] = useState<"internal" | "client" | null>(null);
+  const isEditMode = !!initialData?.id;
 
+  const [selectedClient, setSelectedClient] = useState<any>(null);
 
-const [selectedClient, setSelectedClient] = useState<any>(null);
-const [clientModalOpen, setClientModalOpen] = useState(false);
-
-useEffect(() => {
-  console.log("allowUserTypeSelection in modal:", allowUserTypeSelection);
-}, [allowUserTypeSelection]);
-
-const goBackToType = () => {
-  setUserType(null);
-  setSelectedClient(null);
-  setStep(0);
-};
+  // Search & Pagination for Clients
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
-    if (initialData) {
-      setEmail(initialData.email);
-      setUsername(initialData.username);
-      setFirstName(initialData.first_name);
-      setMiddleName(initialData.middle_name || "");
-      setLastName(initialData.last_name);
-      setPhoneCountryCode((initialData as any).phone_country_code || "+91");
-      setPhoneNumber((initialData as any).phone_number || "");
-      setUserRoles(
-        initialData.roles.map((r) => ({ value: r.id, label: r.name })),
-      );
-      setSelectedSupervisor(initialData.supervisor_id || null);
-      setSelectedSupervisor(initialData.supervisor_id || "");
-      setPassword("");
-    } else {
-      setEmail("");
-      setUsername("");
-      setFirstName("");
-      setMiddleName("");
-      setLastName("");
-      setPassword("");
-      setPhoneCountryCode("+91");
-      setPhoneNumber("");
-      setUserRoles([]);
-      setSelectedSupervisor("");
-    }
-    setStep(1);
-    setErrors({});
-  }, [initialData, isOpen]);
+    console.log("allowUserTypeSelection in modal:", allowUserTypeSelection);
+  }, [allowUserTypeSelection]);
+
+  const goBackToType = () => {
+    setUserType(null);
+    setSelectedClient(null);
+    setStep(0);
+  };
+
+  useEffect(() => {
+    const initializeData = async () => {
+      if (initialData) {
+        setEmail(initialData.email);
+        setUsername(initialData.username);
+        setFirstName(initialData.first_name);
+        setMiddleName(initialData.middle_name || "");
+        setLastName(initialData.last_name);
+        setPhoneCountryCode((initialData as any).phone_country_code || "+91");
+        setPhoneNumber((initialData as any).phone_number || "");
+        setUserRoles(
+          initialData.roles.map((r) => ({ value: r.id, label: r.name })),
+        );
+        setSelectedSupervisor(initialData.supervisor_id || null);
+        setPassword("");
+
+        // CHECK FOR CLIENT MAPPING
+        if (initialData.client_id) {
+          setUserType("client");
+          try {
+            // Fetch all clients to find the name, or if there's a specific getClient endpoints
+            // Since we have pagination, finding in 'all' might get expensive, but let's try getting all for now 
+            // as per existing pattern or use a cached lookup if available.
+            // Better: If client_name was available it would be easier. Use placeholder or fetch.
+            // Assumption: clientService has getAllClients. 
+            const allClients = await clientService.getAllClients();
+            const matched = allClients.find((c: any) => c.id === initialData.client_id);
+            setSelectedClient({
+              id: initialData.client_id,
+              name: matched?.name || initialData.client_name || "Unknown Client",
+              npi: matched?.npi
+            });
+          } catch (e) {
+            console.error("Error fetching client details", e);
+            setSelectedClient({ id: initialData.client_id, name: "Unknown Client" });
+          }
+        } else {
+          setUserType("internal");
+          setSelectedClient(null);
+        }
+      } else {
+        setEmail("");
+        setUsername("");
+        setFirstName("");
+        setMiddleName("");
+        setLastName("");
+        setPassword("");
+        setPhoneCountryCode("+91");
+        setPhoneNumber("");
+        setUserRoles([]);
+        setSelectedSupervisor("");
+        setUserType(null);
+        setSelectedClient(null);
+      }
+
+      // Initial Step Logic
+      if (allowUserTypeSelection) {
+        setStep(0);
+      } else {
+        // Fallback if type selection not allowed (e.g. non-org user?)
+        // If editing, go to form. If creating, go to form (internal default).
+        setStep(1);
+        if (!initialData?.id) setUserType("internal");
+      }
+
+      setErrors({});
+    };
+
+    initializeData();
+  }, [initialData, isOpen, allowUserTypeSelection]);
 
   useEffect(() => {
     if (!supervisorRole) {
@@ -176,39 +227,23 @@ const goBackToType = () => {
     };
   }, [supervisorRole]);
 
-//   const goBack = () => {
-//   if (step === 2 && userType === "client") setStep(1);
-//   else if (step === 2 && userType === "internal") setStep(0);
-//   else if (step === 1) setStep(0);
-// };
 
-useEffect(() => {
-  if (!isOpen) return;
+  // Removed the duplicate useEffect for step logic that was here before, 
+  // checking it is now handled in the main initialization useEffect above.
 
-  // EDIT MODE → always step 1
-  if (initialData?.id) {
-    setUserType("internal");
-    setStep(1);
-    return;
-  }
-
-  // CREATE MODE
-  if (allowUserTypeSelection) {
-    setStep(0);
-    setUserType(null);
-  } else {
-    setUserType("internal");
-    setStep(1);
-  }
-}, [isOpen, allowUserTypeSelection, initialData]);
-
+  // Fetch clients when switching to client type
   useEffect(() => {
-  if (userType === "client") {
-    clientService.getClients(1, 1000).then(res => {
-      setClients(res.clients);
-    });
-  }
-}, [userType]);
+    if (userType === "client") {
+      setLoadingClients(true);
+      // Using getAllClients or getClients with large number to support client-side pagination as requested
+      clientService.getAllClients()
+        .then(data => {
+          setClients(data);
+        })
+        .catch(err => console.error("Failed to load clients", err))
+        .finally(() => setLoadingClients(false));
+    }
+  }, [userType]);
 
   const validateStep1 = () => {
     const newErrors: { [key: string]: string } = {};
@@ -254,67 +289,91 @@ useEffect(() => {
   };
 
   const handleBack = () => {
-    setStep(1);
+    if (step === 3) {
+      // Back from Client Selection
+      goBackToType();
+    } else if (step === 1 && userType === "client") {
+      setStep(3); // Go back to client selection if coming from there
+    } else if (step === 1 && isEditMode && allowUserTypeSelection) {
+      setStep(0); // Allow going back to type selection in Edit Mode too?
+      // "User should be able to: Change the client" -> yes
+      // "If no client mapping exists: Internal User card must be selected by default."
+      // If they want to switch types, they need to go back to step 0.
+      // Wait, "User Type UI should be shown only if: allowUserTypeSelection"
+      if (allowUserTypeSelection) setStep(0);
+    } else {
+      setStep(0); // Default back to type selection or close?
+    }
   };
 
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateStep1()) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateStep1()) return;
 
-  const payload: any = {
-    email: email.trim(),
-    username: username.trim(),
-    first_name: firstName.trim(),
-    middle_name: middleName.trim() || undefined,
-    last_name: lastName.trim(),
-    phone_country_code: phoneCountryCode,
-    phone_number: phoneNumber || undefined,
-    supervisor_id: selectedSupervisor || undefined,
-  };
+    const payload: any = {
+      email: email.trim(),
+      username: username.trim(),
+      first_name: firstName.trim(),
+      middle_name: middleName.trim() || undefined,
+      last_name: lastName.trim(),
+      phone_country_code: phoneCountryCode,
+      phone_number: phoneNumber || undefined,
+      supervisor_id: selectedSupervisor || undefined,
+    };
 
-  if (!initialData?.id) payload.password = password;
+    if (!initialData?.id) payload.password = password;
 
-  // 🔥 CLIENT USER
-  if (userType === "client") {
-    if (!selectedClient) {
-      alert("Select client");
-      return;
+    // 🔥 CLIENT USER
+    if (userType === "client") {
+      if (!selectedClient) {
+        alert("Select client");
+        return;
+      }
+
+      payload.client_id = selectedClient.id;
     }
 
-    payload.client_id = selectedClient.id;   // ← THIS IS THE ONLY THING NEEDED
-  }
+    // 🔥 INTERNAL USER
+    if (userType === "internal") {
+      payload.role_ids = userRoles.map(r => r.value);
+      // Explicitly remove client_id if we switched to Internal
+      payload.client_id = null;
+    }
 
-  // 🔥 INTERNAL USER
-  if (userType === "internal") {
-    payload.role_ids = userRoles.map(r => r.value);
-  }
+    setIsSubmitting(true);
+    try {
+      await onSubmit(payload);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-  setIsSubmitting(true);
-  try {
-    await onSubmit(payload);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  // Logic for Client Selection Step (Step 3)
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    return clients.filter(
+      (c) =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.npi && c.npi.includes(searchTerm))
+    );
+  }, [clients, searchTerm]);
 
+  const paginatedClients = useMemo(() => {
+    const start = currentPage * itemsPerPage;
+    return filteredClients.slice(start, start + itemsPerPage);
+  }, [filteredClients, currentPage, itemsPerPage]);
 
+  const handleClientSelect = (client: any) => {
+    setSelectedClient(client);
+    // setStep(1); // Removed auto-advance
+  };
+
+  const handlePageChange = (selectedItem: { selected: number }) => {
+    setCurrentPage(selectedItem.selected);
+  };
 
   if (!isOpen) return null;
-const handleClientSelected = (client: any) => {
-  setSelectedClient(client);
-  setClientModalOpen(false);
-  setStep(1); // now go to user form
-};
-const goBack = () => {
-  if (userType === "client") {
-    setClientModalOpen(true);
-    setStep(0);
-    return;
-  }
-
-  setStep(0);
-};
 
   const roleOptions = roles.map((r) => ({ value: r.id, label: r.name }));
   const countryCodeOptions = [
@@ -327,7 +386,8 @@ const goBack = () => {
       <div className={styles.content} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2>
-{title} {!isClientMode && !isEditMode && `- Step ${step} of 2`}
+            {title}
+            {step === 3 ? " - Select Client" : !isClientMode && !isEditMode && step !== 0 && `- Step ${step} of 2`}
             {clientName && (
               <div
                 style={{
@@ -364,37 +424,122 @@ const goBack = () => {
                 <div className={styles.loader}>Loading form data...</div>
               </div>
             )}
-            
-{step === 0 && allowUserTypeSelection && (
-  <div className={styles.typeSelector}>
-    <button
-      type="button"
-      onClick={() => {
-        setUserType("internal");
-        setStep(1); // skip client step
-      }}
-    >
-      Internal User
-    </button>
 
-    <button
-      type="button"
-     onClick={() => {
-  setUserType("client");
-  setClientModalOpen(true);
-}}
-    >
-      Client User
-    </button>
-  </div>
-)}
+            {step === 0 && allowUserTypeSelection && (
+              <div className={styles.typeSelector}>
+                <button
+                  type="button"
+                  className={`${styles.typeCard} ${userType === "internal" ? styles.active : ""}`}
+                  onClick={() => {
+                    setUserType("internal");
+                    setSelectedClient(null);
+                    setStep(1); // skip client step
+                  }}
+                >
+                  <div className={styles.cardContent}>
+                    <div className={styles.iconWrapper}>
+                      <Building2 size={32} className={styles.icon} />
+                    </div>
+                    <h4>Internal User</h4>
+                    <p>For organisation users</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className={`${styles.typeCard} ${styles.client} ${userType === "client" ? styles.active : ""}`}
+                  onClick={() => {
+                    setUserType("client");
+                    setStep(3); // Go to updated Client Selection Step
+                  }}
+                >
+                  <div className={styles.cardContent}>
+                    <div className={styles.iconWrapper}>
+                      <User2 size={32} className={styles.icon} />
+                    </div>
+                    <h4>Client User</h4>
+                    <p>For client-side access & roles</p>
+                  </div>
+                </button>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className={styles.clientSelectionContainer}>
+                <div className={styles.searchWrapper}>
+                  <Search className={styles.searchIcon} size={16} />
+                  <input
+                    type="text"
+                    placeholder="Search by name or NPI..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(0);
+                    }}
+                    className={styles.searchInput}
+                  />
+                </div>
+
+                {loadingClients ? (
+                  <Loading message="Loading clients..." />
+                  // <div className={styles.loader}>Loading clients...</div>
+                ) : filteredClients.length === 0 ? (
+                  <div className={styles.emptyState}>No clients found.</div>
+                ) : (
+                  <>
+                    <div className={styles.tableWrapper}>
+                      <table className={styles.clientTable}>
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>NPI</th>
+                            <th>Type</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedClients.map((client) => (
+                            <tr
+                              key={client.id}
+                              onClick={() => handleClientSelect(client)}
+                              className={`${styles.clientRow} ${selectedClient?.id === client.id ? styles.selectedRow : ""}`}
+                            >
+                              <td>{client.name}</td>
+                              <td>{client.npi || "-"}</td>
+                              <td><span className={styles.badge}>{client.type}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className={styles.paginationWrapper}>
+                      <CommonPagination
+                        pageCount={Math.ceil(filteredClients.length / itemsPerPage)}
+                        onPageChange={handlePageChange}
+                        currentPage={currentPage}
+                        show={true}
+                        renderInPlace={true}
+                        itemsPerPage={itemsPerPage}
+                        onItemsPerPageChange={setItemsPerPage}
+                        totalItems={filteredClients.length}
+                      />
+                    </div>
+                  </>
+                )}
+
+              </div>
+            )}
 
             {step === 1 && (
-
-              
               <>
+                {userType === "client" && selectedClient && (
+                  <div className={styles.selectedClientBanner}>
+                    <span className={styles.bannerLabel}>Selected Client:</span>
+                    <span className={styles.bannerValue}>{selectedClient.name} ({selectedClient.npi || 'No NPI'})</span>
+                    <button type="button" className={styles.changeClientBtn} onClick={() => setStep(3)}>Change</button>
+                  </div>
+                )}
                 <div className={styles.formRow}>
-
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Email *</label>
                     <input
@@ -565,7 +710,7 @@ const goBack = () => {
               </>
             )}
 
-{step === 2 &&  userType === "internal" &&  (
+            {step === 2 && userType === "internal" && (
               <>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>Roles</label>
@@ -677,51 +822,52 @@ const goBack = () => {
               </>
             )}
           </div>
-<div className={styles.actions}>
-  
-  {/* BACK BUTTON — visible after step 0 */}
-{!isEditMode && step > 0 && (
-  <button type="button" onClick={goBackToType}>
-    Back
-  </button>
-)}
+          <div className={styles.actions}>
 
-  {/* INTERNAL FLOW */}
-  {userType === "internal" && step === 1 && (
-    <button type="button" onClick={handleNext}>
-      Next
-    </button>
-  )}
+            {/* BACK BUTTON — visible after step 0, but handle Step 3 separately or encompass it */}
+            {/* Showing Back for Create Mode (steps > 0) OR for Edit Mode if in Step 3 */}
+            {((!isEditMode && step > 0) || step === 3) && (
+              <button type="button" className={styles.backButton} onClick={handleBack}>
+                Back
+              </button>
+            )}
 
-  {/* CREATE BUTTON */}
-{(userType === "client" && step === 1) && (
-  <button type="submit">
-    {isEditMode ? "Update" : "Create"}
-  </button>
-)}
+            {/* STEP 3 NEXT BUTTON */}
+            {step === 3 && (
+              <button
+                type="button"
+                className={styles.nextButton}
+                disabled={!selectedClient}
+                onClick={() => setStep(1)}
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            )}
 
-{userType === "internal" && step === 2 && (
-  <button type="submit">
-    {isEditMode ? "Update" : "Create"}
-  </button>
-)}
+            {/* INTERNAL FLOW */}
+            {userType === "internal" && step === 1 && (
+              <button type="button" className={styles.nextButton} onClick={handleNext}>
+                Next
+              </button>
+            )}
 
+            {/* CREATE BUTTON */}
+            {(userType === "client" && step === 1) && (
+              <button type="submit" className={styles.submitButton}>
+                {isEditMode ? "Update" : "Create"}
+              </button>
+            )}
 
-</div>
+            {userType === "internal" && step === 2 && (
+              <button type="submit" className={styles.submitButton}>
+                {isEditMode ? "Update" : "Create"}
+              </button>
+            )}
 
-
-
+          </div>
         </form>
       </div>
-      <ClientSelectionModal
-  isOpen={clientModalOpen}
-  onClose={() => setClientModalOpen(false)}
-  onSelect={handleClientSelected}
-/>
-
     </div>
-
-    
   );
 };
 

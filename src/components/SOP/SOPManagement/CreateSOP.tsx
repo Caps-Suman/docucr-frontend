@@ -459,7 +459,7 @@ const CreateSOP: React.FC = () => {
 
     try {
       setLoadingClients(true);
-      const data = await clientService.getClientsForSOP();
+      const data = await clientService.getAllClients();
       setAllClients(data);
       setTotalClients(data.length);
 

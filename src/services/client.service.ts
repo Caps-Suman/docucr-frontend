@@ -286,8 +286,8 @@ const clientService = {
         if (!response.ok) throw new Error('Failed to fetch client providers');
         return response.json();
     },
-    getClientsForSOP: async (): Promise<{ id: string; name: string; npi: string; type: string }[]> => {
-        const response = await apiClient(`${API_URL}/api/clients/for-sop`);
+    getAllClients: async (): Promise<{ id: string; name: string; npi: string; type: string }[]> => {
+        const response = await apiClient(`${API_URL}/api/clients/all`);
         if (!response.ok) throw new Error('Failed to fetch clients for SOP');
         return response.json();
     }

@@ -308,3 +308,426 @@
 :global(.dark) .submitButton:hover:not(:disabled) {
   background-color: #83cee4;
 }
+
+
+/* step 1 css for create user */
+.typeSelector {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.typeCard {
+  background: white;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  /* padding: 32px 24px; */
+  padding: 15px 21px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.typeCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.iconWrapper {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  transition: all 0.3s ease;
+}
+
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.cardContent h4 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  transition: color 0.3s ease;
+}
+
+.cardContent p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 200px;
+}
+
+.icon {
+  transition: transform 0.3s ease;
+  font-size: 25px;
+}
+
+.typeCard:hover .icon {
+  transform: scale(1.1);
+}
+
+/* Specific styling for Internal User */
+.internal {
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  border-color: #e2e8f0;
+}
+
+.internal .iconWrapper {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.internal:hover {
+  border-color: #94a3b8;
+}
+
+.internal:hover .iconWrapper {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+/* Specific styling for Client User */
+.client {
+  background: linear-gradient(145deg, #ffffff, #f0f9ff);
+  border-color: #e0f2fe;
+}
+
+.client .iconWrapper {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.client:hover {
+  border-color: #7dd3fc;
+}
+
+.client:hover .iconWrapper {
+  background: #bae6fd;
+  color: #0369a1;
+}
+
+/* Dark mode adjustments */
+:global(.dark) .typeCard {
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+:global(.dark) .typeCard:hover {
+  background: #262e3d;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  border-color: #4b5563;
+}
+
+:global(.dark) .cardContent h4 {
+  color: #f3f4f6;
+}
+
+:global(.dark) .cardContent p {
+  color: #9ca3af;
+}
+
+:global(.dark) .internal {
+  background: linear-gradient(145deg, #1f2937, #111827);
+}
+
+:global(.dark) .internal .iconWrapper {
+  background: #374151;
+  color: #d1d5db;
+}
+
+:global(.dark) .internal:hover .iconWrapper {
+  background: #4b5563;
+  color: #f3f4f6;
+}
+
+:global(.dark) .client {
+  background: linear-gradient(145deg, #1f2937, #1e293b);
+}
+
+:global(.dark) .client .iconWrapper {
+  background: rgba(14, 165, 233, 0.2);
+  color: #38bdf8;
+}
+
+:global(.dark) .client:hover {
+  border-color: #0ea5e9;
+}
+
+:global(.dark) .client:hover .iconWrapper {
+  background: rgba(14, 165, 233, 0.3);
+  color: #7dd3fc;
+}
+
+/* Active State for Cards */
+.typeCard.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.internal.active {
+  border-color: #64748b;
+  background: #f1f5f9;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2);
+}
+
+.client.active {
+  border-color: #0ea5e9;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+}
+
+/* Client Selection Styles */
+.clientSelectionContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.searchWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 12px 10px 36px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+  background: #f8fafc;
+}
+
+.searchInput:focus {
+  background: white;
+  border-color: #83cee4;
+  box-shadow: 0 0 0 3px rgba(131, 206, 228, 0.1);
+}
+
+.tableWrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.clientTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.clientTable th {
+  background: #f8fafc;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.clientTable td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.clientRow {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.clientRow:hover {
+  background: #f8fafc;
+}
+
+.selectedRow {
+  background: #eff6ff !important;
+  border-left: 3px solid #3b82f6;
+}
+
+.selectedRow td {
+  color: #1e3a8a;
+  font-weight: 500;
+}
+
+.clientRow:last-child td {
+  border-bottom: none;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Selected Client Banner in Step 1 */
+.selectedClientBanner {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.bannerLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0369a1;
+  text-transform: uppercase;
+}
+
+.bannerValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: #0c4a6e;
+  flex: 1;
+}
+
+.changeClientBtn {
+  background: white;
+  border: 1px solid #7dd3fc;
+  color: #0284c7;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.changeClientBtn:hover {
+  background: #e0f2fe;
+}
+
+.paginationWrapper {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+.emptyState {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+
+/* Dark mode adjustments for new elements */
+:global(.dark) .searchInput {
+  background: #1f2937;
+  border-color: #374151;
+  color: #f3f4f6;
+}
+
+:global(.dark) .searchInput:focus {
+  background: #1f2937;
+  border-color: #83cee4;
+}
+
+:global(.dark) .tableWrapper {
+  border-color: #374151;
+}
+
+:global(.dark) .clientTable th {
+  background: #1f2937;
+  border-color: #374151;
+  color: #9ca3af;
+}
+
+:global(.dark) .clientTable td {
+  border-color: #374151;
+  color: #d1d5db;
+}
+
+:global(.dark) .clientRow:hover {
+  background: #374151;
+}
+
+:global(.dark) .badge {
+  background: #312e81;
+  color: #c7d2fe;
+}
+
+:global(.dark) .selectedClientBanner {
+  background: #1e3a8a;
+  /* Dark blue background */
+  background: rgba(14, 165, 233, 0.1);
+  border-color: rgba(14, 165, 233, 0.2);
+}
+
+:global(.dark) .bannerLabel {
+  color: #7dd3fc;
+}
+
+:global(.dark) .bannerValue {
+  color: #e0f2fe;
+}
+
+:global(.dark) .changeClientBtn {
+  background: transparent;
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+:global(.dark) .changeClientBtn:hover {
+  background: rgba(56, 189, 248, 0.1);
+}
+
+:global(.dark) .emptyState {
+  background: #1f2937;
+  border-color: #4b5563;
+  color: #9ca3af;
+}

@@ -38,7 +38,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
     const loadClients = async () => {
         setLoading(true);
         try {
-            const data = await clientService.getClientsForSOP();
+            const data = await clientService.getAllClients();
             setClients(data);
         } catch (error) {
             console.error("Failed to load clients:", error);
