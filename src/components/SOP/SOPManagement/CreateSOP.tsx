@@ -274,6 +274,11 @@ const CreateSOP: React.FC = () => {
       setSelectedClientId(sop.clientId || "");
 
       // Map JSONB fields back to state
+      if (sop.providers) {
+        setProviderIds(sop.providers.map((p: any) => p.id));
+        setSelectedProvidersList(sop.providers);
+      }
+
       if (sop.providerInfo) {
         setProviderInfo({
           providerName: sop.providerInfo.providerName ?? "",
@@ -886,7 +891,7 @@ const CreateSOP: React.FC = () => {
               return (
                 <div key={step.number} className={`${styles.stepItem} ${isActive ? styles.active : ''} ${isCompleted ? styles.completed : ''}`}>
                   <div className={styles.stepIndicator}>
-                    {isCompleted ? <Check size={18} /> : step.number}
+                    {isCompleted ? <Check color="white" size={18} /> : step.number}
                   </div>
                   <div className={styles.stepContent}>
                     <div className={styles.stepTitle}>{step.title}</div>
@@ -959,9 +964,12 @@ const CreateSOP: React.FC = () => {
                               height: '18px',
                               borderRadius: '50%',
                               border: selectedClientId === row.id ? '5px solid #3b82f6' : '1px solid #cbd5e1',
-                              cursor: 'pointer'
+                              cursor: isEditMode ? 'not-allowed' : 'pointer',
+                              opacity: isEditMode ? 0.5 : 1
                             }}
-                            onClick={() => {
+                            onClick={(e) => {
+                              if (isEditMode) return;
+                              e.stopPropagation(); // Prevent row click if any
                               if (selectedClientId !== row.id) {
                                 setProviderIds([]);
                                 setSelectedProvidersList([]);
@@ -969,6 +977,7 @@ const CreateSOP: React.FC = () => {
                               setSelectedClientId(row.id);
                               setProviderType("existing");
                             }}
+                            title={isEditMode ? "Cannot change client during edit" : "Select Client"}
                           />
                         ),
                         width: '60px'
@@ -1614,6 +1623,50 @@ const CreateSOP: React.FC = () => {
                 <div className={styles.section}>
                   <div className={styles.sectionTitle}>Review & Submit</div>
 
+                  {selectedClientId && (
+                    <div className={styles.previewSection}>
+                      <div className={styles.previewHeaderRow}>
+                        <h3 className={styles.previewHeader}>Selected Client</h3>
+                        <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(1)} title="Edit Client">
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                      <div className={styles.previewGrid}>
+                        {(() => {
+                          const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
+                          return client ? (
+                            <>
+                              <div className={styles.previewItem}>
+                                <label>Client Name</label>
+                                <span>{client.name || (client.type === 'individual' ? `${client.first_name} ${client.last_name}` : client.business_name)}</span>
+                              </div>
+                              <div className={styles.previewItem}>
+                                <label>NPI</label>
+                                <span>{client.npi}</span>
+                              </div>
+                            </>
+                          ) : <div>No client selected</div>;
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedProvidersList.length > 0 && (
+                    <div className={styles.previewSection}>
+                      <div className={styles.previewHeaderRow}>
+                        <h3 className={styles.previewHeader}>Selected Providers ({selectedProvidersList.length})</h3>
+                        <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(2)} title="Edit Providers">
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                      <ul className={styles.previewList}>
+                        {selectedProvidersList.map(p => (
+                          <li key={p.id}>{p.first_name} {p.last_name} <span className={styles.mutedText}>({p.npi})</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   <div className={styles.previewSection}>
                     <div className={styles.previewHeaderRow}>
                       <h3 className={styles.previewHeader}>Basic Information</h3>
@@ -1784,7 +1837,7 @@ const CreateSOP: React.FC = () => {
                     </div>
                   )}
 
-                  {selectedClientId && (
+                  {/* {selectedClientId && (
                     <div className={styles.previewSection}>
                       <div className={styles.previewHeaderRow}>
                         <h3 className={styles.previewHeader}>Selected Client</h3>
@@ -1826,7 +1879,8 @@ const CreateSOP: React.FC = () => {
                         ))}
                       </ul>
                     </div>
-                  )}
+                  )} */}
+
                 </div>
               </div>
             )}
@@ -1861,7 +1915,8 @@ const CreateSOP: React.FC = () => {
               {currentStep === getSteps().length ? (
                 <>
                   <Save size={16} />
-                  {saving ? "Creating..." : "Create SOP"}
+                  {/* {saving ? "Creating..." : "Create SOP"} */}
+                  {saving ? "Saving..." : isEditMode ? "Update SOP" : "Create New SOP"}
                 </>
               ) : (
                 <>

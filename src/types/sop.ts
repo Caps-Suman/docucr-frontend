@@ -131,6 +131,7 @@ export interface SOP {
   payerGuidelines?:PayerGuidelines[];
   codingRulesCPT?: CodingRuleCPT[];
   codingRulesICD?:CodingRuleICD[];
+  providers?: any[];
   statusId?: number;
     status?: SOPStatus;   // ✅ ADD THIS
     createdAt?: string;

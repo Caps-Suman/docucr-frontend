@@ -39,6 +39,7 @@ const mapExampleToSOP = (data: any): SOP => ({
   billingGuidelines: normalizeBillingGuidelines(data.billing_guidelines),
   codingRulesCPT: data.coding_rules_cpt || [],
   codingRulesICD: data.coding_rules_icd || [],
+  providers: data.providers || [],
 
 
   statusId: data.status_id,
