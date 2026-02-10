@@ -43,19 +43,19 @@ const UserManagement: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
     // const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
-const [userTypeModalOpen, setUserTypeModalOpen] = useState(false);
-const [selectedUserType, setSelectedUserType] = useState<"internal" | "client" | null>(null);
+    const [userTypeModalOpen, setUserTypeModalOpen] = useState(false);
+    const [selectedUserType, setSelectedUserType] = useState<"internal" | "client" | null>(null);
 
-const [clientSelectionOpen, setClientSelectionOpen] = useState(false);
-const [selectedClient, setSelectedClient] = useState<any>(null);
+    const [clientSelectionOpen, setClientSelectionOpen] = useState(false);
+    const [selectedClient, setSelectedClient] = useState<any>(null);
 
-const clientAdminRoleId = roles.find(r => r.name === "CLIENT_ADMIN")?.id;
-const [step, setStep] = useState<0 | 1 | 2>(0);
-const [userType, setUserType] = useState<"internal" | "client" | null>(null);
+    const clientAdminRoleId = roles.find(r => r.name === "CLIENT_ADMIN")?.id;
+    const [step, setStep] = useState<0 | 1 | 2>(0);
+    const [userType, setUserType] = useState<"internal" | "client" | null>(null);
 
-const canChooseUserType =
-  currentUser?.role?.name === "ORGANISATION_ROLE";
-const clientAdmin= currentUser?.role?.name === "CLIENT_ADMIN";
+    const canChooseUserType =
+        currentUser?.role?.name === "ORGANISATION_ROLE";
+    const clientAdmin = currentUser?.role?.name === "CLIENT_ADMIN";
 
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; user: User | null; action: 'toggle' }>({ isOpen: false, user: null, action: 'toggle' });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -120,15 +120,15 @@ const clientAdmin= currentUser?.role?.name === "CLIENT_ADMIN";
         }
     };
 
-const handleEdit = async (user: User) => {
-  try {
-    const fullUser = await userService.getUser(user.id);
-    setEditingUser(fullUser);
-    setIsModalOpen(true);
-  } catch (e) {
-    console.error(e);
-  }
-};
+    const handleEdit = async (user: User) => {
+        try {
+            const fullUser = await userService.getUser(user.id);
+            setEditingUser(fullUser);
+            setIsModalOpen(true);
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
 
     const handleChangePassword = (user: User) => {
@@ -171,31 +171,31 @@ const handleEdit = async (user: User) => {
         }
     };
 
-// const handleAddNew = () => {
-//   setEditingUser(null);
-//   setSelectedClient(null);
+    // const handleAddNew = () => {
+    //   setEditingUser(null);
+    //   setSelectedClient(null);
 
-//   if (canChooseUserType) {
-//     setUserTypeModalOpen(true);
-//   } else {
-//     // not organisation role → directly open modal
-//     setSelectedUserType("internal");
-//     setIsModalOpen(true);
-//   }
-// };
-const handleAddNew = () => {
-    if (!roles.length) {
-    setToast({ message: "Roles still loading. Try again.", type: "warning" });
-    return;
-  }
-  setEditingUser(null);
-  setIsModalOpen(true);
-};
+    //   if (canChooseUserType) {
+    //     setUserTypeModalOpen(true);
+    //   } else {
+    //     // not organisation role → directly open modal
+    //     setSelectedUserType("internal");
+    //     setIsModalOpen(true);
+    //   }
+    // };
+    const handleAddNew = () => {
+        if (!roles.length) {
+            setToast({ message: "Roles still loading. Try again.", type: "warning" });
+            return;
+        }
+        setEditingUser(null);
+        setIsModalOpen(true);
+    };
 
 
-useEffect(() => {
-  loadRoles();
-}, []);
+    useEffect(() => {
+        loadRoles();
+    }, []);
 
     const handleModalClose = () => {
         setIsModalOpen(false);
@@ -220,49 +220,49 @@ useEffect(() => {
 
         }
     };
-    
+
     const handleCrossCreationConfirm = () => {
         setShowCrossCreationConfirm(false);
         setIsClientModalOpen(true);
     };
 
-const handleModalSubmit = async (data: any) => {
-  try {
-    if (editingUser) {
-      await userService.updateUser(editingUser.id, data);
-      setToast({ message: "User updated", type: "success" });
-    } else {
-      await userService.createUser(data);
-      setToast({ message: "User created", type: "success" });
-    }
+    const handleModalSubmit = async (data: any) => {
+        try {
+            if (editingUser) {
+                await userService.updateUser(editingUser.id, data);
+                setToast({ message: "User updated", type: "success" });
+            } else {
+                await userService.createUser(data);
+                setToast({ message: "User created", type: "success" });
+            }
 
-    setIsModalOpen(false);
-    setEditingUser(null);
-    loadData();
-  } catch (e) {
-    console.error(e);
-  }
-};
+            setIsModalOpen(false);
+            setEditingUser(null);
+            loadData();
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
 
-const handleUserTypeNext = (type: "internal" | "client") => {
-  setSelectedUserType(type);
-  setUserTypeModalOpen(false);
+    const handleUserTypeNext = (type: "internal" | "client") => {
+        setSelectedUserType(type);
+        setUserTypeModalOpen(false);
 
-  if (type === "internal") {
-    setIsModalOpen(true);
-    return;
-  }
+        if (type === "internal") {
+            setIsModalOpen(true);
+            return;
+        }
 
-  // client user
-  setClientSelectionOpen(true);
-};
+        // client user
+        setClientSelectionOpen(true);
+    };
 
-const handleClientSelected = (client: any) => {
-  setSelectedClient(client);
-  setClientSelectionOpen(false);
-  setIsModalOpen(true);
-};
+    const handleClientSelected = (client: any) => {
+        setSelectedClient(client);
+        setClientSelectionOpen(false);
+        setIsModalOpen(true);
+    };
 
     const handleToggleStatus = (user: User) => {
         if (user.is_superuser) {
@@ -545,41 +545,43 @@ const handleClientSelected = (client: any) => {
                 }}
             />
             <UserTypeModal
-  isOpen={userTypeModalOpen}
-  onClose={() => setUserTypeModalOpen(false)}
-  onNext={handleUserTypeNext}
-/>
+                isOpen={userTypeModalOpen}
+                onClose={() => setUserTypeModalOpen(false)}
+                onNext={handleUserTypeNext}
+            />
 
-<ClientSelectionModal
-  isOpen={clientSelectionOpen}
-  onClose={() => setClientSelectionOpen(false)}
-  onSelect={handleClientSelected}
-/>
-<UserModal
-  isOpen={isModalOpen}
-  onClose={handleModalClose}
-  onSubmit={handleModalSubmit}
-  title={editingUser ? "Edit User" : "Add User"}
-initialData={
-  editingUser
-    ? {
-        id: editingUser.id,
-        email: editingUser.email || "",
-        username: editingUser.username || "",
-        first_name: editingUser.first_name || "",
-        middle_name: editingUser.middle_name || "",
-        last_name: editingUser.last_name || "",
-        roles: editingUser.roles || [],
-        supervisor_id: editingUser.supervisor_id || undefined,
-      }
-    : undefined
-}
-  roles={roles}
-  clientAdminRoleId={roles.find(r => r.name === "CLIENT_ADMIN")?.id}
-  allowUserTypeSelection={
-    currentUser?.role?.name === "ORGANISATION_ROLE"
-  }
-/>
+            <ClientSelectionModal
+                isOpen={clientSelectionOpen}
+                onClose={() => setClientSelectionOpen(false)}
+                onSelect={handleClientSelected}
+            />
+            <UserModal
+                isOpen={isModalOpen}
+                onClose={handleModalClose}
+                onSubmit={handleModalSubmit}
+                title={editingUser ? "Edit User" : "Add User"}
+                initialData={
+                    editingUser
+                        ? {
+                            id: editingUser.id,
+                            email: editingUser.email || "",
+                            username: editingUser.username || "",
+                            first_name: editingUser.first_name || "",
+                            middle_name: editingUser.middle_name || "",
+                            last_name: editingUser.last_name || "",
+                            roles: editingUser.roles || [],
+                            supervisor_id: editingUser.supervisor_id || undefined,
+                            client_id: editingUser.client_id,
+                            client_name: editingUser.client_name,
+                        }
+                        : undefined
+                }
+                roles={roles}
+                clientAdminRoleId={roles.find(r => r.name === "CLIENT_ADMIN")?.id}
+                allowUserTypeSelection={
+                    currentUser?.role?.name === "ORGANISATION_ROLE"
+                }
+            />
             <ChangePasswordModal
                 isOpen={!!changePasswordUser}
                 onClose={() => setChangePasswordUser(null)}
