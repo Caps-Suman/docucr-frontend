@@ -95,6 +95,7 @@ const isClientMode = isClientUser;
 const [clients, setClients] = useState<any[]>([]);
 const [userType, setUserType] =
   useState<"internal" | "client" | null>(null);
+const isEditMode = !!initialData?.id;
 
 
 const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -184,6 +185,14 @@ const goBackToType = () => {
 useEffect(() => {
   if (!isOpen) return;
 
+  // EDIT MODE → always step 1
+  if (initialData?.id) {
+    setUserType("internal");
+    setStep(1);
+    return;
+  }
+
+  // CREATE MODE
   if (allowUserTypeSelection) {
     setStep(0);
     setUserType(null);
@@ -191,9 +200,7 @@ useEffect(() => {
     setUserType("internal");
     setStep(1);
   }
-}, [isOpen, allowUserTypeSelection]);
-
-
+}, [isOpen, allowUserTypeSelection, initialData]);
 
   useEffect(() => {
   if (userType === "client") {
@@ -253,7 +260,6 @@ useEffect(() => {
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
-
   if (!validateStep1()) return;
 
   const payload: any = {
@@ -269,21 +275,17 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   if (!initialData?.id) payload.password = password;
 
+  // 🔥 CLIENT USER
   if (userType === "client") {
     if (!selectedClient) {
       alert("Select client");
       return;
     }
 
-if (!clientAdminRoleId) {
-  alert("CLIENT_ADMIN role not found");
-  return;
-}
-
-payload.role_ids = [clientAdminRoleId];
-    payload.client_id = selectedClient.id;
+    payload.client_id = selectedClient.id;   // ← THIS IS THE ONLY THING NEEDED
   }
 
+  // 🔥 INTERNAL USER
   if (userType === "internal") {
     payload.role_ids = userRoles.map(r => r.value);
   }
@@ -325,7 +327,7 @@ const goBack = () => {
       <div className={styles.content} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2>
-{title} {!isClientMode && `- Step ${step} of 2`}
+{title} {!isClientMode && !isEditMode && `- Step ${step} of 2`}
             {clientName && (
               <div
                 style={{
@@ -369,7 +371,7 @@ const goBack = () => {
       type="button"
       onClick={() => {
         setUserType("internal");
-        setStep(2); // skip client step
+        setStep(1); // skip client step
       }}
     >
       Internal User
@@ -678,11 +680,11 @@ const goBack = () => {
 <div className={styles.actions}>
   
   {/* BACK BUTTON — visible after step 0 */}
-  {step > 0 && (
-    <button type="button" onClick={goBackToType}>
-      Back
-    </button>
-  )}
+{!isEditMode && step > 0 && (
+  <button type="button" onClick={goBackToType}>
+    Back
+  </button>
+)}
 
   {/* INTERNAL FLOW */}
   {userType === "internal" && step === 1 && (
@@ -692,17 +694,18 @@ const goBack = () => {
   )}
 
   {/* CREATE BUTTON */}
-  {(userType === "client" && step === 1) && (
-    <button type="submit">
-      Create
-    </button>
-  )}
+{(userType === "client" && step === 1) && (
+  <button type="submit">
+    {isEditMode ? "Update" : "Create"}
+  </button>
+)}
 
-  {userType === "internal" && step === 2 && (
-    <button type="submit">
-      Create
-    </button>
-  )}
+{userType === "internal" && step === 2 && (
+  <button type="submit">
+    {isEditMode ? "Update" : "Create"}
+  </button>
+)}
+
 
 </div>
 
