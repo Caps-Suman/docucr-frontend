@@ -35,32 +35,42 @@ const RoleManagement: React.FC = () => {
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+    const dataLoadingRef = React.useRef(false);
+    const modulesLoadedRef = React.useRef(false);
+
     useEffect(() => {
         loadData();
     }, [currentPage, itemsPerPage, statusFilter]);
 
-    useEffect(() => {
-        loadModulesAndPrivileges();
-    }, []);
+    // useEffect(() => {
+    //     if (!modulesLoadedRef.current) {
+    //         modulesLoadedRef.current = true;
+    //         loadModulesAndPrivileges();
+    //     }
+    // }, []);
 
 
 
-    const loadModulesAndPrivileges = async () => {
-        try {
-            const [modulesData, privilegesData] = await Promise.all([
-                modulesService.getAllModules(),
-                privilegeService.getPrivileges()
-            ]);
-            console.log('Modules loaded:', modulesData);
-            console.log('Privileges loaded:', privilegesData);
-            setModules(modulesData);
-            setPrivileges(privilegesData);
-        } catch (error) {
-            console.error('Failed to load modules/privileges:', error);
-        }
-    };
+    // const loadModulesAndPrivileges = async () => {
+    //     try {
+    //         const [modulesData, privilegesData] = await Promise.all([
+    //             modulesService.getAllModules(),
+    //             privilegeService.getPrivileges()
+    //         ]);
+
+    //         setModules(modulesData);
+    //         setPrivileges(privilegesData);
+    //     } catch (error) {
+    //         console.error('Failed to load modules/privileges:', error);
+    //         modulesLoadedRef.current = false; 
+    //     }
+    // };
 
     const loadData = async () => {
+        // Prevent concurrent calls
+        if (dataLoadingRef.current) return;
+        dataLoadingRef.current = true;
+
         try {
             setLoading(true);
             const [rolesData, statsData] = await Promise.all([
@@ -75,14 +85,31 @@ const RoleManagement: React.FC = () => {
         } finally {
             setLoading(false);
             setIsInitialLoading(false);
+            dataLoadingRef.current = false;
         }
     };
 
+    /* const handleEdit = (role: Role) => {
+         if (!role.can_edit) {
+             setToast({ message: 'System roles cannot be edited', type: 'warning' });
+             return;
+         }
+         setEditingRole(role);
+         
+         setIsModalOpen(true);
+     };
+ 
+     const handleAddNew = () => {
+         setEditingRole(null);
+         setIsModalOpen(true);
+     }; */
+
     const handleEdit = (role: Role) => {
         if (!role.can_edit) {
-            setToast({ message: 'System roles cannot be edited', type: 'warning' });
+            setToast({ message: "System roles cannot be edited", type: "warning" });
             return;
         }
+
         setEditingRole(role);
         setIsModalOpen(true);
     };
@@ -91,6 +118,27 @@ const RoleManagement: React.FC = () => {
         setEditingRole(null);
         setIsModalOpen(true);
     };
+
+    useEffect(() => {
+        if (isModalOpen && !modulesLoadedRef.current && modules.length === 0) {
+            modulesLoadedRef.current = true;
+            const loadModulesAndPrivileges = async () => {
+                try {
+                    const [modulesData, privilegesData] = await Promise.all([
+                        modulesService.getAllModules(),
+                        privilegeService.getPrivileges(),
+                    ]);
+                    setModules(modulesData);
+                    setPrivileges(privilegesData);
+                } catch (error) {
+                    console.error("Failed to load modules/privileges", error);
+                    modulesLoadedRef.current = false;
+                }
+            };
+            loadModulesAndPrivileges();
+        }
+    }, [isModalOpen, modules.length]);
+
 
     const handleModalClose = () => {
         setIsModalOpen(false);

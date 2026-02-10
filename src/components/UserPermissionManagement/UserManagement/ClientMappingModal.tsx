@@ -18,7 +18,8 @@ interface ClientMappingModalProps {
 const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose, user, onUpdate }) => {
     const [activeTab, setActiveTab] = useState<'assigned' | 'unassigned'>('assigned');
     const [assignedClients, setAssignedClients] = useState<Client[]>([]);
-    const [unassignedClients, setUnassignedClients] = useState<Client[]>([]);
+    // const [unassignedClients, setUnassignedClients] = useState<Client[]>([]);
+    const [unassignedClients, setUnassignedClients] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [mappingLoading, setMappingLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -52,7 +53,8 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
             const assigned = await userService.getUserClients(user.id);
             setAssignedClients(assigned);
 
-            const allClients = await clientService.getVisibleClients();
+            // const allClients = await clientService.getVisibleClients();
+            const allClients = await clientService.getAllClients();
             const assignedIds = new Set(assigned.map((c: any) => c.id));
             const unassigned = allClients.filter(c => !assignedIds.has(c.id));
 
@@ -145,7 +147,8 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
     }, [searchTerm]);
 
     // Pagination Logic
-    const getPaginatedData = (data: Client[], page: number) => {
+    // const getPaginatedData = (data: Client[], page: number) => {
+    const getPaginatedData = (data: any[], page: number) => {
         const start = page * itemsPerPage;
         const end = start + itemsPerPage;
         return data.slice(start, end);
@@ -330,7 +333,8 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
                                                             </td>
                                                             <td>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                                    <span className="client-name">{client.business_name || `${client.first_name} ${client.last_name}`}</span>
+                                                                    <span className="client-name">{client.name}</span>
+                                                                    {/* <span className="client-name">{client.business_name || `${client.first_name} ${client.last_name}`}</span> */}
                                                                 </div>
                                                             </td>
                                                             <td><span className="client-npi">{client.npi || 'N/A'}</span></td>
