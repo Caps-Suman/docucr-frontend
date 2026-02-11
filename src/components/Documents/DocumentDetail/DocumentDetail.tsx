@@ -461,19 +461,41 @@ const DocumentDetail: React.FC = () => {
   </p>
 )}
 
-              {document.extracted_documents.length === 0 &&
+              {/* {document.extracted_documents.length === 0 &&
                 document.unverified_documents.length === 0 && (
                   <p className={styles.emptyMessage}>
                     No derived documents found.
                   </p>
-                )}
+                )} */}
             </div>
           </div>
           {id && <MetadataCard documentId={id} />}
 
-          {id && document.analysis_report_s3_key && (
-            <ExtractedReportCard documentId={id} />
-          )}
+         {id && (
+  document.analysis_report_s3_key ? (
+    <ExtractedReportCard documentId={id} />
+  ) : (
+    <div className={styles.card}>
+      <div className={styles.cardHeader}>
+        <h3 className={styles.cardTitle}>
+          <FileSpreadsheet size={18} />
+          Extracted Analysis
+        </h3>
+      </div>
+
+      <div className={styles.metaList}>
+        {document.statusCode === "ANALYZING" || document.statusCode === "AI_QUEUED" ? (
+          <p className={styles.emptyMessage}>Analysis in progress…</p>
+        ) : document.statusCode === "FAILED" || document.statusCode === "AI_FAILED" ? (
+          <p className={styles.emptyMessage}>Analysis failed. Try re-analyzing.</p>
+        ) : (
+          <p className={styles.emptyMessage}>No extracted data found.</p>
+        )}
+      </div>
+    </div>
+  )
+)}
+
         </div>
 
         <div className={styles.rightPanel}>

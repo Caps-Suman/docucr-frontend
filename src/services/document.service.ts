@@ -147,7 +147,7 @@ mapStatus(code: string): DocStatus {
         const params = new URLSearchParams();
 
         if (filterParams) {
-            if (filterParams.status) params.append('status_id', filterParams.status);
+            if (filterParams.status) params.append('status_code', filterParams.status);
             if (filterParams.dateFrom) params.append('date_from', filterParams.dateFrom);
             if (filterParams.dateTo) params.append('date_to', filterParams.dateTo);
             if (filterParams.search) params.append('search_query', filterParams.search);

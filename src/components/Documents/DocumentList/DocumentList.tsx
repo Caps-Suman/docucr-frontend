@@ -193,36 +193,35 @@ const DocumentList: React.FC = () => {
     };
   }, [documents, loading]);
 
-  const handleStatClick = (type: string) => {
-    const newFilters = { ...activeFilters };
+const handleStatClick = (type: string) => {
+  const newFilters = { ...activeFilters };
 
-    // Reset specific filters when switching
-    newFilters.status = "";
-    newFilters.sharedOnly = false;
+  newFilters.status = "";
+  newFilters.sharedOnly = false;
 
-    switch (type) {
-      case "processed":
-        newFilters.status = "completed";
-        break;
-      case "processing":
-        newFilters.status = "processing";
-        break;
-      case "archived":
-        newFilters.status = "archived";
-        break;
-      case "shared":
-        newFilters.sharedOnly = true;
-        break;
-      case "total":
-      default:
-        // already reset above
-        break;
-    }
+  switch (type) {
+    case "processed":
+      newFilters.status = "COMPLETED";
+      break;
+    case "processing":
+      newFilters.status = "PROCESSING";
+      break;
+    case "archived":
+      newFilters.status = "ARCHIVED";
+      break;
+    case "shared":
+      newFilters.sharedOnly = true;
+      break;
+  }
 
-    setFilters((prev) => ({ ...prev, ...newFilters }));
-    setActiveFilters(newFilters);
-    setCurrentPage(0);
-  };
+  setFilters(prev => ({ ...prev, ...newFilters }));
+  setActiveFilters(newFilters);
+  setCurrentPage(0);
+
+  // 🔥 FORCE reload
+  setTimeout(loadDocuments, 0);
+};
+
 
   // Load metadata on component mount and wait for it
   useEffect(() => {
@@ -364,10 +363,15 @@ const DocumentList: React.FC = () => {
       const docs = response.documents;
       setTotalDocuments(response.total);
 
-const formattedDocs = docs.map((doc) =>
+let formattedDocs = docs.map(doc =>
   documentService.normalizeDocument(doc)
-
 );
+
+// hide archived from default "total" view
+if (activeFilters.status !== "ARCHIVED") {
+  formattedDocs = formattedDocs.filter(d => !d.isArchived);
+}
+
 console.log("FORMATTED DOCS", formattedDocs);
 console.log(columnConfig)
 console.log(formattedDocs)
@@ -623,17 +627,20 @@ requiredSystemColumns.forEach((col) => {
 
   const handleArchive = async (id: string) => {
     try {
+
+      // setDocuments((prev) =>
+      //   prev.map((doc) =>
+      //     doc.id === id
+      //       ? { ...doc, isArchived: true, status: "archived" }
+      //       : doc,
+      //   ),
+      // );
       await documentService.archiveDocument(id);
+await loadDocuments();
+await loadStats();
 
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.id === id
-            ? { ...doc, isArchived: true, status: "archived" }
-            : doc,
-        ),
-      );
 
-      loadStats(); // 🔥 REQUIRED
+      // loadStats(); // 🔥 REQUIRED
 
       setToast({ message: "Document archived", type: "success" });
     } catch {
@@ -1482,7 +1489,7 @@ let val =
           </div>
         </div>
         <div
-          className={`${styles.statCard} ${activeFilters.status === "completed" ? styles.activeProcessed : ""}`}
+          className={`${styles.statCard} ${activeFilters.status === "COMPLETED" ? styles.activeProcessed : ""}`}
           onClick={() => handleStatClick("processed")}
         >
           <div className={`${styles.statIcon} ${styles.iconProcessed}`}>
@@ -1494,7 +1501,7 @@ let val =
           </div>
         </div>
         <div
-          className={`${styles.statCard} ${activeFilters.status === "processing" ? styles.activeProcessing : ""}`}
+          className={`${styles.statCard} ${activeFilters.status === "PROCESSING" ? styles.activeProcessing : ""}`}
           onClick={() => handleStatClick("processing")}
         >
           <div className={`${styles.statIcon} ${styles.iconProcessing}`}>
@@ -1518,7 +1525,7 @@ let val =
           </div>
         </div>
         <div
-          className={`${styles.statCard} ${activeFilters.status === "archived" ? styles.activeArchived : ""}`}
+          className={`${styles.statCard} ${activeFilters.status === "ARCHIVED" ? styles.activeArchived : ""}`}
           onClick={() => handleStatClick("archived")}
         >
           <div className={`${styles.statIcon} ${styles.iconArchived}`}>
