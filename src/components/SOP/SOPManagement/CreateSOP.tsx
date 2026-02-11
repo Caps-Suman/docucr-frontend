@@ -1478,6 +1478,7 @@ const CreateSOP: React.FC = () => {
                             <Plus size={16} />
                           </button>
                         </div>
+
                         <div className={styles.tagsList}>
                           {eligibilityPortals.map((portal, idx) => (
                             <span key={idx} className={styles.tag}>
