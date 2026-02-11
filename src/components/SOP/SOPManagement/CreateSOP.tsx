@@ -9,6 +9,8 @@ import {
   RotateCcw,
   Upload,
   Edit2,
+  FileText,
+  Hash,
 } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../../styles/selectStyles";
@@ -42,6 +44,7 @@ const CreateSOP: React.FC = () => {
   const [category, setCategory] = useState("");
   const [providerType, setProviderType] = useState<"new" | "existing">("existing");
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [selectedClient, setSelectedClient] = useState<any>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
   const location = useLocation();
@@ -168,6 +171,7 @@ const CreateSOP: React.FC = () => {
     setCategory("");
     setProviderType("new");
     setSelectedClientId("");
+    setSelectedClient(null);
     setProviderInfo({
       providerName: "",
       billingProviderName: "",
@@ -271,7 +275,15 @@ const CreateSOP: React.FC = () => {
       // However, SOP type is shared. If backend returns snake_case keys in JSON response, we might need to map them to component state
       // provider_type from backend to providerType state
       setProviderType(sop.providerType || "new");
-      setSelectedClientId(sop.clientId || "");
+      setProviderType(sop.providerType || "new");
+      if (sop.clientId) {
+        setSelectedClientId(sop.clientId);
+        // Fetch client details for display
+        clientService.getClient(sop.clientId).then(cl => setSelectedClient(cl)).catch(err => console.error("Failed to load client details", err));
+      } else {
+        setSelectedClientId("");
+        setSelectedClient(null);
+      }
 
       // Map JSONB fields back to state
       if (sop.providers) {
@@ -975,6 +987,7 @@ const CreateSOP: React.FC = () => {
                                 setSelectedProvidersList([]);
                               }
                               setSelectedClientId(row.id);
+                              setSelectedClient(row);
                               setProviderType("existing");
                             }}
                             title={isEditMode ? "Cannot change client during edit" : "Select Client"}
@@ -1169,6 +1182,59 @@ const CreateSOP: React.FC = () => {
                   </div>
                 )}
 
+                {/* Display Selected Client & Provider Info */}
+                <div className={styles.section} style={{ marginBottom: '16px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', gap: '32px' }}>
+
+                    {/* Client Info */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
+                        Selected Client
+                      </div>
+                      {selectedClient ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div style={{ fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>
+                            {selectedClient.name || selectedClient.business_name || `${selectedClient.first_name || ''} ${selectedClient.last_name || ''}`.trim() || 'Unknown Client'}
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#475569' }}>
+                            NPI: {selectedClient.npi || '-'}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#94a3b8' }}>
+                          No client selected
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Provider Info */}
+                    <div style={{ flex: 1, borderLeft: '1px solid #cbd5e1', paddingLeft: '32px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
+                        Selected Providers ({selectedProvidersList.length})
+                      </div>
+                      {selectedProvidersList.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {selectedProvidersList.slice(0, 3).map(p => (
+                            <div key={p.id} style={{ fontSize: '14px', color: '#334155' }}>
+                              {p.name} <span style={{ color: '#94a3b8', fontSize: '12px' }}>({p.npi || 'No NPI'})</span>
+                            </div>
+                          ))}
+                          {selectedProvidersList.length > 3 && (
+                            <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 500 }}>
+                              +{selectedProvidersList.length - 3} more
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#94a3b8' }}>
+                          No providers selected
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                </div>
+
                 {/* Basic Info Form */}
                 <div className={styles.section}>
                   <div className={styles.sectionTitle}>Basic Information</div>
@@ -1236,11 +1302,10 @@ const CreateSOP: React.FC = () => {
                 </div>
 
                 {/* Provider Info */}
-                <div className={styles.section}>
+                {/* <div className={styles.section}>
                   <div className={styles.sectionTitle}>Provider Information</div>
 
-                  {/* If Existing Client Selected, show read-only info or select */}
-                  {/* {providerType === "existing" && (
+                  {providerType === "existing" && (
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Selected Client</label>
                       <div style={{ padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: '#64748b' }}>
@@ -1253,14 +1318,11 @@ const CreateSOP: React.FC = () => {
                         }
                       </div>
                     </div>
-                  )} */}
+                  )}
 
                   <div className={styles.formGrid}>
-                    {/* Always show provider fields, but maybe pre-filled? */}
-                    {/* If new, editable. If existing, editable but pre-filled? */}
-
                     <>
-                      {/* <div className={styles.formGroup}>
+                      <div className={styles.formGroup}>
                         <label className={styles.label}>
                           Provider Name *
                         </label>
@@ -1275,9 +1337,9 @@ const CreateSOP: React.FC = () => {
                           }
                           disabled={providerType === 'existing'} 
                         />
-                      </div> */}
+                      </div>
 
-                      {/* <div className={styles.formGroup}>
+                      <div className={styles.formGroup}>
                         <label className={styles.label}>Billing Provider NPI *</label>
                         <input
                           className={styles.input}
@@ -1293,10 +1355,9 @@ const CreateSOP: React.FC = () => {
                           placeholder="10-digit NPI"
                           disabled={providerType === 'existing'}
                         />
-                      </div> */}
+                      </div>
 
-                      {/* Additional Fields */}
-                      {/* <div className={styles.formGroup}>
+                      <div className={styles.formGroup}>
                         <label className={styles.label}>Provider Tax ID</label>
                         <input
                           className={styles.input}
@@ -1308,9 +1369,9 @@ const CreateSOP: React.FC = () => {
                             })
                           }
                         />
-                      </div> */}
+                      </div>
 
-                      {/* <div className={styles.formGroup}>
+                      <div className={styles.formGroup}>
                         <label className={styles.label}>Practice Name</label>
                         <input
                           className={styles.input}
@@ -1322,11 +1383,8 @@ const CreateSOP: React.FC = () => {
                             })
                           }
                         />
-                      </div> */}
+                      </div>
 
-
-
-                      {/* Requested Fields */}
                       <div className={styles.formGroup}>
                         <label className={styles.label}>Software</label>
                         <input
@@ -1369,7 +1427,7 @@ const CreateSOP: React.FC = () => {
                     </>
 
                   </div>
-                </div>
+                </div> */}
 
                 {/* Workflow */}
                 <div className={styles.section}>
@@ -1581,12 +1639,14 @@ const CreateSOP: React.FC = () => {
                       className={`${styles.toggleButton} ${codingType === "CPT" ? styles.active : ""}`}
                       onClick={() => setCodingType("CPT")}
                     >
+                      <FileText size={16} />
                       CPT Codes
                     </button>
                     <button
                       className={`${styles.toggleButton} ${codingType === "ICD" ? styles.active : ""}`}
                       onClick={() => setCodingType("ICD")}
                     >
+                      <Hash size={16} />
                       ICD Codes
                     </button>
                   </div>
