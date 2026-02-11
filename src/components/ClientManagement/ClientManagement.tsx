@@ -46,7 +46,7 @@ import authService from "../../services/auth.service";
 const ClientManagement: React.FC = () => {
   const currentUser = authService.getUser();
   const [currentPage, setCurrentPage] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [clients, setClients] = useState<Client[]>([]);
   const [totalClients, setTotalClients] = useState(0);
   const [stats, setStats] = useState<ClientStats | null>(null);
@@ -736,16 +736,20 @@ const ClientManagement: React.FC = () => {
                   Assign ({selectedClients.length}) to User
                 </button>
               )}
-              <button
-                className={`${styles.filterBtn} ${activeFilterCount > 0 ? styles.active : ""}`}
-                onClick={() => setShowFilters(true)}
-              >
-                <Filter size={14} style={{ marginRight: "6px" }} />
-                Filters
-                {activeFilterCount > 0 && (
-                  <span className={styles.filterBadge}>{activeFilterCount}</span>
-                )}
-              </button>
+
+              {selectedClients.length > 0 && (
+                <button
+                  className={`${styles.filterBtn} ${activeFilterCount > 0 ? styles.active : ""}`}
+                  onClick={() => setShowFilters(true)}
+                >
+                  <Filter size={14} style={{ marginRight: "6px" }} />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className={styles.filterBadge}>{activeFilterCount}</span>
+                  )}
+                </button>
+              )}
+
               <input
                 type="text"
                 placeholder="Search by name, business name, or NPI..."

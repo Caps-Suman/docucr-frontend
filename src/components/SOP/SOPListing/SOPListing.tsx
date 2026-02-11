@@ -71,9 +71,10 @@ const SOPListing: React.FC = () => {
   } | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalSOPs, setTotalSOPs] = useState(0);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const { can } = usePermission();
 
   // Selection Modal State
@@ -135,18 +136,35 @@ const SOPListing: React.FC = () => {
     return "—";
   };
 
+  const isInitialMount = React.useRef(true);
+  const lastFetchParams = React.useRef("");
+
   useEffect(() => {
+    loadStatuses();
     loadStats();
   }, []);
 
   useEffect(() => {
+    // Stringify dependencies that are objects/arrays to prevent reference-based triggers
+    const paramsKey = JSON.stringify({
+      currentPage,
+      itemsPerPage,
+      debouncedSearchTerm,
+      statusFilter,
+      activeFilters
+    });
+
+    if (lastFetchParams.current === paramsKey) {
+      return;
+    }
+
+    lastFetchParams.current = paramsKey;
     loadSOPs(debouncedSearchTerm, statusFilter);
   }, [
     currentPage,
     itemsPerPage,
     debouncedSearchTerm,
     statusFilter,
-    inactiveStatusId,
     activeFilters,
   ]);
 
@@ -256,6 +274,9 @@ const SOPListing: React.FC = () => {
           orgId
         );
         setClientsForFilter(clientsRes.clients || []);
+      } else {
+        const clientsRes = await clientService.getAllClients();
+        setClientsForFilter(clientsRes || []);
       }
     } catch (err) {
       console.error("Failed to load filter data", err);
@@ -293,6 +314,7 @@ const SOPListing: React.FC = () => {
   const handleOrganisationChange = async (orgIds: string[]) => {
     setFilters((prev) => ({ ...prev, organisationId: orgIds, clientId: [] }));
     const user = currentUser as any;
+    // const isAdmin = user?.role?.name === "SUPER_ADMIN";
     const isAdmin = user?.role?.name === "SUPER_ADMIN";
 
     if (!orgIds || orgIds.length === 0) {
@@ -302,10 +324,7 @@ const SOPListing: React.FC = () => {
         const clientsRes = await clientService.getClients(
           1,
           1000,
-          undefined,
-          "ACTIVE",
-          orgId
-        );
+          undefined, "ACTIVE", orgId);
         setClientsForFilter(clientsRes.clients || []);
       } else {
         setClientsForFilter([]);
@@ -316,14 +335,10 @@ const SOPListing: React.FC = () => {
     try {
       setLoadingFilterData(true);
       const orgIdsStr = orgIds.join(",");
-      const clientsRes = await clientService.getClients(
-        1,
-        1000,
-        undefined,
-        "ACTIVE",
-        orgIdsStr
-      );
+      const clientsRes = await clientService.getClients(1, 1000, undefined, "ACTIVE", orgIdsStr);
       setClientsForFilter(clientsRes.clients || []);
+      // const clientsRes = await clientService.getAllClients();
+      // setClientsForFilter(clientsRes || []);
     } catch (err) {
       console.error("Failed to load clients for organisation", err);
     } finally {
@@ -353,10 +368,6 @@ const SOPListing: React.FC = () => {
       action: isActive ? "deactivate" : "activate",
     });
   };
-  useEffect(() => {
-    loadStatuses();
-    loadStats();
-  }, []);
 
   const confirmToggleStatus = async () => {
     try {
@@ -771,16 +782,16 @@ const SOPListing: React.FC = () => {
                 <>
                   {/* Client Information */}
                   <div className={styles.infoSection}>
-                    <h3>Client Information</h3>
+                    <h3>Practice Information</h3>
                     <div className={styles.infoGrid}>
                       <div>
-                        <strong>Client Name:</strong>
+                        <strong>Name:</strong>
                         <span style={{ color: "#0c4a6e", fontWeight: 500 }}>
                           {selectedSOP.client_name || "-"}
                         </span>
                       </div>
                       <div>
-                        <strong>Client NPI:</strong>
+                        <strong>NPI:</strong>
                         <span style={{ color: "#0c4a6e", fontWeight: 500 }}>
                           {selectedSOP.client_npi || "-"}
                         </span>
@@ -791,13 +802,12 @@ const SOPListing: React.FC = () => {
                   {/* Associated Providers */}
                   {selectedSOP.providers && selectedSOP.providers.length > 0 && (
                     <div className={styles.infoSection}>
-                      <h3>Associated Providers</h3>
+                      <h3>Providers</h3>
                       <table className={styles.detailsTable}>
                         <thead>
                           <tr>
                             <th className={styles.detailsTh}>Provider Name</th>
                             <th className={styles.detailsTh}>NPI</th>
-                            <th className={styles.detailsTh}>Type</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -805,7 +815,6 @@ const SOPListing: React.FC = () => {
                             <tr key={idx}>
                               <td className={styles.detailsTd}>{p.name}</td>
                               <td className={styles.detailsTd}>{p.npi}</td>
-                              <td className={styles.detailsTd}>{p.type || "Individual"}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1271,29 +1280,30 @@ const SOPListing: React.FC = () => {
                 )}
 
                 {/* Client Filter */}
-                {(currentUser as any)?.role?.name === "SUPER_ADMIN" || (currentUser as any)?.role?.name === "ORGANISATION_ROLE" ? (
-                  <div className={styles.filterGroup}>
-                    <label>Client</label>
-                    <CommonDropdown
-                      options={clientsForFilter.map((client) => ({
-                        value: client.id,
-                        label: client.business_name || `${client.first_name} ${client.last_name}`,
-                      }))}
-                      value={filters.clientId}
-                      onChange={(val) =>
-                        setFilters((prev) => ({ ...prev, clientId: val }))
-                      }
-                      placeholder="Select Clients"
-                      loading={loadingFilterData}
-                      isMulti={true}
-                      isSearchable={true}
-                      disabled={
-                        (currentUser as any)?.role?.name === "SUPER_ADMIN" &&
-                        (!filters.organisationId || filters.organisationId.length === 0)
-                      }
-                    />
-                  </div>
-                ) : null}
+                {/* {(currentUser as any)?.role?.name === "SUPER_ADMIN" || (currentUser as any)?.role?.name === "ORGANISATION_ROLE" ? ( */}
+                <div className={styles.filterGroup}>
+                  <label>Client</label>
+                  <CommonDropdown
+                    options={clientsForFilter.map((client) => ({
+                      value: client.id,
+                      label: client.name || client.business_name || `${client.first_name} ${client.last_name}`,
+                      // label: client.business_name || `${client.first_name} ${client.last_name}`,
+                    }))}
+                    value={filters.clientId}
+                    onChange={(val) =>
+                      setFilters((prev) => ({ ...prev, clientId: val }))
+                    }
+                    placeholder="Select Clients"
+                    loading={loadingFilterData}
+                    isMulti={true}
+                    isSearchable={true}
+                    disabled={
+                      (currentUser as any)?.role?.name === "SUPER_ADMIN" &&
+                      (!filters.organisationId || filters.organisationId.length === 0)
+                    }
+                  />
+                </div>
+                {/* // ) : null} */}
 
                 {/* Created By Filter */}
                 {(currentUser as any)?.role?.name === "SUPER_ADMIN" || (currentUser as any)?.role?.name === "ORGANISATION_ROLE" ? (

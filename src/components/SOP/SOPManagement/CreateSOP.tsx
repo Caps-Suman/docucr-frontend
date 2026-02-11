@@ -760,6 +760,8 @@ const CreateSOP: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (saving) return; // Guard against multiple triggers
+
     // Validate Basic Info (Step 1)
     if (!validateStep1()) {
       setCurrentStep(1);
@@ -772,6 +774,8 @@ const CreateSOP: React.FC = () => {
       setErrors(["Please select a client to proceed."]);
       return;
     }
+
+    setSaving(true); // Set saving immediately after validation
 
     const payload = {
       title,
@@ -798,7 +802,6 @@ const CreateSOP: React.FC = () => {
     };
 
     try {
-      setSaving(true);
       if (isEditMode && id) {
         await sopService.updateSOP(id, payload);
       } else {
