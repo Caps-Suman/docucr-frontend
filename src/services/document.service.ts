@@ -1,21 +1,35 @@
 import apiClient from '../utils/apiClient';
+import { DocumentListItem } from "../components/Documents/DocumentList/DocumentList";
+import { DocStatus } from "../components/Documents/DocumentList/DocumentList";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export interface Document {
-    id: string;
-    filename: string;
-    original_filename: string;
-    status_id: number;
-    statusCode: string;
-    status: string; // Keep for compatibility
-    file_size: number;
-    upload_progress: number;
-    total_pages: number; // ✅ ADD THIS
-    error_message?: string;
-    created_at: string;
-    updated_at: string;
+  id: string | number;
+
+  filename: string;
+  original_filename: string;
+
+  client?: string | null;
+  document_type?: string | null;
+  medical_records?: string | null;
+
+  uploaded_by?: string | null;
+  organisation_name?: string | null;
+
+  statusCode: string;
+
+  file_size: number;
+  upload_progress: number;
+  total_pages?: number;
+  error_message?: string | null;
+
+  is_archived?: boolean | string | null;
+
+  created_at: string;
+  updated_at: string;
 }
+
 
 export interface DocumentUploadResponse {
     id: string;
@@ -27,6 +41,68 @@ export interface DocumentUploadResponse {
 }
 
 class DocumentService {
+normalizeDocument(doc: Document): DocumentListItem {
+  const archived =
+    doc.is_archived === true ||
+    doc.is_archived === "true" ||
+    doc.statusCode === "ARCHIVED";
+
+  const customFormData: any = {};
+
+  // 🔴 map to dynamic form keys
+  if (doc.client) customFormData["client"] = doc.client;
+  if (doc.document_type) customFormData["document_type"] = doc.document_type;
+  if (doc.medical_records) customFormData["medical_records"] = doc.medical_records;
+
+return {
+  id: String(doc.id),
+  name: doc.filename,
+  originalFilename: doc.original_filename ?? doc.filename,
+  type: doc.filename.split(".").pop()?.toUpperCase() || "FILE",
+
+  size: (doc.file_size || 0) / (1024 * 1024),
+
+  uploadedAt: doc.created_at,
+
+  // 🔴 REQUIRED FIX
+  uploadedBy: doc.uploaded_by || "Organisation",
+
+  organisationName: doc.organisation_name ?? undefined,
+
+  client: doc.client ?? undefined,
+  documentType: doc.document_type ?? undefined,
+  medicalRecords: doc.medical_records ?? undefined,
+
+  customFormData,
+
+  totalPages: doc.total_pages ?? 0,
+  status: archived ? "archived" : this.mapStatus(doc.statusCode),
+  progress: doc.upload_progress ?? 0,
+  errorMessage: doc.error_message ?? undefined,
+  isArchived: archived,
+};
+}
+
+
+mapStatus(code: string): DocStatus {
+  switch (code) {
+    case "COMPLETED": return "completed";
+    case "UPLOADED": return "uploaded";
+    case "PROCESSING": return "processing";
+    case "UPLOADING": return "uploading";
+    case "QUEUED": return "queued";
+    case "FAILED": return "failed";
+    case "AI_QUEUED": return "ai_queued";
+    case "ANALYZING": return "analyzing";
+    case "AI_FAILED": return "ai_failed";
+    case "UPLOAD_FAILED": return "upload_failed";
+    case "CANCELLED": return "cancelled";
+    case "ARCHIVED": return "archived";
+    default: return "processing";
+  }
+}
+
+    
     async uploadDocuments(files: File[], aiParams?: { enableAI: boolean; documentTypeId?: string; templateId?: string; formId?: string; customFormData?: any }): Promise<DocumentUploadResponse[]> {
         const formData = new FormData();
         files.forEach(file => {

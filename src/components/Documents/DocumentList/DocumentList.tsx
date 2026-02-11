@@ -39,15 +39,8 @@ import styles from "./DocumentList.module.css";
 import formService from "../../../services/form.service";
 import CommonPagination from "../../Common/CommonPagination";
 
-interface DocumentListItem {
-  id: string;
-  name: string;
-  originalFilename: string;
-  type: string;
-  size: number;
-  uploadedAt: string;
-  totalPages?: number; // ✅ ADD
-  status:
+
+export type DocStatus =
   | "processing"
   | "completed"
   | "failed"
@@ -60,6 +53,20 @@ interface DocumentListItem {
   | "upload_failed"
   | "cancelled"
   | "archived";
+export interface DocumentListItem {
+  id: string;
+  name: string;
+  originalFilename: string;
+  type: string;
+  size: number;
+  uploadedBy?: string; 
+  organisationName?: string;
+  client?: string;
+  documentType?: string;
+  medicalRecords?: string;    
+  uploadedAt: string;
+  totalPages?: number; // ✅ ADD
+  status: DocStatus;
   isUploading?: boolean;
   progress?: number;
   errorMessage?: string;
@@ -357,50 +364,78 @@ const DocumentList: React.FC = () => {
       const docs = response.documents;
       setTotalDocuments(response.total);
 
-      const formattedDocs = docs.map((doc) => ({
-        id: doc.id,
-        name: doc.filename,
-        originalFilename: doc.original_filename || doc.filename,
-        type: doc.filename.split(".").pop()?.toUpperCase() || "FILE",
-        size: doc.file_size / (1024 * 1024),
-        uploadedAt: doc.created_at,
-        status: (doc as any).is_archived
-          ? "archived"
-          : mapDocumentStatus(doc.statusCode),
-        progress: doc.upload_progress,
-        totalPages: doc.total_pages ?? 0, // ✅ ADD
-        errorMessage: doc.error_message,
-        customFormData: (doc as any).custom_form_data || {},
-        isArchived: (doc as any).is_archived || false,
-      }));
+const formattedDocs = docs.map((doc) =>
+  documentService.normalizeDocument(doc)
+
+);
+console.log("FORMATTED DOCS", formattedDocs);
+console.log(columnConfig)
+console.log(formattedDocs)
+console.log("DOC:", formattedDocs[0])
+
 
       // Fetch column configuration
       try {
         const response = await documentListConfigService.getMyConfig();
-        if (response.configuration) {
-          const sortedColumns = [...response.configuration.columns]
-            .sort((a: any, b: any) => a.order - b.order);
+if (response.configuration) {
+  let sortedColumns = [...response.configuration.columns]
+    .sort((a: any, b: any) => a.order - b.order);
 
-          setColumnConfig(sortedColumns);
+  const requiredSystemColumns = [
+    { id: "uploadedBy", label: "Uploaded By" },
+    { id: "organisationName", label: "Organisation" },
+  ];
 
-        } else {
+requiredSystemColumns.forEach((col) => {
+  if (!sortedColumns.find((c: any) => c.id === col.id)) {
+    sortedColumns.push({
+      id: col.id,
+      label: col.label,
+      isSystem: true,
+      visible: true,
+      order: 999,
+
+      // required by ColumnConfig type
+      width: 150,
+      type: "system",
+      required: false,
+    } as any);
+  }
+});
+
+
+  setColumnConfig(sortedColumns);
+}
+ else {
           // Default config if none saved
           setColumnConfig([
-            { id: "name", label: "Document Name", isSystem: true },
-            { id: "type", label: "Type", isSystem: true },
-            { id: "size", label: "Size", isSystem: true },
-            { id: "pages", label: "Pages", isSystem: true },
-            { id: "uploadedAt", label: "Uploaded", isSystem: true },
-            { id: "status", label: "Status", isSystem: true },
-            { id: "actions", label: "Actions", isSystem: true },
-          ]);
+  { id: "name", label: "Document Name", isSystem: true, visible: true },
+  { id: "client", label: "Client", isSystem: true, visible: true },
+  { id: "documentType", label: "Document Type", isSystem: true, visible: true },
+  { id: "medicalRecords", label: "Medical Records", isSystem: true, visible: true },
+  { id: "type", label: "Type", isSystem: true, visible: true },
+  { id: "uploadedBy", label: "Uploaded By", isSystem: true, visible: true },
+  { id: "organisationName", label: "Organisation", isSystem: true, visible: true },
+  { id: "size", label: "Size", isSystem: true, visible: true },
+  { id: "pages", label: "Pages", isSystem: true, visible: true },
+  { id: "uploadedAt", label: "Uploaded", isSystem: true, visible: true },
+  { id: "status", label: "Status", isSystem: true, visible: true },
+  { id: "actions", label: "Actions", isSystem: true, visible: true },
+]);
+
         }
       } catch (error) {
         console.error("Failed to load column config");
         // Default config on error
         setColumnConfig([
           { id: "name", label: "Document Name", isSystem: true },
+          { id: "client", label: "Client", isSystem: true, visible: true },
+  { id: "documentType", label: "Document Type", isSystem: true, visible: true },
+  { id: "medicalRecords", label: "Medical Records", isSystem: true, visible: true },
           { id: "type", label: "Type", isSystem: true },
+          { id: "uploadedBy", label: "Uploaded By", isSystem: true },   
+
+          { id: "organisationName", label: "Organisation", isSystem: true }, 
           { id: "size", label: "Size", isSystem: true },
           { id: "pages", label: "Pages", isSystem: true },
           { id: "uploadedAt", label: "Uploaded", isSystem: true },
@@ -789,17 +824,24 @@ const DocumentList: React.FC = () => {
   const columns = React.useMemo(() => {
     if (columnConfig.length === 0) return [];
 
-    const systemIds = [
-      "select",
-      "name",
-      "type",
-      "size",
-      "pages",
-      "uploadedAt",
-      "pages",
-      "status",
-      "actions",
-    ];
+const systemIds = [
+  "select",
+  "name",
+  "client",
+  "documentType",
+  "medicalRecords",
+  "type",
+  "uploadedBy",
+  "organisationName",
+  "size",
+  "pages",
+  "uploadedAt",
+  "status",
+  "actions",
+];
+
+console.log(authService.getUser())
+
 
     const baseColumns = [
       {
@@ -864,6 +906,53 @@ const DocumentList: React.FC = () => {
                     </span>
                   ),
                 };
+                case "uploadedBy":
+  return {
+    key: "uploadedBy",
+    header: col.label,
+    render: (value: string) => (
+      <span>{value || "-"}</span>
+    ),
+  };
+case "client":
+  return {
+    key: "client",
+    header: col.label,
+    render: (value: string) => <span>{value || "-"}</span>,
+  };
+
+case "documentType":
+  return {
+    key: "documentType",
+    header: col.label,
+    render: (value: string) => <span>{value || "-"}</span>,
+  };
+
+case "medicalRecords":
+  return {
+    key: "medicalRecords",
+    header: col.label,
+    render: (value: string) => <span>{value || "-"}</span>,
+  };
+
+case "organisationName": {
+  const currentUser = authService.getUser();
+
+  if (currentUser?.role?.name !== "SUPER_ADMIN") {
+    return {
+      key: "organisationName",
+      header: "",
+      render: () => null,
+    };
+  }
+
+  return {
+    key: "organisationName",
+    header: col.label,
+    render: (value: string) => <span>{value || "-"}</span>,
+  };
+}
+
               case "size":
                 return {
                   key: "size",
@@ -1249,7 +1338,10 @@ const DocumentList: React.FC = () => {
                 const data = row.customFormData || {};
 
                 // Strategy 1: Direct lookup by column ID (stripped of form_ prefix)
-                let val = data[formFieldId];
+let val =
+  data[formFieldId] ??
+  data[col.label] ??
+  data[col.label?.toLowerCase().replace(" ", "_")];
 
                 // Strategy 2: Lookup by column label (handles cases where keys are labels)
                 if (!val && col.label) {
