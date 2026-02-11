@@ -1191,6 +1191,47 @@ const CreateSOP: React.FC = () => {
                         placeholder="e.g., Rheumatology"
                       />
                     </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Software</label>
+                      <input
+                        className={styles.input}
+                        value={providerInfo.software}
+                        onChange={(e) =>
+                          setProviderInfo({
+                            ...providerInfo,
+                            software: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Billing Address</label>
+                      <input
+                        className={styles.input}
+                        value={providerInfo.billingAddress}
+                        onChange={(e) =>
+                          setProviderInfo({
+                            ...providerInfo,
+                            billingAddress: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Clearing house</label>
+                      <input
+                        className={styles.input}
+                        value={providerInfo.clearinghouse}
+                        onChange={(e) =>
+                          setProviderInfo({
+                            ...providerInfo,
+                            clearinghouse: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
                   </div>
                 </div>
 
