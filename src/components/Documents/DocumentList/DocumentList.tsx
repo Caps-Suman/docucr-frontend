@@ -39,7 +39,6 @@ import styles from "./DocumentList.module.css";
 import formService from "../../../services/form.service";
 import CommonPagination from "../../Common/CommonPagination";
 
-
 export type DocStatus =
   | "processing"
   | "completed"
@@ -59,11 +58,11 @@ export interface DocumentListItem {
   originalFilename: string;
   type: string;
   size: number;
-  uploadedBy?: string; 
+  uploadedBy?: string;
   organisationName?: string;
   client?: string;
   documentType?: string;
-  medicalRecords?: string;    
+  medicalRecords?: string;
   uploadedAt: string;
   totalPages?: number; // ✅ ADD
   status: DocStatus;
@@ -71,6 +70,7 @@ export interface DocumentListItem {
   progress?: number;
   errorMessage?: string;
   customFormData?: any;
+  isSharedWithMe?: boolean;
   isArchived?: boolean;
 }
 
@@ -98,20 +98,31 @@ const DocumentList: React.FC = () => {
     dateFrom: null,
     dateTo: null,
     sharedOnly: false,
+    uploaded_by: "",        // NEW
+    organisation_filter: "", // NEW
   });
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({
     status: "",
     dateFrom: null,
     dateTo: null,
     sharedOnly: false,
+     uploaded_by: "",
+  organisation_filter: "",
   });
   const [showActionLogModal, setShowActionLogModal] = useState(false);
-  const [actionLogDocumentId, setActionLogDocumentId] = useState<string | null>(null);
-  const [actionLogDocumentName, setActionLogDocumentName] = useState<string | null>(null);
+  const [actionLogDocumentId, setActionLogDocumentId] = useState<string | null>(
+    null,
+  );
+  const [actionLogDocumentName, setActionLogDocumentName] = useState<
+    string | null
+  >(null);
   const [formFields, setFormFields] = useState<any[]>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(
     new Set(),
   );
+  const [uploadedByOptions, setUploadedByOptions] = useState<any[]>([]);
+const [organisationOptions, setOrganisationOptions] = useState<any[]>([]);
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [stats, setStats] = useState({
@@ -156,6 +167,9 @@ const DocumentList: React.FC = () => {
       dateFrom: null,
       dateTo: null,
       sharedOnly: false,
+      
+  uploaded_by: "",
+  organisation_filter: "",
     };
     // Reset all dynamic form fields
     formFields.forEach((field) => {
@@ -168,8 +182,9 @@ const DocumentList: React.FC = () => {
 
   const checkScroll = () => {
     if (tableContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = tableContainerRef.current;
-      // Show shadow if the table is wider than the container 
+      const { scrollLeft, scrollWidth, clientWidth } =
+        tableContainerRef.current;
+      // Show shadow if the table is wider than the container
       // AND we haven't scrolled all the way to the right yet.
       // Use a 5px threshold for subpixel and zoom issues.
       const hasOverflow = scrollWidth > clientWidth;
@@ -193,35 +208,35 @@ const DocumentList: React.FC = () => {
     };
   }, [documents, loading]);
 
-const handleStatClick = (type: string) => {
-  const newFilters = { ...activeFilters };
+  const handleStatClick = (type: string) => {
+    const newFilters = {
+      status: "",
+      sharedOnly: false,
+      dateFrom: null,
+      dateTo: null,
+    };
 
-  newFilters.status = "";
-  newFilters.sharedOnly = false;
+    switch (type) {
+      case "processed":
+        newFilters.status = "COMPLETED";
+        break;
+      case "processing":
+        newFilters.status = "PROCESSING";
+        break;
+      case "archived":
+        newFilters.status = "ARCHIVED";
+        break;
+      case "shared":
+        newFilters.sharedOnly = true;
+        break;
+      case "total":
+        break;
+    }
 
-  switch (type) {
-    case "processed":
-      newFilters.status = "COMPLETED";
-      break;
-    case "processing":
-      newFilters.status = "PROCESSING";
-      break;
-    case "archived":
-      newFilters.status = "ARCHIVED";
-      break;
-    case "shared":
-      newFilters.sharedOnly = true;
-      break;
-  }
-
-  setFilters(prev => ({ ...prev, ...newFilters }));
-  setActiveFilters(newFilters);
-  setCurrentPage(0);
-
-  // 🔥 FORCE reload
-  setTimeout(loadDocuments, 0);
-};
-
+    setFilters((prev) => ({ ...prev, ...newFilters }));
+    setActiveFilters(newFilters);
+    setCurrentPage(0);
+  };
 
   // Load metadata on component mount and wait for it
   useEffect(() => {
@@ -231,20 +246,28 @@ const handleStatClick = (type: string) => {
     };
     initializeData();
   }, []);
+  useEffect(() => {
+    setupWebSocket();
+    return () => wsRef.current?.close();
+  }, []);
+
+  useEffect(() => {
+    loadDocuments();
+  }, [activeFilters, currentPage, pageSize]);
 
   // Load documents when filters change
-  useEffect(() => {
-    if (clients.length > 0 || documentTypes.length > 0) {
-      loadDocuments();
-    }
-    setupWebSocket();
+  // useEffect(() => {
+  //   if (clients.length > 0 || documentTypes.length > 0) {
+  //     loadDocuments();
+  //   }
+  //   // setupWebSocket();
 
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [activeFilters, clients, documentTypes, currentPage, pageSize]);
+  //   return () => {
+  //     if (wsRef.current) {
+  //       wsRef.current.close();
+  //     }
+  //   };
+  // }, [activeFilters, clients, documentTypes, currentPage, pageSize]);
 
   const loadMetadata = async () => {
     try {
@@ -255,6 +278,18 @@ const handleStatClick = (type: string) => {
           ? formService.getActiveForm().catch(() => null)
           : Promise.resolve(null),
       ]);
+      try {
+  const uploadedRes = await documentService.getUploadedByFilter();
+  setUploadedByOptions(uploadedRes || []);
+} catch {}
+
+const user = authService.getUser();
+if (user?.role?.name === "SUPER_ADMIN") {
+  try {
+    const orgRes = await documentService.getOrganisationFilter();
+    setOrganisationOptions(orgRes || []);
+  } catch {}
+}
 
       // Handle different response formats safely
       const clientList = Array.isArray(clientsRes)
@@ -310,165 +345,390 @@ const handleStatClick = (type: string) => {
     activeFilters.form_document_type ||
     undefined;
 
+  // const loadDocuments = async () => {
+  //   try {
+  //     setLoading(true);
+  //     await loadStats();
+
+  //     // Prepare filters
+  //     const formFilters: Record<string, any> = {};
+  //     Object.entries(activeFilters).forEach(([key, value]) => {
+  //       if (!value) return;
+
+  //       // ❌ Skip document type here
+  //       if (key === "document_type_id") return;
+
+  //       if (key.startsWith("form_")) {
+  //         const fieldId = key.replace("form_", "");
+
+  //         if (value instanceof Date) {
+  //           const year = value.getFullYear();
+  //           const month = String(value.getMonth() + 1).padStart(2, "0");
+  //           const day = String(value.getDate()).padStart(2, "0");
+  //           formFilters[fieldId] = `${year}-${month}-${day}`;
+  //         } else {
+  //           formFilters[fieldId] = value;
+  //         }
+  //       }
+  //     });
+
+  //     const serviceFilters = {
+  //       status: activeFilters.status
+  //         ? activeFilters.status.toUpperCase()
+  //         : undefined,
+  //       dateFrom: activeFilters.dateFrom
+  //         ? formatLocalDate(activeFilters.dateFrom)
+  //         : undefined,
+
+  //       dateTo: activeFilters.dateTo
+  //         ? formatLocalDate(activeFilters.dateTo)
+  //         : undefined,
+
+  //       // ✅ THIS IS THE FIX
+  //       document_type_id: documentTypeFilter,
+
+  //       formFilters:
+  //         Object.keys(formFilters).length > 0 ? formFilters : undefined,
+  //       sharedOnly: activeFilters.sharedOnly,
+  //       skip: currentPage * pageSize,
+  //       limit: pageSize,
+  //     };
+
+  //     const response = await documentService.getDocuments(serviceFilters);
+  //     const docs = response.documents;
+  //     setTotalDocuments(response.total);
+
+  //     let formattedDocs = docs.map((doc) =>
+  //       documentService.normalizeDocument(doc),
+  //     );
+  //     formattedDocs = formattedDocs.map((d) => ({
+  //       ...d,
+  //       status: (d.status?.toLowerCase() || "processing") as DocStatus,
+  //     }));
+  //     console.log("DOC:", formattedDocs[0]);
+
+  //     if (activeFilters.sharedOnly) {
+  //       formattedDocs = formattedDocs.filter((d) => d.isSharedWithMe);
+  //     }
+
+  //     // archived tab
+  //     else if (activeFilters.status === "ARCHIVED") {
+  //       formattedDocs = formattedDocs.filter((d) => d.isArchived);
+  //     }
+
+  //     // processed tab
+  //     else if (activeFilters.status === "COMPLETED") {
+  //       formattedDocs = formattedDocs.filter(
+  //         (d) => d.status === "completed" && !d.isArchived,
+  //       );
+  //     }
+
+  //     // processing tab
+  //     else if (activeFilters.status === "PROCESSING") {
+  //       formattedDocs = formattedDocs.filter(
+  //         (d) => d.status === "processing" && !d.isArchived,
+  //       );
+  //     }
+  //     // Fetch column configuration
+  //     try {
+  //       const response = await documentListConfigService.getMyConfig();
+  //       if (response.configuration) {
+  //         let sortedColumns = [...response.configuration.columns].sort(
+  //           (a: any, b: any) => a.order - b.order,
+  //         );
+
+  //         const requiredSystemColumns = [
+  //           { id: "uploadedBy", label: "Uploaded By" },
+  //           { id: "organisationName", label: "Organisation" },
+  //         ];
+
+  //         requiredSystemColumns.forEach((col) => {
+  //           if (!sortedColumns.find((c: any) => c.id === col.id)) {
+  //             sortedColumns.push({
+  //               id: col.id,
+  //               label: col.label,
+  //               isSystem: true,
+  //               visible: true,
+  //               order: 999,
+
+  //               // required by ColumnConfig type
+  //               width: 150,
+  //               type: "system",
+  //               required: false,
+  //             } as any);
+  //           }
+  //         });
+
+  //         setColumnConfig(sortedColumns);
+  //       } else {
+  //         // Default config if none saved
+  //         setColumnConfig([
+  //           {
+  //             id: "name",
+  //             label: "Document Name",
+  //             isSystem: true,
+  //             visible: true,
+  //           },
+  //           { id: "client", label: "Client", isSystem: true, visible: true },
+  //           {
+  //             id: "documentType",
+  //             label: "Document Type",
+  //             isSystem: true,
+  //             visible: true,
+  //           },
+  //           {
+  //             id: "medicalRecords",
+  //             label: "Medical Records",
+  //             isSystem: true,
+  //             visible: true,
+  //           },
+  //           { id: "type", label: "Type", isSystem: true, visible: true },
+  //           {
+  //             id: "uploadedBy",
+  //             label: "Uploaded By",
+  //             isSystem: true,
+  //             visible: true,
+  //           },
+  //           {
+  //             id: "organisationName",
+  //             label: "Organisation",
+  //             isSystem: true,
+  //             visible: true,
+  //           },
+  //           { id: "size", label: "Size", isSystem: true, visible: true },
+  //           { id: "pages", label: "Pages", isSystem: true, visible: true },
+  //           {
+  //             id: "uploadedAt",
+  //             label: "Uploaded",
+  //             isSystem: true,
+  //             visible: true,
+  //           },
+  //           { id: "status", label: "Status", isSystem: true, visible: true },
+  //           { id: "actions", label: "Actions", isSystem: true, visible: true },
+  //         ]);
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to load column config");
+  //       // Default config on error
+  //       setColumnConfig([
+  //         { id: "name", label: "Document Name", isSystem: true },
+  //         { id: "client", label: "Client", isSystem: true, visible: true },
+  //         {
+  //           id: "documentType",
+  //           label: "Document Type",
+  //           isSystem: true,
+  //           visible: true,
+  //         },
+  //         {
+  //           id: "medicalRecords",
+  //           label: "Medical Records",
+  //           isSystem: true,
+  //           visible: true,
+  //         },
+  //         { id: "type", label: "Type", isSystem: true },
+  //         { id: "uploadedBy", label: "Uploaded By", isSystem: true },
+
+  //         { id: "organisationName", label: "Organisation", isSystem: true },
+  //         { id: "size", label: "Size", isSystem: true },
+  //         { id: "pages", label: "Pages", isSystem: true },
+  //         { id: "uploadedAt", label: "Uploaded", isSystem: true },
+  //         { id: "status", label: "Status", isSystem: true },
+  //         { id: "actions", label: "Actions", isSystem: true },
+  //       ]);
+  //     }
+
+  //     // setDocuments((prevNodes) => {
+  //     //   return formattedDocs.map((newDoc) => {
+  //     //     const existingDoc = prevNodes.find((d) => d.id === newDoc.id);
+  //     //     // Preserve progress if we have a higher value locally (from WS) and status is uploading
+  //     //     if (
+  //     //       existingDoc &&
+  //     //       existingDoc.status === "uploading" &&
+  //     //       newDoc.status === "uploading" &&
+  //     //       (existingDoc.progress || 0) > (newDoc.progress || 0)
+  //     //     ) {
+  //     //       return { ...newDoc, progress: existingDoc.progress };
+  //     //     }
+  //     //     return newDoc;
+  //     //   });
+  //     // });
+  //     setDocuments(formattedDocs);
+  //   } catch (error) {
+  //     // Silently fail or use a toast notification in a real app
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const loadDocuments = async () => {
-    try {
-      setLoading(true);
-      loadStats();
+  try {
+    setLoading(true);
+    await loadStats();
 
-      // Prepare filters
-      const formFilters: Record<string, any> = {};
-      Object.entries(activeFilters).forEach(([key, value]) => {
-        if (!value) return;
+    // ================================
+    // BUILD FILTERS CLEANLY
+    // ================================
+    const formFilters: Record<string, any> = {};
 
-        // ❌ Skip document type here
-        if (key === "document_type_id") return;
+    let clientId: string | undefined;
+    let documentTypeId: string | undefined;
+    let organisationId: string | undefined;
 
-        if (key.startsWith("form_")) {
-          const fieldId = key.replace("form_", "");
+    Object.entries(activeFilters).forEach(([key, value]) => {
+      if (!value) return;
 
-          if (value instanceof Date) {
-            const year = value.getFullYear();
-            const month = String(value.getMonth() + 1).padStart(2, "0");
-            const day = String(value.getDate()).padStart(2, "0");
-            formFilters[fieldId] = `${year}-${month}-${day}`;
-          } else {
-            formFilters[fieldId] = value;
-          }
+      // skip non-data filters
+      if (["status", "sharedOnly", "dateFrom", "dateTo"].includes(key)) return;
+
+      // handle form fields
+      if (key.startsWith("form_")) {
+        const fieldId = key.replace("form_", "");
+        const fieldMeta = formFields.find(f => String(f.id) === fieldId);
+
+        if (!fieldMeta) return;
+
+        const label = fieldMeta.label?.toLowerCase() || "";
+
+        // client dropdown
+        if (label.includes("client")) {
+          clientId = value;
+          return;
         }
-      });
 
-      const serviceFilters = {
-        status: activeFilters.status
-          ? activeFilters.status.toUpperCase()
-          : undefined,
-        dateFrom: activeFilters.dateFrom
-          ? formatLocalDate(activeFilters.dateFrom)
-          : undefined,
-
-        dateTo: activeFilters.dateTo
-          ? formatLocalDate(activeFilters.dateTo)
-          : undefined,
-
-        // ✅ THIS IS THE FIX
-        document_type_id: documentTypeFilter,
-
-        formFilters:
-          Object.keys(formFilters).length > 0 ? formFilters : undefined,
-        sharedOnly: activeFilters.sharedOnly,
-        skip: currentPage * pageSize,
-        limit: pageSize,
-      };
-
-      const response = await documentService.getDocuments(serviceFilters);
-      const docs = response.documents;
-      setTotalDocuments(response.total);
-
-let formattedDocs = docs.map(doc =>
-  documentService.normalizeDocument(doc)
-);
-
-// hide archived from default "total" view
-if (activeFilters.status !== "ARCHIVED") {
-  formattedDocs = formattedDocs.filter(d => !d.isArchived);
-}
-
-console.log("FORMATTED DOCS", formattedDocs);
-console.log(columnConfig)
-console.log(formattedDocs)
-console.log("DOC:", formattedDocs[0])
-
-
-      // Fetch column configuration
-      try {
-        const response = await documentListConfigService.getMyConfig();
-if (response.configuration) {
-  let sortedColumns = [...response.configuration.columns]
-    .sort((a: any, b: any) => a.order - b.order);
-
-  const requiredSystemColumns = [
-    { id: "uploadedBy", label: "Uploaded By" },
-    { id: "organisationName", label: "Organisation" },
-  ];
-
-requiredSystemColumns.forEach((col) => {
-  if (!sortedColumns.find((c: any) => c.id === col.id)) {
-    sortedColumns.push({
-      id: col.id,
-      label: col.label,
-      isSystem: true,
-      visible: true,
-      order: 999,
-
-      // required by ColumnConfig type
-      width: 150,
-      type: "system",
-      required: false,
-    } as any);
-  }
-});
-
-
-  setColumnConfig(sortedColumns);
-}
- else {
-          // Default config if none saved
-          setColumnConfig([
-  { id: "name", label: "Document Name", isSystem: true, visible: true },
-  { id: "client", label: "Client", isSystem: true, visible: true },
-  { id: "documentType", label: "Document Type", isSystem: true, visible: true },
-  { id: "medicalRecords", label: "Medical Records", isSystem: true, visible: true },
-  { id: "type", label: "Type", isSystem: true, visible: true },
-  { id: "uploadedBy", label: "Uploaded By", isSystem: true, visible: true },
-  { id: "organisationName", label: "Organisation", isSystem: true, visible: true },
-  { id: "size", label: "Size", isSystem: true, visible: true },
-  { id: "pages", label: "Pages", isSystem: true, visible: true },
-  { id: "uploadedAt", label: "Uploaded", isSystem: true, visible: true },
-  { id: "status", label: "Status", isSystem: true, visible: true },
-  { id: "actions", label: "Actions", isSystem: true, visible: true },
-]);
-
+        // document type dropdown
+        if (label.includes("document type")) {
+          documentTypeId = value;
+          return;
         }
-      } catch (error) {
-        console.error("Failed to load column config");
-        // Default config on error
-        setColumnConfig([
-          { id: "name", label: "Document Name", isSystem: true },
-          { id: "client", label: "Client", isSystem: true, visible: true },
-  { id: "documentType", label: "Document Type", isSystem: true, visible: true },
-  { id: "medicalRecords", label: "Medical Records", isSystem: true, visible: true },
-          { id: "type", label: "Type", isSystem: true },
-          { id: "uploadedBy", label: "Uploaded By", isSystem: true },   
 
-          { id: "organisationName", label: "Organisation", isSystem: true }, 
-          { id: "size", label: "Size", isSystem: true },
-          { id: "pages", label: "Pages", isSystem: true },
-          { id: "uploadedAt", label: "Uploaded", isSystem: true },
-          { id: "status", label: "Status", isSystem: true },
-          { id: "actions", label: "Actions", isSystem: true },
-        ]);
+        // organisation dropdown
+        if (label.includes("organisation")) {
+          organisationId = value;
+          return;
+        }
+
+        // normal form field
+        formFilters[fieldId] = value;
       }
+    });
 
-      setDocuments((prevNodes) => {
-        return formattedDocs.map((newDoc) => {
-          const existingDoc = prevNodes.find((d) => d.id === newDoc.id);
-          // Preserve progress if we have a higher value locally (from WS) and status is uploading
-          if (
-            existingDoc &&
-            existingDoc.status === "uploading" &&
-            newDoc.status === "uploading" &&
-            (existingDoc.progress || 0) > (newDoc.progress || 0)
-          ) {
-            return { ...newDoc, progress: existingDoc.progress };
-          }
-          return newDoc;
-        });
-      });
-    } catch (error) {
-      // Silently fail or use a toast notification in a real app
-    } finally {
-      setLoading(false);
+    const serviceFilters = {
+      status: activeFilters.status || undefined,
+      sharedOnly: activeFilters.sharedOnly || undefined,
+
+      dateFrom: activeFilters.dateFrom
+        ? formatLocalDate(activeFilters.dateFrom)
+        : undefined,
+
+      dateTo: activeFilters.dateTo
+        ? formatLocalDate(activeFilters.dateTo)
+        : undefined,
+
+      client_id: clientId,
+      document_type_id: documentTypeId,
+      organisation_id: organisationId,
+        uploaded_by: activeFilters.uploaded_by || undefined,
+  organisation_filter: activeFilters.organisation_filter || undefined,
+
+      formFilters: Object.keys(formFilters).length ? formFilters : undefined,
+
+      skip: currentPage * pageSize,
+      limit: pageSize,
+    };
+
+    // ================================
+    // API CALL
+    // ================================
+    console.log("SERVICE FILTERS >>>", serviceFilters);
+
+    const response = await documentService.getDocuments(serviceFilters);
+
+    const docs = response.documents || [];
+    setTotalDocuments(response.total || 0);
+
+    // ================================
+    // NORMALIZE
+    // ================================
+    let formattedDocs = docs.map((doc: any) => {
+      const normalized = documentService.normalizeDocument(doc);
+
+      return {
+        ...normalized,
+        status: (normalized.status?.toLowerCase() || "processing") as DocStatus,
+      };
+    });
+
+    // ================================
+    // FRONTEND FILTERS (ONLY TABS)
+    // ================================
+    if (activeFilters.sharedOnly) {
+      formattedDocs = formattedDocs.filter(d => d.isSharedWithMe);
     }
-  };
+
+    else if (activeFilters.status === "ARCHIVED") {
+      formattedDocs = formattedDocs.filter(d => d.isArchived);
+    }
+
+    else if (activeFilters.status === "COMPLETED") {
+      formattedDocs = formattedDocs.filter(
+        d => d.status === "completed" && !d.isArchived
+      );
+    }
+
+    else if (activeFilters.status === "PROCESSING") {
+      formattedDocs = formattedDocs.filter(
+        d => d.status === "processing" && !d.isArchived
+      );
+    }
+
+    // ================================
+    // SET DOCUMENTS
+    // ================================
+    setDocuments(formattedDocs);
+
+    // ================================
+    // COLUMN CONFIG (UNCHANGED)
+    // ================================
+    try {
+      const configRes = await documentListConfigService.getMyConfig();
+
+      if (configRes.configuration) {
+        let sortedColumns = [...configRes.configuration.columns]
+          .sort((a: any, b: any) => a.order - b.order);
+
+        const requiredSystemColumns = [
+          { id: "uploadedBy", label: "Uploaded By" },
+          { id: "organisationName", label: "Organisation" },
+        ];
+
+        requiredSystemColumns.forEach(col => {
+          if (!sortedColumns.find((c: any) => c.id === col.id)) {
+            sortedColumns.push({
+              id: col.id,
+              label: col.label,
+              isSystem: true,
+              visible: true,
+              order: 999,
+              width: 150,
+              type: "system",
+              required: false,
+            });
+          }
+        });
+
+        setColumnConfig(sortedColumns);
+      }
+    } catch {
+      console.log("column config failed");
+    }
+
+  } catch (err) {
+    console.error("loadDocuments error", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const mapDocumentStatus = (
     statusCode: string,
@@ -551,11 +811,6 @@ requiredSystemColumns.forEach((col) => {
         loadStats();
         loadDocuments();
       }
-      if (data.status === "ARCHIVED" || data.status === "UNARCHIVED") {
-        loadDocuments();
-        loadStats();
-        return;
-      }
 
       const { updateUpload } = uploadStore.getState();
 
@@ -587,11 +842,11 @@ requiredSystemColumns.forEach((col) => {
         const updated = prev.map((doc) =>
           String(doc.id) === String(data.document_id)
             ? {
-              ...doc,
-              status: mapDocumentStatus(data.status),
-              progress: data.progress,
-              errorMessage: data.error_message,
-            }
+                ...doc,
+                status: mapDocumentStatus(data.status),
+                progress: data.progress,
+                errorMessage: data.error_message,
+              }
             : doc,
         );
 
@@ -601,7 +856,7 @@ requiredSystemColumns.forEach((col) => {
         );
         if (!documentExists) {
           // Delay refresh slightly to ensure backend is ready
-          setTimeout(() => loadDocuments(), 500);
+          // setTimeout(() => loadDocuments(), 500);
         }
 
         return updated;
@@ -627,7 +882,6 @@ requiredSystemColumns.forEach((col) => {
 
   const handleArchive = async (id: string) => {
     try {
-
       // setDocuments((prev) =>
       //   prev.map((doc) =>
       //     doc.id === id
@@ -636,9 +890,8 @@ requiredSystemColumns.forEach((col) => {
       //   ),
       // );
       await documentService.archiveDocument(id);
-await loadDocuments();
-await loadStats();
-
+      await loadDocuments();
+      await loadStats();
 
       // loadStats(); // 🔥 REQUIRED
 
@@ -826,29 +1079,26 @@ await loadStats();
     }
   };
 
-
-
   const columns = React.useMemo(() => {
     if (columnConfig.length === 0) return [];
 
-const systemIds = [
-  "select",
-  "name",
-  "client",
-  "documentType",
-  "medicalRecords",
-  "type",
-  "uploadedBy",
-  "organisationName",
-  "size",
-  "pages",
-  "uploadedAt",
-  "status",
-  "actions",
-];
+    const systemIds = [
+      "select",
+      "name",
+      "client",
+      "documentType",
+      "medicalRecords",
+      "type",
+      "uploadedBy",
+      "organisationName",
+      "size",
+      "pages",
+      "uploadedAt",
+      "status",
+      "actions",
+    ];
 
-console.log(authService.getUser())
-
+    console.log(authService.getUser());
 
     const baseColumns = [
       {
@@ -892,7 +1142,10 @@ console.log(authService.getUser())
                   key: "name",
                   header: col.label,
                   render: (value: string, row: DocumentListItem) => (
-                    <span className={styles.tooltipWrapper} data-tooltip={value}>
+                    <span
+                      className={styles.tooltipWrapper}
+                      data-tooltip={value}
+                    >
                       <div
                         className={styles.documentName}
                         style={{ maxWidth: "100%", overflow: "hidden" }}
@@ -908,57 +1161,58 @@ console.log(authService.getUser())
                   key: "type",
                   header: col.label,
                   render: (value: string) => (
-                    <span className={styles.tooltipWrapper} data-tooltip={value}>
+                    <span
+                      className={styles.tooltipWrapper}
+                      data-tooltip={value}
+                    >
                       <span className={styles.documentType}>{value}</span>
                     </span>
                   ),
                 };
-                case "uploadedBy":
-  return {
-    key: "uploadedBy",
-    header: col.label,
-    render: (value: string) => (
-      <span>{value || "-"}</span>
-    ),
-  };
-case "client":
-  return {
-    key: "client",
-    header: col.label,
-    render: (value: string) => <span>{value || "-"}</span>,
-  };
+              case "uploadedBy":
+                return {
+                  key: "uploadedBy",
+                  header: col.label,
+                  render: (value: string) => <span>{value || "-"}</span>,
+                };
+              case "client":
+                return {
+                  key: "client",
+                  header: col.label,
+                  render: (value: string) => <span>{value || "-"}</span>,
+                };
 
-case "documentType":
-  return {
-    key: "documentType",
-    header: col.label,
-    render: (value: string) => <span>{value || "-"}</span>,
-  };
+              case "documentType":
+                return {
+                  key: "documentType",
+                  header: col.label,
+                  render: (value: string) => <span>{value || "-"}</span>,
+                };
 
-case "medicalRecords":
-  return {
-    key: "medicalRecords",
-    header: col.label,
-    render: (value: string) => <span>{value || "-"}</span>,
-  };
+              case "medicalRecords":
+                return {
+                  key: "medicalRecords",
+                  header: col.label,
+                  render: (value: string) => <span>{value || "-"}</span>,
+                };
 
-case "organisationName": {
-  const currentUser = authService.getUser();
+              case "organisationName": {
+                const currentUser = authService.getUser();
 
-  if (currentUser?.role?.name !== "SUPER_ADMIN") {
-    return {
-      key: "organisationName",
-      header: "",
-      render: () => null,
-    };
-  }
+                if (currentUser?.role?.name !== "SUPER_ADMIN") {
+                  return {
+                    key: "organisationName",
+                    header: "",
+                    render: () => null,
+                  };
+                }
 
-  return {
-    key: "organisationName",
-    header: col.label,
-    render: (value: string) => <span>{value || "-"}</span>,
-  };
-}
+                return {
+                  key: "organisationName",
+                  header: col.label,
+                  render: (value: string) => <span>{value || "-"}</span>,
+                };
+              }
 
               case "size":
                 return {
@@ -1076,7 +1330,9 @@ case "organisationName": {
                             text: (
                               <span
                                 className={`${styles.tooltipWrapper} tooltip-bottom`}
-                                data-tooltip={row.errorMessage || "Upload failed"}
+                                data-tooltip={
+                                  row.errorMessage || "Upload failed"
+                                }
                               >
                                 Upload Failed
                               </span>
@@ -1092,7 +1348,10 @@ case "organisationName": {
                           return {
                             class: "processing",
                             icon: (
-                              <Loader2 size={12} className={styles.animateSpin} />
+                              <Loader2
+                                size={12}
+                                className={styles.animateSpin}
+                              />
                             ),
                             text: row.errorMessage || "Analyzing...",
                           };
@@ -1130,7 +1389,9 @@ case "organisationName": {
                             text: (
                               <span
                                 className={`${styles.tooltipWrapper} tooltip-bottom`}
-                                data-tooltip={row.errorMessage || "Unknown error"}
+                                data-tooltip={
+                                  row.errorMessage || "Unknown error"
+                                }
                               >
                                 Failed
                               </span>
@@ -1171,33 +1432,33 @@ case "organisationName": {
                         row.status === "ai_failed" ||
                         row.status === "upload_failed" ||
                         row.status === "cancelled") && (
-                          <span
-                            className={styles.tooltipWrapper}
-                            data-tooltip="Retry Analysis"
+                        <span
+                          className={styles.tooltipWrapper}
+                          data-tooltip="Retry Analysis"
+                        >
+                          <button
+                            onClick={() => handleReanalyze(row.id)}
+                            className="action-btn activate"
                           >
-                            <button
-                              onClick={() => handleReanalyze(row.id)}
-                              className="action-btn activate"
-                            >
-                              <RefreshCw size={14} />
-                            </button>
-                          </span>
-                        )}
+                            <RefreshCw size={14} />
+                          </button>
+                        </span>
+                      )}
 
                       {(row.status === "analyzing" ||
                         row.status === "ai_queued") && (
-                          <span
-                            className={styles.tooltipWrapper}
-                            data-tooltip="Cancel Analysis"
+                        <span
+                          className={styles.tooltipWrapper}
+                          data-tooltip="Cancel Analysis"
+                        >
+                          <button
+                            onClick={() => handleCancel(row.id)}
+                            className="action-btn delete"
                           >
-                            <button
-                              onClick={() => handleCancel(row.id)}
-                              className="action-btn delete"
-                            >
-                              <Ban size={14} />
-                            </button>
-                          </span>
-                        )}
+                            <Ban size={14} />
+                          </button>
+                        </span>
+                      )}
 
                       {!row.isUploading && (
                         <>
@@ -1205,8 +1466,8 @@ case "organisationName": {
                             className={styles.tooltipWrapper}
                             data-tooltip={
                               row.status === "queued" ||
-                                row.status === "uploading" ||
-                                row.status === "upload_failed"
+                              row.status === "uploading" ||
+                              row.status === "upload_failed"
                                 ? "Upload in progress or failed"
                                 : "View Details"
                             }
@@ -1244,14 +1505,18 @@ case "organisationName": {
                                     await documentService.getDocumentDownloadUrl(
                                       row.id,
                                     );
-                                  const link = window.document.createElement("a");
+                                  const link =
+                                    window.document.createElement("a");
                                   link.href = url;
                                   link.setAttribute(
                                     "download",
                                     row.originalFilename || row.name,
                                   );
                                   link.setAttribute("target", "_blank");
-                                  link.setAttribute("rel", "noopener noreferrer");
+                                  link.setAttribute(
+                                    "rel",
+                                    "noopener noreferrer",
+                                  );
                                   window.document.body.appendChild(link);
                                   link.click();
                                   window.document.body.removeChild(link);
@@ -1316,7 +1581,6 @@ case "organisationName": {
                               <FileText size={14} />
                             </button>
                           </span>
-
                         </>
                       )}
                       {row.isUploading && (
@@ -1345,10 +1609,10 @@ case "organisationName": {
                 const data = row.customFormData || {};
 
                 // Strategy 1: Direct lookup by column ID (stripped of form_ prefix)
-let val =
-  data[formFieldId] ??
-  data[col.label] ??
-  data[col.label?.toLowerCase().replace(" ", "_")];
+                let val =
+                  data[formFieldId] ??
+                  data[col.label] ??
+                  data[col.label?.toLowerCase().replace(" ", "_")];
 
                 // Strategy 2: Lookup by column label (handles cases where keys are labels)
                 if (!val && col.label) {
@@ -1409,7 +1673,7 @@ let val =
                     );
                     const clientName = client
                       ? client.business_name ||
-                      `${client.first_name} ${client.last_name}`.trim()
+                        `${client.first_name} ${client.last_name}`.trim()
                       : `Unknown Client (${String(val).substring(0, 8)}...)`;
                     return (
                       <span
@@ -1537,6 +1801,49 @@ let val =
           </div>
         </div>
       </div>
+    {/* Uploaded By filter */}
+{/* <div className={styles.filterGroup}>
+  <label>Uploaded By</label>
+  <CommonDropdown
+    value={filters.uploaded_by || ""}
+onChange={(value) => {
+  setFilters((prev) => ({ ...prev, uploaded_by: value }));
+  setActiveFilters((prev) => ({ ...prev, uploaded_by: value }));
+  setCurrentPage(0);
+}}
+
+    options={[
+      { value: "", label: "All Users" },
+      ...uploadedByOptions.map((u) => ({
+        value: u.id,
+        label: u.name,
+      })),
+    ]}
+    size="md"
+  />
+</div> */}
+{/* {authService.getUser()?.role?.name === "SUPER_ADMIN" && (
+  <div className={styles.filterGroup}>
+    <label>Organisation</label>
+    <CommonDropdown
+      value={filters.organisation_filter || ""}
+onChange={(value) => {
+  setFilters((prev) => ({ ...prev, organisation_filter: value }));
+  setActiveFilters((prev) => ({ ...prev, organisation_filter: value }));
+  setCurrentPage(0);
+}}
+
+      options={[
+        { value: "", label: "All Organisations" },
+        ...organisationOptions.map((o) => ({
+          value: o.id,
+          label: o.name,
+        })),
+      ]}
+      size="md"
+    />
+  </div>
+)} */}
 
       <div className={styles.header}>
         <div className={styles.titleRow}>
@@ -1585,7 +1892,6 @@ let val =
             </button>
           </div>
         </div>
-
       </div>
 
       {loading ? (
@@ -1821,7 +2127,48 @@ let val =
                 </div>
               </div>
             </div>
+                <div className={styles.filterGroup}>
+  <label>Uploaded By</label>
+  <CommonDropdown
+    value={filters.uploaded_by || ""}
+onChange={(value) => {
+  setFilters((prev) => ({ ...prev, uploaded_by: value }));
+  setActiveFilters((prev) => ({ ...prev, uploaded_by: value }));
+  setCurrentPage(0);
+}}
 
+    options={[
+      { value: "", label: "All Users" },
+      ...uploadedByOptions.map((u) => ({
+        value: u.id,
+        label: u.name,
+      })),
+    ]}
+    size="md"
+  />
+</div>
+{authService.getUser()?.role?.name === "SUPER_ADMIN" && (
+  <div className={styles.filterGroup}>
+    <label>Organisation</label>
+    <CommonDropdown
+      value={filters.organisation_filter || ""}
+onChange={(value) => {
+  setFilters((prev) => ({ ...prev, organisation_filter: value }));
+  setActiveFilters((prev) => ({ ...prev, organisation_filter: value }));
+  setCurrentPage(0);
+}}
+
+      options={[
+        { value: "", label: "All Organisations" },
+        ...organisationOptions.map((o) => ({
+          value: o.id,
+          label: o.name,
+        })),
+      ]}
+      size="md"
+    />
+  </div>
+)}
             {/* Dynamic Form Field Filters */}
             {formFields.map((field) => {
               const isClientField =
@@ -1867,7 +2214,7 @@ let val =
                     <CommonDatePicker
                       selected={
                         filters[filterKey] &&
-                          typeof filters[filterKey] === "string"
+                        typeof filters[filterKey] === "string"
                           ? new Date(filters[filterKey])
                           : filters[filterKey]
                       }
@@ -1918,41 +2265,103 @@ let val =
           </div>
         </div>
       </div>
-      {statusTooltipVisible && createPortal(
-        <div
-          className={styles.statusTooltip}
-          style={{
-            position: 'fixed',
-            top: statusTooltipPos.top,
-            left: statusTooltipPos.left,
-            transform: 'translateX(-50%)',
-            opacity: 1,
-            visibility: 'visible',
-            pointerEvents: 'none',
-            zIndex: 9999
-          }}
-        >
-          <div className={styles.statusTooltipItem}><Clock size={12} /> Queued: Waiting to start</div>
-          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-          <div className={styles.statusTooltipItem}><UploadCloud size={12} /> Uploading: File transfer</div>
-          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-          <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Uploaded: File ready for AI</div>
-          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-          <div className={styles.statusTooltipItem}><Clock size={12} /> Processing: Being analyzed</div>
-          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-          <div className={styles.statusTooltipItem}><Clock size={12} /> AI Queued: Waiting for AI</div>
-          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-          <div className={styles.statusTooltipItem}><Loader2 size={12} /> Analyzing: AI processing</div>
-          <div className={styles.statusTooltipItem} style={{ justifyContent: 'center', padding: '2px 0' }}>↓</div>
-          <div className={styles.statusTooltipItem}><CheckCircle size={12} /> Completed: Finished analysis</div>
-          <div className={styles.statusTooltipItem} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>Error States:</div>
-          <div className={styles.statusTooltipItem}><X size={12} /> Upload Failed: Network error</div>
-          <div className={styles.statusTooltipItem}><X size={12} /> Failed: General error</div>
-          <div className={styles.statusTooltipItem}><X size={12} /> AI Failed: Analysis error</div>
-          <div className={styles.statusTooltipItem}><Ban size={12} /> Cancelled: Manually stopped</div>
-        </div>,
-        document.body
-      )}
+      {statusTooltipVisible &&
+        createPortal(
+          <div
+            className={styles.statusTooltip}
+            style={{
+              position: "fixed",
+              top: statusTooltipPos.top,
+              left: statusTooltipPos.left,
+              transform: "translateX(-50%)",
+              opacity: 1,
+              visibility: "visible",
+              pointerEvents: "none",
+              zIndex: 9999,
+            }}
+          >
+            <div className={styles.statusTooltipItem}>
+              <Clock size={12} /> Queued: Waiting to start
+            </div>
+            <div
+              className={styles.statusTooltipItem}
+              style={{ justifyContent: "center", padding: "2px 0" }}
+            >
+              ↓
+            </div>
+            <div className={styles.statusTooltipItem}>
+              <UploadCloud size={12} /> Uploading: File transfer
+            </div>
+            <div
+              className={styles.statusTooltipItem}
+              style={{ justifyContent: "center", padding: "2px 0" }}
+            >
+              ↓
+            </div>
+            <div className={styles.statusTooltipItem}>
+              <CheckCircle size={12} /> Uploaded: File ready for AI
+            </div>
+            <div
+              className={styles.statusTooltipItem}
+              style={{ justifyContent: "center", padding: "2px 0" }}
+            >
+              ↓
+            </div>
+            <div className={styles.statusTooltipItem}>
+              <Clock size={12} /> Processing: Being analyzed
+            </div>
+            <div
+              className={styles.statusTooltipItem}
+              style={{ justifyContent: "center", padding: "2px 0" }}
+            >
+              ↓
+            </div>
+            <div className={styles.statusTooltipItem}>
+              <Clock size={12} /> AI Queued: Waiting for AI
+            </div>
+            <div
+              className={styles.statusTooltipItem}
+              style={{ justifyContent: "center", padding: "2px 0" }}
+            >
+              ↓
+            </div>
+            <div className={styles.statusTooltipItem}>
+              <Loader2 size={12} /> Analyzing: AI processing
+            </div>
+            <div
+              className={styles.statusTooltipItem}
+              style={{ justifyContent: "center", padding: "2px 0" }}
+            >
+              ↓
+            </div>
+            <div className={styles.statusTooltipItem}>
+              <CheckCircle size={12} /> Completed: Finished analysis
+            </div>
+            <div
+              className={styles.statusTooltipItem}
+              style={{
+                marginTop: "8px",
+                paddingTop: "8px",
+                borderTop: "1px solid rgba(255, 255, 255, 0.2)",
+              }}
+            >
+              Error States:
+            </div>
+            <div className={styles.statusTooltipItem}>
+              <X size={12} /> Upload Failed: Network error
+            </div>
+            <div className={styles.statusTooltipItem}>
+              <X size={12} /> Failed: General error
+            </div>
+            <div className={styles.statusTooltipItem}>
+              <X size={12} /> AI Failed: Analysis error
+            </div>
+            <div className={styles.statusTooltipItem}>
+              <Ban size={12} /> Cancelled: Manually stopped
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };
