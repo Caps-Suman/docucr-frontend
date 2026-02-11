@@ -31,15 +31,37 @@ export interface ModulesResponse {
 }
 
 class ModulesService {
-  async getUserModules(email: string): Promise<Module[]> {
-    const response = await apiClient(`${API_BASE_URL}/api/modules/user-modules?email=${encodeURIComponent(email)}`);
+  private modulesPromise: Promise<Module[]> | null = null;
+  private currentEmail: string | null = null;
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch user modules');
+  async getUserModules(email: string): Promise<Module[]> {
+    // Return cached promise if request is pending or completed for same email
+    if (this.modulesPromise && this.currentEmail === email) {
+      return this.modulesPromise;
     }
 
-    const data: ModulesResponse = await response.json();
-    return data.modules;
+    this.currentEmail = email;
+    
+    // Create and cache the promise
+    this.modulesPromise = (async () => {
+      try {
+        const response = await apiClient(`${API_BASE_URL}/api/modules/user-modules?email=${encodeURIComponent(email)}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch user modules');
+        }
+
+        const data: ModulesResponse = await response.json();
+        return data.modules;
+      } catch (error) {
+        // Clear cache on error so retry is possible
+        this.modulesPromise = null;
+        this.currentEmail = null;
+        throw error;
+      }
+    })();
+
+    return this.modulesPromise;
   }
 
   async getAllModules(): Promise<Module[]> {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Search, Trash2, Plus } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../styles/selectStyles";
@@ -90,6 +90,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
       country: string;
     }>
   >([]);
+// const npiTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const [providers, setProviders] = useState<ProviderForm[]>([
     {
@@ -264,6 +265,141 @@ useEffect(() => {
       ]);
     }
   }, [isOpen, initialData]);
+
+// useEffect(() => {
+//   if (step !== 1) return;
+//   if (!npi || npi.length !== 10) return;
+
+//   if (npiTimeoutRef.current) {
+//     clearTimeout(npiTimeoutRef.current);
+//   }
+
+//   npiTimeoutRef.current = setTimeout(() => {
+//     handleFetchNPIDetails();
+//   }, 500); // debounce
+// }, [npi]);
+// const providerTimeouts = React.useRef<{ [key:number]: NodeJS.Timeout }>({});
+
+// useEffect(() => {
+//   if (step !== 2) return;
+
+//   providers.forEach((p, index) => {
+
+//     // 🟥 NPI CLEARED → WIPE THAT ROW
+//     if (!p.npi || p.npi.length === 0) {
+//       setProviders(prev => {
+//         const copy = [...prev];
+
+//         copy[index] = {
+//           ...copy[index],
+//           first_name: "",
+//           middle_name: "",
+//           last_name: "",
+//           address_line_1: "",
+//           address_line_2: "",
+//           city: "",
+//           state_code: "",
+//           state_name: "",
+//           zip_code: "",
+//         };
+
+//         return copy;
+//       });
+
+//       // also clear any pending timeout
+//       if (providerTimeouts.current[index]) {
+//         clearTimeout(providerTimeouts.current[index]);
+//       }
+
+//       return;
+//     }
+
+//     // 🟩 VALID NPI → FETCH
+//     if (p.npi.length === 10) {
+//       if (providerTimeouts.current[index]) {
+//         clearTimeout(providerTimeouts.current[index]);
+//       }
+
+//       providerTimeouts.current[index] = setTimeout(() => {
+//         handleFetchNPIDetails(index);
+//       }, 400);
+//     }
+
+//   });
+
+// }, [providers, step]);
+
+
+// useEffect(() => {
+//   if (step !== 1) return;
+
+//   // 🔴 NPI cleared → wipe autofill
+//   if (npi.length === 0) {
+//     setFirstName("");
+//     setMiddleName("");
+//     setLastName("");
+//     setBusinessName("");
+
+//     setAddressLine1("");
+//     setAddressLine2("");
+//     setCity("");
+//     setStateCode("");
+//     setStateName("");
+//     setZipCode("");
+//     setCountry("United States");
+
+//     setErrors({});
+//     return;
+//   }
+
+//   // 🟢 NPI reached 10 → fetch
+//   if (npi.length === 10) {
+//     if (npiTimeoutRef.current) clearTimeout(npiTimeoutRef.current);
+
+//     npiTimeoutRef.current = setTimeout(() => {
+//       handleFetchNPIDetails();
+//     }, 400);
+//   }
+// }, [npi, step]);
+
+const npiTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+useEffect(() => {
+  if (step !== 1) return;
+
+  // reset when cleared
+  if (!npi || npi.length === 0) {
+    if (npiTimeoutRef.current) clearTimeout(npiTimeoutRef.current);
+    return;
+  }
+
+  // only fire when 10 digits
+  if (npi.length === 10) {
+    if (npiTimeoutRef.current) clearTimeout(npiTimeoutRef.current);
+
+    npiTimeoutRef.current = setTimeout(() => {
+      handleFetchNPIDetails();
+    }, 400);
+  }
+}, [npi, step]);
+
+const providerTimeouts = useRef<{[key:number]: NodeJS.Timeout}>({});
+
+useEffect(() => {
+  if (step !== 2) return;
+
+  providers.forEach((p, index) => {
+    if (!p.npi || p.npi.length !== 10) return;
+
+    if (providerTimeouts.current[index]) {
+      clearTimeout(providerTimeouts.current[index]);
+    }
+
+    providerTimeouts.current[index] = setTimeout(() => {
+      handleFetchNPIDetails(index);
+    }, 400);
+  });
+}, [providers, step]);
 
   const handleFinish = async () => {
     const pid = primaryTempId || crypto.randomUUID();
@@ -1228,19 +1364,19 @@ return await onSubmit(payload);
                       setNpi(value);
                     }}
                   />
-                  <button
+                  {/* <button
                     type="button"
                     className={styles.lookupButton}
                     onClick={() => handleFetchNPIDetails()}
                     disabled={fetchingNpi || npi.length !== 10}
                     title="Lookup NPI details"
-                  >
-                    {fetchingNpi ? (
+                  > */}
+                    {/* {fetchingNpi ? (
                       <div className={styles.spinner} />
                     ) : (
                       <Search size={18} />
                     )}
-                  </button>
+                  </button> */}
                 </div>
                 {errors.npi && (
                   <span className={styles.errorText}>{errors.npi}</span>
@@ -1336,14 +1472,14 @@ return await onSubmit(payload);
                           }}
                           style={providerErrorsMap[index]?.npi ? { borderColor: 'red' } : {}}
                         />
-                        <button
+                        {/* <button
                           type="button"
                           className={styles.lookupButton}
                           onClick={() => handleFetchNPIDetails(index)}
                           title="Lookup NPI details"
                         >
-                          <Search size={18} />
-                        </button>
+                          <Search size={18} /> */}
+                        {/* </button> */}
                       </div>
                       {providerErrorsMap[index]?.npi && <span className={styles.errorText}>{providerErrorsMap[index].npi}</span>}
                     </div>

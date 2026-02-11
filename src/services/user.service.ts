@@ -6,17 +6,21 @@ export interface User {
     id: string;
     email: string;
     username: string;
-    first_name: string | null;
-    middle_name: string | null;
-    last_name: string | null;
-    status_id: number | null;
-    statusCode: string | null;
+    first_name: string;
+    middle_name?: string;
+    last_name: string;
+    phone_country_code?: string;
+    phone_number?: string;
+    status_id?: number | string;
+    statusCode?: string;
     is_superuser: boolean;
     roles: Array<{ id: string; name: string }>;
-    supervisor_id: string | null;
-    client_count: number;
+    supervisor_id?: string;
+    client_count?: number;
     created_by_name?: string;
     organisation_name?: string;
+    client_id?: string;
+    client_name?: string;
 }
 
 export interface UserStats {

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit, Activity } from 'lucide-react';
+import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit, Activity, LogOut } from 'lucide-react';
 import authService from '../../../services/auth.service';
 import modulesService from '../../../services/modules.service';
 import apiClient, { API_BASE_URL } from '../../../utils/apiClient';
 import Sidebar from '../../Sidebar/Sidebar';
 import './AppLayout.css';
+
+const HIDE_SIDEBAR_ROUTES = ["/sops/create", "/sops/edit"];
 
 const AppLayout: React.FC = () => {
     const navigate = useNavigate();
@@ -19,6 +21,7 @@ const AppLayout: React.FC = () => {
         return saved === 'dark';
     });
     const logoutRef = useRef<HTMLDivElement>(null);
+    const hideSidebar = HIDE_SIDEBAR_ROUTES.some(route => location.pathname.startsWith(route));
 
     const getBreadcrumbs = () => {
         const path = location.pathname;
@@ -159,7 +162,8 @@ const AppLayout: React.FC = () => {
 
     return (
         <div className="app-layout">
-            <Sidebar />
+            {/* <Sidebar /> */}
+            {!hideSidebar && <Sidebar />}
             <div className="app-content">
                 <header className="app-header">
                     <div className="breadcrumb">
@@ -206,7 +210,8 @@ const AppLayout: React.FC = () => {
                             {showLogoutTray && (
                                 <div className="logout-tray">
                                     <button className="logout-option" onClick={handleLogout}>
-                                        Logout
+                                        <LogOut size={16} />
+                                        <span>Logout</span>
                                     </button>
                                 </div>
                             )}

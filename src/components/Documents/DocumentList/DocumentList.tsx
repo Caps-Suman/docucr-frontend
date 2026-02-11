@@ -39,15 +39,8 @@ import styles from "./DocumentList.module.css";
 import formService from "../../../services/form.service";
 import CommonPagination from "../../Common/CommonPagination";
 
-interface DocumentListItem {
-  id: string;
-  name: string;
-  originalFilename: string;
-  type: string;
-  size: number;
-  uploadedAt: string;
-  totalPages?: number; // ✅ ADD
-  status:
+
+export type DocStatus =
   | "processing"
   | "completed"
   | "failed"
@@ -60,6 +53,20 @@ interface DocumentListItem {
   | "upload_failed"
   | "cancelled"
   | "archived";
+export interface DocumentListItem {
+  id: string;
+  name: string;
+  originalFilename: string;
+  type: string;
+  size: number;
+  uploadedBy?: string; 
+  organisationName?: string;
+  client?: string;
+  documentType?: string;
+  medicalRecords?: string;    
+  uploadedAt: string;
+  totalPages?: number; // ✅ ADD
+  status: DocStatus;
   isUploading?: boolean;
   progress?: number;
   errorMessage?: string;
@@ -186,36 +193,35 @@ const DocumentList: React.FC = () => {
     };
   }, [documents, loading]);
 
-  const handleStatClick = (type: string) => {
-    const newFilters = { ...activeFilters };
+const handleStatClick = (type: string) => {
+  const newFilters = { ...activeFilters };
 
-    // Reset specific filters when switching
-    newFilters.status = "";
-    newFilters.sharedOnly = false;
+  newFilters.status = "";
+  newFilters.sharedOnly = false;
 
-    switch (type) {
-      case "processed":
-        newFilters.status = "completed";
-        break;
-      case "processing":
-        newFilters.status = "processing";
-        break;
-      case "archived":
-        newFilters.status = "archived";
-        break;
-      case "shared":
-        newFilters.sharedOnly = true;
-        break;
-      case "total":
-      default:
-        // already reset above
-        break;
-    }
+  switch (type) {
+    case "processed":
+      newFilters.status = "COMPLETED";
+      break;
+    case "processing":
+      newFilters.status = "PROCESSING";
+      break;
+    case "archived":
+      newFilters.status = "ARCHIVED";
+      break;
+    case "shared":
+      newFilters.sharedOnly = true;
+      break;
+  }
 
-    setFilters((prev) => ({ ...prev, ...newFilters }));
-    setActiveFilters(newFilters);
-    setCurrentPage(0);
-  };
+  setFilters(prev => ({ ...prev, ...newFilters }));
+  setActiveFilters(newFilters);
+  setCurrentPage(0);
+
+  // 🔥 FORCE reload
+  setTimeout(loadDocuments, 0);
+};
+
 
   // Load metadata on component mount and wait for it
   useEffect(() => {
@@ -357,50 +363,83 @@ const DocumentList: React.FC = () => {
       const docs = response.documents;
       setTotalDocuments(response.total);
 
-      const formattedDocs = docs.map((doc) => ({
-        id: doc.id,
-        name: doc.filename,
-        originalFilename: doc.original_filename || doc.filename,
-        type: doc.filename.split(".").pop()?.toUpperCase() || "FILE",
-        size: doc.file_size / (1024 * 1024),
-        uploadedAt: doc.created_at,
-        status: (doc as any).is_archived
-          ? "archived"
-          : mapDocumentStatus(doc.statusCode),
-        progress: doc.upload_progress,
-        totalPages: doc.total_pages ?? 0, // ✅ ADD
-        errorMessage: doc.error_message,
-        customFormData: (doc as any).custom_form_data || {},
-        isArchived: (doc as any).is_archived || false,
-      }));
+let formattedDocs = docs.map(doc =>
+  documentService.normalizeDocument(doc)
+);
+
+// hide archived from default "total" view
+if (activeFilters.status !== "ARCHIVED") {
+  formattedDocs = formattedDocs.filter(d => !d.isArchived);
+}
+
+console.log("FORMATTED DOCS", formattedDocs);
+console.log(columnConfig)
+console.log(formattedDocs)
+console.log("DOC:", formattedDocs[0])
+
 
       // Fetch column configuration
       try {
         const response = await documentListConfigService.getMyConfig();
-        if (response.configuration) {
-          const sortedColumns = [...response.configuration.columns]
-            .sort((a: any, b: any) => a.order - b.order);
+if (response.configuration) {
+  let sortedColumns = [...response.configuration.columns]
+    .sort((a: any, b: any) => a.order - b.order);
 
-          setColumnConfig(sortedColumns);
+  const requiredSystemColumns = [
+    { id: "uploadedBy", label: "Uploaded By" },
+    { id: "organisationName", label: "Organisation" },
+  ];
 
-        } else {
+requiredSystemColumns.forEach((col) => {
+  if (!sortedColumns.find((c: any) => c.id === col.id)) {
+    sortedColumns.push({
+      id: col.id,
+      label: col.label,
+      isSystem: true,
+      visible: true,
+      order: 999,
+
+      // required by ColumnConfig type
+      width: 150,
+      type: "system",
+      required: false,
+    } as any);
+  }
+});
+
+
+  setColumnConfig(sortedColumns);
+}
+ else {
           // Default config if none saved
           setColumnConfig([
-            { id: "name", label: "Document Name", isSystem: true },
-            { id: "type", label: "Type", isSystem: true },
-            { id: "size", label: "Size", isSystem: true },
-            { id: "pages", label: "Pages", isSystem: true },
-            { id: "uploadedAt", label: "Uploaded", isSystem: true },
-            { id: "status", label: "Status", isSystem: true },
-            { id: "actions", label: "Actions", isSystem: true },
-          ]);
+  { id: "name", label: "Document Name", isSystem: true, visible: true },
+  { id: "client", label: "Client", isSystem: true, visible: true },
+  { id: "documentType", label: "Document Type", isSystem: true, visible: true },
+  { id: "medicalRecords", label: "Medical Records", isSystem: true, visible: true },
+  { id: "type", label: "Type", isSystem: true, visible: true },
+  { id: "uploadedBy", label: "Uploaded By", isSystem: true, visible: true },
+  { id: "organisationName", label: "Organisation", isSystem: true, visible: true },
+  { id: "size", label: "Size", isSystem: true, visible: true },
+  { id: "pages", label: "Pages", isSystem: true, visible: true },
+  { id: "uploadedAt", label: "Uploaded", isSystem: true, visible: true },
+  { id: "status", label: "Status", isSystem: true, visible: true },
+  { id: "actions", label: "Actions", isSystem: true, visible: true },
+]);
+
         }
       } catch (error) {
         console.error("Failed to load column config");
         // Default config on error
         setColumnConfig([
           { id: "name", label: "Document Name", isSystem: true },
+          { id: "client", label: "Client", isSystem: true, visible: true },
+  { id: "documentType", label: "Document Type", isSystem: true, visible: true },
+  { id: "medicalRecords", label: "Medical Records", isSystem: true, visible: true },
           { id: "type", label: "Type", isSystem: true },
+          { id: "uploadedBy", label: "Uploaded By", isSystem: true },   
+
+          { id: "organisationName", label: "Organisation", isSystem: true }, 
           { id: "size", label: "Size", isSystem: true },
           { id: "pages", label: "Pages", isSystem: true },
           { id: "uploadedAt", label: "Uploaded", isSystem: true },
@@ -588,17 +627,20 @@ const DocumentList: React.FC = () => {
 
   const handleArchive = async (id: string) => {
     try {
+
+      // setDocuments((prev) =>
+      //   prev.map((doc) =>
+      //     doc.id === id
+      //       ? { ...doc, isArchived: true, status: "archived" }
+      //       : doc,
+      //   ),
+      // );
       await documentService.archiveDocument(id);
+await loadDocuments();
+await loadStats();
 
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.id === id
-            ? { ...doc, isArchived: true, status: "archived" }
-            : doc,
-        ),
-      );
 
-      loadStats(); // 🔥 REQUIRED
+      // loadStats(); // 🔥 REQUIRED
 
       setToast({ message: "Document archived", type: "success" });
     } catch {
@@ -789,17 +831,24 @@ const DocumentList: React.FC = () => {
   const columns = React.useMemo(() => {
     if (columnConfig.length === 0) return [];
 
-    const systemIds = [
-      "select",
-      "name",
-      "type",
-      "size",
-      "pages",
-      "uploadedAt",
-      "pages",
-      "status",
-      "actions",
-    ];
+const systemIds = [
+  "select",
+  "name",
+  "client",
+  "documentType",
+  "medicalRecords",
+  "type",
+  "uploadedBy",
+  "organisationName",
+  "size",
+  "pages",
+  "uploadedAt",
+  "status",
+  "actions",
+];
+
+console.log(authService.getUser())
+
 
     const baseColumns = [
       {
@@ -864,6 +913,53 @@ const DocumentList: React.FC = () => {
                     </span>
                   ),
                 };
+                case "uploadedBy":
+  return {
+    key: "uploadedBy",
+    header: col.label,
+    render: (value: string) => (
+      <span>{value || "-"}</span>
+    ),
+  };
+case "client":
+  return {
+    key: "client",
+    header: col.label,
+    render: (value: string) => <span>{value || "-"}</span>,
+  };
+
+case "documentType":
+  return {
+    key: "documentType",
+    header: col.label,
+    render: (value: string) => <span>{value || "-"}</span>,
+  };
+
+case "medicalRecords":
+  return {
+    key: "medicalRecords",
+    header: col.label,
+    render: (value: string) => <span>{value || "-"}</span>,
+  };
+
+case "organisationName": {
+  const currentUser = authService.getUser();
+
+  if (currentUser?.role?.name !== "SUPER_ADMIN") {
+    return {
+      key: "organisationName",
+      header: "",
+      render: () => null,
+    };
+  }
+
+  return {
+    key: "organisationName",
+    header: col.label,
+    render: (value: string) => <span>{value || "-"}</span>,
+  };
+}
+
               case "size":
                 return {
                   key: "size",
@@ -1249,7 +1345,10 @@ const DocumentList: React.FC = () => {
                 const data = row.customFormData || {};
 
                 // Strategy 1: Direct lookup by column ID (stripped of form_ prefix)
-                let val = data[formFieldId];
+let val =
+  data[formFieldId] ??
+  data[col.label] ??
+  data[col.label?.toLowerCase().replace(" ", "_")];
 
                 // Strategy 2: Lookup by column label (handles cases where keys are labels)
                 if (!val && col.label) {
@@ -1390,7 +1489,7 @@ const DocumentList: React.FC = () => {
           </div>
         </div>
         <div
-          className={`${styles.statCard} ${activeFilters.status === "completed" ? styles.activeProcessed : ""}`}
+          className={`${styles.statCard} ${activeFilters.status === "COMPLETED" ? styles.activeProcessed : ""}`}
           onClick={() => handleStatClick("processed")}
         >
           <div className={`${styles.statIcon} ${styles.iconProcessed}`}>
@@ -1402,7 +1501,7 @@ const DocumentList: React.FC = () => {
           </div>
         </div>
         <div
-          className={`${styles.statCard} ${activeFilters.status === "processing" ? styles.activeProcessing : ""}`}
+          className={`${styles.statCard} ${activeFilters.status === "PROCESSING" ? styles.activeProcessing : ""}`}
           onClick={() => handleStatClick("processing")}
         >
           <div className={`${styles.statIcon} ${styles.iconProcessing}`}>
@@ -1426,7 +1525,7 @@ const DocumentList: React.FC = () => {
           </div>
         </div>
         <div
-          className={`${styles.statCard} ${activeFilters.status === "archived" ? styles.activeArchived : ""}`}
+          className={`${styles.statCard} ${activeFilters.status === "ARCHIVED" ? styles.activeArchived : ""}`}
           onClick={() => handleStatClick("archived")}
         >
           <div className={`${styles.statIcon} ${styles.iconArchived}`}>

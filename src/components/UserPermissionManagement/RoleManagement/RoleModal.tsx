@@ -57,21 +57,21 @@ const RoleModal: React.FC<RoleModalProps> = ({
     const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
-        if (initialData) {
+        if (isOpen && initialData) {
             setName(initialData.name);
             setDescription(initialData.description || '');
             if (initialData.id) {
                 loadRoleModules(initialData.id);
             }
-        } else {
+        } else if (!isOpen) {
             setName('');
             setDescription('');
             setSelectedPermissions({});
             setExpandedModules({});
+            setStep(1);
+            setErrors({});
         }
-        setStep(1);
-        setErrors({});
-    }, [initialData, isOpen]);
+    }, [initialData?.id, isOpen]);
 
     const loadRoleModules = async (roleId: string) => {
         try {
