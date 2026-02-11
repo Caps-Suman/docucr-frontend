@@ -1208,11 +1208,11 @@ const CreateSOP: React.FC = () => {
                     </div>
 
                     {/* Provider Info */}
-                    <div style={{ flex: 1, borderLeft: '1px solid #cbd5e1', paddingLeft: '32px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
-                        Selected Providers ({selectedProvidersList.length})
-                      </div>
-                      {selectedProvidersList.length > 0 ? (
+                    {selectedProvidersList.length > 0 && (
+                      <div style={{ flex: 1, borderLeft: '1px solid #cbd5e1', paddingLeft: '32px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
+                          Selected Providers ({selectedProvidersList.length})
+                        </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {selectedProvidersList.slice(0, 3).map(p => (
                             <div key={p.id} style={{ fontSize: '14px', color: '#334155' }}>
@@ -1225,12 +1225,8 @@ const CreateSOP: React.FC = () => {
                             </div>
                           )}
                         </div>
-                      ) : (
-                        <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#94a3b8' }}>
-                          No providers selected
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                   </div>
                 </div>

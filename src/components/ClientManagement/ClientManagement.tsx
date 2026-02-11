@@ -11,14 +11,21 @@ import {
   Upload,
   Loader2,
   Info,
+  Search,
+  Plus,
+  Filter,
+  X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-import Select from "react-select";
-import { getCustomSelectStyles } from "../../styles/selectStyles";
+import { createPortal } from "react-dom";
 import Table from "../Table/Table";
 import CommonPagination from "../Common/CommonPagination";
 import Loading from "../Common/Loading";
 import ConfirmModal from "../Common/ConfirmModal";
 import Toast, { ToastType } from "../Common/Toast";
+import CommonDropdown from "../Common/CommonDropdown";
+import CommonDatePicker from "../Common/CommonDatePicker";
 import ClientModal from "./ClientModal";
 import ClientImportModal from "./ClientImportModal";
 import UserMappingModal from "./UserMappingModal";
@@ -28,6 +35,7 @@ import clientService, {
   ClientStats,
 } from "../../services/client.service";
 import statusService, { Status } from "../../services/status.service";
+import organisationService from "../../services/organisation.service";
 import UserModal from "../UserPermissionManagement/UserManagement/UserModal";
 import userService from "../../services/user.service";
 import roleService from "../../services/role.service";
@@ -53,7 +61,35 @@ const ClientManagement: React.FC = () => {
 
   const [usersLoading, setUsersLoading] = useState(false);
 
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null); // To be removed later after full integration
+  const [showFilters, setShowFilters] = useState(false);
+  const [loadingFilterData, setLoadingFilterData] = useState(false);
+  const [organisations, setOrganisations] = useState<any[]>([]);
+  const [filters, setFilters] = useState<Record<string, any>>({
+    fromDate: null,
+    toDate: null,
+    organisationId: [],
+    statusId: [],
+  });
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({
+    fromDate: null,
+    toDate: null,
+    organisationId: [],
+    statusId: [],
+  });
+
+  const activeFilterCount = Object.entries(activeFilters).filter(
+    ([key, value]) => {
+      if (key === "fromDate" || key === "toDate") {
+        return value !== null;
+      }
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+      return !!value;
+    }
+  ).length;
+
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,14 +110,42 @@ const ClientManagement: React.FC = () => {
   } | null>(null);
 
   // Cross-creation state
-    useState(false);
+  useState(false);
   // const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+  const loadFilterData = async () => {
+    try {
+      setLoadingFilterData(true);
+      const user = currentUser as any;
+      const isAdmin = user?.role?.name === "SUPER_ADMIN";
+
+      if (isAdmin) {
+        const orgsRes = await organisationService.getOrganisations(
+          1,
+          1000,
+          undefined,
+          "ACTIVE"
+        );
+        setOrganisations(orgsRes.organisations || []);
+      }
+    } catch (err) {
+      console.error("Failed to load filter data", err);
+    } finally {
+      setLoadingFilterData(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showFilters) {
+      loadFilterData();
+    }
+  }, [showFilters]);
+
   useEffect(() => {
     loadClients();
-  }, [currentPage, itemsPerPage, debouncedSearchTerm, statusFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearchTerm, activeFilters]);
 
   useEffect(() => {
     const debouncedHandler = debounce((term: string) => {
@@ -91,40 +155,46 @@ const ClientManagement: React.FC = () => {
 
     debouncedHandler(searchTerm);
   }, [searchTerm]);
-const openAssignModal = async () => {
-  setShowAssignModal(true);
+  const openAssignModal = async () => {
+    setShowAssignModal(true);
 
-  if (users.length === 0 && !usersLoading) {
-    try {
-      setUsersLoading(true);
+    if (users.length === 0 && !usersLoading) {
+      try {
+        setUsersLoading(true);
 
-      const usersData = await userService.getUsers(1, 1000);
+        const usersData = await userService.getUsers(1, 1000);
 
-      setUsers(
-        usersData.users.map((u) => ({
-          id: u.id,
-          name: `${u.first_name} ${u.last_name} (${u.username})`,
-          roles: u.roles.map((r) => r.name).join(", ") || "No roles",
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to load users:", error);
-      setToast({ message: "Failed to load users", type: "error" });
-    } finally {
-      setUsersLoading(false);
+        setUsers(
+          usersData.users.map((u) => ({
+            id: u.id,
+            name: `${u.first_name} ${u.last_name} (${u.username})`,
+            roles: u.roles.map((r) => r.name).join(", ") || "No roles",
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to load users:", error);
+        setToast({ message: "Failed to load users", type: "error" });
+      } finally {
+        setUsersLoading(false);
+      }
     }
-  }
-};
+  };
 
   const loadClients = async () => {
     try {
       setLoading(true);
+      const orgIds = activeFilters.organisationId.join(",");
+      const statusIds = activeFilters.statusId.join(",");
+
       const [data, statsData] = await Promise.all([
         clientService.getClients(
           currentPage + 1,
           itemsPerPage,
           debouncedSearchTerm || undefined,
-          statusFilter || undefined,
+          statusIds || undefined,
+          orgIds || undefined,
+          activeFilters.fromDate,
+          activeFilters.toDate
         ),
         clientService.getClientStats(),
       ]);
@@ -183,30 +253,30 @@ const openAssignModal = async () => {
 
 
 
-const handleModalSubmit = async (data: any): Promise<Client> => {
-  try {
-    if (editingClient) {
-      const updated = await clientService.updateClient(editingClient.id, data);
-      setToast({ message: "Client updated successfully", type: "success" });
+  const handleModalSubmit = async (data: any): Promise<Client> => {
+    try {
+      if (editingClient) {
+        const updated = await clientService.updateClient(editingClient.id, data);
+        setToast({ message: "Client updated successfully", type: "success" });
+        handleModalClose();
+        loadClients();
+        return updated;
+      }
+
+      const newClient = await clientService.createClient(data);
+      setToast({ message: "Client created successfully", type: "success" });
       handleModalClose();
       loadClients();
-      return updated;
+      return newClient;   // ← YOU FORGOT THIS
+    } catch (error: any) {
+      console.error("Failed to save client:", error);
+      setToast({
+        message: error?.message || "Failed to save client",
+        type: "error",
+      });
+      throw error;
     }
-
-    const newClient = await clientService.createClient(data);
-    setToast({ message: "Client created successfully", type: "success" });
-    handleModalClose();
-    loadClients();
-    return newClient;   // ← YOU FORGOT THIS
-  } catch (error: any) {
-    console.error("Failed to save client:", error);
-    setToast({
-      message: error?.message || "Failed to save client",
-      type: "error",
-    });
-    throw error;
-  }
-};
+  };
 
 
   const [isAssigning, setIsAssigning] = useState(false);
@@ -569,14 +639,33 @@ const handleModalSubmit = async (data: any): Promise<Client> => {
   ];
 
   const handleStatClick = (type: "total" | "active" | "inactive") => {
-    if (type === "total") {
-      setStatusFilter(null);
-    } else if (type === "active") {
-      setStatusFilter("ACTIVE");
-    } else if (type === "inactive") {
-      setStatusFilter("INACTIVE");
-    }
+    const newFilters = {
+      ...activeFilters,
+      statusId:
+        type === "total" ? [] : type === "active" ? ["ACTIVE"] : ["INACTIVE"],
+    };
+    setFilters(newFilters);
+    setActiveFilters(newFilters);
     setCurrentPage(0);
+  };
+
+  const handleApplyFilters = () => {
+    setActiveFilters(filters);
+    setCurrentPage(0);
+    setShowFilters(false);
+  };
+
+  const handleResetFilters = () => {
+    const resetFilters = {
+      fromDate: null,
+      toDate: null,
+      organisationId: [],
+      statusId: [],
+    };
+    setFilters(resetFilters);
+    setActiveFilters(resetFilters);
+    setCurrentPage(0);
+    setShowFilters(false);
   };
 
   const clientStats = [
@@ -586,7 +675,7 @@ const handleModalSubmit = async (data: any): Promise<Client> => {
       icon: Users,
       color: "blue",
       onClick: () => handleStatClick("total"),
-      active: statusFilter === null,
+      active: activeFilters.statusId.length === 0,
     },
     {
       title: "Active Clients",
@@ -594,7 +683,9 @@ const handleModalSubmit = async (data: any): Promise<Client> => {
       icon: UserCheck,
       color: "green",
       onClick: () => handleStatClick("active"),
-      active: statusFilter === "ACTIVE",
+      active:
+        activeFilters.statusId.length === 1 &&
+        activeFilters.statusId[0] === "ACTIVE",
     },
     {
       title: "Inactive Clients",
@@ -602,7 +693,9 @@ const handleModalSubmit = async (data: any): Promise<Client> => {
       icon: UserX,
       color: "red",
       onClick: () => handleStatClick("inactive"),
-      active: statusFilter === "INACTIVE",
+      active:
+        activeFilters.statusId.length === 1 &&
+        activeFilters.statusId[0] === "INACTIVE",
     },
   ];
 
@@ -643,6 +736,16 @@ const handleModalSubmit = async (data: any): Promise<Client> => {
                   Assign ({selectedClients.length}) to User
                 </button>
               )}
+              <button
+                className={`${styles.filterBtn} ${activeFilterCount > 0 ? styles.active : ""}`}
+                onClick={() => setShowFilters(true)}
+              >
+                <Filter size={14} style={{ marginRight: "6px" }} />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className={styles.filterBadge}>{activeFilterCount}</span>
+                )}
+              </button>
               <input
                 type="text"
                 placeholder="Search by name, business name, or NPI..."
@@ -707,6 +810,7 @@ const handleModalSubmit = async (data: any): Promise<Client> => {
                 </button>
               </div>
             )}
+
             <input
               type="text"
               placeholder="Search by name, business name, or NPI..."
@@ -716,6 +820,16 @@ const handleModalSubmit = async (data: any): Promise<Client> => {
               }}
               className={styles.searchInput}
             />
+            <button
+              className={`${styles.filterBtn} ${activeFilterCount > 0 ? styles.active : ""}`}
+              onClick={() => setShowFilters(true)}
+            >
+              <Filter size={14} style={{ marginRight: "6px" }} />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className={styles.filterBadge}>{activeFilterCount}</span>
+              )}
+            </button>
             <button className={styles.addBtn} onClick={handleAddNew}>
               Add Client
             </button>
@@ -866,28 +980,14 @@ const handleModalSubmit = async (data: any): Promise<Client> => {
                 <>
                   <label>Select User:</label>
 
-                  <Select
+                  <CommonDropdown
                     options={users.map((user) => ({
                       value: user.id,
                       label: `${user.name} - ${user.roles}`,
                     }))}
-                    onChange={(selected) =>
-                      setSelectedUserId(selected?.value || "")
-                    }
+                    value={selectedUserId}
+                    onChange={(val) => setSelectedUserId(val)}
                     placeholder="Select a user..."
-                    menuPortalTarget={document.body}
-                    menuPosition="fixed"
-                    styles={{
-                      ...getCustomSelectStyles(),
-                      menuPortal: (base) => ({
-                        ...base,
-                        zIndex: 9999, // 🔴 THIS IS THE KEY
-                      }),
-                      menu: (base) => ({
-                        ...base,
-                        zIndex: 9999,
-                      }),
-                    }}
                   />
 
                   <p style={{ marginTop: 8, color: "#475569" }}>
@@ -934,6 +1034,109 @@ const handleModalSubmit = async (data: any): Promise<Client> => {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* FILTER MODAL */}
+      {showFilters &&
+        createPortal(
+          <div className={styles.filterOverlay} onClick={() => setShowFilters(false)}>
+            <div className={styles.filterModal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.filterHeader}>
+                <h3>
+                  <Filter size={18} />
+                  Advanced Filters
+                </h3>
+                <button
+                  className={styles.closeFilterBtn}
+                  onClick={() => setShowFilters(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className={styles.filterBody}>
+                {/* Date Range Filter */}
+                <div className={styles.filterGroup}>
+                  <label>Date Range</label>
+                  <div className={styles.dateRangeInputs}>
+                    <CommonDatePicker
+                      selected={filters.fromDate}
+                      onChange={(date) =>
+                        setFilters((prev) => ({ ...prev, fromDate: date }))
+                      }
+                      placeholderText="From Date"
+                    />
+                    <CommonDatePicker
+                      selected={filters.toDate}
+                      onChange={(date) =>
+                        setFilters((prev) => ({ ...prev, toDate: date }))
+                      }
+                      placeholderText="To Date"
+                    />
+                  </div>
+                </div>
+
+                {/* Status Filter */}
+                <div className={styles.filterGroup}>
+                  <label>Status</label>
+                  <CommonDropdown
+                    options={[
+                      { value: "ACTIVE", label: "Active" },
+                      { value: "INACTIVE", label: "Inactive" },
+                    ]}
+                    value={filters.statusId}
+                    onChange={(val) =>
+                      setFilters((prev) => ({ ...prev, statusId: val }))
+                    }
+                    placeholder="Select status..."
+                    isMulti={true}
+                  />
+                </div>
+
+                {/* Organisation Filter - Only for Super Admin */}
+                {(currentUser as any)?.role?.name === "SUPER_ADMIN" && (
+                  <div className={styles.filterGroup}>
+                    <label>Organisation</label>
+                    <CommonDropdown
+                      options={organisations.map((org) => ({
+                        value: org.id,
+                        label: org.name,
+                      }))}
+                      value={filters.organisationId}
+                      onChange={(val) =>
+                        setFilters((prev) => ({ ...prev, organisationId: val }))
+                      }
+                      placeholder="Select organisations..."
+                      isMulti={true}
+                      loading={loadingFilterData}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.filterFooter}>
+                <button
+                  className={styles.resetBtn}
+                  onClick={handleResetFilters}
+                  disabled={activeFilterCount === 0}
+                >
+                  Reset
+                </button>
+                <div className={styles.footerActions}>
+                  <button
+                    className={styles.cancelBtn}
+                    onClick={() => setShowFilters(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button className={styles.applyBtn} onClick={handleApplyFilters}>
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

@@ -90,7 +90,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
       country: string;
     }>
   >([]);
-// const npiTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  // const npiTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const [providers, setProviders] = useState<ProviderForm[]>([
     {
@@ -109,8 +109,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
     },
   ]);
 
-useEffect(() => {
-  if (!initialData || !isOpen) return;
+  useEffect(() => {
+    if (!initialData || !isOpen) return;
 
     // 🔒 HARD RESET WIZARD STATE CHECK
     setStep(1);
@@ -266,140 +266,140 @@ useEffect(() => {
     }
   }, [isOpen, initialData]);
 
-// useEffect(() => {
-//   if (step !== 1) return;
-//   if (!npi || npi.length !== 10) return;
+  // useEffect(() => {
+  //   if (step !== 1) return;
+  //   if (!npi || npi.length !== 10) return;
 
-//   if (npiTimeoutRef.current) {
-//     clearTimeout(npiTimeoutRef.current);
-//   }
+  //   if (npiTimeoutRef.current) {
+  //     clearTimeout(npiTimeoutRef.current);
+  //   }
 
-//   npiTimeoutRef.current = setTimeout(() => {
-//     handleFetchNPIDetails();
-//   }, 500); // debounce
-// }, [npi]);
-// const providerTimeouts = React.useRef<{ [key:number]: NodeJS.Timeout }>({});
+  //   npiTimeoutRef.current = setTimeout(() => {
+  //     handleFetchNPIDetails();
+  //   }, 500); // debounce
+  // }, [npi]);
+  // const providerTimeouts = React.useRef<{ [key:number]: NodeJS.Timeout }>({});
 
-// useEffect(() => {
-//   if (step !== 2) return;
+  // useEffect(() => {
+  //   if (step !== 2) return;
 
-//   providers.forEach((p, index) => {
+  //   providers.forEach((p, index) => {
 
-//     // 🟥 NPI CLEARED → WIPE THAT ROW
-//     if (!p.npi || p.npi.length === 0) {
-//       setProviders(prev => {
-//         const copy = [...prev];
+  //     // 🟥 NPI CLEARED → WIPE THAT ROW
+  //     if (!p.npi || p.npi.length === 0) {
+  //       setProviders(prev => {
+  //         const copy = [...prev];
 
-//         copy[index] = {
-//           ...copy[index],
-//           first_name: "",
-//           middle_name: "",
-//           last_name: "",
-//           address_line_1: "",
-//           address_line_2: "",
-//           city: "",
-//           state_code: "",
-//           state_name: "",
-//           zip_code: "",
-//         };
+  //         copy[index] = {
+  //           ...copy[index],
+  //           first_name: "",
+  //           middle_name: "",
+  //           last_name: "",
+  //           address_line_1: "",
+  //           address_line_2: "",
+  //           city: "",
+  //           state_code: "",
+  //           state_name: "",
+  //           zip_code: "",
+  //         };
 
-//         return copy;
-//       });
+  //         return copy;
+  //       });
 
-//       // also clear any pending timeout
-//       if (providerTimeouts.current[index]) {
-//         clearTimeout(providerTimeouts.current[index]);
-//       }
+  //       // also clear any pending timeout
+  //       if (providerTimeouts.current[index]) {
+  //         clearTimeout(providerTimeouts.current[index]);
+  //       }
 
-//       return;
-//     }
+  //       return;
+  //     }
 
-//     // 🟩 VALID NPI → FETCH
-//     if (p.npi.length === 10) {
-//       if (providerTimeouts.current[index]) {
-//         clearTimeout(providerTimeouts.current[index]);
-//       }
+  //     // 🟩 VALID NPI → FETCH
+  //     if (p.npi.length === 10) {
+  //       if (providerTimeouts.current[index]) {
+  //         clearTimeout(providerTimeouts.current[index]);
+  //       }
 
-//       providerTimeouts.current[index] = setTimeout(() => {
-//         handleFetchNPIDetails(index);
-//       }, 400);
-//     }
+  //       providerTimeouts.current[index] = setTimeout(() => {
+  //         handleFetchNPIDetails(index);
+  //       }, 400);
+  //     }
 
-//   });
+  //   });
 
-// }, [providers, step]);
+  // }, [providers, step]);
 
 
-// useEffect(() => {
-//   if (step !== 1) return;
+  // useEffect(() => {
+  //   if (step !== 1) return;
 
-//   // 🔴 NPI cleared → wipe autofill
-//   if (npi.length === 0) {
-//     setFirstName("");
-//     setMiddleName("");
-//     setLastName("");
-//     setBusinessName("");
+  //   // 🔴 NPI cleared → wipe autofill
+  //   if (npi.length === 0) {
+  //     setFirstName("");
+  //     setMiddleName("");
+  //     setLastName("");
+  //     setBusinessName("");
 
-//     setAddressLine1("");
-//     setAddressLine2("");
-//     setCity("");
-//     setStateCode("");
-//     setStateName("");
-//     setZipCode("");
-//     setCountry("United States");
+  //     setAddressLine1("");
+  //     setAddressLine2("");
+  //     setCity("");
+  //     setStateCode("");
+  //     setStateName("");
+  //     setZipCode("");
+  //     setCountry("United States");
 
-//     setErrors({});
-//     return;
-//   }
+  //     setErrors({});
+  //     return;
+  //   }
 
-//   // 🟢 NPI reached 10 → fetch
-//   if (npi.length === 10) {
-//     if (npiTimeoutRef.current) clearTimeout(npiTimeoutRef.current);
+  //   // 🟢 NPI reached 10 → fetch
+  //   if (npi.length === 10) {
+  //     if (npiTimeoutRef.current) clearTimeout(npiTimeoutRef.current);
 
-//     npiTimeoutRef.current = setTimeout(() => {
-//       handleFetchNPIDetails();
-//     }, 400);
-//   }
-// }, [npi, step]);
+  //     npiTimeoutRef.current = setTimeout(() => {
+  //       handleFetchNPIDetails();
+  //     }, 400);
+  //   }
+  // }, [npi, step]);
 
-const npiTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const npiTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
-useEffect(() => {
-  if (step !== 1) return;
+  useEffect(() => {
+    if (step !== 1) return;
 
-  // reset when cleared
-  if (!npi || npi.length === 0) {
-    if (npiTimeoutRef.current) clearTimeout(npiTimeoutRef.current);
-    return;
-  }
-
-  // only fire when 10 digits
-  if (npi.length === 10) {
-    if (npiTimeoutRef.current) clearTimeout(npiTimeoutRef.current);
-
-    npiTimeoutRef.current = setTimeout(() => {
-      handleFetchNPIDetails();
-    }, 400);
-  }
-}, [npi, step]);
-
-const providerTimeouts = useRef<{[key:number]: NodeJS.Timeout}>({});
-
-useEffect(() => {
-  if (step !== 2) return;
-
-  providers.forEach((p, index) => {
-    if (!p.npi || p.npi.length !== 10) return;
-
-    if (providerTimeouts.current[index]) {
-      clearTimeout(providerTimeouts.current[index]);
+    // reset when cleared
+    if (!npi || npi.length === 0) {
+      if (npiTimeoutRef.current) clearTimeout(npiTimeoutRef.current);
+      return;
     }
 
-    providerTimeouts.current[index] = setTimeout(() => {
-      handleFetchNPIDetails(index);
-    }, 400);
-  });
-}, [providers, step]);
+    // only fire when 10 digits
+    if (npi.length === 10) {
+      if (npiTimeoutRef.current) clearTimeout(npiTimeoutRef.current);
+
+      npiTimeoutRef.current = setTimeout(() => {
+        handleFetchNPIDetails();
+      }, 400);
+    }
+  }, [npi, step]);
+
+  const providerTimeouts = useRef<{ [key: number]: NodeJS.Timeout }>({});
+
+  useEffect(() => {
+    if (step !== 2) return;
+
+    providers.forEach((p, index) => {
+      if (!p.npi || p.npi.length !== 10) return;
+
+      if (providerTimeouts.current[index]) {
+        clearTimeout(providerTimeouts.current[index]);
+      }
+
+      providerTimeouts.current[index] = setTimeout(() => {
+        handleFetchNPIDetails(index);
+      }, 400);
+    });
+  }, [providers, step]);
 
   const handleFinish = async () => {
     const pid = primaryTempId || crypto.randomUUID();
@@ -446,22 +446,22 @@ useEffect(() => {
       payload.zip_code = zipCode;
       payload.country = country;
 
-  let fixedProviders: any[] = [];
+      let fixedProviders: any[] = [];
 
-if (isProviderOrg) {
-  fixedProviders = providers.map(p => ({
-    ...p,
-    location_temp_id: p.location_temp_id || primaryTempId
-  }));
+      if (isProviderOrg) {
+        fixedProviders = providers.map(p => ({
+          ...p,
+          location_temp_id: p.location_temp_id || primaryTempId
+        }));
 
-  for (const p of fixedProviders) {
-    if (!p.location_temp_id) {
-      throw new Error("Provider missing location link");
-    }
-  }
+        for (const p of fixedProviders) {
+          if (!p.location_temp_id) {
+            throw new Error("Provider missing location link");
+          }
+        }
 
-  payload.providers = fixedProviders;
-}
+        payload.providers = fixedProviders;
+      }
 
     } else {
       payload.first_name = firstName;
@@ -512,10 +512,10 @@ if (isProviderOrg) {
     console.log("EXTRA ADDRESSES BEFORE SEND:", extraAddresses);
     // ensure all providers have location id
 
-console.log("PRIMARY:", primaryTempId);
-console.log("PROVIDERS:", providers);
+    console.log("PRIMARY:", primaryTempId);
+    console.log("PROVIDERS:", providers);
 
-return await onSubmit(payload);
+    return await onSubmit(payload);
 
   };
 
@@ -1356,14 +1356,20 @@ return await onSubmit(payload);
                 <label className={styles.label}>NPI *</label>
                 <div className={styles.npiInputWrapper}>
                   <input
-                    className={styles.input}
+                    className={`${styles.input} ${fetchingNpi ? styles.fetching : ''}`}
                     value={npi}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, "");
                       if (value.length > 10) return;
                       setNpi(value);
                     }}
+                    style={{ paddingRight: fetchingNpi ? '40px' : '12px' }}
                   />
+                  {fetchingNpi && (
+                    <div className={styles.inputSpinnerWrapper}>
+                      <div className={styles.spinner} />
+                    </div>
+                  )}
                   {/* <button
                     type="button"
                     className={styles.lookupButton}
@@ -1371,7 +1377,7 @@ return await onSubmit(payload);
                     disabled={fetchingNpi || npi.length !== 10}
                     title="Lookup NPI details"
                   > */}
-                    {/* {fetchingNpi ? (
+                  {/* {fetchingNpi ? (
                       <div className={styles.spinner} />
                     ) : (
                       <Search size={18} />
@@ -1458,7 +1464,7 @@ return await onSubmit(payload);
                       <label className={styles.label}>NPI *</label>
                       <div className={styles.npiInputWrapper}>
                         <input
-                          className={styles.input}
+                          className={`${styles.input} ${(fetchingNpi && activeProviderIndex === index) ? styles.fetching : ''}`}
                           value={p.npi}
                           onFocus={() => setActiveProviderIndex(index)}
                           onChange={(e) => {
@@ -1470,8 +1476,16 @@ return await onSubmit(payload);
                               return copy;
                             });
                           }}
-                          style={providerErrorsMap[index]?.npi ? { borderColor: 'red' } : {}}
+                          style={{
+                            ...(providerErrorsMap[index]?.npi ? { borderColor: 'red' } : {}),
+                            paddingRight: (fetchingNpi && activeProviderIndex === index) ? '40px' : '12px'
+                          }}
                         />
+                        {fetchingNpi && activeProviderIndex === index && (
+                          <div className={styles.inputSpinnerWrapper}>
+                            <div className={styles.spinner} />
+                          </div>
+                        )}
                         {/* <button
                           type="button"
                           className={styles.lookupButton}
@@ -1976,8 +1990,8 @@ return await onSubmit(payload);
                       onChange={(e) => setIsProviderOrg(e.target.checked)}
                     />
                     <div className={styles.toggleText}>
-                      <label htmlFor="isProvider" className={styles.toggleLabel}>Is Provider Organization</label>
-                      <span className={styles.toggleDescription}>Enable if this organization has providers.</span>
+                      <label htmlFor="isProvider" className={styles.toggleLabel}>Do you have providers?</label>
+                      <span className={styles.toggleDescription}>Enable this if the client has providers.</span>
                     </div>
                   </div>
                 )}
@@ -2024,7 +2038,7 @@ return await onSubmit(payload);
                 <button
                   type="submit"
                   className={styles.submitButton}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || fetchingNpi}
                 >
                   {
                     step === 1 && isProviderOrg
