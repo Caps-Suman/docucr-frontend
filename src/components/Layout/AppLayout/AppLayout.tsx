@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit, Activity } from 'lucide-react';
+import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit, Activity, LogOut } from 'lucide-react';
 import authService from '../../../services/auth.service';
 import modulesService from '../../../services/modules.service';
 import apiClient, { API_BASE_URL } from '../../../utils/apiClient';
@@ -210,7 +210,8 @@ const AppLayout: React.FC = () => {
                             {showLogoutTray && (
                                 <div className="logout-tray">
                                     <button className="logout-option" onClick={handleLogout}>
-                                        Logout
+                                        <LogOut size={16} />
+                                        <span>Logout</span>
                                     </button>
                                 </div>
                             )}

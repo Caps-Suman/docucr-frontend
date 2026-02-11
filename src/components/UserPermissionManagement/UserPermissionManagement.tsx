@@ -21,16 +21,9 @@ const UserPermissionManagement: React.FC = () => {
                 if (!user?.email) return;
 
                 const modules = await modulesService.getUserModules(user.email);
-                const userModule = modules.find(m => m.name === 'users_permissions'); // Ensure match DB name
+                const userModule = modules.find(m => m.name === 'users_permissions');
 
                 if (userModule) {
-                    // Check for submodules existence. 
-                    // Note: get_user_modules returns only submodules the user has access to (via role_submodule or role_module depending on impl).
-                    // Actually, my backend impl: 
-                    // 1. Fetches role_module -> maps to module permissions.
-                    // 2. Fetches role_submodule -> maps to submodule permissions.
-                    // So if I have role_submodule for "user_module", it appears in submodules list.
-
                     const submodules = userModule.submodules || [];
                     const hasUserSubmodule = submodules.some(s => s.name === 'user_module');
                     const hasRoleSubmodule = submodules.some(s => s.name === 'role_module');
@@ -38,7 +31,6 @@ const UserPermissionManagement: React.FC = () => {
                     setCanViewUsers(hasUserSubmodule);
                     setCanViewRoles(hasRoleSubmodule);
 
-                    // Set default tab
                     if (hasUserSubmodule) setActiveTab('users');
                     else if (hasRoleSubmodule) setActiveTab('roles');
                 }

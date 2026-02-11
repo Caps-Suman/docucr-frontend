@@ -7,6 +7,7 @@ import userService from "../../../services/user.service";
 import clientService from "../../../services/client.service";
 import CommonPagination from "../../Common/CommonPagination"; // Added import
 import Loading from "../../Common/Loading";
+import Toast, { ToastType } from '../../Common/Toast';
 
 interface UserModalProps {
   isOpen: boolean;
@@ -74,6 +75,7 @@ const UserModal: React.FC<UserModalProps> = ({
   const [password, setPassword] = useState("");
   const [phoneCountryCode, setPhoneCountryCode] = useState("+91");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   // const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   // const [selectedSupervisor, setSelectedSupervisor] = useState<string>('');
   const [userRoles, setUserRoles] = useState<
@@ -140,14 +142,9 @@ const UserModal: React.FC<UserModalProps> = ({
 
         // CHECK FOR CLIENT MAPPING
         if (initialData.client_id) {
-          setUserType("client");
           try {
-            // Fetch all clients to find the name, or if there's a specific getClient endpoints
-            // Since we have pagination, finding in 'all' might get expensive, but let's try getting all for now 
-            // as per existing pattern or use a cached lookup if available.
-            // Better: If client_name was available it would be easier. Use placeholder or fetch.
-            // Assumption: clientService has getAllClients. 
             const allClients = await clientService.getAllClients();
+            setClients(allClients);
             const matched = allClients.find((c: any) => c.id === initialData.client_id);
             setSelectedClient({
               id: initialData.client_id,
@@ -158,6 +155,7 @@ const UserModal: React.FC<UserModalProps> = ({
             console.error("Error fetching client details", e);
             setSelectedClient({ id: initialData.client_id, name: "Unknown Client" });
           }
+          setUserType("client");
         } else {
           setUserType("internal");
           setSelectedClient(null);
@@ -178,7 +176,10 @@ const UserModal: React.FC<UserModalProps> = ({
       }
 
       // Initial Step Logic
-      if (allowUserTypeSelection) {
+      if (initialData?.id) {
+        // EDIT MODE: Skip type selection, go to form directly
+        setStep(1);
+      } else if (allowUserTypeSelection) {
         setStep(0);
       } else {
         // Fallback if type selection not allowed (e.g. non-org user?)
@@ -234,6 +235,7 @@ const UserModal: React.FC<UserModalProps> = ({
   // Fetch clients when switching to client type
   useEffect(() => {
     if (userType === "client") {
+      if (clients.length > 0) return;
       setLoadingClients(true);
       // Using getAllClients or getClients with large number to support client-side pagination as requested
       clientService.getAllClients()
@@ -243,7 +245,7 @@ const UserModal: React.FC<UserModalProps> = ({
         .catch(err => console.error("Failed to load clients", err))
         .finally(() => setLoadingClients(false));
     }
-  }, [userType]);
+  }, [userType, clients.length]);
 
   const validateStep1 = () => {
     const newErrors: { [key: string]: string } = {};
@@ -425,7 +427,7 @@ const UserModal: React.FC<UserModalProps> = ({
               </div>
             )}
 
-            {step === 0 && allowUserTypeSelection && (
+            {step === 0 && !initialData?.id && allowUserTypeSelection && (
               <div className={styles.typeSelector}>
                 <button
                   type="button"
@@ -530,13 +532,15 @@ const UserModal: React.FC<UserModalProps> = ({
               </div>
             )}
 
-            {step === 1 && (
+            {(step === 1 || (step === 0 && initialData?.id)) && (
               <>
                 {userType === "client" && selectedClient && (
                   <div className={styles.selectedClientBanner}>
-                    <span className={styles.bannerLabel}>Selected Client:</span>
+                    <span className={styles.bannerLabel}>Client Details:</span>
                     <span className={styles.bannerValue}>{selectedClient.name} ({selectedClient.npi || 'No NPI'})</span>
-                    <button type="button" className={styles.changeClientBtn} onClick={() => setStep(3)}>Change</button>
+                    {!isEditMode && (
+                      <button type="button" className={styles.changeClientBtn} onClick={() => setStep(3)}>Change</button>
+                    )}
                   </div>
                 )}
                 <div className={styles.formRow}>
@@ -837,8 +841,13 @@ const UserModal: React.FC<UserModalProps> = ({
               <button
                 type="button"
                 className={styles.nextButton}
-                disabled={!selectedClient}
-                onClick={() => setStep(1)}
+                onClick={() => {
+                  if (!selectedClient) {
+                    setToast({ message: 'Client selection is required', type: 'warning' });
+                    return;
+                  }
+                  setStep(1);
+                }}
               >
                 Next <ChevronRight size={16} />
               </button>
@@ -864,6 +873,13 @@ const UserModal: React.FC<UserModalProps> = ({
               </button>
             )}
 
+            {toast && (
+              <Toast
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast(null)}
+              />
+            )}
           </div>
         </form>
       </div>

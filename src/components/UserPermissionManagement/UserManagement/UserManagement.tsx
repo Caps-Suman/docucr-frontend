@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key, Loader2 } from 'lucide-react';
 import Table from '../../Table/Table';
 import CommonPagination from '../../Common/CommonPagination';
 import Loading from '../../Common/Loading';
@@ -32,7 +32,8 @@ const UserManagement: React.FC = () => {
     console.log("CURRENT USER:", currentUser);
 
     const [currentPage, setCurrentPage] = useState(0);
-    const [itemsPerPage, setItemsPerPage] = useState(25);
+    // const [itemsPerPage, setItemsPerPage] = useState(25);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [users, setUsers] = useState<User[]>([]);
     const [stats, setStats] = useState<UserStats | null>(null);
     const [totalUsers, setTotalUsers] = useState(0);
@@ -56,6 +57,8 @@ const UserManagement: React.FC = () => {
     const canChooseUserType =
         currentUser?.role?.name === "ORGANISATION_ROLE";
     const clientAdmin = currentUser?.role?.name === "CLIENT_ADMIN";
+
+    const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
 
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; user: User | null; action: 'toggle' }>({ isOpen: false, user: null, action: 'toggle' });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -85,16 +88,31 @@ const UserManagement: React.FC = () => {
         loadData();
     }, [currentPage, itemsPerPage, statusFilter]);
 
+    const rolesLoadedRef = React.useRef(false);
+    const dataLoadingRef = React.useRef(false);
+
+    useEffect(() => {
+        if (!rolesLoadedRef.current) {
+            rolesLoadedRef.current = true;
+            loadRoles();
+        }
+    }, []);
+
     const loadRoles = async () => {
         try {
             const rolesData = await roleService.getAssignableRoles(1, 100);
             setRoles(rolesData.roles.map(r => ({ id: r.id, name: r.name })));
         } catch (error) {
             console.error('Failed to load roles:', error);
+            rolesLoadedRef.current = false;
         }
     };
 
     const loadData = async () => {
+        // Prevent concurrent calls (fixes Strict Mode double-invocation)
+        if (dataLoadingRef.current) return;
+        dataLoadingRef.current = true;
+
         try {
             setLoading(true);
             const [usersData, statsData] = await Promise.all([
@@ -104,29 +122,27 @@ const UserManagement: React.FC = () => {
             setUsers(usersData.users);
             setTotalUsers(usersData.total);
             setStats(statsData);
-
-            // Load supervisors (all users except current)
-            // const allUsers = await userService.getUsers(1, 1000);
-            // setSupervisors(allUsers.users.map(u => ({
-            //     id: u.id,
-            //     name: `${u.first_name} ${u.last_name} (${u.username})`
-            // })));
         } catch (error) {
             console.error('Failed to load users:', error);
             setToast({ message: 'Failed to load users', type: 'error' });
         } finally {
             setLoading(false);
             setIsInitialLoading(false);
+            dataLoadingRef.current = false;
         }
     };
 
     const handleEdit = async (user: User) => {
         try {
+            setLoadingEditId(user.id);
             const fullUser = await userService.getUser(user.id);
             setEditingUser(fullUser);
+
             setIsModalOpen(true);
         } catch (e) {
             console.error(e);
+        } finally {
+            setLoadingEditId(null);
         }
     };
 
@@ -183,7 +199,10 @@ const UserManagement: React.FC = () => {
     //     setIsModalOpen(true);
     //   }
     // };
+
+
     const handleAddNew = () => {
+
         if (!roles.length) {
             setToast({ message: "Roles still loading. Try again.", type: "warning" });
             return;
@@ -191,11 +210,6 @@ const UserManagement: React.FC = () => {
         setEditingUser(null);
         setIsModalOpen(true);
     };
-
-
-    useEffect(() => {
-        loadRoles();
-    }, []);
 
     const handleModalClose = () => {
         setIsModalOpen(false);
@@ -447,8 +461,16 @@ const UserManagement: React.FC = () => {
             render: (_: any, row: User) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <span className="tooltip-wrapper" data-tooltip={row.is_superuser ? 'Cannot edit superuser' : 'Edit'}>
-                        <button className="action-btn edit" onClick={() => handleEdit(row)} style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer' }}>
-                            <Edit2 size={14} />
+                        <button
+                            className="action-btn edit"
+                            onClick={() => !loadingEditId && handleEdit(row)}
+                            disabled={!!loadingEditId || row.is_superuser}
+                            style={{
+                                opacity: (row.is_superuser || !!loadingEditId) ? 0.5 : 1,
+                                cursor: (row.is_superuser || !!loadingEditId) ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            {loadingEditId === row.id ? <Loader2 size={14} className="animate-spin" /> : <Edit2 size={14} />}
                         </button>
                     </span>
                     <span className="tooltip-wrapper" data-tooltip={row.is_superuser ? 'Cannot change password' : 'Change Password'}>
