@@ -6,9 +6,7 @@ import { PermissionProvider } from './context/PermissionContext';
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 // root.render(<App />);
 root.render(
-  <React.StrictMode>
-    <PermissionProvider>
-      <App />
-    </PermissionProvider>
-  </React.StrictMode>
+  <PermissionProvider>
+    <App />
+  </PermissionProvider>
 );
