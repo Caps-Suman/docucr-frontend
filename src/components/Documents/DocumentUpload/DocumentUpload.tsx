@@ -123,22 +123,22 @@ const DocumentUpload: React.FC = () => {
     const hasClientField = fields.some(isClientSystemField);
     const hasDocTypeField = fields.some(isDocumentTypeSystemField);
 
-  try {
+    try {
 
-    if (hasClientField) {
-      if (isClientUser) {
-        const client = await clientService.getMyClient();
+      if (hasClientField) {
+        if (isClientUser) {
+          const client = await clientService.getMyClient();
 
-        setClients([
-          {
-            id: client.id,
-            name:
-              client.business_name ||
-              `${client.first_name} ${client.last_name}`.trim()
-          }
-        ]);
-      } else {
-        const res = await clientService.getAllClients();
+          setClients([
+            {
+              id: client.id,
+              name:
+                client.business_name ||
+                `${client.first_name} ${client.last_name}`.trim()
+            }
+          ]);
+        } else {
+          const res = await clientService.getAllClients();
 
           setClients(
             res.map(c => ({

@@ -32,7 +32,7 @@ const SYSTEM_FIELDS = [
     field_type: "select",
     label: "Client",
     placeholder: "Select client",
-    required: true,
+    required: false,
     options: [],
     order: 0,
     is_system: true,

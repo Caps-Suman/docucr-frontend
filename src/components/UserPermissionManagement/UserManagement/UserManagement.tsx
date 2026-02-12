@@ -467,7 +467,8 @@ const UserManagement: React.FC = () => {
     const handleAddNew = () => {
 
         if (!roles.length) {
-            setToast({ message: "Roles still loading. Try again.", type: "warning" });
+            // setToast({ message: "Roles still loading. Try again.", type: "warning" });
+            setToast({ message: "No roles found. Please create a role before proceeding.", type: "warning" });
             return;
         }
         setEditingUser(null);

@@ -279,27 +279,41 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
     // only fire when 10 digits
     if (npi.length === 10) {
+      // 🛑 Prevent fetch if it matches initial data
+      if (initialData && npi === initialData.npi) return;
+
       if (npiTimeoutRef.current) clearTimeout(npiTimeoutRef.current);
 
       npiTimeoutRef.current = setTimeout(() => {
         handleFetchNPIDetails();
       }, 400);
     }
-  }, [npi, step]);
+  }, [npi, step, initialData]);
 
   const providerTimeouts = useRef<{ [key: number]: NodeJS.Timeout }>({});
+  const lastFetchedNpis = useRef<{ [key: number]: string }>({});
 
   useEffect(() => {
     if (step !== 2) return;
 
     providers.forEach((p, index) => {
-      if (!p.npi || p.npi.length !== 10) return;
+      if (!p.npi || p.npi.length !== 10) {
+        // Reset if NPI becomes invalid/empty so we can fetch again if they fix it
+        if (lastFetchedNpis.current[index]) {
+          delete lastFetchedNpis.current[index];
+        }
+        return;
+      }
+
+      // 🛑 Prevent loop: If we already fetched for this specific NPI text, skip.
+      if (lastFetchedNpis.current[index] === p.npi) return;
 
       if (providerTimeouts.current[index]) {
         clearTimeout(providerTimeouts.current[index]);
       }
 
       providerTimeouts.current[index] = setTimeout(() => {
+        lastFetchedNpis.current[index] = p.npi; // Mark as fetched
         handleFetchNPIDetails(index);
       }, 400);
     });
@@ -720,6 +734,13 @@ const ClientModal: React.FC<ClientModalProps> = ({
           // Map backend location_id to frontend location_temp_id
           location_temp_id: p.location_id || pTempId
         })));
+
+        // ✅ Initialize fetched cache so we don't auto-fetch on edit
+        const initialCache: { [key: number]: string } = {};
+        initialData.providers.forEach((p: any, i: number) => {
+          if (p.npi) initialCache[i] = p.npi;
+        });
+        lastFetchedNpis.current = initialCache;
       } else {
         setIsProviderOrg(false);
         // Reset to one empty provider if none
