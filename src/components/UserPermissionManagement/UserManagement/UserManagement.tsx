@@ -159,16 +159,11 @@ const UserManagement: React.FC = () => {
             setSelectedOrg([orgId]);
             setTempSelectedOrg([orgId]);
         } else if (currentUser.role?.name === 'CLIENT_ADMIN') {
-            // Client Admin: specific org and client
+            // Client Admin: specific org (client is implied by token)
             if (currentUser.organisation_id) {
                 const orgId = currentUser.organisation_id;
                 setSelectedOrg([orgId]);
                 setTempSelectedOrg([orgId]);
-            }
-            if (currentUser.client_id) {
-                const clientId = currentUser.client_id;
-                setSelectedClientFilter([clientId]);
-                setTempSelectedClientFilter([clientId]);
             }
         }
     }, []);
