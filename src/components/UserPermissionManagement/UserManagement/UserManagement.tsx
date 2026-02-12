@@ -515,7 +515,7 @@ const UserManagement: React.FC = () => {
 
             setIsModalOpen(false);
             setEditingUser(null);
-            loadData();
+            await loadData();
         } catch (e) {
             console.error(e);
         }

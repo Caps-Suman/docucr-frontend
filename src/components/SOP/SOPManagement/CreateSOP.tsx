@@ -560,7 +560,8 @@ const CreateSOP: React.FC = () => {
       }
 
       // Check if SOP already exists for this client
-      try {
+      if(!isEditMode)
+        try {
         setLoading(true);
         const { exists } = await sopService.checkSOPExistence(selectedClientId);
         setLoading(false);
@@ -580,6 +581,7 @@ const CreateSOP: React.FC = () => {
         setToast({ message: "Error validating client SOP status.", type: "error" });
         return;
       }
+      
 
       // Valid client selected & No existing SOP
       const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);

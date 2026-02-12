@@ -269,46 +269,73 @@ const [organisationOptions, setOrganisationOptions] = useState<any[]>([]);
   //   };
   // }, [activeFilters, clients, documentTypes, currentPage, pageSize]);
 
-  const loadMetadata = async () => {
-    try {
-      const [clientsRes, docTypesRes, activeFormRes] = await Promise.all([
-        clientService.getClients(1, 1000),
-        documentTypeService.getDocumentTypes(1, 1000),
-        authService.getUser()?.role?.name !== "super_admin"
-          ? formService.getActiveForm().catch(() => null)
-          : Promise.resolve(null),
-      ]);
-      try {
-  const uploadedRes = await documentService.getUploadedByFilter();
-  setUploadedByOptions(uploadedRes || []);
-} catch {}
+//   const loadMetadata = async () => {
+//     try {
+//       const [clientsRes, docTypesRes, activeFormRes] = await Promise.all([
+//         clientService.getClients(1, 1000),
+//         documentTypeService.getDocumentTypes(1, 1000),
+//         authService.getUser()?.role?.name !== "SUPER_ADMIN"
+//           ? formService.getActiveForm().catch(() => null)
+//           : Promise.resolve(null),
+//       ]);
+//       try {
+//   const uploadedRes = await documentService.getUploadedByFilter();
+//   setUploadedByOptions(uploadedRes || []);
+// } catch {}
 
-const user = authService.getUser();
-if (user?.role?.name === "SUPER_ADMIN") {
+// const user = authService.getUser();
+// if (user?.role?.name === "SUPER_ADMIN") {
+//   try {
+//     const orgRes = await documentService.getOrganisationFilter();
+//     setOrganisationOptions(orgRes || []);
+//   } catch {}
+// }
+
+//       // Handle different response formats safely
+//       const clientList = Array.isArray(clientsRes)
+//         ? clientsRes
+//         : (clientsRes as any).clients || [];
+//       const typeList = Array.isArray(docTypesRes)
+//         ? docTypesRes
+//         : (docTypesRes as any).document_types || [];
+
+//       setClients(clientList);
+//       setDocumentTypes(typeList);
+
+//       if (activeFormRes && activeFormRes.fields) {
+//         setFormFields(activeFormRes.fields);
+//       }
+//     } catch (err) {
+//       console.error("Failed to load metadata for labels:", err);
+//     }
+//   };
+
+const loadMetadata = async () => {
   try {
-    const orgRes = await documentService.getOrganisationFilter();
-    setOrganisationOptions(orgRes || []);
-  } catch {}
-}
+    const user = authService.getUser();
 
-      // Handle different response formats safely
-      const clientList = Array.isArray(clientsRes)
-        ? clientsRes
-        : (clientsRes as any).clients || [];
-      const typeList = Array.isArray(docTypesRes)
-        ? docTypesRes
-        : (docTypesRes as any).document_types || [];
+    const [clientsRes, docTypesRes, activeFormRes] = await Promise.all([
+      clientService.getClients(1, 1000),
+      documentTypeService.getDocumentTypes(1, 1000),
+      user?.role?.name !== "SUPER_ADMIN"
+        ? formService.getActiveForm()
+        : Promise.resolve(null),
+    ]);
 
-      setClients(clientList);
-      setDocumentTypes(typeList);
+    setClients(Array.isArray(clientsRes) ? clientsRes : clientsRes?.clients || []);
+    setDocumentTypes(Array.isArray(docTypesRes) ? docTypesRes : docTypesRes?.document_types || []);
 
-      if (activeFormRes && activeFormRes.fields) {
-        setFormFields(activeFormRes.fields);
-      }
-    } catch (err) {
-      console.error("Failed to load metadata for labels:", err);
+    if (activeFormRes?.fields?.length) {
+      setFormFields(activeFormRes.fields);
+    } else {
+      setFormFields([]);
     }
-  };
+
+  } catch (err) {
+    console.error("metadata load failed", err);
+    setFormFields([]);
+  }
+};
 
   // Cleanup upload store for documents that are already present in the backend list
   useEffect(() => {
@@ -360,7 +387,7 @@ if (user?.role?.name === "SUPER_ADMIN") {
     let organisationId: string | undefined;
 
     Object.entries(activeFilters).forEach(([key, value]) => {
-      if (!value) return;
+if (value === null || value === undefined || value === "") return;
 
       // skip non-data filters
       if (["status", "sharedOnly", "dateFrom", "dateTo"].includes(key)) return;
@@ -369,6 +396,7 @@ if (user?.role?.name === "SUPER_ADMIN") {
       if (key.startsWith("form_")) {
         const fieldId = key.replace("form_", "");
         const fieldMeta = formFields.find(f => String(f.id) === fieldId);
+        console.log("FORM FIELDS:", formFields);
 
         if (!fieldMeta) return;
 
