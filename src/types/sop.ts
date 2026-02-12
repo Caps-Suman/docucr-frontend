@@ -136,4 +136,22 @@ export interface SOP {
     status?: SOPStatus;   // ✅ ADD THIS
     createdAt?: string;
   updatedAt?: string;
+  created_by?: string;
+  created_by_name?: string;
+  organisation_id?: string;
+  organisation_name?: string;
+  client_name?: string;
+  client_npi?: string;
+}
+
+export interface SOPFilters {
+  skip?: number;
+  limit?: number;
+  search?: string;
+  statusCode?: 'ACTIVE' | 'INACTIVE';
+  fromDate?: string;
+  toDate?: string;
+  organisationId?: string;
+  createdBy?: string;
+  clientId?: string;
 }

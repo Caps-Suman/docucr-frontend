@@ -13,21 +13,33 @@ import {
   ChevronUp,
   Download,
   BookOpen,
+  Filter,
+  Loader2,
+  X,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import Table from "../../Table/Table";
 import Loading from "../../Common/Loading";
 import CommonPagination from "../../Common/CommonPagination";
 import styles from "./SOPListing.module.css";
 import sopService, { normalizeSOP } from "../../../services/sop.service";
+import apiClient from "../../../utils/apiClient";
 import statusService, { Status } from "../../../services/status.service";
 import { BillingGuideline, SOP } from "../../../types/sop";
 import ConfirmModal from "../../Common/ConfirmModal";
 import Toast, { ToastType } from "../../Common/Toast";
+import CommonDropdown from "../../Common/CommonDropdown";
+import CommonDatePicker from "../../Common/CommonDatePicker";
 import { usePermission } from "../../../context/PermissionContext";
 import ClientSelectionModal from "./ClientSelectionModal";
 import ProviderSelectionModal from "./ProviderSelectionModal";
+import authService from "../../../services/auth.service";
+import organisationService from "../../../services/organisation.service";
+import userService from "../../../services/user.service";
+import clientService from "../../../services/client.service";
 
 const SOPListing: React.FC = () => {
+  const currentUser = authService.getUser();
   const navigate = useNavigate();
   const [sops, setSops] = useState<SOP[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,9 +71,10 @@ const SOPListing: React.FC = () => {
   } | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalSOPs, setTotalSOPs] = useState(0);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const { can } = usePermission();
 
   // Selection Modal State
@@ -77,25 +90,82 @@ const SOPListing: React.FC = () => {
     activeSOPs: 0,
     inactiveSOPs: 0,
   });
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<Record<string, any>>({
+    fromDate: null,
+    toDate: null,
+    organisationId: [],
+    clientId: [],
+    createdBy: [],
+  });
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({
+    fromDate: null,
+    toDate: null,
+    organisationId: [],
+    clientId: [],
+    createdBy: [],
+  });
+
+  const [organisations, setOrganisations] = useState<any[]>([]);
+  const [clientsForFilter, setClientsForFilter] = useState<any[]>([]);
+  const [usersForFilter, setUsersForFilter] = useState<any[]>([]);
+  const [loadingFilterData, setLoadingFilterData] = useState(false);
+
+  const activeFilterCount = Object.entries(activeFilters).filter(
+    ([key, value]) => {
+      if (key === "fromDate" || key === "toDate") {
+        return value !== null;
+      }
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+      return value !== "" && value !== null && value !== undefined;
+    }
+  ).length;
+
+  const formatLocalDate = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
   const getCategoryLabel = (category: SOP["category"]): string => {
     if (typeof category === "string") return category;
     if (category && typeof category === "object") return category.title ?? "—";
     return "—";
   };
 
+  const isInitialMount = React.useRef(true);
+  const lastFetchParams = React.useRef("");
+
   useEffect(() => {
+    loadStatuses();
     loadStats();
   }, []);
 
   useEffect(() => {
+    // Stringify dependencies that are objects/arrays to prevent reference-based triggers
+    const paramsKey = JSON.stringify({
+      currentPage,
+      itemsPerPage,
+      debouncedSearchTerm,
+      statusFilter,
+      activeFilters
+    });
+
+    if (lastFetchParams.current === paramsKey) {
+      return;
+    }
+
+    lastFetchParams.current = paramsKey;
     loadSOPs(debouncedSearchTerm, statusFilter);
   }, [
     currentPage,
     itemsPerPage,
     debouncedSearchTerm,
     statusFilter,
-    activeStatusId,
-    inactiveStatusId,
+    activeFilters,
   ]);
 
   useEffect(() => {
@@ -116,29 +186,29 @@ const SOPListing: React.FC = () => {
       if (filter === "active") statusCode = "ACTIVE";
       if (filter === "inactive") statusCode = "INACTIVE";
 
-      const data = await sopService.getSOPs(
-        currentPage * itemsPerPage,
-        itemsPerPage,
-        search,
-        statusCode,
-      );
-      // setSops(
-      //   data.sops.map((sop: SOP) => ({
-      //     ...sop,
-      //     category:
-      //       typeof sop.category === "string"
-      //         ? sop.category
-      //         : (sop.category?.title ?? "—"),
-      //   })),
-      // );
+      const data = await sopService.getSOPs({
+        skip: currentPage * itemsPerPage,
+        limit: itemsPerPage,
+        search: search,
+        statusCode: statusCode,
+        fromDate: activeFilters.fromDate
+          ? formatLocalDate(activeFilters.fromDate)
+          : undefined,
+        toDate: activeFilters.toDate
+          ? formatLocalDate(activeFilters.toDate)
+          : undefined,
+        organisationId: activeFilters.organisationId?.length > 0 ? activeFilters.organisationId.join(',') : undefined,
+        createdBy: activeFilters.createdBy?.length > 0 ? activeFilters.createdBy.join(',') : undefined,
+        clientId: activeFilters.clientId?.length > 0 ? activeFilters.clientId.join(',') : undefined,
+      });
       setSops(
         data.sops.map((sop: any) => ({
           ...sop,
 
-          // 🔥 FIX 1: normalize provider info
+          // normalize provider info
           providerInfo: sop.providerInfo ?? sop.provider_info ?? {},
 
-          // 🔥 FIX 2: normalize updatedAt
+          // normalize updatedAt
           updatedAt: sop.updatedAt ?? sop.updated_at ?? null,
 
           // existing category logic
@@ -165,6 +235,117 @@ const SOPListing: React.FC = () => {
     }
   };
 
+  const loadFilterData = async () => {
+    try {
+      setLoadingFilterData(true);
+      const user = currentUser as any;
+      const isAdmin = user?.role?.name === "SUPER_ADMIN";
+
+      const promises: Promise<any>[] = [
+        userService.getUsers(1, 1000, undefined, "ACTIVE"),
+      ];
+
+      if (isAdmin) {
+        promises.push(
+          organisationService.getOrganisations(1, 1000, undefined, "ACTIVE")
+        );
+      }
+
+      const results = await Promise.all(promises);
+      setUsersForFilter(results[0].users || []);
+
+      if (isAdmin) {
+        setOrganisations(results[1].organisations || []);
+      }
+
+      // Improved detection for organization login
+      const hasOrgContext =
+        user?.organisation_id ||
+        (user?.role?.name && user.role.name.includes("ORGANISATION"));
+
+      if (hasOrgContext && !isAdmin) {
+        // Explicitly fetch clients for this organisation
+        const orgId = user?.organisation_id || user?.id;
+        const clientsRes = await clientService.getClients(
+          1,
+          1000,
+          undefined,
+          "ACTIVE",
+          orgId
+        );
+        setClientsForFilter(clientsRes.clients || []);
+      } else {
+        const clientsRes = await clientService.getAllClients();
+        setClientsForFilter(clientsRes || []);
+      }
+    } catch (err) {
+      console.error("Failed to load filter data", err);
+    } finally {
+      setLoadingFilterData(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showFilters) {
+      loadFilterData();
+    }
+  }, [showFilters]);
+
+  const handleApplyFilters = () => {
+    setActiveFilters(filters);
+    setCurrentPage(0);
+    setShowFilters(false);
+  };
+
+  const handleResetFilters = () => {
+    const resetFilters = {
+      fromDate: null,
+      toDate: null,
+      organisationId: [],
+      clientId: [],
+      createdBy: [],
+    };
+    setFilters(resetFilters);
+    setActiveFilters(resetFilters);
+    setCurrentPage(0);
+    setShowFilters(false);
+  };
+
+  const handleOrganisationChange = async (orgIds: string[]) => {
+    setFilters((prev) => ({ ...prev, organisationId: orgIds, clientId: [] }));
+    const user = currentUser as any;
+    // const isAdmin = user?.role?.name === "SUPER_ADMIN";
+    const isAdmin = user?.role?.name === "SUPER_ADMIN";
+
+    if (!orgIds || orgIds.length === 0) {
+      // Re-load clients if it's an organization user, otherwise clear
+      if (!isAdmin) {
+        const orgId = user?.organisation_id || user?.id; // Important
+        const clientsRes = await clientService.getClients(
+          1,
+          1000,
+          undefined, "ACTIVE", orgId);
+        setClientsForFilter(clientsRes.clients || []);
+      } else {
+        setClientsForFilter([]);
+      }
+      return;
+    }
+
+    try {
+      setLoadingFilterData(true);
+      const orgIdsStr = orgIds.join(",");
+      const clientsRes = await clientService.getClients(1, 1000, undefined, "ACTIVE", orgIdsStr);
+      setClientsForFilter(clientsRes.clients || []);
+      // const clientsRes = await clientService.getAllClients();
+      // setClientsForFilter(clientsRes || []);
+    } catch (err) {
+      console.error("Failed to load clients for organisation", err);
+    } finally {
+      setLoadingFilterData(false);
+    }
+  };
+
   const loadStatuses = async () => {
     try {
       const data = await statusService.getStatuses();
@@ -187,10 +368,6 @@ const SOPListing: React.FC = () => {
       action: isActive ? "deactivate" : "activate",
     });
   };
-  useEffect(() => {
-    loadStatuses();
-    loadStats();
-  }, []);
 
   const confirmToggleStatus = async () => {
     try {
@@ -304,22 +481,52 @@ const SOPListing: React.FC = () => {
   };
 
   const columns = [
+    // {
+    //   key: "providerName",
+    //   header: "Provider",
+    //   width: "32%",
+    //   render: (_: string, row: SOP) => (
+    //     <div>
+    //       <div style={{ fontWeight: 500, color: "#111827" }}>
+    //         {row.providerInfo?.providerName || row.title}
+    //       </div>
+    //       <div style={{ fontSize: "12px", color: "#6b7280" }}>
+    //         {typeof row.providerInfo?.billingProviderName === "string"
+    //           ? row.providerInfo.billingProviderName
+    //           : getCategoryLabel(row.category)}
+    //       </div>
+    //     </div>
+    //   ),
+    // },
     {
-      key: "providerName",
-      header: "Provider",
+      key: "title",
+      header: "Title",
       width: "32%",
       render: (_: string, row: SOP) => (
         <div>
           <div style={{ fontWeight: 500, color: "#111827" }}>
-            {row.providerInfo?.providerName || row.title}
-          </div>
-          <div style={{ fontSize: "12px", color: "#6b7280" }}>
-            {typeof row.providerInfo?.billingProviderName === "string"
-              ? row.providerInfo.billingProviderName
-              : getCategoryLabel(row.category)}
+            {row.title}
           </div>
         </div>
       ),
+    },
+    {
+      key: "client_name",
+      header: "Client",
+      width: "32%",
+      render: (_: string, row: SOP) => (
+        <div>
+          <div style={{ fontWeight: 500, color: "#111827" }}>
+            {row.client_name}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "npi",
+      header: "NPI",
+      width: "12%",
+      render: (_: any, row: SOP) => row.providerInfo?.billingProviderNPI || "-",
     },
     {
       key: "category",
@@ -328,12 +535,6 @@ const SOPListing: React.FC = () => {
       render: (_: any, row: SOP) => (
         <span className={styles.badge}>{getCategoryLabel(row.category)}</span>
       ),
-    },
-    {
-      key: "npi",
-      header: "NPI",
-      width: "12%",
-      render: (_: any, row: SOP) => row.providerInfo?.billingProviderNPI || "-",
     },
     {
       key: "software",
@@ -348,6 +549,16 @@ const SOPListing: React.FC = () => {
       render: (_: any, row: SOP) =>
         row.updatedAt ? new Date(row.updatedAt).toLocaleDateString() : "-",
     },
+    ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' ? [{
+      key: 'created_by_name',
+      header: 'Created By',
+      render: (_: any, row: SOP) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>
+    }] : []),
+    ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
+      key: 'organisation_name',
+      header: 'Organisation',
+      render: (_: any, row: SOP) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
+    }] : []),
     {
       key: "actions",
       header: "Actions",
@@ -489,6 +700,16 @@ const SOPListing: React.FC = () => {
               className={styles.searchInput}
             />
           </div>
+          <button
+            className={styles.filterButton}
+            onClick={() => setShowFilters(true)}
+          >
+            <Filter size={16} />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className={styles.filterBadge}>{activeFilterCount}</span>
+            )}
+          </button>
           {/* <button
             className={`${styles.createButton} ${!canCreateSOP ? styles.disabled : ""}`}
             onClick={() => canCreateSOP && navigate("/sops/create")}
@@ -559,6 +780,48 @@ const SOPListing: React.FC = () => {
                 <Loading message="Loading details..." />
               ) : (
                 <>
+                  {/* Client Information */}
+                  <div className={styles.infoSection}>
+                    <h3>Practice Information</h3>
+                    <div className={styles.infoGrid}>
+                      <div>
+                        <strong>Name:</strong>
+                        <span style={{ color: "#0c4a6e", fontWeight: 500 }}>
+                          {selectedSOP.client_name || "-"}
+                        </span>
+                      </div>
+                      <div>
+                        <strong>NPI:</strong>
+                        <span style={{ color: "#0c4a6e", fontWeight: 500 }}>
+                          {selectedSOP.client_npi || "-"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Associated Providers */}
+                  {selectedSOP.providers && selectedSOP.providers.length > 0 && (
+                    <div className={styles.infoSection}>
+                      <h3>Providers</h3>
+                      <table className={styles.detailsTable}>
+                        <thead>
+                          <tr>
+                            <th className={styles.detailsTh}>Provider Name</th>
+                            <th className={styles.detailsTh}>NPI</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedSOP.providers.map((p, idx) => (
+                            <tr key={idx}>
+                              <td className={styles.detailsTd}>{p.name}</td>
+                              <td className={styles.detailsTd}>{p.npi}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
                   {/* Basic Information */}
                   <div className={styles.infoSection}>
                     <h3>Basic Information</h3>
@@ -578,9 +841,9 @@ const SOPListing: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Provider Information */}
+                  {/* Billing Information */}
                   <div className={styles.infoSection}>
-                    <h3>Provider Information</h3>
+                    <h3>Billing Information</h3>
                     <div className={styles.infoGrid}>
                       <div>
                         <strong>Provider Name:</strong>{" "}
@@ -628,6 +891,12 @@ const SOPListing: React.FC = () => {
                         <strong>Clearinghouse:</strong>{" "}
                         <span style={{ color: "#0c4a6e", fontWeight: 500 }}>
                           {selectedSOP.providerInfo?.clearinghouse || "-"}
+                        </span>
+                      </div>
+                      <div>
+                        <strong>Status:</strong>{" "}
+                        <span style={{ color: "#0c4a6e", fontWeight: 500 }}>
+                          {selectedSOP.status?.code || "Active"}
                         </span>
                       </div>
                     </div>
@@ -933,23 +1202,6 @@ const SOPListing: React.FC = () => {
           setCurrentPage(0);
         }}
       />
-      {viewModalOpen && selectedSOP && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setViewModalOpen(false)}
-        >
-          {/* ... existing modal content ... */}
-          {/* Skipping full reuse to keep minimal diff, just closing the view modal block */}
-          <div
-            className={styles.modalContent}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Same existing content... simplified for brevity in REPLACE, 
-                actually I should NOT replace the entire modal content if I want to keep it.
-                I will just append new modals at the end. */}
-          </div>
-        </div>
-      )}
 
       {/* Selection Modals */}
       <ClientSelectionModal
@@ -962,11 +1214,137 @@ const SOPListing: React.FC = () => {
         <ProviderSelectionModal
           isOpen={providerModalOpen}
           onClose={() => setProviderModalOpen(false)}
+          clientId={selectedClientForCreation?.id || ""}
+          clientName={selectedClientForCreation?.name || ""}
           onSelect={handleProviderSelect}
-          clientId={selectedClientForCreation.id}
-          clientName={selectedClientForCreation.name}
         />
       )}
+
+      {/* Filter Modal */}
+      {showFilters &&
+        createPortal(
+          <div className={styles.filterOverlay} onClick={() => setShowFilters(false)}>
+            <div className={styles.filterModal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.filterHeader}>
+                <h2>
+                  <Filter size={18} />
+                  Filters
+                </h2>
+                <button
+                  className={styles.closeFilterBtn}
+                  onClick={() => setShowFilters(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className={styles.filterContent}>
+                {/* Date Range */}
+                <div className={styles.filterGroup}>
+                  <label>Date Range</label>
+                  <div className={styles.dateRangeInputs}>
+                    <CommonDatePicker
+                      selected={filters.fromDate}
+                      onChange={(date) =>
+                        setFilters((prev) => ({ ...prev, fromDate: date }))
+                      }
+                      placeholderText="From Date"
+                    />
+                    <CommonDatePicker
+                      selected={filters.toDate}
+                      onChange={(date) =>
+                        setFilters((prev) => ({ ...prev, toDate: date }))
+                      }
+                      placeholderText="To Date"
+                    />
+                  </div>
+                </div>
+
+                {/* Organisation Filter - Only for Super Admin */}
+                {(currentUser as any)?.role?.name === "SUPER_ADMIN" && (
+                  <div className={styles.filterGroup}>
+                    <label>Organisation</label>
+                    <CommonDropdown
+                      options={organisations.map((org) => ({
+                        value: org.id,
+                        label: org.name,
+                      }))}
+                      value={filters.organisationId}
+                      onChange={handleOrganisationChange}
+                      placeholder="Select Organisations"
+                      loading={loadingFilterData}
+                      isMulti={true}
+                      isSearchable={true}
+                    />
+                  </div>
+                )}
+
+                {/* Client Filter */}
+                {/* {(currentUser as any)?.role?.name === "SUPER_ADMIN" || (currentUser as any)?.role?.name === "ORGANISATION_ROLE" ? ( */}
+                <div className={styles.filterGroup}>
+                  <label>Client</label>
+                  <CommonDropdown
+                    options={clientsForFilter.map((client) => ({
+                      value: client.id,
+                      label: client.name || client.business_name || `${client.first_name} ${client.last_name}`,
+                      // label: client.business_name || `${client.first_name} ${client.last_name}`,
+                    }))}
+                    value={filters.clientId}
+                    onChange={(val) =>
+                      setFilters((prev) => ({ ...prev, clientId: val }))
+                    }
+                    placeholder="Select Clients"
+                    loading={loadingFilterData}
+                    isMulti={true}
+                    isSearchable={true}
+                    disabled={
+                      (currentUser as any)?.role?.name === "SUPER_ADMIN" &&
+                      (!filters.organisationId || filters.organisationId.length === 0)
+                    }
+                  />
+                </div>
+                {/* // ) : null} */}
+
+                {/* Created By Filter */}
+                {(currentUser as any)?.role?.name === "SUPER_ADMIN" || (currentUser as any)?.role?.name === "ORGANISATION_ROLE" ? (
+                  <div className={styles.filterGroup}>
+                    <label>Created By</label>
+                    <CommonDropdown
+                      options={usersForFilter.map((user) => ({
+                        value: user.id,
+                        label: `${user.first_name} ${user.last_name} (${user.username})`,
+                      }))}
+                      value={filters.createdBy}
+                      onChange={(val) =>
+                        setFilters((prev) => ({ ...prev, createdBy: val }))
+                      }
+                      placeholder="Select Creators"
+                      loading={loadingFilterData}
+                      isMulti={true}
+                      isSearchable={true}
+                    />
+                  </div>
+                ) : null}
+              </div>
+
+              <div className={styles.filterFooter}>
+                <button
+                  className={styles.resetFilterBtn}
+                  onClick={handleResetFilters}
+                >
+                  Reset All
+                </button>
+                <button
+                  className={styles.applyFilterBtn}
+                  onClick={handleApplyFilters}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

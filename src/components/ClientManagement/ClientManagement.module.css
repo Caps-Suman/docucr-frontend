@@ -665,3 +665,254 @@
     color: #7dd3fc;
     background: #0c4a6e;
 }
+
+/* Filter Styles */
+.filterBtn {
+    background: white;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    padding: 0 16px;
+    height: 36px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.filterBtn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+}
+
+.filterBtn.active {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #2563eb;
+}
+
+.filterBadge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #3b82f6;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+}
+
+.filterOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 2000;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.filterModal {
+    width: 380px;
+    max-width: 90vw;
+    background: white;
+    height: 100%;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.filterHeader {
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filterHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.closeFilterBtn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.closeFilterBtn:hover {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.filterBody {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.filterGroup {
+    margin-bottom: 24px;
+}
+
+.filterGroup label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+.dateRangeInputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.filterFooter {
+    padding: 20px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+}
+
+.footerActions {
+    display: flex;
+    gap: 12px;
+}
+
+.resetBtn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+.resetBtn:hover:not(:disabled) {
+    background: #fee2e2;
+}
+
+.resetBtn:disabled {
+    color: #cbd5e1;
+    cursor: not-allowed;
+}
+
+.applyBtn {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.applyBtn:hover {
+    background: #2563eb;
+}
+
+.cancelBtn {
+    background: white;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+:global(.dark) .filterBtn {
+    background: #1f2937;
+    border-color: #374151;
+    color: #9ca3af;
+}
+
+:global(.dark) .filterBtn:hover {
+    background: #374151;
+    color: #f9fafb;
+}
+
+:global(.dark) .filterModal {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .filterHeader {
+    border-color: #374151;
+}
+
+:global(.dark) .filterHeader h3 {
+    color: #f9fafb;
+}
+
+:global(.dark) .filterGroup label {
+    color: #9ca3af;
+}
+
+:global(.dark) .filterFooter {
+    background: #111827;
+    border-color: #374151;
+}
+
+:global(.dark) .cancelBtn {
+    background: #1f2937;
+    border-color: #374151;
+    color: #9ca3af;
+}
+
+:global(.dark) .cancelBtn:hover {
+    background: #374151;
+    color: #f9fafb;
+}
