@@ -1,5 +1,5 @@
 import apiClient from '../utils/apiClient';
-import { BillingGuideline, CodingRule, CodingRuleCPT, CodingRuleICD, SOP } from '../types/sop';
+import { BillingGuideline, CodingRule, CodingRuleCPT, CodingRuleICD, SOP, SOPFilters } from '../types/sop';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -45,7 +45,13 @@ const mapExampleToSOP = (data: any): SOP => ({
   statusId: data.status_id,
   status: data.status,
   createdAt: data.created_at,
-  updatedAt: data.updated_at
+  updatedAt: data.updated_at,
+  created_by: data.created_by,
+  created_by_name: data.created_by_name,
+  organisation_id: data.organisation_id,
+  organisation_name: data.organisation_name,
+  client_name: data.client_name,
+  client_npi: data.client_npi
 });
 type RawSOP = Omit<
   SOP,
@@ -138,10 +144,17 @@ const normalizeBillingGuidelines = (input: any[] = []): BillingGuideline[] => {
 };
 
 const sopService = {
-  getSOPs: async (skip: number = 0, limit: number = 100, search?: string, statusCode?: 'ACTIVE' | 'INACTIVE'): Promise<{ sops: SOP[]; total: number }> => {
+  getSOPs: async (filters: SOPFilters): Promise<{ sops: SOP[]; total: number }> => {
+    const { skip = 0, limit = 100, search, statusCode, fromDate, toDate, organisationId, createdBy, clientId } = filters;
     let url = `${API_URL}/api/sops?skip=${skip}&limit=${limit}`;
+    
     if (search) url += `&search=${encodeURIComponent(search)}`;
     if (statusCode) url += `&status_code=${statusCode}`;
+    if (fromDate) url += `&from_date=${fromDate}`;
+    if (toDate) url += `&to_date=${toDate}`;
+    if (organisationId) url += `&organisation_id=${organisationId}`;
+    if (createdBy) url += `&created_by=${createdBy}`;
+    if (clientId) url += `&client_id=${clientId}`;
 
     const response = await apiClient(url);
     if (!response.ok) throw new Error('Failed to fetch SOPs');
@@ -165,6 +178,11 @@ const sopService = {
       activeSOPs: data.active_sops,
       inactiveSOPs: data.inactive_sops
     };
+  },
+  checkSOPExistence: async (clientId: string): Promise<{ exists: boolean }> => {
+    const response = await apiClient(`${API_URL}/api/sops/check-client-sop/${clientId}`);
+    if (!response.ok) throw new Error('Failed to check SOP existence');
+    return response.json();
   },
   uploadAndExtractSOP: async (file: File, signal?: AbortSignal) => {
     const formData = new FormData();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Building2, Key } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Building2, Key, Search } from 'lucide-react';
 import Table from '../Table/Table';
 import CommonPagination from '../Common/CommonPagination';
 import Loading from '../Common/Loading';
@@ -8,6 +8,7 @@ import ChangePasswordModal from '../UserPermissionManagement/UserManagement/Chan
 import ConfirmModal from '../Common/ConfirmModal';
 import Toast, { ToastType } from '../Common/Toast';
 import organisationService, { Organisation, OrganisationStats } from '../../services/organisation.service';
+import './OrganisationManagement.css';
 import './OrganisationManagement.css';
 
 const OrganisationManagement: React.FC = () => {
@@ -22,20 +23,34 @@ const OrganisationManagement: React.FC = () => {
     const [changePasswordOrg, setChangePasswordOrg] = useState<Organisation | null>(null);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
+    // Search State
+    const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; org: Organisation | null; action: 'toggle' }>({ isOpen: false, org: null, action: 'toggle' });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+    // Debounce Search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setCurrentPage(0); // Reset to first page on search
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
     useEffect(() => {
         loadData();
-    }, [currentPage, itemsPerPage, statusFilter]);
+    }, [currentPage, itemsPerPage, statusFilter, debouncedSearch]);
 
     const loadData = async () => {
         try {
             setLoading(true);
             const [orgsData, statsData] = await Promise.all([
-                organisationService.getOrganisations(currentPage + 1, itemsPerPage, undefined, statusFilter || undefined),
+                organisationService.getOrganisations(currentPage + 1, itemsPerPage, debouncedSearch, statusFilter || undefined),
                 organisationService.getOrganisationStats()
             ]);
             setOrganisations(orgsData.organisations);
@@ -311,9 +326,30 @@ const OrganisationManagement: React.FC = () => {
                         <Building2 size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         Organisations
                     </h2>
-                    <button className="add-btn" onClick={handleAddNew}>
-                        Add Organisation
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ position: 'relative' }}>
+                            <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                            <input
+                                type="text"
+                                placeholder="Search organisations..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{
+                                    paddingLeft: '32px',
+                                    paddingRight: '12px',
+                                    height: '36px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e2e8f0',
+                                    fontSize: '14px',
+                                    width: '240px',
+                                    outline: 'none'
+                                }}
+                            />
+                        </div>
+                        <button className="add-btn" onClick={handleAddNew}>
+                            Add Organisation
+                        </button>
+                    </div>
                 </div>
                 <Table
                     columns={columns}

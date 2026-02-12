@@ -132,52 +132,116 @@ mapStatus(code: string): DocStatus {
         return response.json();
     }
 
-    async getDocuments(filterParams?: {
-        status?: string;
-        dateFrom?: string;
-        dateTo?: string;
-        search?: string;
-        formFilters?: Record<string, any>;
-        sharedOnly?: boolean;
-        document_type_id?: string; // ✅ ADD THIS
-        skip?: number;
-        limit?: number;
-    }): Promise<{ documents: Document[], total: number }> {
-        let url = `${API_BASE_URL}/api/documents/`;
-        const params = new URLSearchParams();
+async getDocuments(filterParams?: {
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  formFilters?: Record<string, any>;
+  sharedOnly?: boolean;
 
-        if (filterParams) {
-            if (filterParams.status) params.append('status_code', filterParams.status);
-            if (filterParams.dateFrom) params.append('date_from', filterParams.dateFrom);
-            if (filterParams.dateTo) params.append('date_to', filterParams.dateTo);
-            if (filterParams.search) params.append('search_query', filterParams.search);
-            if (filterParams.formFilters && Object.keys(filterParams.formFilters).length > 0) {
-                params.append('form_filters', JSON.stringify(filterParams.formFilters));
-            }
-            if (filterParams.sharedOnly) params.append('shared_only', 'true');
-            if (filterParams.document_type_id) {
-                params.append('document_type_id', filterParams.document_type_id);
-            }
+  document_type_id?: string;
+  client_id?: string;
+  organisation_filter?: string;
+  uploaded_by?: string;
 
-            if (filterParams.skip !== undefined) params.append('skip', String(filterParams.skip));
-            if (filterParams.limit !== undefined) params.append('limit', String(filterParams.limit));
-        }
+  skip?: number;
+  limit?: number;
+}): Promise<{ documents: Document[]; total: number }> {
 
-        const queryString = params.toString();
-        if (queryString) {
-            url += `?${queryString}`;
-        }
+  let url = `${API_BASE_URL}/api/documents`;
+  const params = new URLSearchParams();
 
-        const response = await apiClient(url);
-        if (!response.ok) {
-            throw new Error('Failed to fetch documents');
-        }
-        const data = await response.json();
-        return {
-            documents: data.documents,
-            total: data.total
-        };
+  if (filterParams) {
+
+    // STATUS
+    if (filterParams.status) {
+      params.append("status_code", filterParams.status);
     }
+
+    // DATE
+    if (filterParams.dateFrom) {
+      params.append("date_from", filterParams.dateFrom);
+    }
+
+    if (filterParams.dateTo) {
+      params.append("date_to", filterParams.dateTo);
+    }
+
+    // SEARCH
+    if (filterParams.search) {
+      params.append("search_query", filterParams.search);
+    }
+
+    // FORM FILTERS
+    if (filterParams.formFilters && Object.keys(filterParams.formFilters).length) {
+      params.append("form_filters", JSON.stringify(filterParams.formFilters));
+    }
+
+    // SHARED
+    if (filterParams.sharedOnly) {
+      params.append("shared_only", "true");
+    }
+
+    // DOCUMENT TYPE
+    if (filterParams.document_type_id) {
+      params.append("document_type_id", filterParams.document_type_id);
+    }
+
+    // CLIENT
+    if (filterParams.client_id) {
+      params.append("client_id", filterParams.client_id);
+    }
+
+    // ORG (superadmin only)
+    if (filterParams.organisation_filter) {
+      params.append("organisation_filter", filterParams.organisation_filter);
+    }
+
+    // UPLOADED BY
+    if (filterParams.uploaded_by) {
+      params.append("uploaded_by", filterParams.uploaded_by);
+    }
+
+    // PAGINATION
+    if (filterParams.skip !== undefined) {
+      params.append("skip", String(filterParams.skip));
+    }
+
+    if (filterParams.limit !== undefined) {
+      params.append("limit", String(filterParams.limit));
+    }
+  }
+
+  const query = params.toString();
+  if (query) url += `?${query}`;
+
+  const response = await apiClient(url);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch documents");
+  }
+
+  const data = await response.json();
+
+  return {
+    documents: data.documents,
+    total: data.total,
+  };
+}
+// users who uploaded docs
+async getUploadedByFilter() {
+  const res = await apiClient(`${API_BASE_URL}/api/documents/filter/uploaded-by`);
+  if (!res.ok) throw new Error("uploaded_by filter failed");
+  return res.json();
+}
+
+// organisations for superadmin
+async getOrganisationFilter() {
+  const res = await apiClient(`${API_BASE_URL}/api/documents/filter/organisations`);
+  if (!res.ok) throw new Error("org filter failed");
+  return res.json();
+}
 
     async getStats(): Promise<{
         total: number;

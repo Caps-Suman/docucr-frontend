@@ -99,10 +99,13 @@ export interface ClientCreateData {
 export interface ClientUpdateData extends ClientCreateData { }
 
 const clientService = {
-    getClients: async (page: number = 1, pageSize: number = 25, search?: string, statusId?: string): Promise<ClientListResponse> => {
+    getClients: async (page: number = 1, pageSize: number = 25, search?: string, statusId?: string, organisationIds?: string, fromDate?: Date | null, toDate?: Date | null): Promise<ClientListResponse> => {
         const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
         if (search) params.append('search', search);
         if (statusId) params.append('status_id', statusId);
+        if (organisationIds) params.append('organisation_ids', organisationIds);
+        if (fromDate) params.append('from_date', fromDate.toISOString());
+        if (toDate) params.append('to_date', toDate.toISOString());
         const response = await apiClient(`${API_URL}/api/clients?${params}`);
         if (!response.ok) throw new Error('Failed to fetch clients');
         return response.json();

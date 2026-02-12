@@ -32,9 +32,9 @@ const DocumentUpload: React.FC = () => {
     type: ToastType;
   } | null>(null);
   const currentUser = authService.getUser();
-const isClientUser =
-  currentUser?.role?.name === "CLIENT" &&
-  currentUser?.is_client === true;
+const isClientUser = currentUser?.is_client === true;
+
+
   // const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const isClientSystemField = (field: FormField) =>
   field.is_system && field.label.toLowerCase() === 'client';
@@ -85,6 +85,17 @@ useEffect(() => {
 ]);
 
 
+
+const visibleFields = selectedForm?.fields?.filter(field => {
+  if (!isClientUser) return true;
+
+  const label = field.label.toLowerCase();
+
+  // hide provider fields
+  if (label.includes("Provider Document")) return false;
+
+  return true;
+});
 
 
   const fetchActiveForm = async () => {
@@ -316,10 +327,10 @@ else {
       setToast({ message: "Please select at least one file", type: "warning" });
       return;
     }
+if (!isClientUser && selectedForm && !validateForm()) {
+  return;
+}
 
-    if (selectedForm && !validateForm()) {
-      return;
-    }
 
     const activeForm = selectedForm; // Alias for closure clarity if needed
     const clientField = selectedForm?.fields?.find(
@@ -361,6 +372,8 @@ else {
         }
       }
       const payloadFormData = { ...formData };
+console.log("isClientUser", isClientUser);
+console.log("fields", selectedForm?.fields);
 
 if (isClientUser && clientField?.id) {
   payloadFormData[clientField.id] = currentUser.client_id;
@@ -652,55 +665,46 @@ if (isDocumentTypeSystemField(field)) {
         </div>
 
         {/* Right Section (40%) - Dynamic Form */}
-        <div className={styles.rightSection}>
-          {formLoading ? (
-            <div className={styles.section}>
-              <div className={styles.loadingState}>
-                <p>Loading form...</p>
-              </div>
-            </div>
-          ) : selectedForm ? (
-            <div className={styles.formContainer}>
-              <div className={styles.formHeader}>
-                <h3 className={styles.formTitle}>{selectedForm.name}</h3>
-                {selectedForm.description && (
-                  <p className={styles.formDescription}>
-                    {selectedForm.description}
-                  </p>
-                )}
-              </div>
-
-              <div className={styles.formFields}>
-                {selectedForm.fields?.map((field) => (
-                  <div key={field.id} className={styles.formGroup}>
-                    <label className={styles.label}>
-                      {field.label}
-                      {field.required && (
-                        <span className={styles.required}>*</span>
-                      )}
-                    </label>
-                    {renderFormField(field)}
-                    {formErrors[field.id || ""] && (
-                      <span className={styles.errorMessage}>
-                        {formErrors[field.id || ""]}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>Document Information</h3>
-              <p className={styles.noFormMessage}>
-                No active form template found
-              </p>
-            </div>
+{!isClientUser && (
+  <div className={styles.rightSection}>
+    {formLoading ? (
+      <div className={styles.section}>
+        <div className={styles.loadingState}>
+          <p>Loading form...</p>
+        </div>
+      </div>
+    ) : selectedForm ? (
+      <div className={styles.formContainer}>
+        <div className={styles.formHeader}>
+          <h3 className={styles.formTitle}>{selectedForm.name}</h3>
+          {selectedForm.description && (
+            <p className={styles.formDescription}>
+              {selectedForm.description}
+            </p>
           )}
+        </div>
+
+        <div className={styles.formFields}>
+          {selectedForm.fields?.map((field) => (
+            <div key={field.id} className={styles.formGroup}>
+              <label className={styles.label}>
+                {field.label}
+                {field.required && (
+                  <span className={styles.required}>*</span>
+                )}
+              </label>
+              {renderFormField(field)}
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : null}
+  </div>
+)}
+
 
           {/* AI Processing Options */}
         </div>
-      </div>
 
       {toast && (
         <Toast

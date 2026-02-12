@@ -27,9 +27,9 @@
 }
 
 .disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  pointer-events: none;
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .statCard:hover {
@@ -402,15 +402,14 @@
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    backdrop-filter: blur(4px);
 }
 
 .modalContent {
     background: white;
     border-radius: 16px;
-    width: 90%;
-    max-width: 900px;
-    max-height: 85vh;
+    width: 95%;
+    max-width: 1200px;
+    max-height: 95vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -633,4 +632,268 @@
 :global(.dark) .accordionContent p {
     background: #1f2937;
     border-left-color: #83cee4;
+}
+
+.detailsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+.detailsTh {
+    background: #e2f3f9;
+    color: #0c4a6e;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #aad4e0;
+}
+
+.detailsTd {
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.detailsTable tr:last-child .detailsTd {
+    border-bottom: none;
+}
+
+:global(.dark) .detailsTable {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .detailsTh {
+    background: #011926;
+    color: #83cee4;
+    border-bottom-color: #0c4a6e;
+}
+
+:global(.dark) .detailsTd {
+    color: #d1d5db;
+    border-bottom-color: #374151;
+}
+
+/* Filter Button Styles */
+.filterButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    color: #475569;
+    border: 1px solid #e5e7eb;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filterButton:hover {
+    background: #f8fafc;
+    border-color: #d1d5db;
+}
+
+.filterBadge {
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    border-radius: 12px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* Filter Modal Styles (Offcanvas-like) */
+.filterOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 2000;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.filterModal {
+    width: 380px;
+    height: 100%;
+    background: white;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.filterHeader {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+}
+
+.filterHeader h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.closeFilterBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    padding: 5px;
+    border-radius: 6px;
+    display: flex;
+    transition: all 0.2s;
+}
+
+.closeFilterBtn:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.filterContent {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filterGroup label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.dateRangeInputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filterFooter {
+    padding: 20px 24px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 12px;
+}
+
+.resetFilterBtn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.resetFilterBtn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.applyFilterBtn {
+    flex: 2;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: #011926;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.applyFilterBtn:hover {
+    background: #022c42;
+    box-shadow: 0 4px 12px rgba(1, 25, 38, 0.2);
+}
+
+/* Dark Mode Overrides */
+:global(.dark) .filterButton {
+    background: #1f2937;
+    border-color: #374151;
+    color: #d1d5db;
+}
+
+:global(.dark) .filterModal {
+    background: #111827;
+    border-left: 1px solid #374151;
+}
+
+:global(.dark) .filterHeader {
+    background: #1f2937;
+    border-bottom-color: #374151;
+}
+
+:global(.dark) .filterHeader h2 {
+    color: #f9fafb;
+}
+
+:global(.dark) .filterGroup label {
+    color: #9ca3af;
+}
+
+:global(.dark) .filterFooter {
+    border-top-color: #374151;
+}
+
+:global(.dark) .resetFilterBtn {
+    background: #1f2937;
+    border-color: #374151;
+    color: #9ca3af;
+}
+
+:global(.dark) .applyFilterBtn {
+    background: #83cee4;
+    color: #011926;
 }

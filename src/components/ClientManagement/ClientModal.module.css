@@ -123,6 +123,7 @@
 }
 
 .npiInputWrapper {
+  position: relative;
   display: flex;
   gap: 8px;
 }
@@ -169,6 +170,59 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.input.fetching {
+  border-color: #83cee4;
+  animation: borderPulse 1.5s infinite ease-in-out;
+  box-shadow: 0 0 0 3px rgba(131, 206, 228, 0.2);
+}
+
+:global(.dark) .input.fetching {
+  border-color: #83cee4;
+  animation: borderPulseBorder 1.5s infinite ease-in-out;
+}
+
+@keyframes borderPulse {
+  0% {
+    border-color: #83cee4;
+    box-shadow: 0 0 0 3px rgba(131, 206, 228, 0.1);
+  }
+
+  50% {
+    border-color: #0c4a6e;
+    box-shadow: 0 0 0 4px rgba(131, 206, 228, 0.3);
+  }
+
+  100% {
+    border-color: #83cee4;
+    box-shadow: 0 0 0 3px rgba(131, 206, 228, 0.1);
+  }
+}
+
+@keyframes borderPulseBorder {
+  0% {
+    border-color: #4b5563;
+  }
+
+  50% {
+    border-color: #83cee4;
+  }
+
+  100% {
+    border-color: #4b5563;
+  }
+}
+
+.inputSpinnerWrapper {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
 .addressLoader {
