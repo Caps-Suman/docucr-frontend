@@ -159,11 +159,16 @@ const UserManagement: React.FC = () => {
             setSelectedOrg([orgId]);
             setTempSelectedOrg([orgId]);
         } else if (currentUser.role?.name === 'CLIENT_ADMIN') {
-            // Client Admin: specific org (client is implied by token)
+            // Client Admin: specific org and client
             if (currentUser.organisation_id) {
                 const orgId = currentUser.organisation_id;
                 setSelectedOrg([orgId]);
                 setTempSelectedOrg([orgId]);
+            }
+            if (currentUser.client_id) {
+                const clientId = currentUser.client_id;
+                setSelectedClientFilter([clientId]);
+                setTempSelectedClientFilter([clientId]);
             }
         }
     }, []);
@@ -463,7 +468,7 @@ const UserManagement: React.FC = () => {
 
         if (!roles.length) {
             // setToast({ message: "Roles still loading. Try again.", type: "warning" });
-            setToast({ message: "No roles found. Please create a role before proceeding.", type: "warning" });
+            setToast({ message: "No roles found. Please create a role before proceeding.g", type: "warning" });
             return;
         }
         setEditingUser(null);
