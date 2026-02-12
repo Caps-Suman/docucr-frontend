@@ -53,15 +53,30 @@ export interface FormStats {
 }
 
 class FormService {
-  async getForms(page: number = 1, pageSize: number = 10,  status?: string): Promise<FormListResponse> {
-    const response = await apiClient(`${API_BASE_URL}/api/forms?page=${page}&page_size=${pageSize}`);
+  // async getForms(page: number = 1, pageSize: number = 10,  status?: string): Promise<FormListResponse> {
+  //   const response = await apiClient(`${API_BASE_URL}/api/forms?page=${page}&page_size=${pageSize}&status=${status}`);
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch forms');
-    }
+  //   if (!response.ok) {
+  //     throw new Error('Failed to fetch forms');
+  //   }
 
-    return response.json();
+  //   return response.json();
+  // }
+async getForms(page: number = 1, pageSize: number = 10, status?: string): Promise<FormListResponse> {
+  let url = `${API_BASE_URL}/api/forms?page=${page}&page_size=${pageSize}`;
+
+  if (status) {
+    url += `&status=${status}`;
   }
+
+  const response = await apiClient(url);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch forms');
+  }
+
+  return response.json();
+}
 
   async getFormStats(): Promise<FormStats> {
     const response = await apiClient(`${API_BASE_URL}/api/forms/stats`);

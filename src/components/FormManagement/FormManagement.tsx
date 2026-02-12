@@ -8,6 +8,7 @@ import CommonPagination from '../Common/CommonPagination';
 import ConfirmModal from '../Common/ConfirmModal';
 import Toast from '../Common/Toast';
 import styles from './FormManagement.module.css';
+import authService from '../../services/auth.service';
 
 const FormManagement: React.FC = () => {
     const navigate = useNavigate();
@@ -22,17 +23,21 @@ const FormManagement: React.FC = () => {
     const [activateModalOpen, setActivateModalOpen] = useState(false);
     const [formToActivate, setFormToActivate] = useState<Form | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [statusFilter, setStatusFilter] = useState<string | null>(null);
+    const user = authService.getUser();
+    const isSuperAdmin = user?.role?.name === "SUPER_ADMIN";
 
 
-    useEffect(() => {
-        fetchForms(currentPage);
-        fetchStats();
-    }, [currentPage]);
+useEffect(() => {
+    fetchForms(currentPage, statusFilter);
+    fetchStats();
+}, [currentPage, statusFilter]);
 
-    const fetchForms = async (page: number) => {
+
+    const fetchForms = async (page: number, status?: string | null) => {
         try {
             setLoading(true);
-            const response = await formService.getForms(page, 10);
+                const response = await formService.getForms(page, 10, status || undefined);
             setForms(response.forms);
             setTotalPages(Math.ceil(response.total / response.page_size));
         } catch (error) {
@@ -64,7 +69,7 @@ const FormManagement: React.FC = () => {
         try {
             await formService.deleteForm(formToDelete);
             setToast({ message: 'Form deleted successfully', type: 'success' });
-            fetchForms(currentPage);
+            fetchForms(currentPage, statusFilter);
             fetchStats();
         } catch (error) {
             setToast({ message: 'Failed to delete form', type: 'error' });
@@ -84,7 +89,7 @@ const FormManagement: React.FC = () => {
             try {
                 await formService.updateForm(form.id, { status_id: 'INACTIVE' });
                 setToast({ message: 'Form deactivated successfully', type: 'success' });
-                fetchForms(currentPage);
+                fetchForms(currentPage, statusFilter);
                 fetchStats();
             } catch (error) {
                 setToast({ message: 'Failed to deactivate form', type: 'error' });
@@ -106,7 +111,7 @@ const FormManagement: React.FC = () => {
         try {
             await formService.updateForm(formToActivate.id, { status_id: 'ACTIVE' });
             setToast({ message: 'Form activated successfully. All other forms have been deactivated.', type: 'success' });
-            fetchForms(currentPage);
+            fetchForms(currentPage, statusFilter);
             fetchStats();
         } catch (error) {
             setToast({ message: 'Failed to activate form', type: 'error' });
@@ -132,6 +137,18 @@ const FormManagement: React.FC = () => {
             key: 'created_at',
             header: 'Created At',
             render: (value: string) => new Date(value).toLocaleDateString()
+        },
+        ...(isSuperAdmin
+  ? [{
+      key: 'organisation_name',
+      header: 'Organisation',
+      render: (v: string) => <span>{v || '-'}</span>
+    }]
+  : []),
+        {
+        key: 'created_by_name',
+        header: 'Created By',
+        render: (v: string) => <span>{v || '-'}</span>
         },
         {
             key: 'statusCode',
@@ -188,7 +205,14 @@ const FormManagement: React.FC = () => {
         return (
             <div className={styles.container}>
                 <div className={styles.statsGrid}>
-                    <div className={styles.statCard}>
+                    <div
+  className={styles.statCard}
+  onClick={() => {
+    setStatusFilter(null);
+    setCurrentPage(1);
+  }}
+>
+
                         <div className={`${styles.statIcon} ${styles.iconTotal}`}>
                             <FileText size={16} />
                         </div>
@@ -197,7 +221,13 @@ const FormManagement: React.FC = () => {
                             <span className={styles.statLabel}>Total Forms</span>
                         </div>
                     </div>
-                    <div className={styles.statCard}>
+<div
+  className={styles.statCard}
+  onClick={() => {
+    setStatusFilter('ACTIVE');
+    setCurrentPage(1);
+  }}
+>
                         <div className={`${styles.statIcon} ${styles.iconActive}`}>
                             <CheckCircle size={16} />
                         </div>
@@ -206,7 +236,13 @@ const FormManagement: React.FC = () => {
                             <span className={styles.statLabel}>Active Forms</span>
                         </div>
                     </div>
-                    <div className={styles.statCard}>
+<div
+  className={styles.statCard}
+  onClick={() => {
+    setStatusFilter('INACTIVE');
+    setCurrentPage(1);
+  }}
+>
                         <div className={`${styles.statIcon} ${styles.iconInactive}`}>
                             <XCircle size={16} />
                         </div>
@@ -239,7 +275,13 @@ const FormManagement: React.FC = () => {
     return (
         <div className={styles.container}>
             <div className={styles.statsGrid}>
-                <div className={styles.statCard}>
+<div
+  className={styles.statCard}
+  onClick={() => {
+    setStatusFilter(null);
+    setCurrentPage(1);
+  }}
+>
                     <div className={`${styles.statIcon} ${styles.iconTotal}`}>
                         <FileText size={16} />
                     </div>
@@ -248,7 +290,13 @@ const FormManagement: React.FC = () => {
                         <span className={styles.statLabel}>Total Forms</span>
                     </div>
                 </div>
-                <div className={styles.statCard}>
+<div
+  className={styles.statCard}
+  onClick={() => {
+    setStatusFilter('ACTIVE');
+    setCurrentPage(1);
+  }}
+>
                     <div className={`${styles.statIcon} ${styles.iconActive}`}>
                         <CheckCircle size={16} />
                     </div>
@@ -257,7 +305,13 @@ const FormManagement: React.FC = () => {
                         <span className={styles.statLabel}>Active Forms</span>
                     </div>
                 </div>
-                <div className={styles.statCard}>
+<div
+  className={styles.statCard}
+  onClick={() => {
+    setStatusFilter('INACTIVE');
+    setCurrentPage(1);
+  }}
+>
                     <div className={`${styles.statIcon} ${styles.iconInactive}`}>
                         <XCircle size={16} />
                     </div>

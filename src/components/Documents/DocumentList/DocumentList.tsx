@@ -242,7 +242,7 @@ const [organisationOptions, setOrganisationOptions] = useState<any[]>([]);
   useEffect(() => {
     const initializeData = async () => {
       await loadMetadata();
-      loadDocuments();
+      // loadDocuments();
     };
     initializeData();
   }, []);
