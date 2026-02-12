@@ -263,6 +263,9 @@ const UserManagement: React.FC = () => {
         if (!showFilters) return;
         // avoid duplicate call if only creatorSearch changed (handled by other effect)
         // But here we rely on deps.
+        // For Org Admins, we might want to ensure we don't clear the org filter if it's implicit?
+        // But fetchCreators arguments are 'selectedOrg'.
+        // If I am Org Admin, selectedOrg is pre-filled. So it should work.
         fetchCreators(creatorSearch, tempSelectedOrg, tempSelectedClientFilter);
     }, [showFilters, tempSelectedOrg, tempSelectedClientFilter]);
 
@@ -272,6 +275,10 @@ const UserManagement: React.FC = () => {
             if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN') {
                 const orgs = await organisationService.getOrganisations(1, 100);
                 setOrganisations(orgs.organisations.map(o => ({ label: o.name || o.username, value: o.id })));
+            } else {
+                // Optimization: Don't fetch organisations if not superadmin.
+                // We might set 'organisations' to just the current user's org if needed for display?
+                // But the filter is hidden anyway.
             }
 
             // Load Clients
