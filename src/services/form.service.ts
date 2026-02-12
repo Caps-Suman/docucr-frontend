@@ -52,6 +52,8 @@ export interface FormStats {
   inactive_forms: number;
 }
 
+
+
 class FormService {
   // async getForms(page: number = 1, pageSize: number = 10,  status?: string): Promise<FormListResponse> {
   //   const response = await apiClient(`${API_BASE_URL}/api/forms?page=${page}&page_size=${pageSize}&status=${status}`);
@@ -97,16 +99,18 @@ async getForms(page: number = 1, pageSize: number = 10, status?: string): Promis
 
     return response.json();
   }
+async getActiveForm(): Promise<{
+  form: Form | null
+  has_active_form: boolean
+}> {
+  const res = await apiClient(`${API_BASE_URL}/api/forms/active`);
 
-  async getActiveForm(): Promise<Form> {
-    const response = await apiClient(`${API_BASE_URL}/api/forms/active`);
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch active form');
-    }
-
-    return response.json();
+  if (!res.ok) {
+    throw new Error("Failed to fetch active form");
   }
+
+  return res.json();
+}
 
   async createForm(data: FormCreate): Promise<Form> {
     const response = await apiClient(`${API_BASE_URL}/api/forms`, {

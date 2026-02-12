@@ -78,24 +78,33 @@ const DocumentListingView: React.FC = () => {
 
       // Try to load form fields to add as additional columns
       try {
-        const activeForm = await formService.getActiveForm();
-        activeFormName = activeForm.name;
-        if (activeForm.fields) {
-          const formColumns: ColumnConfig[] = activeForm.fields.map((field, index) => ({
-            id: `form_${field.id}`,
-            label: field.label,
-            visible: false, // Default to hidden for form fields
-            order: defaultSystemColumns.length + index + 1,
-            width: 150,
-            type: field.field_type || 'text',
-            required: false,
-            isSystem: false,
-            fieldType: field.field_type,
-            formName: activeForm.name
-          }));
-          allColumns = [...allColumns, ...formColumns];
-        }
-      } catch (error) {
+       const res = await formService.getActiveForm();
+
+if (res?.has_active_form && res.form) {
+  const form = res.form;
+
+  activeFormName = form.name;
+
+  if (form.fields?.length) {
+    const formColumns: ColumnConfig[] = form.fields.map(
+      (field: FormField, index: number) => ({
+        id: `form_${field.id}`,
+        label: field.label,
+        visible: false,
+        order: defaultSystemColumns.length + index + 1,
+        width: 150,
+        type: field.field_type || 'text',
+        required: false,
+        isSystem: false,
+        fieldType: field.field_type,
+        formName: form.name
+      })
+    );
+
+    allColumns = [...allColumns, ...formColumns];
+  }
+}
+}catch (error) {
         // No active form or error loading form fields
         console.log('No active form found or error loading form fields');
       }
