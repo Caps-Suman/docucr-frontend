@@ -428,25 +428,6 @@ const DocumentDetail: React.FC = () => {
               <h3 className={styles.cardTitle}>Derived Documents</h3>
             </div>
             <div className={styles.badgeList}>
-              {/* {document.extracted_documents.map((ed, index) => (
-                <span key={ed.id} className={getBadgeClass(index)}>
-                  {ed.document_type || "Unknown"} |{" "}
-                  {calculatePageCount(ed.page_range)}{" "}
-                  {calculatePageCount(ed.page_range) === 1 ? "Page" : "Pages"}
-                </span>
-              ))}
-              {document.unverified_documents.map((ud, index) => (
-                <span
-                  key={ud.id}
-                  className={getBadgeClass(
-                    document.extracted_documents.length + index
-                  )}
-                >
-                  {ud.suspected_type || "Unverified"} |{" "}
-                  {calculatePageCount(ud.page_range)}{" "}
-                  {calculatePageCount(ud.page_range) === 1 ? "Page" : "Pages"}
-                </span>
-              ))} */}
               {Object.entries(getDerivedDocumentCounts()).map(
   ([type, count], index) => (
     <span key={type} className={getBadgeClass(index)}>
@@ -460,13 +441,6 @@ const DocumentDetail: React.FC = () => {
     No derived documents found.
   </p>
 )}
-
-              {/* {document.extracted_documents.length === 0 &&
-                document.unverified_documents.length === 0 && (
-                  <p className={styles.emptyMessage}>
-                    No derived documents found.
-                  </p>
-                )} */}
             </div>
           </div>
           {id && <MetadataCard documentId={id} />}

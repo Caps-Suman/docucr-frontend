@@ -53,7 +53,7 @@ export interface FormStats {
 }
 
 class FormService {
-  async getForms(page: number = 1, pageSize: number = 10): Promise<FormListResponse> {
+  async getForms(page: number = 1, pageSize: number = 10,  status?: string): Promise<FormListResponse> {
     const response = await apiClient(`${API_BASE_URL}/api/forms?page=${page}&page_size=${pageSize}`);
 
     if (!response.ok) {
