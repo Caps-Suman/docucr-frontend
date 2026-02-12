@@ -44,15 +44,14 @@ export interface Client {
     state_code?: string;
     state_name?: string;
     zip_code?: string;
-    country?:string;
-    city?:string;
+    country?: string;
+    city?: string;
     user_count?: number;
     provider_count?: number;
 
     // Detailed Edit Fields
     locations?: ClientLocation[];
     providers?: Provider[];
-
     organisation_name?: string;
 }
 
@@ -140,34 +139,34 @@ const clientService = {
         }
         return response.json();
     },
-   addProviders: async (
-    clientId: string,
-    providers: {
-        first_name: string;
-        middle_name?: string;
-        last_name: string;
-        npi: string;
-        address_line_1: string;
-        address_line_2?: string;
-        city: string;
-        state_code: string;
-        zip_code: string;
-        country?: string;
-    }[]
-): Promise<void> => {
-    const response = await apiClient(
-        `${API_URL}/api/clients/${clientId}/providers`,
-        {
-            method: "POST",
-            body: JSON.stringify(providers),
-        }
-    );
+    addProviders: async (
+        clientId: string,
+        providers: {
+            first_name: string;
+            middle_name?: string;
+            last_name: string;
+            npi: string;
+            address_line_1: string;
+            address_line_2?: string;
+            city: string;
+            state_code: string;
+            zip_code: string;
+            country?: string;
+        }[]
+    ): Promise<void> => {
+        const response = await apiClient(
+            `${API_URL}/api/clients/${clientId}/providers`,
+            {
+                method: "POST",
+                body: JSON.stringify(providers),
+            }
+        );
 
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Failed to add providers");
-    }
-},
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || "Failed to add providers");
+        }
+    },
 
     updateClient: async (id: string, data: ClientUpdateData): Promise<Client> => {
         const response = await apiClient(`${API_URL}/api/clients/${id}`, {

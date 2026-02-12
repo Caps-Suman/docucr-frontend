@@ -32,15 +32,15 @@ const DocumentUpload: React.FC = () => {
     type: ToastType;
   } | null>(null);
   const currentUser = authService.getUser();
-const isClientUser = currentUser?.is_client === true;
+  const isClientUser = currentUser?.is_client === true;
 
 
   // const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const isClientSystemField = (field: FormField) =>
-  field.is_system && field.label.toLowerCase() === 'client';
+    field.is_system && field.label.toLowerCase() === 'client';
 
-const isDocumentTypeSystemField = (field: FormField) =>
-  field.is_system && field.label.toLowerCase() === 'document type';
+  const isDocumentTypeSystemField = (field: FormField) =>
+    field.is_system && field.label.toLowerCase() === 'document type';
 
 
   useEffect(() => {
@@ -53,49 +53,49 @@ const isDocumentTypeSystemField = (field: FormField) =>
     }
   }, [selectedForm]);
 
-useEffect(() => {
-  if (!isClientUser) return;
-  if (!currentUser?.client_id) return;
-  if (!selectedForm?.fields?.length) return;
-  if (!clients.length) return;
+  useEffect(() => {
+    if (!isClientUser) return;
+    if (!currentUser?.client_id) return;
+    if (!selectedForm?.fields?.length) return;
+    if (!clients.length) return;
 
-  const clientField = selectedForm.fields.find(
-    f => f.is_system && f.label.toLowerCase() === "client"
-  );
-  if (!clientField?.id) return;
+    const clientField = selectedForm.fields.find(
+      f => f.is_system && f.label.toLowerCase() === "client"
+    );
+    if (!clientField?.id) return;
 
-  const clientFieldId = clientField.id;
+    const clientFieldId = clientField.id;
 
-  setFormData(prev => {
-    // ✅ only block if value is a REAL id
-    if (prev[clientFieldId] && prev[clientFieldId] !== "") {
-      return prev;
-    }
+    setFormData(prev => {
+      // ✅ only block if value is a REAL id
+      if (prev[clientFieldId] && prev[clientFieldId] !== "") {
+        return prev;
+      }
 
-    return {
-      ...prev,
-      [clientFieldId]: currentUser.client_id
-    };
+      return {
+        ...prev,
+        [clientFieldId]: currentUser.client_id
+      };
+    });
+  }, [
+    isClientUser,
+    currentUser?.client_id,
+    selectedForm,
+    clients
+  ]);
+
+
+
+  const visibleFields = selectedForm?.fields?.filter(field => {
+    if (!isClientUser) return true;
+
+    const label = field.label.toLowerCase();
+
+    // hide provider fields
+    if (label.includes("Provider Document")) return false;
+
+    return true;
   });
-}, [
-  isClientUser,
-  currentUser?.client_id,
-  selectedForm,
-  clients
-]);
-
-
-
-const visibleFields = selectedForm?.fields?.filter(field => {
-  if (!isClientUser) return true;
-
-  const label = field.label.toLowerCase();
-
-  // hide provider fields
-  if (label.includes("Provider Document")) return false;
-
-  return true;
-});
 
 
   const fetchActiveForm = async () => {
@@ -105,12 +105,12 @@ const visibleFields = selectedForm?.fields?.filter(field => {
       setSelectedForm(activeForm);
       initializeFormData(activeForm);
       console.log(
-  selectedForm?.fields?.map(f => ({
-    label: f.label,
-    field_type: f.field_type,
-    is_system: f.is_system
-  }))
-);
+        selectedForm?.fields?.map(f => ({
+          label: f.label,
+          field_type: f.field_type,
+          is_system: f.is_system
+        }))
+      );
 
     } catch (error) {
       console.error("Failed to fetch active form:", error);
@@ -119,9 +119,9 @@ const visibleFields = selectedForm?.fields?.filter(field => {
     }
   };
 
-const fetchSystemFieldData = async (fields: FormField[]) => {
-  const hasClientField = fields.some(isClientSystemField);
-  const hasDocTypeField = fields.some(isDocumentTypeSystemField);
+  const fetchSystemFieldData = async (fields: FormField[]) => {
+    const hasClientField = fields.some(isClientSystemField);
+    const hasDocTypeField = fields.some(isDocumentTypeSystemField);
 
   try {
 
@@ -140,71 +140,80 @@ const fetchSystemFieldData = async (fields: FormField[]) => {
       } else {
         const res = await clientService.getAllClients();
 
-         setClients(
-          res.map(c => ({
-            id: c.id,
-            name: c.name.trim()
+          setClients(
+            res.map(c => ({
+              id: c.id,
+              name: c.name.trim()
+            }))
+          );
+
+          // setClients(
+          //   res.map(c => ({
+          //     id: c.id,
+          //     name:
+          //       c.business_name ||
+          //       `${c.first_name} ${c.last_name}`.trim()
+          //   }))
+          // );
+        }
+      }
+
+      /* =========================
+         DOCUMENT TYPE DROPDOWN
+         ========================= */
+      if (hasDocTypeField) {
+        const types = await documentTypeService.getActiveDocumentTypes();
+        setDocumentTypes(
+          types.map(t => ({
+            id: t.id,
+            name: t.name
           }))
         );
       }
+    } catch (err) {
+      console.error("Failed to fetch system field data", err);
     }
-    
-    /* =========================
-       DOCUMENT TYPE DROPDOWN
-       ========================= */
-    if (hasDocTypeField) {
-      const types = await documentTypeService.getActiveDocumentTypes();
-      setDocumentTypes(
-        types.map(t => ({
-          id: t.id,
-          name: t.name
-        }))
-      );
-    }
-  } catch (err) {
-    console.error("Failed to fetch system field data", err);
-  }
-};
+  };
 
-const initializeFormData = (form: Form) => {
-  setFormData(prev => {
-    const next = { ...prev };
+  const initializeFormData = (form: Form) => {
+    setFormData(prev => {
+      const next = { ...prev };
 
-    form.fields?.forEach(field => {
-      if (
-        isClientUser &&
-        field.is_system &&
-        field.label.toLowerCase() === "client"
-      ) {
-        return; // keep auto-filled client
-      }
+      form.fields?.forEach(field => {
+        if (
+          isClientUser &&
+          field.is_system &&
+          field.label.toLowerCase() === "client"
+        ) {
+          return; // keep auto-filled client
+        }
 
- if (field.field_type === "checkbox") {
-  next[field.id!] = field.default_value ?? [];
-}
+        if (field.field_type === "checkbox") {
+          next[field.id!] = field.default_value ?? [];
+        }
 
-else if (field.field_type === "date") {
-  const today = new Date();
+        else if (field.field_type === "date") {
+          const today = new Date();
 
-  const formatted =
-    today.getFullYear() +
-    "-" +
-    String(today.getMonth() + 1).padStart(2, "0") +
-    "-" +
-    String(today.getDate()).padStart(2, "0");
+          const formatted =
+            today.getFullYear() +
+            "-" +
+            String(today.getMonth() + 1).padStart(2, "0") +
+            "-" +
+            String(today.getDate()).padStart(2, "0");
 
-  next[field.id!] = field.default_value ?? formatted;
-}
+          next[field.id!] = field.default_value ?? formatted;
+        }
 
-else {
-  next[field.id!] = field.default_value ?? "";
-}
+        else {
+          next[field.id!] = field.default_value ?? "";
+        }
 
+      });
+
+      return next;
     });
-
-    return next;
-  });
-};
+  };
 
 
 
@@ -290,14 +299,14 @@ else {
       setToast({ message: "Please select at least one file", type: "warning" });
       return;
     }
-if (!isClientUser && selectedForm && !validateForm()) {
-  return;
-}
+    if (!isClientUser && selectedForm && !validateForm()) {
+      return;
+    }
 
 
     const activeForm = selectedForm; // Alias for closure clarity if needed
     const clientField = selectedForm?.fields?.find(
-    f => f.is_system && f.label.toLowerCase() === "client"
+      f => f.is_system && f.label.toLowerCase() === "client"
     );
 
     setUploading(true);
@@ -335,12 +344,12 @@ if (!isClientUser && selectedForm && !validateForm()) {
         }
       }
       const payloadFormData = { ...formData };
-console.log("isClientUser", isClientUser);
-console.log("fields", selectedForm?.fields);
+      console.log("isClientUser", isClientUser);
+      console.log("fields", selectedForm?.fields);
 
-if (isClientUser && clientField?.id) {
-  payloadFormData[clientField.id] = currentUser.client_id;
-}
+      if (isClientUser && clientField?.id) {
+        payloadFormData[clientField.id] = currentUser.client_id;
+      }
 
 
       // Start upload process (returns immediately with queued documents)
@@ -383,47 +392,47 @@ if (isClientUser && clientField?.id) {
     const hasError = !!formErrors[fieldId];
 
     // 🔒 CLIENT USERS: HIDE CLIENT FIELD COMPLETELY
-let value = formData[fieldId] || "";
+    let value = formData[fieldId] || "";
 
-if (isClientSystemField(field)) {
-    
-  const value = isClientUser
-    ? currentUser?.client_id ?? ""
-    : formData[field.id!] ?? "";
+    if (isClientSystemField(field)) {
+
+      const value = isClientUser
+        ? currentUser?.client_id ?? ""
+        : formData[field.id!] ?? "";
       console.log("CLIENT DROPDOWN DEBUG", {
-    value,
-    options: clients,
-    userClientId: currentUser?.client_id
-  });
+        value,
+        options: clients,
+        userClientId: currentUser?.client_id
+      });
 
-  return (
-   <CommonDropdown
-  key={`${field.id}-${clients.length}`}   // 🔥 FORCE REMOUNT
-  value={value}
-  options={clients.map(c => ({
-    value: c.id,
-    label: c.name
-  }))}
-  onChange={val => handleFormFieldChange(field.id!, val)}
-  disabled={isClientUser}
-/>
-  );
-}
+      return (
+        <CommonDropdown
+          key={`${field.id}-${clients.length}`}   // 🔥 FORCE REMOUNT
+          value={value}
+          options={clients.map(c => ({
+            value: c.id,
+            label: c.name
+          }))}
+          onChange={val => handleFormFieldChange(field.id!, val)}
+          disabled={isClientUser}
+        />
+      );
+    }
 
 
 
-if (isDocumentTypeSystemField(field)) {
-  return (
-    <CommonDropdown
-      value={value}
-      onChange={val => handleFormFieldChange(fieldId, val)}
-      options={[
-        { value: '', label: 'Select document type' },
-        ...documentTypes.map(t => ({ value: t.id, label: t.name }))
-      ]}
-    />
-  );
-}
+    if (isDocumentTypeSystemField(field)) {
+      return (
+        <CommonDropdown
+          value={value}
+          onChange={val => handleFormFieldChange(fieldId, val)}
+          options={[
+            { value: '', label: 'Select document type' },
+            ...documentTypes.map(t => ({ value: t.id, label: t.name }))
+          ]}
+        />
+      );
+    }
 
     switch (field.field_type) {
       case "textarea":
@@ -576,7 +585,7 @@ if (isDocumentTypeSystemField(field)) {
         )}
       </div>
 
-      <div className={styles.mainLayout}>
+      <div className={!isClientUser ? styles.mainLayout : styles.mainLayoutClient} >
         {/* Left Section (60%) - Document Handling */}
         <div className={styles.leftSection}>
           <div className={styles.section}>
@@ -628,46 +637,45 @@ if (isDocumentTypeSystemField(field)) {
         </div>
 
         {/* Right Section (40%) - Dynamic Form */}
-{!isClientUser && (
-  <div className={styles.rightSection}>
-    {formLoading ? (
-      <div className={styles.section}>
-        <div className={styles.loadingState}>
-          <p>Loading form...</p>
-        </div>
+        {!isClientUser && (
+          <div className={styles.rightSection}>
+            {formLoading ? (
+              <div className={styles.section}>
+                <div className={styles.loadingState}>
+                  <p>Loading form...</p>
+                </div>
+              </div>
+            ) : selectedForm ? (
+              <div className={styles.formContainer}>
+                <div className={styles.formHeader}>
+                  <h3 className={styles.formTitle}>{selectedForm.name}</h3>
+                  {selectedForm.description && (
+                    <p className={styles.formDescription}>
+                      {selectedForm.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className={styles.formFields}>
+                  {selectedForm.fields?.map((field) => (
+                    <div key={field.id} className={styles.formGroup}>
+                      <label className={styles.label}>
+                        {field.label}
+                        {field.required && (
+                          <span className={styles.required}>*</span>
+                        )}
+                      </label>
+                      {renderFormField(field)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {/* AI Processing Options */}
       </div>
-    ) : selectedForm ? (
-      <div className={styles.formContainer}>
-        <div className={styles.formHeader}>
-          <h3 className={styles.formTitle}>{selectedForm.name}</h3>
-          {selectedForm.description && (
-            <p className={styles.formDescription}>
-              {selectedForm.description}
-            </p>
-          )}
-        </div>
-
-        <div className={styles.formFields}>
-          {selectedForm.fields?.map((field) => (
-            <div key={field.id} className={styles.formGroup}>
-              <label className={styles.label}>
-                {field.label}
-                {field.required && (
-                  <span className={styles.required}>*</span>
-                )}
-              </label>
-              {renderFormField(field)}
-            </div>
-          ))}
-        </div>
-      </div>
-    ) : null}
-  </div>
-)}
-
-
-          {/* AI Processing Options */}
-        </div>
 
       {toast && (
         <Toast

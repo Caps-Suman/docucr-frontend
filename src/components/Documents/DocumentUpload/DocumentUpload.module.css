@@ -49,6 +49,12 @@
     align-items: flex-start;
 }
 
+.mainLayoutClient {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
 .leftSection {
     flex: 0 0 59%;
     display: flex;
@@ -361,7 +367,7 @@
     .mainLayout {
         flex-direction: column;
     }
-    
+
     .leftSection,
     .rightSection {
         flex: none;

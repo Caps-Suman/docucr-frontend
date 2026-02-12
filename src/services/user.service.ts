@@ -60,10 +60,34 @@ export interface UserUpdateData {
 }
 
 const userService = {
-    getUsers: async (page: number = 1, pageSize: number = 25, search?: string, statusId?: string): Promise<UserListResponse> => {
+    getUsers: async (
+        page: number = 1,
+        pageSize: number = 25,
+        search?: string,
+        statusId?: string | string[],
+        roleId?: string | string[],
+        organisationId?: string | string[],
+        clientId?: string | string[],
+        createdBy?: string | string[]
+    ): Promise<UserListResponse> => {
         const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
         if (search) params.append('search', search);
-        if (statusId) params.append('status_id', statusId);
+
+        const appendParam = (key: string, value?: string | string[]) => {
+            if (!value) return;
+            if (Array.isArray(value)) {
+                value.forEach(v => params.append(key, v));
+            } else {
+                params.append(key, value);
+            }
+        };
+
+        appendParam('status_id', statusId);
+        appendParam('role_id', roleId);
+        appendParam('organisation_id', organisationId);
+        appendParam('client_id', clientId);
+        appendParam('created_by', createdBy);
+
         const response = await apiClient(`${API_URL}/api/users?${params}`);
         if (!response.ok) throw new Error('Failed to fetch users');
         return response.json();
@@ -80,19 +104,44 @@ const userService = {
         if (!response.ok) throw new Error('Failed to fetch user');
         return response.json();
     },
-   async getUsersByRole(roleId: string): Promise<
-  { id: string; first_name: string; last_name: string; username: string }[]
-> {
-  const response = await apiClient(
-    `${API_URL}/api/users/by-role?role_id=${encodeURIComponent(roleId)}`
-  );
+    async getUsersByRole(roleId: string): Promise<
+        { id: string; first_name: string; last_name: string; username: string }[]
+    > {
+        const response = await apiClient(
+            `${API_URL}/api/users/by-role?role_id=${encodeURIComponent(roleId)}`
+        );
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch users by role');
-  }
+        if (!response.ok) {
+            throw new Error('Failed to fetch users by role');
+        }
 
-  return response.json();
-},
+        return response.json();
+    },
+
+    getCreators: async (
+        search?: string,
+        organisationId?: string | string[],
+        clientId?: string | string[]
+    ): Promise<{ id: string; first_name: string; last_name: string; username: string; organisation_name?: string }[]> => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+
+        const appendParam = (key: string, value?: string | string[]) => {
+            if (!value) return;
+            if (Array.isArray(value)) {
+                value.forEach(v => params.append(key, v));
+            } else {
+                params.append(key, value);
+            }
+        };
+
+        appendParam('organisation_id', organisationId);
+        appendParam('client_id', clientId);
+
+        const response = await apiClient(`${API_URL}/api/users/creators?${params}`);
+        if (!response.ok) throw new Error('Failed to fetch creators');
+        return response.json();
+    },
 
 
     createUser: async (data: UserCreateData): Promise<User> => {
