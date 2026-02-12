@@ -179,6 +179,11 @@ const sopService = {
       inactiveSOPs: data.inactive_sops
     };
   },
+  checkSOPExistence: async (clientId: string): Promise<{ exists: boolean }> => {
+    const response = await apiClient(`${API_URL}/api/sops/check-client-sop/${clientId}`);
+    if (!response.ok) throw new Error('Failed to check SOP existence');
+    return response.json();
+  },
   uploadAndExtractSOP: async (file: File, signal?: AbortSignal) => {
     const formData = new FormData();
     formData.append("file", file);

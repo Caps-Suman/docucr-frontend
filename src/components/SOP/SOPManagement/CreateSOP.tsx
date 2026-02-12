@@ -543,43 +543,50 @@ const CreateSOP: React.FC = () => {
     return client?.type === 'Individual';
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     const steps = getSteps();
     const isLastStep = currentStep === steps.length;
 
     // Current Step 1: Client Selection
     if (currentStep === 1) {
-      // Validate Client
-      // If skipping/new provider -> Go to Basic Info (Step 3 or 2 depending on logic)
-      // Actually, "New Provider" button inside Client Selection might just set providerType='new' and move to Basic Info?
-      // Let's assume there is a 'Skip / New Provider' button in the Client Step.
-
       if (providerType === 'new') {
-        // Skip Provider Selection, Go to Basic Info (which is next available step)
-        // It will be the "Basic Information" step. 
-        // In getSteps(), if selectedClientId is empty or new, step 2 (Providers) is NOT added. 
-        // So Basic Info is Step 2.
         setCurrentStep(2);
         return;
       }
 
       if (!selectedClientId) {
-        // setErrors(["Please select a client to proceed."]); // User asked for toast/alert
-        // alert("Client selection is required");
         setToast({ message: "Client selection is required", type: "warning" });
         return;
       }
 
-      // Valid client selected
-      // We need to find the client object. 
-      // Since we might be using allClients or clients, let's look it up properly.
+      // Check if SOP already exists for this client
+      try {
+        setLoading(true);
+        const { exists } = await sopService.checkSOPExistence(selectedClientId);
+        setLoading(false);
+
+        if (exists) {
+          setToast({
+            message: "You can't create sop for this client because already created",
+            type: "warning"
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to check SOP existence", error);
+        setLoading(false);
+        // Optional: Decide if we block or allow on error. Safe default is to allow or show error.
+        // Let's show error and block to be safe.
+        setToast({ message: "Error validating client SOP status.", type: "error" });
+        return;
+      }
+
+      // Valid client selected & No existing SOP
       const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
 
       if (client && client.type !== 'Individual') {
-        // Go to Provider Selection (Step 2)
         setCurrentStep(2);
       } else {
-        // Individual -> Skip Provider Selection
         setCurrentStep(2);
       }
     }
@@ -589,7 +596,6 @@ const CreateSOP: React.FC = () => {
         setToast({ message: "Select atleast one provider", type: "warning" });
         return;
       }
-      // Moving to Basic Info
       setCurrentStep(3);
     }
     // Step 2 or 3: Basic Information
