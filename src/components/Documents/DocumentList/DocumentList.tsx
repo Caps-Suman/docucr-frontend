@@ -314,28 +314,64 @@ const loadMetadata = async () => {
   try {
     const user = authService.getUser();
 
-    const [clientsRes, docTypesRes, activeFormRes] = await Promise.all([
+    const [
+      clientsRes,
+      docTypesRes,
+      activeForm,
+      uploadedByRes,
+      orgRes
+    ] = await Promise.all([
       clientService.getClients(1, 1000),
       documentTypeService.getDocumentTypes(1, 1000),
+
       user?.role?.name !== "SUPER_ADMIN"
         ? formService.getActiveForm()
         : Promise.resolve(null),
+
+      // 🔥 LOAD DROPDOWN DATA
+      documentService.getUploadedByFilter().catch(() => []),
+
+      user?.role?.name === "SUPER_ADMIN"
+        ? documentService.getOrganisationFilter().catch(() => [])
+        : Promise.resolve([])
     ]);
 
-    setClients(Array.isArray(clientsRes) ? clientsRes : clientsRes?.clients || []);
-    setDocumentTypes(Array.isArray(docTypesRes) ? docTypesRes : docTypesRes?.document_types || []);
+    // clients
+    setClients(
+      Array.isArray(clientsRes)
+        ? clientsRes
+        : clientsRes?.clients || []
+    );
 
-    if (activeFormRes?.fields?.length) {
-      setFormFields(activeFormRes.fields);
-    } else {
-      setFormFields([]);
-    }
+    // doc types
+    setDocumentTypes(
+      Array.isArray(docTypesRes)
+        ? docTypesRes
+        : docTypesRes?.document_types || []
+    );
+
+    // uploaded by
+    setUploadedByOptions(uploadedByRes || []);
+
+    // organisation
+    setOrganisationOptions(orgRes || []);
+
+    // form
+    const res = await formService.getActiveForm();
+
+if (res?.has_active_form && res.form?.fields) {
+  setFormFields(res.form.fields);
+} else {
+  setFormFields([]);
+}
+
 
   } catch (err) {
     console.error("metadata load failed", err);
     setFormFields([]);
   }
 };
+
 
   // Cleanup upload store for documents that are already present in the backend list
   useEffect(() => {

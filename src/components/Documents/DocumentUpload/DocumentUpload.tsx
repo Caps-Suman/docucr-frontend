@@ -98,26 +98,30 @@ const DocumentUpload: React.FC = () => {
   });
 
 
-  const fetchActiveForm = async () => {
-    try {
-      setFormLoading(true);
-      const activeForm = await formService.getActiveForm();
-      setSelectedForm(activeForm);
-      initializeFormData(activeForm);
-      console.log(
-        selectedForm?.fields?.map(f => ({
-          label: f.label,
-          field_type: f.field_type,
-          is_system: f.is_system
-        }))
-      );
+const fetchActiveForm = async () => {
+  try {
+    setFormLoading(true);
 
-    } catch (error) {
-      console.error("Failed to fetch active form:", error);
-    } finally {
-      setFormLoading(false);
+    const res = await formService.getActiveForm();
+
+    // 🔴 NO ACTIVE FORM
+    if (!res || !res.has_active_form || !res.form) {
+      setSelectedForm(null);
+      return;
     }
-  };
+
+    // 🟢 SET REAL FORM
+    setSelectedForm(res.form);
+    initializeFormData(res.form);
+
+  } catch (error) {
+    console.error("Failed to fetch active form:", error);
+    setSelectedForm(null);
+  } finally {
+    setFormLoading(false);
+  }
+};
+
 
   const fetchSystemFieldData = async (fields: FormField[]) => {
     const hasClientField = fields.some(isClientSystemField);
@@ -637,43 +641,46 @@ const DocumentUpload: React.FC = () => {
         </div>
 
         {/* Right Section (40%) - Dynamic Form */}
-        {!isClientUser && (
-          <div className={styles.rightSection}>
-            {formLoading ? (
-              <div className={styles.section}>
-                <div className={styles.loadingState}>
-                  <p>Loading form...</p>
-                </div>
-              </div>
-            ) : selectedForm ? (
-              <div className={styles.formContainer}>
-                <div className={styles.formHeader}>
-                  <h3 className={styles.formTitle}>{selectedForm.name}</h3>
-                  {selectedForm.description && (
-                    <p className={styles.formDescription}>
-                      {selectedForm.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className={styles.formFields}>
-                  {selectedForm.fields?.map((field) => (
-                    <div key={field.id} className={styles.formGroup}>
-                      <label className={styles.label}>
-                        {field.label}
-                        {field.required && (
-                          <span className={styles.required}>*</span>
-                        )}
-                      </label>
-                      {renderFormField(field)}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
+        <div className={styles.rightSection}>
+  {formLoading ? (
+    <div className={styles.section}>
+      <div className={styles.loadingState}>
+        <p>Loading form...</p>
+      </div>
+    </div>
+  ) : !selectedForm ? (
+    <div className={styles.section}>
+      <div className={styles.noFormState}>
+        <p>No active form configured</p>
+      </div>
+    </div>
+  ) : (
+    <div className={styles.formContainer}>
+      <div className={styles.formHeader}>
+        <h3 className={styles.formTitle}>{selectedForm.name}</h3>
+        {selectedForm.description && (
+          <p className={styles.formDescription}>
+            {selectedForm.description}
+          </p>
         )}
+      </div>
 
+      <div className={styles.formFields}>
+        {selectedForm.fields?.map((field) => (
+          <div key={field.id} className={styles.formGroup}>
+            <label className={styles.label}>
+              {field.label}
+              {field.required && (
+                <span className={styles.required}>*</span>
+              )}
+            </label>
+            {renderFormField(field)}
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+</div>
         {/* AI Processing Options */}
       </div>
 
