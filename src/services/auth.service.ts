@@ -19,6 +19,8 @@ export interface AuthUser {
   is_client?: boolean;
   client_id?: string | null;
   client_name?: string | null;
+  organisation_id?: string; // Added for frontend logic
+  is_superuser?: boolean;
 }
 
 export interface LoginResponse {
@@ -107,17 +109,17 @@ class AuthService {
   }
   private authListeners: Array<() => void> = [];
 
-subscribe(listener: () => void) {
-  this.authListeners.push(listener);
-}
+  subscribe(listener: () => void) {
+    this.authListeners.push(listener);
+  }
 
-unsubscribe(listener: () => void) {
-  this.authListeners = this.authListeners.filter(l => l !== listener);
-}
+  unsubscribe(listener: () => void) {
+    this.authListeners = this.authListeners.filter(l => l !== listener);
+  }
 
-notify() {
-  this.authListeners.forEach(l => l());
-}
+  notify() {
+    this.authListeners.forEach(l => l());
+  }
 
   async resend2FA(data: LoginRequest): Promise<{ message: string }> {
     const response = await fetch(`${API_BASE_URL}/api/auth/resend-2fa`, {
