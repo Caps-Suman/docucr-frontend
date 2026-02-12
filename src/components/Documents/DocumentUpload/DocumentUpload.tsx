@@ -123,27 +123,22 @@ const DocumentUpload: React.FC = () => {
     const hasClientField = fields.some(isClientSystemField);
     const hasDocTypeField = fields.some(isDocumentTypeSystemField);
 
-    try {
-      /* =========================
-         CLIENT DROPDOWN
-         ========================= */
-      if (hasClientField) {
-        if (isClientUser) {
-          // 🔒 CLIENT USER → FETCH OWN CLIENT FROM CLIENT TABLE
-          const client = await clientService.getMyClient();
+  try {
 
-          setClients([
-            {
-              id: client.id,
-              name:
-                client.business_name ||
-                `${client.first_name} ${client.last_name}`.trim()
-            }
-          ]);
-        } else {
-          // 🔓 NON-CLIENT USERS → ASSIGNED / VISIBLE CLIENTS
-          // const res = await clientService.getVisibleClients();
-          const res = await clientService.getAllClients();
+    if (hasClientField) {
+      if (isClientUser) {
+        const client = await clientService.getMyClient();
+
+        setClients([
+          {
+            id: client.id,
+            name:
+              client.business_name ||
+              `${client.first_name} ${client.last_name}`.trim()
+          }
+        ]);
+      } else {
+        const res = await clientService.getAllClients();
 
           setClients(
             res.map(c => ({
@@ -231,16 +226,6 @@ const DocumentUpload: React.FC = () => {
     if (field && isDocumentTypeSystemField(field)) {
       // Fetch templates for this doc type
       try {
-        // Assuming documentTypeService has this method. If not, I might need to implement it.
-        // Checking services/documentType.service... assuming fetchTemplatesByDocType exists or similar
-        // If not available, I might need to fetch all templates and filter?
-        // Let's assume we need to list templates.
-        // Using a direct fetch for now if service method not verified.
-        // Wait, I should verify documentTypeService first?
-        // For now, I'll add a placeholder or assume specific endpoint.
-        // Actually, let's fetch ALL templates and filter in memory if needed, or query API.
-        // Let's assume templates router has /api/templates/?document_type_id=...
-        // Creating a direct fetch here to avoid breaking if service is missing method.
         if (value) {
           // const response = await apiClient...
           // For safety, I will verify services if this fails.
@@ -255,19 +240,6 @@ const DocumentUpload: React.FC = () => {
     }
   };
 
-  // const validateForm = (): boolean => {
-  //     if (!selectedForm?.fields) return true;
-
-  //     const newErrors: Record<string, string> = {};
-  //     selectedForm.fields.forEach(field => {
-  //         if (field.required && (!formData[field.id || ''] || formData[field.id || ''] === '')) {
-  //             newErrors[field.id || ''] = `${field.label} is required`;
-  //         }
-  //     });
-
-  //     setFormErrors(newErrors);
-  //     return Object.keys(newErrors).length === 0;
-  // };
   const validateForm = (): boolean => {
     if (!selectedForm?.fields) return true;
 
