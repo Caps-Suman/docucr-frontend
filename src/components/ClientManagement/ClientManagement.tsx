@@ -40,7 +40,6 @@ import UserModal from "../UserPermissionManagement/UserManagement/UserModal";
 import userService from "../../services/user.service";
 import roleService from "../../services/role.service";
 import styles from "./ClientManagement.module.css";
-import { debounce } from "../../utils/debounce";
 import authService from "../../services/auth.service";
 
 const ClientManagement: React.FC = () => {
@@ -148,12 +147,14 @@ const ClientManagement: React.FC = () => {
   }, [currentPage, itemsPerPage, debouncedSearchTerm, activeFilters]);
 
   useEffect(() => {
-    const debouncedHandler = debounce((term: string) => {
-      setDebouncedSearchTerm(term);
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
       setCurrentPage(0);
     }, 500);
 
-    debouncedHandler(searchTerm);
+    return () => {
+      clearTimeout(handler);
+    };
   }, [searchTerm]);
   const openAssignModal = async () => {
     setShowAssignModal(true);

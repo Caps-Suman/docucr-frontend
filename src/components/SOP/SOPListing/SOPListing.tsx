@@ -171,7 +171,7 @@ const SOPListing: React.FC = () => {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-    }, 300);
+    }, 500);
 
     return () => {
       clearTimeout(handler);
