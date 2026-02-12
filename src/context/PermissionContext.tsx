@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo, useEffect, useState } from "react";
 import authService from "../services/auth.service";
+import modulesService from "../services/modules.service";
 
 type PermissionMap = Record<string, string[]>;
 
@@ -13,13 +14,33 @@ const PermissionContext = createContext<PermissionContextType | null>(null);
 export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [permissions, setPermissions] = useState<PermissionMap>({});
 
+  // useEffect(() => {
+  //   const syncPermissions = () => {
+  //     const user = authService.getUser();
+
+  //     const rawPerms = user?.permissions ?? {};
+
+  //     const normalized: PermissionMap = Object.fromEntries(
+  //       Object.entries(rawPerms).map(([module, perms]) => [
+  //         module.toUpperCase(),
+  //         perms.map(p => p.toUpperCase()),
+  //       ])
+  //     );
+
+  //     setPermissions(normalized);
+  //   };
+
+  //   syncPermissions();
+  //   authService.subscribe(syncPermissions);
+  //   return () => authService.unsubscribe(syncPermissions);
+  // }, []);
+
+  // amit
   useEffect(() => {
     const syncPermissions = () => {
       const user = authService.getUser();
-
       const rawPerms = user?.permissions ?? {};
 
-      // 🔥 NORMALIZE ONCE
       const normalized: PermissionMap = Object.fromEntries(
         Object.entries(rawPerms).map(([module, perms]) => [
           module.toUpperCase(),
@@ -30,7 +51,22 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setPermissions(normalized);
     };
 
-    syncPermissions();
+    const initialLoad = async () => {
+      try {
+        const user = authService.getUser();
+        if (user?.email) {
+          // Pre-fetch modules if needed
+          await modulesService.getUserModules(user.email);
+        }
+      } catch (error) {
+        console.error('Failed to load modules:', error);
+      } finally {
+        syncPermissions();
+      }
+    };
+
+    initialLoad();
+
     authService.subscribe(syncPermissions);
     return () => authService.unsubscribe(syncPermissions);
   }, []);
