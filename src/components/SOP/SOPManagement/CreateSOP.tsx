@@ -206,6 +206,7 @@ const CreateSOP: React.FC = () => {
       navigate("/unauthorized");
     }
   }, [canCreateSOP, canUpdateSOP, isEditMode, navigate]);
+
   // --- Effects ---
   useEffect(() => {
     // Initial fetch if needed, but Step 2 handles client loading now

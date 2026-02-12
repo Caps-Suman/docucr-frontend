@@ -626,7 +626,7 @@ const SOPListing: React.FC = () => {
       },
     },
   ];
-  if (!canReadSOP) {
+  if (!canReadSOP && !isInitialLoading) {
     return (
       <div style={{ padding: "40px" }}>
         <h2>Access Denied</h2>
