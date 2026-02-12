@@ -57,6 +57,8 @@ const UserManagement: React.FC = () => {
     const [clientSelectionOpen, setClientSelectionOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState<any>(null);
     const [creatorSearch, setCreatorSearch] = useState('');
+    const [roleSearch, setRoleSearch] = useState('');
+    const [roleOptions, setRoleOptions] = useState<Array<{ label: string, value: string }>>([]);
 
     // Search & Filter State
     const [searchQuery, setSearchQuery] = useState('');
@@ -127,17 +129,25 @@ const UserManagement: React.FC = () => {
     const [tempSelectedClientFilter, setTempSelectedClientFilter] = useState<string[]>([]);
     const [tempCreatedByFilter, setTempCreatedByFilter] = useState<string[]>([]);
 
+    // Sync Effect REMOVED to prevent double API calls.
+    // Syncing is now done in handleOpenFilters before opening the panel.
+    /*
     useEffect(() => {
         if (showFilters) {
-            const nextStatus = statusFilter ? (Array.isArray(statusFilter) ? statusFilter : [statusFilter]) : [];
-            // Simple array equality check helper or just JSON stringify for string IDs
-            if (JSON.stringify(tempStatusFilter) !== JSON.stringify(nextStatus)) setTempStatusFilter(nextStatus);
-            if (JSON.stringify(tempSelectedRole) !== JSON.stringify(selectedRole)) setTempSelectedRole(selectedRole);
-            if (JSON.stringify(tempSelectedOrg) !== JSON.stringify(selectedOrg)) setTempSelectedOrg(selectedOrg);
-            if (JSON.stringify(tempSelectedClientFilter) !== JSON.stringify(selectedClientFilter)) setTempSelectedClientFilter(selectedClientFilter);
-            if (JSON.stringify(tempCreatedByFilter) !== JSON.stringify(createdByFilter)) setTempCreatedByFilter(createdByFilter);
+           // ...
         }
     }, [showFilters, statusFilter, selectedRole, selectedOrg, selectedClientFilter, createdByFilter]);
+    */
+
+    const handleOpenFilters = () => {
+        // Sync temp state with actual state BEFORE opening
+        setTempStatusFilter(statusFilter);
+        setTempSelectedRole(selectedRole);
+        setTempSelectedOrg(selectedOrg);
+        setTempSelectedClientFilter(selectedClientFilter);
+        setTempCreatedByFilter(createdByFilter);
+        setShowFilters(true);
+    };
 
     // Pre-fill filters based on Role
     useEffect(() => {
@@ -210,11 +220,14 @@ const UserManagement: React.FC = () => {
 
     useEffect(() => {
         if (!rolesLoadedRef.current) {
-            rolesLoadedRef.current = true;
-            loadRoles();
-            loadFilterOptions();
+            // ONLY load roles/filters for Admins (Super, Org, Client)
+            if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') {
+                rolesLoadedRef.current = true;
+                loadRoles();
+                loadFilterOptions();
+            }
         }
-    }, []);
+    }, [currentUser]);
 
     const lastCreatorFetchId = React.useRef(0);
 
@@ -247,6 +260,43 @@ const UserManagement: React.FC = () => {
         setCreatorSearch(val);
     };
 
+
+    // Role Search Effect
+    useEffect(() => {
+        if (!showFilters) return;
+        const handler = setTimeout(() => {
+            fetchLightRoles(roleSearch, tempSelectedOrg, tempSelectedClientFilter);
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [roleSearch]);
+
+    // Cleanup role options when filter closed or reset? 
+    // Maybe not needed, but good to keep fresh.
+
+    const lastRoleFetchId = React.useRef(0);
+
+    const fetchLightRoles = async (searchVal: string, orgs: string[], clients: string[]) => {
+        const requestId = Date.now();
+        lastRoleFetchId.current = requestId;
+        try {
+            // Pass orgs and clients to filter roles relevant to them
+            const rolesData = await roleService.getLightRoles(searchVal, orgs, clients);
+
+            if (lastRoleFetchId.current === requestId) {
+                setRoleOptions(rolesData.map(r => ({
+                    label: r.name,
+                    value: r.id
+                })));
+            }
+        } catch (e) {
+            console.error("Failed to load light roles", e);
+        }
+    }
+
+    const handleRoleSearch = (val: string) => {
+        setRoleSearch(val);
+    };
+
     // Debounced Search Effect
     useEffect(() => {
         if (!showFilters) return;
@@ -256,17 +306,22 @@ const UserManagement: React.FC = () => {
         return () => clearTimeout(handler);
     }, [creatorSearch]);
 
-    // Immediate Filter Effect (Skip on initial mount to avoid double call if search effect also fires? 
-    // Actually, search effect fires on mount too. We can just rely on search effect for initial load if search is empty.
-    // But we need immediate update on FILTER change.)
+    // Immediate Filter Effect - Consolidated
+    // Triggers fetch for BOTH Creators and Roles when filters change or panel opens.
+    // Guards against double-execution via refs or simple dependency management.
     useEffect(() => {
         if (!showFilters) return;
-        // avoid duplicate call if only creatorSearch changed (handled by other effect)
-        // But here we rely on deps.
-        // For Org Admins, we might want to ensure we don't clear the org filter if it's implicit?
-        // But fetchCreators arguments are 'selectedOrg'.
-        // If I am Org Admin, selectedOrg is pre-filled. So it should work.
-        fetchCreators(creatorSearch, tempSelectedOrg, tempSelectedClientFilter);
+
+        // Fetch Creators - ONLY for Admins who can filter by creator
+        if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') {
+            fetchCreators(creatorSearch, tempSelectedOrg, tempSelectedClientFilter);
+        }
+
+        // Fetch Roles - ONLY for Admins who can filter by role
+        if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') {
+            fetchLightRoles(roleSearch, tempSelectedOrg, tempSelectedClientFilter);
+        }
+
     }, [showFilters, tempSelectedOrg, tempSelectedClientFilter]);
 
     const loadFilterOptions = async () => {
@@ -670,7 +725,7 @@ const UserManagement: React.FC = () => {
             },
             width: '150px'
         },
-        {
+        ...(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN' ? [{
             key: 'actions',
             header: 'Actions',
             render: (_: any, row: User) => (
@@ -709,7 +764,7 @@ const UserManagement: React.FC = () => {
                 </div>
             ),
             width: '120px'
-        }
+        }] : [])
     ];
 
     if (isInitialLoading) {
@@ -746,7 +801,7 @@ const UserManagement: React.FC = () => {
                     <div>
 
                         {/* Search, Filters and Add User Bar */}
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
+                        <div style={{ display: 'flex', gap: (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') ? '12px' : '0', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
                             <div className="filter-group" style={{ minWidth: '300px' }}>
                                 <div style={{ position: 'relative' }}>
                                     <input
@@ -768,27 +823,35 @@ const UserManagement: React.FC = () => {
                             </div>
 
                             <div className="filter-group" style={{ flex: '0 0 auto', minWidth: 'auto' }}>
-                                <button
-                                    className="filterButton"
-                                    onClick={() => {
-                                        setShowFilters(true);
-                                        // fetchCreators is triggered by useEffect on showFilters
-                                    }}
-                                >
-                                    <Filter size={16} />
-                                    Filters
-                                    {([selectedRole, selectedOrg, selectedClientFilter, statusFilter, createdByFilter].filter(f => f && f.length > 0).length) > 0 && (
-                                        <span className="filterBadge">
-                                            {([selectedRole, selectedOrg, selectedClientFilter, statusFilter, createdByFilter].filter(f => f && f.length > 0).length)}
-                                        </span>
-                                    )}
-                                </button>
+                                {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                                    <button
+                                        className="filterButton"
+                                        onClick={handleOpenFilters}
+                                    >
+                                        <Filter size={16} />
+                                        Filters
+                                        {(() => {
+                                            let count = 0;
+                                            if (selectedRole && selectedRole.length > 0) count++;
+                                            // Don't count Org filter for Org Admins (implicit)
+                                            if (selectedOrg && selectedOrg.length > 0 && currentUser?.role?.name !== 'ORGANISATION_ROLE') count++;
+                                            // Don't count Client filter for Client Admins (implicit)
+                                            if (selectedClientFilter && selectedClientFilter.length > 0 && currentUser?.role?.name !== 'CLIENT_ADMIN' && !currentUser?.is_client) count++;
+                                            if (statusFilter && statusFilter.length > 0) count++;
+                                            if (createdByFilter && createdByFilter.length > 0) count++;
+
+                                            return count > 0 ? <span className="filterBadge">{count}</span> : null;
+                                        })()}
+                                    </button>
+                                )}
                             </div>
 
                             <div className="filter-group" style={{ flex: '0 0 auto', minWidth: 'auto', marginLeft: 'auto' }}>
-                                <button className="add-btn" onClick={handleAddNew} style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
-                                    Add User
-                                </button>
+                                {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                                    <button className="add-btn" onClick={handleAddNew} style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
+                                        Add User
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -931,20 +994,7 @@ const UserManagement: React.FC = () => {
                         </button>
                     </div>
                     <div className="offcanvasBody">
-                        <div className="filterGroup">
-                            <label>Status</label>
-                            <CommonMultiSelect
-                                options={[
-                                    { value: 'ACTIVE', label: 'Active' },
-                                    { value: 'INACTIVE', label: 'Inactive' },
-                                    { value: 'PENDING', label: 'Pending' }
-                                ]}
-                                value={tempStatusFilter || []}
-                                onChange={(val) => setTempStatusFilter(val)}
-                                placeholder="Filter by Status"
-                                size="md"
-                            />
-                        </div>
+
 
                         {/* Organisation Filter - Show for Superuser ONLY (Hide for Org Role & Client Admin) */}
                         {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN') && (
@@ -978,8 +1028,8 @@ const UserManagement: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Client Filter - Show for Superuser AND Organisation Role (Hide for Client Admin) */}
-                        {(!currentUser?.role?.name || currentUser.role.name !== 'CLIENT_ADMIN') && (
+                        {/* Client Filter - Show for Superuser AND Organisation Role (Hide for Client Admin & Standard Users) */}
+                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE') && (
                             <div className="filterGroup">
                                 <label>Client</label>
                                 <CommonMultiSelect
@@ -1005,38 +1055,21 @@ const UserManagement: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="filterGroup">
-                            <label>Role</label>
-                            <CommonMultiSelect
-                                options={roles.filter(r => {
-                                    // Hierarchical Role Filtering
-                                    const roleName = r.name;
-                                    const clientLevelRoles = ["CLIENT_ADMIN", "Client Admin", "USER", "User", "PARTICIPANT", "Participant"];
-                                    const orgLevelRoles = ["ORGANISATION_ROLE", "Organisation Admin", "Organization Admin"];
-
-                                    // 1. If Client is selected, show ONLY Client Level roles
-                                    if (tempSelectedClientFilter.length > 0) {
-                                        return clientLevelRoles.includes(roleName);
-                                    }
-
-                                    // 2. If Organisation is selected (and no Client)
-                                    if (tempSelectedOrg.length > 0) {
-                                        // Include roles that explicitly belong to this Org OR are generic Org roles (global)
-                                        const matchesOrgId = (r as any).organisation_id && tempSelectedOrg.includes((r as any).organisation_id);
-                                        const isGlobalOrgRole = !((r as any).organisation_id) && [...orgLevelRoles, ...clientLevelRoles].includes(roleName);
-
-                                        return matchesOrgId || isGlobalOrgRole;
-                                    }
-
-                                    // 3. Otherwise (No Org/Client selected), show all available roles (default behavior)
-                                    return true;
-                                }).map(r => ({ label: r.name, value: r.id }))}
-                                value={tempSelectedRole}
-                                onChange={(val) => setTempSelectedRole(val)}
-                                placeholder="Filter by Role"
-                                size="md"
-                            />
-                        </div>
+                        {/* Role Filter - Show for Admins Only */}
+                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                            <div className="filterGroup">
+                                <label>Role</label>
+                                <CommonMultiSelect
+                                    options={roleOptions}
+                                    value={tempSelectedRole}
+                                    onChange={setTempSelectedRole}
+                                    placeholder="Filter by Role"
+                                    size="md"
+                                    isSearchable={true}
+                                    onInputChange={handleRoleSearch}
+                                />
+                            </div>
+                        )}
 
                         {/* Created By Filter - Show for Superuser and Organisation Role */}
                         {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (

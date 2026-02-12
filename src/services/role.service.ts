@@ -62,9 +62,13 @@ export interface RoleUsersResponse {
 }
 
 class RoleService {
-  async getRoles(page: number = 1, pageSize: number = 10, statusId?: string): Promise<RoleListResponse> {
+  async getRoles(page: number = 1, pageSize: number = 10, statusId?: string, search?: string, organisationId?: string[]): Promise<RoleListResponse> {
     const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
     if (statusId) params.append('status_id', statusId);
+    if (search) params.append('search', search);
+    if (organisationId && organisationId.length > 0) {
+      organisationId.forEach(id => params.append('organisation_id', id));
+    }
     const response = await apiClient(`${API_BASE_URL}/api/roles?${params}`);
 
     if (!response.ok) {
@@ -170,6 +174,25 @@ class RoleService {
       throw new Error(error.detail || 'Failed to delete role');
     }
 
+    return response.json();
+  }
+
+  async getLightRoles(search?: string, orgs?: string[], clients?: string[]): Promise<Array<{ id: string, name: string, organisation_name?: string }>> {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+
+    if (orgs && orgs.length > 0) {
+      orgs.forEach(o => params.append('organisation_id', o));
+    }
+
+    if (clients && clients.length > 0) {
+      clients.forEach(c => params.append('client_id', c));
+    }
+
+    const response = await apiClient(`${API_BASE_URL}/api/roles/light?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch light roles');
+    }
     return response.json();
   }
 }

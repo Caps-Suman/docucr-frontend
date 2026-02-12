@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, UserCheck, UserX, Edit2, StopCircle, PlayCircle } from 'lucide-react';
+import { Shield, UserCheck, UserX, Edit2, StopCircle, PlayCircle, Search, Filter, X } from 'lucide-react';
+import CommonMultiSelect from '../../Common/CommonMultiSelect';
 import Table from '../../Table/Table';
 import CommonPagination from '../../Common/CommonPagination';
 import Loading from '../../Common/Loading';
@@ -14,6 +15,7 @@ import statusService, { Status } from '../../../services/status.service';
 import '../UserManagement/UserManagement.css';
 import styles from './RoleManagement.module.css';
 import authService from '../../../services/auth.service';
+import organisationService from '../../../services/organisation.service';
 
 const RoleManagement: React.FC = () => {
     const currentUser = authService.getUser();
@@ -32,6 +34,22 @@ const RoleManagement: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; role: Role | null }>({ isOpen: false, role: null });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+
+    // Filters State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [orgSearch, setOrgSearch] = useState('');
+    const [selectedOrg, setSelectedOrg] = useState<string[]>([]);
+    const [orgOptions, setOrgOptions] = useState<any[]>([]);
+    const [showFilters, setShowFilters] = useState(false);
+
+    // Debounce search
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setCurrentPage(0);
+            loadData();
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery, selectedOrg]);
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
@@ -74,7 +92,13 @@ const RoleManagement: React.FC = () => {
         try {
             setLoading(true);
             const [rolesData, statsData] = await Promise.all([
-                roleService.getRoles(currentPage + 1, itemsPerPage, statusFilter || undefined),
+                roleService.getRoles(
+                    currentPage + 1,
+                    itemsPerPage,
+                    statusFilter || undefined,
+                    searchQuery || undefined,
+                    selectedOrg.length > 0 ? selectedOrg : undefined
+                ),
                 roleService.getRoleStats()
             ]);
             setRoles(rolesData.roles);
@@ -117,6 +141,29 @@ const RoleManagement: React.FC = () => {
     const handleAddNew = () => {
         setEditingRole(null);
         setIsModalOpen(true);
+    };
+
+    const loadFilterOptions = async () => {
+        try {
+            if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN') {
+                const response = await organisationService.getOrganisations(1, 100);
+                if (response && response.organisations) {
+                    setOrgOptions(response.organisations.map((org: any) => ({
+                        value: org.id,
+                        label: org.name
+                    })));
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load filter options:', error);
+        }
+    };
+
+    const handleOpenFilters = () => {
+        if (!showFilters) {
+            loadFilterOptions();
+        }
+        setShowFilters(!showFilters);
     };
 
     useEffect(() => {
@@ -357,9 +404,55 @@ const RoleManagement: React.FC = () => {
                         <Shield size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         Roles
                     </h2>
-                    <button className="add-btn" onClick={handleAddNew}>
-                        Add Role
-                    </button>
+                    <div>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
+                            <div className="filter-group" style={{ minWidth: '300px' }}>
+                                <div style={{ position: 'relative' }}>
+                                    <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by role name..."
+                                        className="filter-input"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        style={{ paddingLeft: '32px' }}
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="filter-group" style={{ flex: '0 0 auto', minWidth: 'auto' }}>
+                                {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN') && (
+                                    <button
+                                        className="filterButton"
+                                        onClick={handleOpenFilters}
+                                    >
+                                        <Filter size={16} />
+                                        Filters
+                                        {selectedOrg.length > 0 && (
+                                            <span className="filterBadge">
+                                                1
+                                            </span>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="filter-group" style={{ flex: '0 0 auto', minWidth: 'auto', marginLeft: 'auto' }}>
+                                <button className="add-btn" onClick={handleAddNew} style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
+                                    Add Role
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
                 <Table
                     columns={roleColumns}
@@ -396,6 +489,32 @@ const RoleManagement: React.FC = () => {
                     setCurrentPage(0);
                 }}
             />
+
+            {/* Filter Offcanvas */}
+            <div className={`offcanvas ${showFilters ? 'offcanvasOpen' : ''}`}>
+                <div className="offcanvasOverlay" onClick={() => setShowFilters(false)} />
+                <div className="offcanvasContent">
+                    <div className="offcanvasHeader">
+                        <h3>Filters</h3>
+                        <button className="closeButton" onClick={() => setShowFilters(false)}>
+                            <X size={20} />
+                        </button>
+                    </div>
+                    <div className="offcanvasBody">
+                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN') && (
+                            <div className="filterGroup">
+                                <label>Organisation</label>
+                                <CommonMultiSelect
+                                    options={orgOptions}
+                                    value={selectedOrg}
+                                    onChange={setSelectedOrg}
+                                    placeholder="Filter by Organisation"
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
 
             <RoleModal
                 isOpen={isModalOpen}
