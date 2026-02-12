@@ -12,6 +12,7 @@ export interface Role {
   users_count: number;
   created_by_name: string | null;
   organisation_name: string | null;
+  organisation_id?: string | null;
 }
 
 export interface RoleListResponse {
@@ -47,23 +48,27 @@ export interface RoleStats {
 }
 
 export interface RoleUser {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
 }
 
 export interface RoleUsersResponse {
-    items: RoleUser[];
-    total: number;
-    page: number;
-    page_size: number;
+  items: RoleUser[];
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 class RoleService {
-  async getRoles(page: number = 1, pageSize: number = 10, statusId?: string): Promise<RoleListResponse> {
+  async getRoles(page: number = 1, pageSize: number = 10, statusId?: string, search?: string, organisationId?: string[]): Promise<RoleListResponse> {
     const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
     if (statusId) params.append('status_id', statusId);
+    if (search) params.append('search', search);
+    if (organisationId && organisationId.length > 0) {
+      organisationId.forEach(id => params.append('organisation_id', id));
+    }
     const response = await apiClient(`${API_BASE_URL}/api/roles?${params}`);
 
     if (!response.ok) {
@@ -85,17 +90,17 @@ class RoleService {
 
   async getRoleUsers(roleId: string, page: number = 1, pageSize: number = 10, search?: string): Promise<RoleUsersResponse> {
     const params = new URLSearchParams({
-        page: page.toString(),
-        page_size: pageSize.toString(),
+      page: page.toString(),
+      page_size: pageSize.toString(),
     });
 
     if (search) {
-        params.append('search', search);
+      params.append('search', search);
     }
 
     const response = await apiClient(`${API_BASE_URL}/api/roles/${roleId}/users?${params.toString()}`);
     if (!response.ok) {
-        throw new Error('Failed to fetch role users');
+      throw new Error('Failed to fetch role users');
     }
     return await response.json();
   }
@@ -169,6 +174,25 @@ class RoleService {
       throw new Error(error.detail || 'Failed to delete role');
     }
 
+    return response.json();
+  }
+
+  async getLightRoles(search?: string, orgs?: string[], clients?: string[]): Promise<Array<{ id: string, name: string, organisation_name?: string }>> {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+
+    if (orgs && orgs.length > 0) {
+      orgs.forEach(o => params.append('organisation_id', o));
+    }
+
+    if (clients && clients.length > 0) {
+      clients.forEach(c => params.append('client_id', c));
+    }
+
+    const response = await apiClient(`${API_BASE_URL}/api/roles/light?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch light roles');
+    }
     return response.json();
   }
 }

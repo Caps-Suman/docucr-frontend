@@ -294,17 +294,20 @@ const UserModal: React.FC<UserModalProps> = ({
     if (step === 3) {
       // Back from Client Selection
       goBackToType();
+    } else if (step === 2) {
+      // Back from Roles -> Details
+      setStep(1);
     } else if (step === 1 && userType === "client") {
       setStep(3); // Go back to client selection if coming from there
     } else if (step === 1 && isEditMode && allowUserTypeSelection) {
-      setStep(0); // Allow going back to type selection in Edit Mode too?
-      // "User should be able to: Change the client" -> yes
-      // "If no client mapping exists: Internal User card must be selected by default."
-      // If they want to switch types, they need to go back to step 0.
-      // Wait, "User Type UI should be shown only if: allowUserTypeSelection"
-      if (allowUserTypeSelection) setStep(0);
-    } else {
-      setStep(0); // Default back to type selection or close?
+      setStep(0);
+    } else if (step === 1 && !isEditMode && allowUserTypeSelection) {
+      setStep(0);
+    } else if (step === 1) {
+      // If not allowed to select type, do nothing or close?
+      // Actually if we can't select type, we are stuck on step 1 or we go back to close?
+      // Usually back button shouldn't be visible if step 1 and no type selection.
+      // But if it is visible, it should probably close or do nothing.
     }
   };
 
@@ -829,8 +832,8 @@ const UserModal: React.FC<UserModalProps> = ({
           <div className={styles.actions}>
 
             {/* BACK BUTTON — visible after step 0, but handle Step 3 separately or encompass it */}
-            {/* Showing Back for Create Mode (steps > 0) OR for Edit Mode if in Step 3 */}
-            {((!isEditMode && step > 0) || step === 3) && (
+            {/* BACK BUTTON */}
+            {((!isEditMode && step > 0) || step === 3 || step === 2 || (isEditMode && step === 1 && allowUserTypeSelection)) && (
               <button type="button" className={styles.backButton} onClick={handleBack}>
                 Back
               </button>

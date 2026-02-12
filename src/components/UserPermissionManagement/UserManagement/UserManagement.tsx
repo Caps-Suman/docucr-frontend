@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key, Loader2, Search, Filter, X, ChevronDown } from 'lucide-react';
 import Table from '../../Table/Table';
 import CommonPagination from '../../Common/CommonPagination';
 import Loading from '../../Common/Loading';
@@ -10,6 +11,7 @@ import Toast, { ToastType } from '../../Common/Toast';
 import userService, { User, UserStats } from '../../../services/user.service';
 import authService from '../../../services/auth.service';
 import roleService from '../../../services/role.service';
+import organisationService from '../../../services/organisation.service';
 import statusService, { Status } from '../../../services/status.service';
 import './UserManagement.css';
 import ClientModal from '../../ClientManagement/ClientModal';
@@ -17,6 +19,9 @@ import clientService from '../../../services/client.service';
 import ClientMappingModal from './ClientMappingModal';
 import ClientSelectionModal from '../../SOP/SOPListing/ClientSelectionModal';
 import { UserTypeModal } from './UserTypeModal';
+import { debounce } from '../../../utils/debounce';
+import CommonDropdown from '../../Common/CommonDropdown';
+import CommonMultiSelect from '../../Common/CommonMultiSelect';
 
 type StatCard = {
     title: string
@@ -41,14 +46,47 @@ const UserManagement: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [changePasswordUser, setChangePasswordUser] = useState<User | null>(null);
-    const [statusFilter, setStatusFilter] = useState<string | null>(null);
+    const [statusFilter, setStatusFilter] = useState<string[]>([]);
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
+
+
     // const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
     const [userTypeModalOpen, setUserTypeModalOpen] = useState(false);
     const [selectedUserType, setSelectedUserType] = useState<"internal" | "client" | null>(null);
 
     const [clientSelectionOpen, setClientSelectionOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState<any>(null);
+    const [creatorSearch, setCreatorSearch] = useState('');
+    const [roleSearch, setRoleSearch] = useState('');
+    const [roleOptions, setRoleOptions] = useState<Array<{ label: string, value: string }>>([]);
+
+    // Search & Filter State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
+
+    // Additional Filters
+    const [selectedRole, setSelectedRole] = useState<string[]>([]);
+    const [selectedOrg, setSelectedOrg] = useState<string[]>([]);
+    const [selectedClientFilter, setSelectedClientFilter] = useState<string[]>([]);
+    const [createdByFilter, setCreatedByFilter] = useState<string[]>([]);
+
+    // Filter Options
+    const [organisations, setOrganisations] = useState<Array<{ label: string, value: string }>>([]);
+    const [clients, setClients] = useState<Array<{ label: string, value: string, organisationName?: string }>>([]);
+    const [allClients, setAllClients] = useState<Array<{ label: string, value: string, organisationName?: string }>>([]);
+    const [createdByOptions, setCreatedByOptions] = useState<Array<{ label: string, value: string, organisationName?: string }>>([]);
+
+    // Debounce search update
+    const handleSearchChange = (val: string) => {
+        setSearchQuery(val);
+        debouncedUpdate(val);
+    };
+
+    const debouncedUpdate = React.useCallback(debounce((val: string) => {
+        setDebouncedSearch(val);
+        setCurrentPage(0); // Reset page on search
+    }, 500), []);
 
     const clientAdminRoleId = roles.find(r => r.name === "CLIENT_ADMIN")?.id;
     const [step, setStep] = useState<0 | 1 | 2>(0);
@@ -84,24 +122,240 @@ const UserManagement: React.FC = () => {
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+    // Temp state for sidebar filters
+    const [tempStatusFilter, setTempStatusFilter] = useState<string[]>([]);
+    const [tempSelectedRole, setTempSelectedRole] = useState<string[]>([]);
+    const [tempSelectedOrg, setTempSelectedOrg] = useState<string[]>([]);
+    const [tempSelectedClientFilter, setTempSelectedClientFilter] = useState<string[]>([]);
+    const [tempCreatedByFilter, setTempCreatedByFilter] = useState<string[]>([]);
+
+    // Sync Effect REMOVED to prevent double API calls.
+    // Syncing is now done in handleOpenFilters before opening the panel.
+    /*
+    useEffect(() => {
+        if (showFilters) {
+           // ...
+        }
+    }, [showFilters, statusFilter, selectedRole, selectedOrg, selectedClientFilter, createdByFilter]);
+    */
+
+    const handleOpenFilters = () => {
+        // Sync temp state with actual state BEFORE opening
+        setTempStatusFilter(statusFilter);
+        setTempSelectedRole(selectedRole);
+        setTempSelectedOrg(selectedOrg);
+        setTempSelectedClientFilter(selectedClientFilter);
+        setTempCreatedByFilter(createdByFilter);
+        setShowFilters(true);
+    };
+
+    // Pre-fill filters based on Role
+    useEffect(() => {
+        if (!currentUser) return;
+
+        if (currentUser.role?.name === 'ORGANISATION_ROLE' && currentUser.organisation_id) {
+            // Organisation Role: specific org, allow client selection
+            const orgId = currentUser.organisation_id;
+            setSelectedOrg([orgId]);
+            setTempSelectedOrg([orgId]);
+        } else if (currentUser.role?.name === 'CLIENT_ADMIN') {
+            // Client Admin: specific org and client
+            if (currentUser.organisation_id) {
+                const orgId = currentUser.organisation_id;
+                setSelectedOrg([orgId]);
+                setTempSelectedOrg([orgId]);
+            }
+            if (currentUser.client_id) {
+                const clientId = currentUser.client_id;
+                setSelectedClientFilter([clientId]);
+                setTempSelectedClientFilter([clientId]);
+            }
+        }
+    }, []);
+
+    // Hierarchy Cleanup moved to handlers/effects specific to data changes to avoid loops
+    // Creator cleanup is handled by its own effect above.
+
+
+
+    // Separate effect to clean up selected creators when options change
+    useEffect(() => {
+        if (createdByOptions.length > 0 && tempCreatedByFilter.length > 0) {
+            setTempCreatedByFilter(prev => {
+                const availableIds = createdByOptions.map(c => c.value);
+                const validSelection = prev.filter(id => availableIds.includes(id));
+                // Only update if changed to avoid unnecessary renders
+                if (validSelection.length !== prev.length) {
+                    return validSelection;
+                }
+                return prev;
+            });
+        }
+    }, [createdByOptions]);
+
+    const handleApplyFilters = () => {
+        setStatusFilter(tempStatusFilter);
+        setSelectedRole(tempSelectedRole);
+        setSelectedOrg(tempSelectedOrg);
+        setSelectedClientFilter(tempSelectedClientFilter);
+        setCreatedByFilter(tempCreatedByFilter);
+        setCurrentPage(0);
+        setShowFilters(false);
+    };
+
+    const handleResetFilters = () => {
+        setTempStatusFilter([]);
+        setTempSelectedRole([]);
+        setTempSelectedOrg([]);
+        setTempSelectedClientFilter([]);
+        setTempCreatedByFilter([]);
+    };
+
     useEffect(() => {
         loadData();
-    }, [currentPage, itemsPerPage, statusFilter]);
+    }, [currentPage, itemsPerPage, statusFilter, debouncedSearch, selectedRole, selectedOrg, selectedClientFilter, createdByFilter]);
 
     const rolesLoadedRef = React.useRef(false);
     const dataLoadingRef = React.useRef(false);
 
     useEffect(() => {
         if (!rolesLoadedRef.current) {
-            rolesLoadedRef.current = true;
-            loadRoles();
+            // ONLY load roles/filters for Admins (Super, Org, Client)
+            if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') {
+                rolesLoadedRef.current = true;
+                loadRoles();
+                loadFilterOptions();
+            }
         }
-    }, []);
+    }, [currentUser]);
+
+    const lastCreatorFetchId = React.useRef(0);
+
+    const fetchCreators = async (searchVal: string, orgs: string[], clients: string[]) => {
+        const requestId = Date.now();
+        lastCreatorFetchId.current = requestId;
+
+        try {
+            // Use lightweight creators endpoint
+            const creators = await userService.getCreators(
+                searchVal,
+                orgs.length > 0 ? orgs : undefined,
+                clients.length > 0 ? clients : undefined
+            );
+
+            if (lastCreatorFetchId.current === requestId) {
+                setCreatedByOptions(creators.map(u => ({
+                    label: `${u.first_name || ''} ${u.last_name || ''} (${u.username})`.trim(),
+                    value: u.id,
+                    organisationName: u.organisation_name
+                })));
+            }
+
+        } catch (e) {
+            console.error("Failed to load creator options", e);
+        }
+    };
+
+    const handleCreatorSearch = (val: string) => {
+        setCreatorSearch(val);
+    };
+
+
+    // Role Search Effect
+    useEffect(() => {
+        if (!showFilters) return;
+        const handler = setTimeout(() => {
+            fetchLightRoles(roleSearch, tempSelectedOrg, tempSelectedClientFilter);
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [roleSearch]);
+
+    // Cleanup role options when filter closed or reset? 
+    // Maybe not needed, but good to keep fresh.
+
+    const lastRoleFetchId = React.useRef(0);
+
+    const fetchLightRoles = async (searchVal: string, orgs: string[], clients: string[]) => {
+        const requestId = Date.now();
+        lastRoleFetchId.current = requestId;
+        try {
+            // Pass orgs and clients to filter roles relevant to them
+            const rolesData = await roleService.getLightRoles(searchVal, orgs, clients);
+
+            if (lastRoleFetchId.current === requestId) {
+                setRoleOptions(rolesData.map(r => ({
+                    label: r.name,
+                    value: r.id
+                })));
+            }
+        } catch (e) {
+            console.error("Failed to load light roles", e);
+        }
+    }
+
+    const handleRoleSearch = (val: string) => {
+        setRoleSearch(val);
+    };
+
+    // Debounced Search Effect
+    useEffect(() => {
+        if (!showFilters) return;
+        const handler = setTimeout(() => {
+            fetchCreators(creatorSearch, tempSelectedOrg, tempSelectedClientFilter);
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [creatorSearch]);
+
+    // Immediate Filter Effect - Consolidated
+    // Triggers fetch for BOTH Creators and Roles when filters change or panel opens.
+    // Guards against double-execution via refs or simple dependency management.
+    useEffect(() => {
+        if (!showFilters) return;
+
+        // Fetch Creators - ONLY for Admins who can filter by creator
+        if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') {
+            fetchCreators(creatorSearch, tempSelectedOrg, tempSelectedClientFilter);
+        }
+
+        // Fetch Roles - ONLY for Admins who can filter by role
+        if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') {
+            fetchLightRoles(roleSearch, tempSelectedOrg, tempSelectedClientFilter);
+        }
+
+    }, [showFilters, tempSelectedOrg, tempSelectedClientFilter]);
+
+    const loadFilterOptions = async () => {
+        try {
+            // Load Organisations (if superadmin)
+            if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN') {
+                const orgs = await organisationService.getOrganisations(1, 100);
+                setOrganisations(orgs.organisations.map(o => ({ label: o.name || o.username, value: o.id })));
+            } else {
+                // Optimization: Don't fetch organisations if not superadmin.
+                // We might set 'organisations' to just the current user's org if needed for display?
+                // But the filter is hidden anyway.
+            }
+
+            // Load Clients
+            // Use getVisibleClients instead of getClients to get list without pagination for dropdown
+            const visibleClients = await clientService.getVisibleClients();
+            const mappedClients = visibleClients.map(c => ({
+                label: c.business_name || c.first_name || 'Client',
+                value: c.id,
+                organisationName: c.organisation_name
+            }));
+            setClients(mappedClients);
+            setAllClients(mappedClients); // Populate allClients with the full list
+
+        } catch (error) {
+            console.error("Failed to load filter options", error);
+        }
+    };
 
     const loadRoles = async () => {
         try {
             const rolesData = await roleService.getAssignableRoles(1, 100);
-            setRoles(rolesData.roles.map(r => ({ id: r.id, name: r.name })));
+            setRoles(rolesData.roles.map(r => ({ id: r.id, name: r.name, organisation_id: r.organisation_id })));
         } catch (error) {
             console.error('Failed to load roles:', error);
             rolesLoadedRef.current = false;
@@ -116,7 +370,16 @@ const UserManagement: React.FC = () => {
         try {
             setLoading(true);
             const [usersData, statsData] = await Promise.all([
-                userService.getUsers(currentPage + 1, itemsPerPage, undefined, statusFilter || undefined),
+                userService.getUsers(
+                    currentPage + 1,
+                    itemsPerPage,
+                    debouncedSearch || undefined,
+                    (statusFilter && statusFilter.length > 0) ? statusFilter : undefined,
+                    (selectedRole && selectedRole.length > 0) ? selectedRole : undefined,
+                    (selectedOrg && selectedOrg.length > 0) ? selectedOrg : undefined,
+                    (selectedClientFilter && selectedClientFilter.length > 0) ? selectedClientFilter : undefined,
+                    (createdByFilter && createdByFilter.length > 0) ? createdByFilter : undefined
+                ),
                 userService.getUserStats()
             ]);
             setUsers(usersData.users);
@@ -310,11 +573,11 @@ const UserManagement: React.FC = () => {
 
     const handleStatClick = (type: 'total' | 'active' | 'inactive') => {
         if (type === 'total') {
-            setStatusFilter(null);
+            setStatusFilter([]);
         } else if (type === 'active') {
-            setStatusFilter('ACTIVE');
+            setStatusFilter(['ACTIVE']);
         } else if (type === 'inactive') {
-            setStatusFilter('INACTIVE');
+            setStatusFilter(['INACTIVE']);
         }
         setCurrentPage(0);
     };
@@ -335,7 +598,7 @@ const UserManagement: React.FC = () => {
             icon: Users,
             color: 'blue',
             onClick: () => handleStatClick('total'),
-            active: statusFilter === null
+            active: statusFilter.length === 0
         },
         {
             title: 'Active Users',
@@ -343,7 +606,7 @@ const UserManagement: React.FC = () => {
             icon: UserCheck,
             color: 'green',
             onClick: () => handleStatClick('active'),
-            active: statusFilter === 'ACTIVE'
+            active: statusFilter.includes('ACTIVE')
         },
         {
             title: 'Inactive Users',
@@ -351,7 +614,7 @@ const UserManagement: React.FC = () => {
             icon: UserX,
             color: 'red',
             onClick: () => handleStatClick('inactive'),
-            active: statusFilter === 'INACTIVE'
+            active: statusFilter.includes('INACTIVE')
         },
         // { title: 'Admin Users', value: stats?.admin_users.toString() || '0', icon: Shield, color: 'purple', onClick: undefined, active: false }
     ];
@@ -360,10 +623,11 @@ const UserManagement: React.FC = () => {
         {
             key: 'name',
             header: 'Name',
-            render: (_: any, row: User) => `${row.first_name} ${row.last_name}`
+            render: (_: any, row: User) => `${row.first_name} ${row.last_name}`,
+            width: '200px'
         },
-        { key: 'email', header: 'Email' },
-        { key: 'username', header: 'Username' },
+        { key: 'email', header: 'Email', width: '220px' },
+        { key: 'username', header: 'Username', width: '150px' },
         {
             key: 'phone',
             header: 'Phone',
@@ -376,17 +640,20 @@ const UserManagement: React.FC = () => {
                 ) : (
                     <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>None</span>
                 );
-            }
+            },
+            width: '140px'
         },
         ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' ? [{
             key: 'created_by_name',
             header: 'Created By',
-            render: (_: any, row: User) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>
+            render: (_: any, row: User) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>,
+            width: '180px'
         }] : []),
         ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
             key: 'organisation_name',
             header: 'Organisation',
-            render: (_: any, row: User) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
+            render: (_: any, row: User) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>,
+            width: '180px'
         }] : []),
         {
             key: 'roles',
@@ -395,7 +662,8 @@ const UserManagement: React.FC = () => {
                 if (roles.length === 0) return 'No roles';
                 if (roles.length === 1) return roles[0].name;
                 return `${roles[0].name} +${roles.length - 1}`;
-            }
+            },
+            width: '150px'
         },
         {
             key: 'clients',
@@ -441,7 +709,8 @@ const UserManagement: React.FC = () => {
                         {text}
                     </div>
                 );
-            }
+            },
+            width: '150px'
         },
         {
             key: 'statusCode',
@@ -453,9 +722,10 @@ const UserManagement: React.FC = () => {
                         {isActive ? 'Active' : 'Inactive'}
                     </span>
                 );
-            }
+            },
+            width: '150px'
         },
-        {
+        ...(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN' ? [{
             key: 'actions',
             header: 'Actions',
             render: (_: any, row: User) => (
@@ -492,8 +762,9 @@ const UserManagement: React.FC = () => {
                         </button>
                     </span>
                 </div>
-            )
-        }
+            ),
+            width: '120px'
+        }] : [])
     ];
 
     if (isInitialLoading) {
@@ -527,14 +798,72 @@ const UserManagement: React.FC = () => {
                         <Users size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         Users
                     </h2>
-                    <button className="add-btn" onClick={handleAddNew}>
-                        Add User
-                    </button>
+                    <div>
+
+                        {/* Search, Filters and Add User Bar */}
+                        <div style={{ display: 'flex', gap: (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') ? '12px' : '0', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
+                            <div className="filter-group" style={{ minWidth: '300px' }}>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name, email..."
+                                        className="filter-input"
+                                        value={searchQuery}
+                                        onChange={(e) => handleSearchChange(e.target.value)}
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => handleSearchChange('')}
+                                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="filter-group" style={{ flex: '0 0 auto', minWidth: 'auto' }}>
+                                {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                                    <button
+                                        className="filterButton"
+                                        onClick={handleOpenFilters}
+                                    >
+                                        <Filter size={16} />
+                                        Filters
+                                        {(() => {
+                                            let count = 0;
+                                            if (selectedRole && selectedRole.length > 0) count++;
+                                            // Don't count Org filter for Org Admins (implicit)
+                                            if (selectedOrg && selectedOrg.length > 0 && currentUser?.role?.name !== 'ORGANISATION_ROLE') count++;
+                                            // Don't count Client filter for Client Admins (implicit)
+                                            if (selectedClientFilter && selectedClientFilter.length > 0 && currentUser?.role?.name !== 'CLIENT_ADMIN' && !currentUser?.is_client) count++;
+                                            if (statusFilter && statusFilter.length > 0) count++;
+                                            if (createdByFilter && createdByFilter.length > 0) count++;
+
+                                            return count > 0 ? <span className="filterBadge">{count}</span> : null;
+                                        })()}
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="filter-group" style={{ flex: '0 0 auto', minWidth: 'auto', marginLeft: 'auto' }}>
+                                {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                                    <button className="add-btn" onClick={handleAddNew} style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
+                                        Add User
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+
+                    </div>
                 </div>
+
                 <Table
                     columns={userColumns}
                     data={users}
                     maxHeight="calc(100vh - 360px)"
+                    className="user-table-container"
                 />
                 {loading && !isInitialLoading && (
                     <div style={{
@@ -653,6 +982,121 @@ const UserManagement: React.FC = () => {
                 user={clientMappingModal.user}
                 onUpdate={loadData}
             />
+
+            {/* Filter Offcanvas */}
+            <div className={`offcanvas ${showFilters ? 'offcanvasOpen' : ''}`}>
+                <div className="offcanvasOverlay" onClick={() => setShowFilters(false)} />
+                <div className="offcanvasContent">
+                    <div className="offcanvasHeader">
+                        <h3>Filters</h3>
+                        <button className="closeButton" onClick={() => setShowFilters(false)}>
+                            <X size={20} />
+                        </button>
+                    </div>
+                    <div className="offcanvasBody">
+
+
+                        {/* Organisation Filter - Show for Superuser ONLY (Hide for Org Role & Client Admin) */}
+                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN') && (
+                            <div className="filterGroup">
+                                <label>Organisation</label>
+                                <CommonMultiSelect
+                                    options={organisations}
+                                    value={tempSelectedOrg}
+                                    onChange={(val) => {
+                                        setTempSelectedOrg(val);
+                                        // Update dependent clients immediately to prevent effect loops
+                                        if (val.length > 0) {
+                                            const selectedOrgNames = organisations
+                                                .filter(o => val.includes(o.value))
+                                                .map(o => o.label);
+
+                                            setTempSelectedClientFilter(prev => {
+                                                const validClients = allClients.filter(c =>
+                                                    c.organisationName && selectedOrgNames.some(name => c.organisationName?.includes(name))
+                                                ).map(c => c.value);
+                                                // Only update if difference found (optimization)
+                                                const newSelection = prev.filter(id => validClients.includes(id));
+                                                if (newSelection.length !== prev.length) return newSelection;
+                                                return prev;
+                                            });
+                                        }
+                                    }}
+                                    placeholder="Filter by Organisation"
+                                    size="md"
+                                />
+                            </div>
+                        )}
+
+                        {/* Client Filter - Show for Superuser AND Organisation Role (Hide for Client Admin & Standard Users) */}
+                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE') && (
+                            <div className="filterGroup">
+                                <label>Client</label>
+                                <CommonMultiSelect
+                                    options={allClients.filter(c => {
+                                        if (tempSelectedOrg.length === 0) return true;
+                                        // Find selected org names
+                                        const selectedOrgNames = organisations
+                                            .filter(o => tempSelectedOrg.includes(o.value))
+                                            .map(o => o.label);
+
+                                        // Check if client matches any selected org name
+                                        return c.organisationName && selectedOrgNames.some(name => c.organisationName?.includes(name)); // Looser match or exact?
+                                        // Ideally exact match, but organisation_name in client might differ slightly? 
+                                        // Assuming exact match for now if possible, else looser. 
+                                        // Actually, let's try exact match first
+                                        // return c.organisationName && selectedOrgNames.includes(c.organisationName);
+                                    })}
+                                    value={tempSelectedClientFilter}
+                                    onChange={(val) => setTempSelectedClientFilter(val)}
+                                    placeholder="Filter by Client"
+                                    size="md"
+                                />
+                            </div>
+                        )}
+
+                        {/* Role Filter - Show for Admins Only */}
+                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                            <div className="filterGroup">
+                                <label>Role</label>
+                                <CommonMultiSelect
+                                    options={roleOptions}
+                                    value={tempSelectedRole}
+                                    onChange={setTempSelectedRole}
+                                    placeholder="Filter by Role"
+                                    size="md"
+                                    isSearchable={true}
+                                    onInputChange={handleRoleSearch}
+                                />
+                            </div>
+                        )}
+
+                        {/* Created By Filter - Show for Superuser and Organisation Role */}
+                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                            <div className="filterGroup">
+                                <label>Created By</label>
+                                <CommonMultiSelect
+                                    options={createdByOptions}
+                                    value={tempCreatedByFilter}
+                                    onChange={(val) => setTempCreatedByFilter(val)}
+                                    placeholder="Filter by Creator"
+                                    size="md"
+                                    isSearchable={true}
+                                    onInputChange={handleCreatorSearch}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <div className="offcanvasFooter">
+                        <button className="resetButton" onClick={handleResetFilters}>
+                            Reset
+                        </button>
+                        <button className="applyButton" onClick={handleApplyFilters}>
+                            Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
 
         </div>
     );
