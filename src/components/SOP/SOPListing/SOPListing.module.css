@@ -797,6 +797,54 @@
     gap: 20px;
 }
 
+/* Sticky Column Styles */
+.sopTable :global(table) {
+    min-width: 1400px;
+    /* Force scroll */
+}
+
+.sopTable :global(th:last-child) {
+    position: sticky;
+    right: 0;
+    z-index: 20;
+    background: #f8fafc;
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.05);
+    border-left: 1px solid #e2e8f0;
+}
+
+.sopTable :global(td:last-child) {
+    position: sticky;
+    right: 0;
+    z-index: 10;
+    background: white;
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.05);
+    border-left: 1px solid #e2e8f0;
+}
+
+/* Handle row hover for sticky column */
+.sopTable :global(tbody tr:hover td:last-child) {
+    background: #f8fafc;
+}
+
+/* Dark mode overrides */
+:global(.dark) .sopTable :global(th:last-child) {
+    background: #374151;
+    border-left-color: #4b5563;
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.2);
+}
+
+:global(.dark) .sopTable :global(td:last-child) {
+    background: #1f2937;
+    /* Default dark row bg from Table.module.css seems to be transparent or inherited? */
+    /* Table.module.css: .container { background: #1f2937 } */
+    border-left-color: #374151;
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.2);
+}
+
+:global(.dark) .sopTable :global(tbody tr:hover td:last-child) {
+    background: #374151;
+}
+
 .filterGroup {
     display: flex;
     flex-direction: column;

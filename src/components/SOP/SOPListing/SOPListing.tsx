@@ -501,7 +501,7 @@ const SOPListing: React.FC = () => {
     {
       key: "title",
       header: "Title",
-      width: "32%",
+      width: "250px",
       render: (_: string, row: SOP) => (
         <div>
           <div style={{ fontWeight: 500, color: "#111827" }}>
@@ -513,7 +513,7 @@ const SOPListing: React.FC = () => {
     {
       key: "client_name",
       header: "Client",
-      width: "32%",
+      width: "200px",
       render: (_: string, row: SOP) => (
         <div>
           <div style={{ fontWeight: 500, color: "#111827" }}>
@@ -525,13 +525,13 @@ const SOPListing: React.FC = () => {
     {
       key: "npi",
       header: "NPI",
-      width: "12%",
+      width: "120px",
       render: (_: any, row: SOP) => row.providerInfo?.billingProviderNPI || "-",
     },
     {
       key: "category",
       header: "Category",
-      width: "15%",
+      width: "150px",
       render: (_: any, row: SOP) => (
         <span className={styles.badge}>{getCategoryLabel(row.category)}</span>
       ),
@@ -539,30 +539,32 @@ const SOPListing: React.FC = () => {
     {
       key: "software",
       header: "Software",
-      width: "12%",
+      width: "120px",
       render: (_: any, row: SOP) => row.providerInfo?.software || "-",
     },
     {
       key: "updatedAt",
       header: "Last Updated",
-      width: "14%",
+      width: "140px",
       render: (_: any, row: SOP) =>
         row.updatedAt ? new Date(row.updatedAt).toLocaleDateString() : "-",
     },
     ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' ? [{
       key: 'created_by_name',
       header: 'Created By',
+      width: '150px',
       render: (_: any, row: SOP) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>
     }] : []),
     ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
       key: 'organisation_name',
       header: 'Organisation',
+      width: '150px',
       render: (_: any, row: SOP) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
     }] : []),
     {
       key: "actions",
       header: "Actions",
-      width: "130px",
+      width: "150px",
       render: (_: any, row: SOP) => {
         // ✅ CORRECT PLACE
         const isActive = row.statusId === activeStatusId;
@@ -740,6 +742,7 @@ const SOPListing: React.FC = () => {
         </div>
       ) : (
         <Table
+          className={styles.sopTable}
           data={filteredSOPs}
           columns={columns}
           maxHeight="calc(100vh - 240px)"
