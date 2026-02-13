@@ -32,7 +32,7 @@ const DocumentUpload: React.FC = () => {
     type: ToastType;
   } | null>(null);
   const currentUser = authService.getUser();
-  const isClientUser = currentUser?.is_client === true;
+const isClientUser = currentUser?.is_client === true || !!currentUser?.client_id;
 
 
   // const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
@@ -641,7 +641,50 @@ const fetchActiveForm = async () => {
         </div>
 
         {/* Right Section (40%) - Dynamic Form */}
-        <div className={styles.rightSection}>
+        {!isClientUser && (
+  <div className={styles.rightSection}>
+    {formLoading ? (
+      <div className={styles.section}>
+        <div className={styles.loadingState}>
+          <p>Loading form...</p>
+        </div>
+      </div>
+    ) : !selectedForm ? (
+      <div className={styles.section}>
+        <div className={styles.noFormState}>
+          <p>No active form configured</p>
+        </div>
+      </div>
+    ) : (
+      <div className={styles.formContainer}>
+        <div className={styles.formHeader}>
+          <h3 className={styles.formTitle}>{selectedForm.name}</h3>
+          {selectedForm.description && (
+            <p className={styles.formDescription}>
+              {selectedForm.description}
+            </p>
+          )}
+        </div>
+
+        <div className={styles.formFields}>
+          {selectedForm.fields?.map((field) => (
+            <div key={field.id} className={styles.formGroup}>
+              <label className={styles.label}>
+                {field.label}
+                {field.required && (
+                  <span className={styles.required}>*</span>
+                )}
+              </label>
+              {renderFormField(field)}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
+        {/* <div className={styles.rightSection}>
   {formLoading ? (
     <div className={styles.section}>
       <div className={styles.loadingState}>
@@ -679,11 +722,9 @@ const fetchActiveForm = async () => {
         ))}
       </div>
     </div>
-  )}
+  )} */}
 </div>
         {/* AI Processing Options */}
-      </div>
-
       {toast && (
         <Toast
           message={toast.message}

@@ -92,6 +92,28 @@ const DocumentList: React.FC = () => {
     message: string;
     type: ToastType;
   } | null>(null);
+const user = authService.getUser();
+
+const isSuperAdmin = user?.role?.name === "SUPER_ADMIN";
+const isOrgAdmin = user?.role?.name === "ORGANISATION_ROLE"; // adjust if different
+const isOrgUser =
+  !isSuperAdmin &&
+  !user?.is_client &&
+  !!user?.organisation_id &&
+  !user?.client_id;
+
+const isClient = user?.is_client === true && !user?.client_id; 
+const isClientUser = !!user?.client_id && user?.is_client === true;
+
+const showUploadedByFilter =
+  isSuperAdmin || isOrgAdmin || isClient;
+
+const showOrganisationFilter =
+  isSuperAdmin;
+
+const showClientFilter =
+  isSuperAdmin || isOrgAdmin;
+
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Record<string, any>>({
     status: "",
@@ -351,14 +373,14 @@ const loadMetadata = async () => {
     );
 
     // uploaded by
-    setUploadedByOptions(uploadedByRes || []);
+// uploaded by
+if (showUploadedByFilter) {
+  setUploadedByOptions(uploadedByRes || []);
+}
 
-    // organisation
-if (user?.role?.name === "SUPER_ADMIN") {
-  try {
-    const orgRes = await documentService.getOrganisationFilter();
-    setOrganisationOptions(orgRes || []);
-  } catch {}
+// organisation
+if (showOrganisationFilter) {
+  setOrganisationOptions(orgRes || []);
 }
 
     // form
@@ -1938,37 +1960,16 @@ if (value === null || value === undefined || value === "") return;
                 </div>
               </div>
             </div>
-                <div className={styles.filterGroup}>
-  <label>Uploaded By</label>
-  <CommonDropdown
-    value={filters.uploaded_by || ""}
-onChange={(value) => {
-  setFilters((prev) => ({ ...prev, uploaded_by: value }));
-  setActiveFilters((prev) => ({ ...prev, uploaded_by: value }));
-  setCurrentPage(0);
-}}
-
-    options={[
-      { value: "", label: "All Users" },
-      ...uploadedByOptions.map((u) => ({
-        value: u.id,
-        label: u.name,
-      })),
-    ]}
-    size="md"
-  />
-</div>
-{authService.getUser()?.role?.name === "SUPER_ADMIN" && (
+            {showOrganisationFilter && (
   <div className={styles.filterGroup}>
     <label>Organisation</label>
     <CommonDropdown
       value={filters.organisation_filter || ""}
-onChange={(value) => {
-  setFilters((prev) => ({ ...prev, organisation_filter: value }));
-  setActiveFilters((prev) => ({ ...prev, organisation_filter: value }));
-  setCurrentPage(0);
-}}
-
+      onChange={(value) => {
+        setFilters((prev) => ({ ...prev, organisation_filter: value }));
+        setActiveFilters((prev) => ({ ...prev, organisation_filter: value }));
+        setCurrentPage(0);
+      }}
       options={[
         { value: "", label: "All Organisations" },
         ...organisationOptions.map((o) => ({
@@ -1980,6 +1981,28 @@ onChange={(value) => {
     />
   </div>
 )}
+{showUploadedByFilter && (
+  <div className={styles.filterGroup}>
+    <label>Uploaded By</label>
+    <CommonDropdown
+      value={filters.uploaded_by || ""}
+      onChange={(value) => {
+        setFilters((prev) => ({ ...prev, uploaded_by: value }));
+        setActiveFilters((prev) => ({ ...prev, uploaded_by: value }));
+        setCurrentPage(0);
+      }}
+      options={[
+        { value: "", label: "All Users" },
+        ...uploadedByOptions.map((u) => ({
+          value: u.id,
+          label: u.name,
+        })),
+      ]}
+      size="md"
+    />
+  </div>
+)}
+
             {/* Dynamic Form Field Filters */}
             {formFields.map((field) => {
               const isClientField =

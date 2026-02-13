@@ -231,7 +231,7 @@ async getDocuments(filterParams?: {
 }
 // users who uploaded docs
 async getUploadedByFilter() {
-  const res = await apiClient(`${API_BASE_URL}/api/documents/filter/uploaded-by`);
+  const res = await apiClient(`${API_BASE_URL}/api/documents/filters/uploaded-by`);
   if (!res.ok) throw new Error("uploaded_by filter failed");
   return res.json();
 }
