@@ -1904,12 +1904,11 @@ const CreateSOP: React.FC = () => {
                         <label className={styles.label}>Description</label>
                         <input
                           className={styles.input}
-                          value={newCpt.description}
+                          value={codingType === "CPT" ? newCpt.description : newIcd.description || ""}
                           onChange={(e) =>
-                            setNewCpt({
-                              ...newCpt,
-                              description: e.target.value,
-                            })
+                            codingType === "CPT"
+                              ? setNewCpt({ ...newCpt, description: e.target.value })
+                              : setNewIcd({ ...newIcd, description: e.target.value })
                           }
                         />
                       </div>
@@ -1920,7 +1919,7 @@ const CreateSOP: React.FC = () => {
                           className={styles.saveButton}
                           onClick={handleAddCodingRule}
                         >
-                          <Plus size={16} /> Add More
+                          <Plus size={16} /> Add
                         </button>
                       </div>
                     </div>
