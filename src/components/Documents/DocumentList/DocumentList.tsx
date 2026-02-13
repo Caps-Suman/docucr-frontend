@@ -354,7 +354,12 @@ const loadMetadata = async () => {
     setUploadedByOptions(uploadedByRes || []);
 
     // organisation
+if (user?.role?.name === "SUPER_ADMIN") {
+  try {
+    const orgRes = await documentService.getOrganisationFilter();
     setOrganisationOptions(orgRes || []);
+  } catch {}
+}
 
     // form
     const res = await formService.getActiveForm();
