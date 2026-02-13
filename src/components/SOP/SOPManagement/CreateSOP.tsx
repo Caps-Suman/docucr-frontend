@@ -896,8 +896,9 @@ const CreateSOP: React.FC = () => {
             //   disabled={currentStep !== 1} 
             // >
             //   <Upload size={16} />
-            //   Upload SOP
+            //   Upload SOP 1
             // </button>
+
 
             <button
               className={styles.saveButton}
