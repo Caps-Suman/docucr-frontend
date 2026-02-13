@@ -568,53 +568,71 @@ const DocumentList: React.FC = () => {
       try {
         const configRes = await documentListConfigService.getMyConfig();
 
+        let sortedColumns: any[] = [];
+
         if (configRes.configuration) {
-          let sortedColumns: any[] = [...configRes.configuration.columns];
-
-          // 1. Enforce specific order for system columns
-          //    UploadedBy/Org = 900 (before status)
-          //    Status = 1000
-          //    Actions = 1001 (end)
-          const systemOrders: Record<string, number> = {
-            uploadedBy: 900,
-            organisationName: 900,
-            status: 1000,
-            actions: 1001,
-          };
-
-          // 2. Update existing columns if they match
-          sortedColumns.forEach((col: any) => {
-            if (systemOrders[col.id] !== undefined) {
-              col.order = systemOrders[col.id];
-            }
-          });
-
-          // 3. Add missing columns (UploadedBy, Organisation) if not present
-          const requiredSystemColumns = [
-            { id: "uploadedBy", label: "Uploaded By" },
-            { id: "organisationName", label: "Organisation" },
+          sortedColumns = [...configRes.configuration.columns];
+        } else {
+          // Default columns if no config exists for the organisation
+          sortedColumns = [
+            { id: "select", label: "", visible: true, order: 0, width: 50, type: "system", required: true },
+            { id: "name", label: "Name", visible: true, order: 1, width: 200, type: "system", required: true },
+            { id: "client", label: "Client", visible: true, order: 2, width: 150, type: "system", required: false },
+            { id: "type", label: "Type", visible: true, order: 3, width: 100, type: "system", required: false },
+            { id: "pages", label: "Pages", visible: true, order: 4, width: 80, type: "number", required: false },
+            { id: "size", label: "Size", visible: true, order: 5, width: 100, type: "system", required: false },
+            { id: "uploadedAt", label: "Date", visible: true, order: 6, width: 150, type: "date", required: false },
+            { id: "uploadedBy", label: "Uploaded By", visible: true, order: 900, width: 150, type: "system", required: false },
+            { id: "organisationName", label: "Organisation", visible: true, order: 900, width: 150, type: "system", required: false },
+            { id: "status", label: "Status", visible: true, order: 1000, width: 120, type: "system", required: true },
+            { id: "actions", label: "Actions", visible: true, order: 1001, width: 100, type: "system", required: true },
           ];
-
-          requiredSystemColumns.forEach((col) => {
-            if (!sortedColumns.find((c: any) => c.id === col.id)) {
-              sortedColumns.push({
-                id: col.id,
-                label: col.label,
-                isSystem: true,
-                visible: true,
-                order: systemOrders[col.id],
-                width: 150,
-                type: "system",
-                required: false,
-              });
-            }
-          });
-
-          // 4. Sort finally
-          sortedColumns.sort((a: any, b: any) => a.order - b.order);
-
-          setColumnConfig(sortedColumns);
         }
+
+        // 1. Enforce specific order for system columns
+        //    UploadedBy/Org = 900 (before status)
+        //    Status = 1000
+        //    Actions = 1001 (end)
+        const systemOrders: Record<string, number> = {
+          uploadedBy: 900,
+          organisationName: 900,
+          status: 1000,
+          actions: 1001,
+        };
+
+        // 2. Update existing columns if they match
+        sortedColumns.forEach((col: any) => {
+          if (systemOrders[col.id] !== undefined) {
+            col.order = systemOrders[col.id];
+          }
+        });
+
+        // 3. Add missing columns (UploadedBy, Organisation) if not present
+        const requiredSystemColumns = [
+          { id: "uploadedBy", label: "Uploaded By" },
+          { id: "organisationName", label: "Organisation" },
+        ];
+
+        requiredSystemColumns.forEach((col) => {
+          if (!sortedColumns.find((c: any) => c.id === col.id)) {
+            sortedColumns.push({
+              id: col.id,
+              label: col.label,
+              isSystem: true,
+              visible: true,
+              order: systemOrders[col.id],
+              width: 150,
+              type: "system",
+              required: false,
+            });
+          }
+        });
+
+        // 4. Sort finally
+        sortedColumns.sort((a: any, b: any) => a.order - b.order);
+
+        setColumnConfig(sortedColumns);
+
       } catch {
         console.log("column config failed");
       }
