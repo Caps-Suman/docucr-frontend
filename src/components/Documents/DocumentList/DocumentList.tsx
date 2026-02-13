@@ -92,6 +92,28 @@ const DocumentList: React.FC = () => {
     message: string;
     type: ToastType;
   } | null>(null);
+  const user = authService.getUser();
+
+  const isSuperAdmin = user?.role?.name === "SUPER_ADMIN";
+  const isOrgAdmin = user?.role?.name === "ORGANISATION_ROLE"; // adjust if different
+  const isOrgUser =
+    !isSuperAdmin &&
+    !user?.is_client &&
+    !!user?.organisation_id &&
+    !user?.client_id;
+
+  const isClient = user?.is_client === true && !user?.client_id;
+  const isClientUser = !!user?.client_id && user?.is_client === true;
+
+  const showUploadedByFilter =
+    isSuperAdmin || isOrgAdmin || isClient;
+
+  const showOrganisationFilter =
+    isSuperAdmin;
+
+  const showClientFilter =
+    isSuperAdmin || isOrgAdmin;
+
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Record<string, any>>({
     status: "",
@@ -106,8 +128,8 @@ const DocumentList: React.FC = () => {
     dateFrom: null,
     dateTo: null,
     sharedOnly: false,
-     uploaded_by: "",
-  organisation_filter: "",
+    uploaded_by: "",
+    organisation_filter: "",
   });
   const [showActionLogModal, setShowActionLogModal] = useState(false);
   const [actionLogDocumentId, setActionLogDocumentId] = useState<string | null>(
@@ -121,7 +143,7 @@ const DocumentList: React.FC = () => {
     new Set(),
   );
   const [uploadedByOptions, setUploadedByOptions] = useState<any[]>([]);
-const [organisationOptions, setOrganisationOptions] = useState<any[]>([]);
+  const [organisationOptions, setOrganisationOptions] = useState<any[]>([]);
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -167,9 +189,9 @@ const [organisationOptions, setOrganisationOptions] = useState<any[]>([]);
       dateFrom: null,
       dateTo: null,
       sharedOnly: false,
-      
-  uploaded_by: "",
-  organisation_filter: "",
+
+      uploaded_by: "",
+      organisation_filter: "",
     };
     // Reset all dynamic form fields
     formFields.forEach((field) => {
@@ -269,108 +291,113 @@ const [organisationOptions, setOrganisationOptions] = useState<any[]>([]);
   //   };
   // }, [activeFilters, clients, documentTypes, currentPage, pageSize]);
 
-//   const loadMetadata = async () => {
-//     try {
-//       const [clientsRes, docTypesRes, activeFormRes] = await Promise.all([
-//         clientService.getClients(1, 1000),
-//         documentTypeService.getDocumentTypes(1, 1000),
-//         authService.getUser()?.role?.name !== "SUPER_ADMIN"
-//           ? formService.getActiveForm().catch(() => null)
-//           : Promise.resolve(null),
-//       ]);
-//       try {
-//   const uploadedRes = await documentService.getUploadedByFilter();
-//   setUploadedByOptions(uploadedRes || []);
-// } catch {}
+  //   const loadMetadata = async () => {
+  //     try {
+  //       const [clientsRes, docTypesRes, activeFormRes] = await Promise.all([
+  //         clientService.getClients(1, 1000),
+  //         documentTypeService.getDocumentTypes(1, 1000),
+  //         authService.getUser()?.role?.name !== "SUPER_ADMIN"
+  //           ? formService.getActiveForm().catch(() => null)
+  //           : Promise.resolve(null),
+  //       ]);
+  //       try {
+  //   const uploadedRes = await documentService.getUploadedByFilter();
+  //   setUploadedByOptions(uploadedRes || []);
+  // } catch {}
 
-// const user = authService.getUser();
-// if (user?.role?.name === "SUPER_ADMIN") {
-//   try {
-//     const orgRes = await documentService.getOrganisationFilter();
-//     setOrganisationOptions(orgRes || []);
-//   } catch {}
-// }
+  // const user = authService.getUser();
+  // if (user?.role?.name === "SUPER_ADMIN") {
+  //   try {
+  //     const orgRes = await documentService.getOrganisationFilter();
+  //     setOrganisationOptions(orgRes || []);
+  //   } catch {}
+  // }
 
-//       // Handle different response formats safely
-//       const clientList = Array.isArray(clientsRes)
-//         ? clientsRes
-//         : (clientsRes as any).clients || [];
-//       const typeList = Array.isArray(docTypesRes)
-//         ? docTypesRes
-//         : (docTypesRes as any).document_types || [];
+  //       // Handle different response formats safely
+  //       const clientList = Array.isArray(clientsRes)
+  //         ? clientsRes
+  //         : (clientsRes as any).clients || [];
+  //       const typeList = Array.isArray(docTypesRes)
+  //         ? docTypesRes
+  //         : (docTypesRes as any).document_types || [];
 
-//       setClients(clientList);
-//       setDocumentTypes(typeList);
+  //       setClients(clientList);
+  //       setDocumentTypes(typeList);
 
-//       if (activeFormRes && activeFormRes.fields) {
-//         setFormFields(activeFormRes.fields);
-//       }
-//     } catch (err) {
-//       console.error("Failed to load metadata for labels:", err);
-//     }
-//   };
+  //       if (activeFormRes && activeFormRes.fields) {
+  //         setFormFields(activeFormRes.fields);
+  //       }
+  //     } catch (err) {
+  //       console.error("Failed to load metadata for labels:", err);
+  //     }
+  //   };
 
-const loadMetadata = async () => {
-  try {
-    const user = authService.getUser();
+  const loadMetadata = async () => {
+    try {
+      const user = authService.getUser();
 
-    const [
-      clientsRes,
-      docTypesRes,
-      activeForm,
-      uploadedByRes,
-      orgRes
-    ] = await Promise.all([
-      clientService.getClients(1, 1000),
-      documentTypeService.getDocumentTypes(1, 1000),
+      const [
+        clientsRes,
+        docTypesRes,
+        activeForm,
+        uploadedByRes,
+        orgRes
+      ] = await Promise.all([
+        clientService.getClients(1, 1000),
+        documentTypeService.getDocumentTypes(1, 1000),
 
-      user?.role?.name !== "SUPER_ADMIN"
-        ? formService.getActiveForm()
-        : Promise.resolve(null),
+        user?.role?.name !== "SUPER_ADMIN"
+          ? formService.getActiveForm()
+          : Promise.resolve(null),
 
-      // 🔥 LOAD DROPDOWN DATA
-      documentService.getUploadedByFilter().catch(() => []),
+        // 🔥 LOAD DROPDOWN DATA
+        documentService.getUploadedByFilter().catch(() => []),
 
-      user?.role?.name === "SUPER_ADMIN"
-        ? documentService.getOrganisationFilter().catch(() => [])
-        : Promise.resolve([])
-    ]);
+        user?.role?.name === "SUPER_ADMIN"
+          ? documentService.getOrganisationFilter().catch(() => [])
+          : Promise.resolve([])
+      ]);
 
-    // clients
-    setClients(
-      Array.isArray(clientsRes)
-        ? clientsRes
-        : clientsRes?.clients || []
-    );
+      // clients
+      setClients(
+        Array.isArray(clientsRes)
+          ? clientsRes
+          : clientsRes?.clients || []
+      );
 
-    // doc types
-    setDocumentTypes(
-      Array.isArray(docTypesRes)
-        ? docTypesRes
-        : docTypesRes?.document_types || []
-    );
+      // doc types
+      setDocumentTypes(
+        Array.isArray(docTypesRes)
+          ? docTypesRes
+          : docTypesRes?.document_types || []
+      );
 
-    // uploaded by
-    setUploadedByOptions(uploadedByRes || []);
+      // uploaded by
+      // uploaded by
+      if (showUploadedByFilter) {
+        setUploadedByOptions(uploadedByRes || []);
+      }
 
-    // organisation
-    setOrganisationOptions(orgRes || []);
+      // organisation
+      if (showOrganisationFilter) {
+        setOrganisationOptions(orgRes || []);
+      }
 
-    // form
-    const res = await formService.getActiveForm();
+      // form
+      const res = await formService.getActiveForm();
 
-if (res?.has_active_form && res.form?.fields) {
-  setFormFields(res.form.fields);
-} else {
-  setFormFields([]);
-}
+      if (res?.has_active_form && res.form?.fields) {
+        setFormFields(res.form.fields);
+      } else {
+        setFormFields([]);
+      }
 
 
-  } catch (err) {
-    console.error("metadata load failed", err);
-    setFormFields([]);
-  }
-};
+    } catch (err) {
+      console.error("metadata load failed", err);
+      setFormFields([]);
+    }
+  };
 
 
   // Cleanup upload store for documents that are already present in the backend list
@@ -409,155 +436,191 @@ if (res?.has_active_form && res.form?.fields) {
     undefined;
 
   const loadDocuments = async () => {
-  try {
-    setLoading(true);
-    await loadStats();
-
-    // ================================
-    // BUILD FILTERS CLEANLY
-    // ================================
-    const formFilters: Record<string, any> = {};
-
-    let clientId: string | undefined;
-    let documentTypeId: string | undefined;
-    let organisationId: string | undefined;
-
-    Object.entries(activeFilters).forEach(([key, value]) => {
-if (value === null || value === undefined || value === "") return;
-
-      // skip non-data filters
-      if (["status", "sharedOnly", "dateFrom", "dateTo"].includes(key)) return;
-
-      // handle form fields
-      if (key.startsWith("form_")) {
-        const fieldId = key.replace("form_", "");
-        const fieldMeta = formFields.find(f => String(f.id) === fieldId);
-        console.log("FORM FIELDS:", formFields);
-
-        if (!fieldMeta) return;
-
-        const label = fieldMeta.label?.toLowerCase() || "";
-
-        // client dropdown
-        if (label.includes("client")) {
-          clientId = value;
-          return;
-        }
-
-        // document type dropdown
-        if (label.includes("document type")) {
-          documentTypeId = value;
-          return;
-        }
-
-        // organisation dropdown
-        if (label.includes("organisation")) {
-          organisationId = value;
-          return;
-        }
-
-        // normal form field
-        formFilters[fieldId] = value;
-      }
-    });
-
-    const serviceFilters = {
-      status: activeFilters.status || undefined,
-      sharedOnly: activeFilters.sharedOnly || undefined,
-
-      dateFrom: activeFilters.dateFrom
-        ? formatLocalDate(activeFilters.dateFrom)
-        : undefined,
-
-      dateTo: activeFilters.dateTo
-        ? formatLocalDate(activeFilters.dateTo)
-        : undefined,
-
-      client_id: clientId,
-      document_type_id: documentTypeId,
-      organisation_id: organisationId,
-        uploaded_by: activeFilters.uploaded_by || undefined,
-  organisation_filter: activeFilters.organisation_filter || undefined,
-
-      formFilters: Object.keys(formFilters).length ? formFilters : undefined,
-
-      skip: currentPage * pageSize,
-      limit: pageSize,
-    };
-
-    // ================================
-    // API CALL
-    // ================================
-    console.log("SERVICE FILTERS >>>", serviceFilters);
-
-    const response = await documentService.getDocuments(serviceFilters);
-
-    const docs = response.documents || [];
-    setTotalDocuments(response.total || 0);
-
-    // ================================
-    // NORMALIZE
-    // ================================
-    let formattedDocs = docs.map((doc: any) => {
-      const normalized = documentService.normalizeDocument(doc);
-
-      return {
-        ...normalized,
-        status: (normalized.status?.toLowerCase() || "processing") as DocStatus,
-      };
-    });
-
-    // ================================
-    // FRONTEND FILTERS (ONLY TABS)
-    // ================================
-    if (activeFilters.sharedOnly) {
-      formattedDocs = formattedDocs.filter(d => d.isSharedWithMe);
-    }
-
-    else if (activeFilters.status === "ARCHIVED") {
-      formattedDocs = formattedDocs.filter(d => d.isArchived);
-    }
-
-    else if (activeFilters.status === "COMPLETED") {
-      formattedDocs = formattedDocs.filter(
-        d => d.status === "completed" && !d.isArchived
-      );
-    }
-
-    else if (activeFilters.status === "PROCESSING") {
-      formattedDocs = formattedDocs.filter(
-        d => d.status === "processing" && !d.isArchived
-      );
-    }
-
-    // ================================
-    // SET DOCUMENTS
-    // ================================
-    setDocuments(formattedDocs);
-
-    // ================================
-    // COLUMN CONFIG (UNCHANGED)
-    // ================================
     try {
-      const configRes = await documentListConfigService.getMyConfig();
+      setLoading(true);
+      await loadStats();
 
-      if (configRes.configuration) {
-        let sortedColumns = [...configRes.configuration.columns]
-          .sort((a: any, b: any) => a.order - b.order);
+      // ================================
+      // BUILD FILTERS CLEANLY
+      // ================================
+      const formFilters: Record<string, any> = {};
 
+      let clientId: string | undefined;
+      let documentTypeId: string | undefined;
+      let organisationId: string | undefined;
+
+      Object.entries(activeFilters).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === "") return;
+
+        // skip non-data filters
+        if (["status", "sharedOnly", "dateFrom", "dateTo"].includes(key)) return;
+
+        // handle form fields
+        if (key.startsWith("form_")) {
+          const fieldId = key.replace("form_", "");
+          const fieldMeta = formFields.find(f => String(f.id) === fieldId);
+          console.log("FORM FIELDS:", formFields);
+
+          if (!fieldMeta) return;
+
+          const label = fieldMeta.label?.toLowerCase() || "";
+
+          // client dropdown
+          if (label.includes("client")) {
+            clientId = value;
+            return;
+          }
+
+          // document type dropdown
+          if (label.includes("document type")) {
+            documentTypeId = value;
+            return;
+          }
+
+          // organisation dropdown
+          if (label.includes("organisation")) {
+            organisationId = value;
+            return;
+          }
+
+          // normal form field
+          formFilters[fieldId] = value;
+        }
+      });
+
+      const serviceFilters = {
+        status: activeFilters.status || undefined,
+        sharedOnly: activeFilters.sharedOnly || undefined,
+
+        dateFrom: activeFilters.dateFrom
+          ? formatLocalDate(activeFilters.dateFrom)
+          : undefined,
+
+        dateTo: activeFilters.dateTo
+          ? formatLocalDate(activeFilters.dateTo)
+          : undefined,
+
+        client_id: clientId,
+        document_type_id: documentTypeId,
+        organisation_id: organisationId,
+        uploaded_by: activeFilters.uploaded_by || undefined,
+        organisation_filter: activeFilters.organisation_filter || undefined,
+
+        formFilters: Object.keys(formFilters).length ? formFilters : undefined,
+
+        skip: currentPage * pageSize,
+        limit: pageSize,
+      };
+
+      // ================================
+      // API CALL
+      // ================================
+      console.log("SERVICE FILTERS >>>", serviceFilters);
+
+      const response = await documentService.getDocuments(serviceFilters);
+
+      const docs = response.documents || [];
+      setTotalDocuments(response.total || 0);
+
+      // ================================
+      // NORMALIZE
+      // ================================
+      let formattedDocs = docs.map((doc: any) => {
+        const normalized = documentService.normalizeDocument(doc);
+
+        return {
+          ...normalized,
+          status: (normalized.status?.toLowerCase() || "processing") as DocStatus,
+        };
+      });
+
+      // ================================
+      // FRONTEND FILTERS (ONLY TABS)
+      // ================================
+      if (activeFilters.sharedOnly) {
+        formattedDocs = formattedDocs.filter(d => d.isSharedWithMe);
+      }
+
+      else if (activeFilters.status === "ARCHIVED") {
+        formattedDocs = formattedDocs.filter(d => d.isArchived);
+      }
+
+      else if (activeFilters.status === "COMPLETED") {
+        formattedDocs = formattedDocs.filter(
+          d => d.status === "completed" && !d.isArchived
+        );
+      }
+
+      else if (activeFilters.status === "PROCESSING") {
+        formattedDocs = formattedDocs.filter(
+          d => d.status === "processing" && !d.isArchived
+        );
+      }
+
+      // ================================
+      // SET DOCUMENTS
+      // ================================
+      setDocuments(formattedDocs);
+
+      // ================================
+      // COLUMN CONFIG (UNCHANGED)
+      // ================================
+      try {
+        const configRes = await documentListConfigService.getMyConfig();
+
+        let sortedColumns: any[] = [];
+
+        if (configRes.configuration) {
+          sortedColumns = [...configRes.configuration.columns];
+        } else {
+          // Default columns if no config exists for the organisation
+          sortedColumns = [
+            { id: "select", label: "", visible: true, order: 0, width: 50, type: "system", required: true },
+            { id: "name", label: "Name", visible: true, order: 1, width: 200, type: "system", required: true },
+            { id: "client", label: "Client", visible: true, order: 2, width: 150, type: "system", required: false },
+            { id: "type", label: "Type", visible: true, order: 3, width: 100, type: "system", required: false },
+            { id: "pages", label: "Pages", visible: true, order: 4, width: 80, type: "number", required: false },
+            { id: "size", label: "Size", visible: true, order: 5, width: 100, type: "system", required: false },
+            { id: "uploadedAt", label: "Date", visible: true, order: 6, width: 150, type: "date", required: false },
+            { id: "uploadedBy", label: "Uploaded By", visible: true, order: 900, width: 150, type: "system", required: false },
+            { id: "organisationName", label: "Organisation", visible: true, order: 900, width: 150, type: "system", required: false },
+            { id: "status", label: "Status", visible: true, order: 1000, width: 120, type: "system", required: true },
+            { id: "actions", label: "Actions", visible: true, order: 1001, width: 100, type: "system", required: true },
+          ];
+        }
+
+        // 1. Enforce specific order for system columns
+        //    UploadedBy/Org = 900 (before status)
+        //    Status = 1000
+        //    Actions = 1001 (end)
+        const systemOrders: Record<string, number> = {
+          uploadedBy: 900,
+          organisationName: 900,
+          status: 1000,
+          actions: 1001,
+        };
+
+        // 2. Update existing columns if they match
+        sortedColumns.forEach((col: any) => {
+          if (systemOrders[col.id] !== undefined) {
+            col.order = systemOrders[col.id];
+          }
+        });
+
+        // 3. Add missing columns (UploadedBy, Organisation) if not present
         const requiredSystemColumns = [
           { id: "uploadedBy", label: "Uploaded By" },
           { id: "organisationName", label: "Organisation" },
         ];
 
-        requiredSystemColumns.forEach(col => {
+        requiredSystemColumns.forEach((col) => {
           if (!sortedColumns.find((c: any) => c.id === col.id)) {
             sortedColumns.push({
               id: col.id,
               label: col.label,
               isSystem: true,
               visible: true,
-              order: 999,
+              order: systemOrders[col.id],
               width: 150,
               type: "system",
               required: false,
@@ -565,18 +628,21 @@ if (value === null || value === undefined || value === "") return;
           }
         });
 
-        setColumnConfig(sortedColumns);
-      }
-    } catch {
-      console.log("column config failed");
-    }
+        // 4. Sort finally
+        sortedColumns.sort((a: any, b: any) => a.order - b.order);
 
-  } catch (err) {
-    console.error("loadDocuments error", err);
-  } finally {
-    setLoading(false);
-  }
-};
+        setColumnConfig(sortedColumns);
+
+      } catch {
+        console.log("column config failed");
+      }
+
+    } catch (err) {
+      console.error("loadDocuments error", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   const mapDocumentStatus = (
@@ -691,11 +757,11 @@ if (value === null || value === undefined || value === "") return;
         const updated = prev.map((doc) =>
           String(doc.id) === String(data.document_id)
             ? {
-                ...doc,
-                status: mapDocumentStatus(data.status),
-                progress: data.progress,
-                errorMessage: data.error_message,
-              }
+              ...doc,
+              status: mapDocumentStatus(data.status),
+              progress: data.progress,
+              errorMessage: data.error_message,
+            }
             : doc,
         );
 
@@ -981,7 +1047,14 @@ if (value === null || value === undefined || value === "") return;
     return [
       ...baseColumns,
       ...columnConfig
-        .filter((col) => col.visible)
+        .filter((col) => {
+          if (!col.visible) return false;
+          if (col.id === 'organisationName') {
+            const user = authService.getUser();
+            return user?.role?.name === "SUPER_ADMIN";
+          }
+          return true;
+        })
         .map((col) => {
           const isSystem = col.isSystem || systemIds.includes(col.id);
           if (isSystem) {
@@ -1045,23 +1118,12 @@ if (value === null || value === undefined || value === "") return;
                   render: (value: string) => <span>{value || "-"}</span>,
                 };
 
-              case "organisationName": {
-                const currentUser = authService.getUser();
-
-                if (currentUser?.role?.name !== "SUPER_ADMIN") {
-                  return {
-                    key: "organisationName",
-                    header: "",
-                    render: () => null,
-                  };
-                }
-
+              case "organisationName":
                 return {
                   key: "organisationName",
                   header: col.label,
                   render: (value: string) => <span>{value || "-"}</span>,
                 };
-              }
 
               case "size":
                 return {
@@ -1281,33 +1343,33 @@ if (value === null || value === undefined || value === "") return;
                         row.status === "ai_failed" ||
                         row.status === "upload_failed" ||
                         row.status === "cancelled") && (
-                        <span
-                          className={styles.tooltipWrapper}
-                          data-tooltip="Retry Analysis"
-                        >
-                          <button
-                            onClick={() => handleReanalyze(row.id)}
-                            className="action-btn activate"
+                          <span
+                            className={styles.tooltipWrapper}
+                            data-tooltip="Retry Analysis"
                           >
-                            <RefreshCw size={14} />
-                          </button>
-                        </span>
-                      )}
+                            <button
+                              onClick={() => handleReanalyze(row.id)}
+                              className="action-btn activate"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                          </span>
+                        )}
 
                       {(row.status === "analyzing" ||
                         row.status === "ai_queued") && (
-                        <span
-                          className={styles.tooltipWrapper}
-                          data-tooltip="Cancel Analysis"
-                        >
-                          <button
-                            onClick={() => handleCancel(row.id)}
-                            className="action-btn delete"
+                          <span
+                            className={styles.tooltipWrapper}
+                            data-tooltip="Cancel Analysis"
                           >
-                            <Ban size={14} />
-                          </button>
-                        </span>
-                      )}
+                            <button
+                              onClick={() => handleCancel(row.id)}
+                              className="action-btn delete"
+                            >
+                              <Ban size={14} />
+                            </button>
+                          </span>
+                        )}
 
                       {!row.isUploading && (
                         <>
@@ -1315,8 +1377,8 @@ if (value === null || value === undefined || value === "") return;
                             className={styles.tooltipWrapper}
                             data-tooltip={
                               row.status === "queued" ||
-                              row.status === "uploading" ||
-                              row.status === "upload_failed"
+                                row.status === "uploading" ||
+                                row.status === "upload_failed"
                                 ? "Upload in progress or failed"
                                 : "View Details"
                             }
@@ -1522,7 +1584,7 @@ if (value === null || value === undefined || value === "") return;
                     );
                     const clientName = client
                       ? client.business_name ||
-                        `${client.first_name} ${client.last_name}`.trim()
+                      `${client.first_name} ${client.last_name}`.trim()
                       : `Unknown Client (${String(val).substring(0, 8)}...)`;
                     return (
                       <span
@@ -1933,48 +1995,49 @@ if (value === null || value === undefined || value === "") return;
                 </div>
               </div>
             </div>
-                <div className={styles.filterGroup}>
-  <label>Uploaded By</label>
-  <CommonDropdown
-    value={filters.uploaded_by || ""}
-onChange={(value) => {
-  setFilters((prev) => ({ ...prev, uploaded_by: value }));
-  setActiveFilters((prev) => ({ ...prev, uploaded_by: value }));
-  setCurrentPage(0);
-}}
+            {showOrganisationFilter && (
+              <div className={styles.filterGroup}>
+                <label>Organisation</label>
+                <CommonDropdown
+                  value={filters.organisation_filter || ""}
+                  onChange={(value) => {
+                    setFilters((prev) => ({ ...prev, organisation_filter: value }));
+                    setActiveFilters((prev) => ({ ...prev, organisation_filter: value }));
+                    setCurrentPage(0);
+                  }}
+                  options={[
+                    { value: "", label: "All Organisations" },
+                    ...organisationOptions.map((o) => ({
+                      value: o.id,
+                      label: o.name,
+                    })),
+                  ]}
+                  size="md"
+                />
+              </div>
+            )}
+            {showUploadedByFilter && (
+              <div className={styles.filterGroup}>
+                <label>Uploaded By</label>
+                <CommonDropdown
+                  value={filters.uploaded_by || ""}
+                  onChange={(value) => {
+                    setFilters((prev) => ({ ...prev, uploaded_by: value }));
+                    setActiveFilters((prev) => ({ ...prev, uploaded_by: value }));
+                    setCurrentPage(0);
+                  }}
+                  options={[
+                    { value: "", label: "All Users" },
+                    ...uploadedByOptions.map((u) => ({
+                      value: u.id,
+                      label: u.name,
+                    })),
+                  ]}
+                  size="md"
+                />
+              </div>
+            )}
 
-    options={[
-      { value: "", label: "All Users" },
-      ...uploadedByOptions.map((u) => ({
-        value: u.id,
-        label: u.name,
-      })),
-    ]}
-    size="md"
-  />
-</div>
-{authService.getUser()?.role?.name === "SUPER_ADMIN" && (
-  <div className={styles.filterGroup}>
-    <label>Organisation</label>
-    <CommonDropdown
-      value={filters.organisation_filter || ""}
-onChange={(value) => {
-  setFilters((prev) => ({ ...prev, organisation_filter: value }));
-  setActiveFilters((prev) => ({ ...prev, organisation_filter: value }));
-  setCurrentPage(0);
-}}
-
-      options={[
-        { value: "", label: "All Organisations" },
-        ...organisationOptions.map((o) => ({
-          value: o.id,
-          label: o.name,
-        })),
-      ]}
-      size="md"
-    />
-  </div>
-)}
             {/* Dynamic Form Field Filters */}
             {formFields.map((field) => {
               const isClientField =
@@ -2020,7 +2083,7 @@ onChange={(value) => {
                     <CommonDatePicker
                       selected={
                         filters[filterKey] &&
-                        typeof filters[filterKey] === "string"
+                          typeof filters[filterKey] === "string"
                           ? new Date(filters[filterKey])
                           : filters[filterKey]
                       }
