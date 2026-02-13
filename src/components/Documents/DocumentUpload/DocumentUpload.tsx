@@ -32,7 +32,7 @@ const DocumentUpload: React.FC = () => {
     type: ToastType;
   } | null>(null);
   const currentUser = authService.getUser();
-const isClientUser = currentUser?.is_client === true || !!currentUser?.client_id;
+  const isClientUser = currentUser?.is_client === true || !!currentUser?.client_id;
 
 
   // const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
@@ -98,29 +98,29 @@ const isClientUser = currentUser?.is_client === true || !!currentUser?.client_id
   });
 
 
-const fetchActiveForm = async () => {
-  try {
-    setFormLoading(true);
+  const fetchActiveForm = async () => {
+    try {
+      setFormLoading(true);
 
-    const res = await formService.getActiveForm();
+      const res = await formService.getActiveForm();
 
-    // 🔴 NO ACTIVE FORM
-    if (!res || !res.has_active_form || !res.form) {
+      // 🔴 NO ACTIVE FORM
+      if (!res || !res.has_active_form || !res.form) {
+        setSelectedForm(null);
+        return;
+      }
+
+      // 🟢 SET REAL FORM
+      setSelectedForm(res.form);
+      initializeFormData(res.form);
+
+    } catch (error) {
+      console.error("Failed to fetch active form:", error);
       setSelectedForm(null);
-      return;
+    } finally {
+      setFormLoading(false);
     }
-
-    // 🟢 SET REAL FORM
-    setSelectedForm(res.form);
-    initializeFormData(res.form);
-
-  } catch (error) {
-    console.error("Failed to fetch active form:", error);
-    setSelectedForm(null);
-  } finally {
-    setFormLoading(false);
-  }
-};
+  };
 
 
   const fetchSystemFieldData = async (fields: FormField[]) => {
@@ -419,6 +419,7 @@ const fetchActiveForm = async () => {
           }))}
           onChange={val => handleFormFieldChange(field.id!, val)}
           disabled={isClientUser}
+          size="md"
         />
       );
     }
@@ -434,6 +435,7 @@ const fetchActiveForm = async () => {
             { value: '', label: 'Select document type' },
             ...documentTypes.map(t => ({ value: t.id, label: t.name }))
           ]}
+          size="md"
         />
       );
     }
@@ -642,47 +644,47 @@ const fetchActiveForm = async () => {
 
         {/* Right Section (40%) - Dynamic Form */}
         {!isClientUser && (
-  <div className={styles.rightSection}>
-    {formLoading ? (
-      <div className={styles.section}>
-        <div className={styles.loadingState}>
-          <p>Loading form...</p>
-        </div>
-      </div>
-    ) : !selectedForm ? (
-      <div className={styles.section}>
-        <div className={styles.noFormState}>
-          <p>No active form configured</p>
-        </div>
-      </div>
-    ) : (
-      <div className={styles.formContainer}>
-        <div className={styles.formHeader}>
-          <h3 className={styles.formTitle}>{selectedForm.name}</h3>
-          {selectedForm.description && (
-            <p className={styles.formDescription}>
-              {selectedForm.description}
-            </p>
-          )}
-        </div>
+          <div className={styles.rightSection}>
+            {formLoading ? (
+              <div className={styles.section}>
+                <div className={styles.loadingState}>
+                  <p>Loading form...</p>
+                </div>
+              </div>
+            ) : !selectedForm ? (
+              <div className={styles.section}>
+                <div className={styles.noFormState}>
+                  <p>No active form configured</p>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.formContainer}>
+                <div className={styles.formHeader}>
+                  <h3 className={styles.formTitle}>{selectedForm.name}</h3>
+                  {selectedForm.description && (
+                    <p className={styles.formDescription}>
+                      {selectedForm.description}
+                    </p>
+                  )}
+                </div>
 
-        <div className={styles.formFields}>
-          {selectedForm.fields?.map((field) => (
-            <div key={field.id} className={styles.formGroup}>
-              <label className={styles.label}>
-                {field.label}
-                {field.required && (
-                  <span className={styles.required}>*</span>
-                )}
-              </label>
-              {renderFormField(field)}
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-  </div>
-)}
+                <div className={styles.formFields}>
+                  {selectedForm.fields?.map((field) => (
+                    <div key={field.id} className={styles.formGroup}>
+                      <label className={styles.label}>
+                        {field.label}
+                        {field.required && (
+                          <span className={styles.required}>*</span>
+                        )}
+                      </label>
+                      {renderFormField(field)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* <div className={styles.rightSection}>
   {formLoading ? (
@@ -723,8 +725,8 @@ const fetchActiveForm = async () => {
       </div>
     </div>
   )} */}
-</div>
-        {/* AI Processing Options */}
+      </div>
+      {/* AI Processing Options */}
       {toast && (
         <Toast
           message={toast.message}
