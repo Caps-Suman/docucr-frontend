@@ -128,6 +128,11 @@ const CreateSOP: React.FC = () => {
     icdCode: "",
     description: "",
     notes: "",
+    ndcCode: "",
+    units: "",
+    chargePerUnit: "",
+    modifier: "",
+    replacementCPT: "",
   });
 
   const resetCpt = () =>
@@ -146,6 +151,11 @@ const CreateSOP: React.FC = () => {
       icdCode: "",
       description: "",
       notes: "",
+      ndcCode: "",
+      units: "",
+      chargePerUnit: "",
+      modifier: "",
+      replacementCPT: "",
     });
 
 
@@ -561,28 +571,28 @@ const CreateSOP: React.FC = () => {
       }
 
       // Check if SOP already exists for this client
-      if(!isEditMode)
+      if (!isEditMode)
         try {
-        setLoading(true);
-        const { exists } = await sopService.checkSOPExistence(selectedClientId);
-        setLoading(false);
+          setLoading(true);
+          const { exists } = await sopService.checkSOPExistence(selectedClientId);
+          setLoading(false);
 
-        if (exists) {
-          setToast({
-            message: "You can't create sop for this client because already created",
-            type: "warning"
-          });
+          if (exists) {
+            setToast({
+              message: "You can't create sop for this client because already created",
+              type: "warning"
+            });
+            return;
+          }
+        } catch (error) {
+          console.error("Failed to check SOP existence", error);
+          setLoading(false);
+          // Optional: Decide if we block or allow on error. Safe default is to allow or show error.
+          // Let's show error and block to be safe.
+          setToast({ message: "Error validating client SOP status.", type: "error" });
           return;
         }
-      } catch (error) {
-        console.error("Failed to check SOP existence", error);
-        setLoading(false);
-        // Optional: Decide if we block or allow on error. Safe default is to allow or show error.
-        // Let's show error and block to be safe.
-        setToast({ message: "Error validating client SOP status.", type: "error" });
-        return;
-      }
-      
+
 
       // Valid client selected & No existing SOP
       const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
@@ -879,11 +889,20 @@ const CreateSOP: React.FC = () => {
               </button>
             </>
           ) : (
+            // <button
+            //   className={styles.saveButton}
+            //   type="button"
+            //   onClick={handleUploadClick}
+            //   disabled={currentStep !== 1} 
+            // >
+            //   <Upload size={16} />
+            //   Upload SOP
+            // </button>
+
             <button
               className={styles.saveButton}
               type="button"
               onClick={handleUploadClick}
-              disabled={currentStep !== 1} // Only allow upload on step 1?
             >
               <Upload size={16} />
               Upload SOP
@@ -1639,10 +1658,11 @@ const CreateSOP: React.FC = () => {
                     ))}
                   </div>
                 </div>
+
+
                 {/* Coding Rules */}
-                <div className={styles.section}>
+                {/* <div className={styles.section}>
                   <div className={styles.sectionTitle}>Coding Rules</div>
-                  {/* ... Coding Rules existing UI ... */}
                   <div className={styles.toggleGroup}>
                     <button
                       className={`${styles.toggleButton} ${codingType === "CPT" ? styles.active : ""}`}
@@ -1696,6 +1716,45 @@ const CreateSOP: React.FC = () => {
                         </div>
                       </div>
                     )}
+
+                    {["CPT", "ICD"].includes(codingType) && (
+                      <>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>NDC Code</label>
+                          <input
+                            className={styles.input}
+                            value={newCpt.ndcCode}
+                            onChange={(e) =>
+                              setNewCpt({ ...newCpt, ndcCode: e.target.value })
+                            }
+                          />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Units</label>
+                          <input
+                            className={styles.input}
+                            value={newCpt.units}
+                            onChange={(e) =>
+                              setNewCpt({ ...newCpt, units: e.target.value })
+                            }
+                          />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Charge per Unit</label>
+                          <input
+                            className={styles.input}
+                            value={newCpt.chargePerUnit}
+                            onChange={(e) =>
+                              setNewCpt({ ...newCpt, chargePerUnit: e.target.value })
+                            }
+                          />
+                        </div>
+
+                      </>
+                    )}
+
                   </div>
 
                   <div className={styles.cardList}>
@@ -1720,8 +1779,311 @@ const CreateSOP: React.FC = () => {
                         </div>
                       ))
                     )}
+                  </div>  
+                </div> */}
+
+
+                {/* prev coding ruld */}
+                {/* Coding Guidelines */}
+
+
+                <div className={styles.section}>
+
+                  <div className={styles.sectionHeaderRow}>
+                    <div className={styles.sectionHeaderTitle}>Coding Guidelines</div>
+                    <div className={styles.toggleGroupCompact}>
+                      <button
+                        className={`${styles.toggleButtonCompact} ${codingType === "CPT" ? styles.active : ""}`}
+                        onClick={() => setCodingType("CPT")}
+                      >
+                        <FileText size={14} />
+                        CPT Codes
+                      </button>
+                      <button
+                        className={`${styles.toggleButtonCompact} ${codingType === "ICD" ? styles.active : ""}`}
+                        onClick={() => setCodingType("ICD")}
+                      >
+                        <Hash size={14} />
+                        ICD Codes
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={styles.helperText}>
+                    <div className={styles.codingRulesGrid}>
+
+                      {codingType === "CPT" ? (
+                        <div className={`${styles.formGroup} ${styles.gridSpan2}`}>
+                          <label className={styles.label}>CPT Code</label>
+                          <input
+                            className={styles.input}
+                            value={newCpt.cptCode}
+                            onChange={(e) =>
+                              setNewCpt({
+                                ...newCpt,
+                                cptCode: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <div className={`${styles.formGroup} ${styles.gridSpan2}`}>
+                          <label className={styles.label}>ICD Code</label>
+                          <input
+                            className={styles.input}
+                            value={newIcd.icdCode}
+                            onChange={(e) =>
+                              setNewIcd({ ...newIcd, icdCode: e.target.value })
+                            }
+                          />
+                        </div>
+                      )}
+
+                      <div className={`${styles.formGroup} ${styles.gridSpan2}`}>
+                        <label className={styles.label}>NDC Code</label>
+                        <input
+                          className={styles.input}
+                          value={codingType === "CPT" ? newCpt.ndcCode : newIcd.ndcCode || ""}
+                          onChange={(e) =>
+                            codingType === "CPT"
+                              ? setNewCpt({ ...newCpt, ndcCode: e.target.value })
+                              : setNewIcd({ ...newIcd, ndcCode: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className={`${styles.formGroup} ${styles.gridSpan2}`}>
+                        <label className={styles.label}>Units</label>
+                        <input
+                          className={styles.input}
+                          value={codingType === "CPT" ? newCpt.units : newIcd.units || ""}
+                          onChange={(e) =>
+                            codingType === "CPT"
+                              ? setNewCpt({ ...newCpt, units: e.target.value })
+                              : setNewIcd({ ...newIcd, units: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className={`${styles.formGroup} ${styles.gridSpan2}`}>
+                        <label className={styles.label}>Charge per Unit</label>
+                        <input
+                          className={styles.input}
+                          value={codingType === "CPT" ? newCpt.chargePerUnit : newIcd.chargePerUnit || ""}
+                          onChange={(e) =>
+                            codingType === "CPT"
+                              ? setNewCpt({ ...newCpt, chargePerUnit: e.target.value })
+                              : setNewIcd({ ...newIcd, chargePerUnit: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className={`${styles.formGroup} ${styles.gridSpan2}`}>
+                        <label className={styles.label}>Modifier</label>
+                        <input
+                          className={styles.input}
+                          value={codingType === "CPT" ? newCpt.modifier : newIcd.modifier || ""}
+                          onChange={(e) =>
+                            codingType === "CPT"
+                              ? setNewCpt({ ...newCpt, modifier: e.target.value })
+                              : setNewIcd({ ...newIcd, modifier: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className={`${styles.formGroup} ${styles.gridSpan2}`}>
+                        <label className={styles.label}>Replacement CPT</label>
+                        <input
+                          className={styles.input}
+                          value={codingType === "CPT" ? newCpt.replacementCPT : newIcd.replacementCPT || ""}
+                          onChange={(e) =>
+                            codingType === "CPT"
+                              ? setNewCpt({ ...newCpt, replacementCPT: e.target.value })
+                              : setNewIcd({ ...newIcd, replacementCPT: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className={`${styles.formGroup} ${styles.gridSpan3}`}>
+                        <label className={styles.label}>Description</label>
+                        <input
+                          className={styles.input}
+                          value={newCpt.description}
+                          onChange={(e) =>
+                            setNewCpt({
+                              ...newCpt,
+                              description: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className={`${styles.formGroup} ${styles.gridSpan3}`}>
+                        <label className={styles.label}>&nbsp;</label>
+                        <button
+                          type="button"
+                          className={styles.saveButton}
+                          onClick={handleAddCodingRule}
+                        >
+                          <Plus size={16} /> Add More
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.cardList}>
+                    {codingRulesCPT.map((r, i) => (
+                      <div key={i} className={styles.cardItem}>
+                        <div className={styles.cardContent} style={{ width: "100%" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                              gap: "8px",
+                              fontSize: "13px",
+                            }}
+                          >
+                            <span style={{ fontWeight: 600, color: "#111827" }}>
+                              CPT: {r.cptCode}
+                            </span>
+                            {r.description && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Description: {r.description}
+                                </span>
+                              </>
+                            )}
+                            {r.ndcCode && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  NDC: {r.ndcCode}
+                                </span>
+                              </>
+                            )}
+                            {r.units && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Units: {r.units}
+                                </span>
+                              </>
+                            )}
+                            {r.chargePerUnit && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Charge/Unit: {r.chargePerUnit}
+                                </span>
+                              </>
+                            )}
+                            {r.modifier && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Modifier: {r.modifier}
+                                </span>
+                              </>
+                            )}
+                            {r.replacementCPT && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Replacement CPT: {r.replacementCPT}
+                                </span>
+                              </>
+                            )}
+
+                          </div>
+                        </div>
+                        <button
+                          className={styles.deleteButton}
+                          onClick={() => handleRemoveCpt(r.id || "")}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                    {codingRulesICD.map((r, i) => (
+                      <div key={`icd_${i}`} className={styles.cardItem}>
+                        <div className={styles.cardContent} style={{ width: "100%" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                              gap: "8px",
+                              fontSize: "13px",
+                            }}
+                          >
+                            <span style={{ fontWeight: 600, color: "#111827" }}>
+                              ICD: {r.icdCode}
+                            </span>
+                            {r.description && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Description: {r.description}
+                                </span>
+                              </>
+                            )}
+                            {r.ndcCode && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  NDC: {r.ndcCode}
+                                </span>
+                              </>
+                            )}
+                            {r.units && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Units: {r.units}
+                                </span>
+                              </>
+                            )}
+                            {r.chargePerUnit && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Charge/Unit: {r.chargePerUnit}
+                                </span>
+                              </>
+                            )}
+                            {r.modifier && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Modifier: {r.modifier}
+                                </span>
+                              </>
+                            )}
+                            {r.replacementCPT && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Replacement CPT: {r.replacementCPT}
+                                </span>
+                              </>
+                            )}
+                            {r.notes && (
+                              <>
+                                <span style={{ color: "#000" }}>|</span>
+                                <span style={{ color: "#6b7280" }}>
+                                  Notes: {r.notes}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          className={styles.deleteButton}
+                          onClick={() => handleRemoveIcd(r.id || "")}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
+                {/* prev coding ruld end */}
 
 
               </div>

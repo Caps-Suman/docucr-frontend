@@ -1384,7 +1384,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
                     </div>
 
                     {/* NPI Row */}
-                    {/* NPI Row */}
                     <div className={styles.formGroup}>
                       <label className={styles.label}>NPI *</label>
                       <div className={styles.npiInputWrapper}>

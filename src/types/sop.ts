@@ -49,6 +49,11 @@ export type CodingRuleICD = {
   icdCode: string;
   description?: string;
   notes?: string;
+  ndcCode?: string;
+  units?: string;
+  chargePerUnit?: string;
+  modifier?: string;
+  replacementCPT?: string;
 };
 
 

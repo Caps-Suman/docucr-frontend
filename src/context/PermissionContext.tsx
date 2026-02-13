@@ -55,7 +55,6 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       try {
         const user = authService.getUser();
         if (user?.email) {
-          // Pre-fetch modules if needed
           await modulesService.getUserModules(user.email);
         }
       } catch (error) {

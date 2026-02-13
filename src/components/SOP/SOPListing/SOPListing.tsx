@@ -992,7 +992,16 @@ const SOPListing: React.FC = () => {
                         onClick={() => toggleSection("guidelines")}
                       >
                         <span>
-                          Billing Guidelines (
+                          Billing Guidelines ({selectedSOP.billingGuidelines?.length || 0})
+                        </span>
+                        {expandedSections["guidelines"] ? (
+                          <ChevronUp size={16} />
+                        ) : (
+                          <ChevronDown size={16} />
+                        )}
+                      </div>
+                      {expandedSections["guidelines"] && (
+                        <div className={styles.accordionContent}>
                           {selectedSOP.billingGuidelines?.map((g, i) => (
                             <div
                               key={i}
@@ -1040,8 +1049,8 @@ const SOPListing: React.FC = () => {
                                 No guidelines.
                               </p>
                             )}
-                        </span>
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className={styles.accordionItem}>
