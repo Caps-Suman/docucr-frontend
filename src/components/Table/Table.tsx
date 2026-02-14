@@ -41,7 +41,7 @@ const Table: React.FC<TableProps> = ({ columns, data, className = '', maxHeight,
                         data.map((row, index) => (
                             <tr key={index}>
                                 {columns.map((column) => (
-                                    <td key={column.key} style={{ width: column.width, minWidth: column.width, maxWidth: column.width, whiteSpace: 'normal', wordBreak: 'break-word', overflow: 'hidden' }}>
+                                    <td key={column.key} style={{ width: column.width, minWidth: column.width, maxWidth: column.width, whiteSpace: 'normal', wordBreak: 'break-word' }}>
                                         {column.render
                                             ? column.render(row[column.key], row)
                                             : row[column.key]

@@ -17,7 +17,9 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Eye,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import Table from "../Table/Table";
 import CommonPagination from "../Common/CommonPagination";
@@ -43,6 +45,7 @@ import styles from "./ClientManagement.module.css";
 import authService from "../../services/auth.service";
 
 const ClientManagement: React.FC = () => {
+  const navigate = useNavigate();
   const currentUser = authService.getUser();
   const [currentPage, setCurrentPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -578,6 +581,14 @@ const ClientManagement: React.FC = () => {
       header: "Actions",
       render: (_: any, row: Client) => (
         <div style={{ display: "flex", gap: "8px" }}>
+          <span className="tooltip-wrapper" data-tooltip="View Detail">
+            <button
+              className={`${styles.actionBtn} ${styles.view}`}
+              onClick={() => navigate(`/clients/${row.id}`)}
+            >
+              <Eye size={14} />
+            </button>
+          </span>
           <span className="tooltip-wrapper" data-tooltip="Edit">
             <button
               className={`${styles.actionBtn} ${styles.edit}`}

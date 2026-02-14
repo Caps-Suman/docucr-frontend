@@ -13,7 +13,7 @@ import authService from '../../../services/auth.service';
 import roleService from '../../../services/role.service';
 import organisationService from '../../../services/organisation.service';
 import statusService, { Status } from '../../../services/status.service';
-import './UserManagement.css';
+import styles from './UserManagement.module.css';
 import ClientModal from '../../ClientManagement/ClientModal';
 import clientService from '../../../services/client.service';
 import ClientMappingModal from './ClientMappingModal';
@@ -719,7 +719,7 @@ const UserManagement: React.FC = () => {
             render: (value: string | null) => {
                 const isActive = value === 'ACTIVE';
                 return (
-                    <span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>
+                    <span className={`${styles.statusBadge} ${isActive ? styles.active : styles.inactive}`}>
                         {isActive ? 'Active' : 'Inactive'}
                     </span>
                 );
@@ -733,20 +733,21 @@ const UserManagement: React.FC = () => {
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <span className="tooltip-wrapper" data-tooltip={row.is_superuser ? 'Cannot edit superuser' : 'Edit'}>
                         <button
-                            className="action-btn edit"
+                            className={styles.actionBtn}
                             onClick={() => !loadingEditId && handleEdit(row)}
                             disabled={!!loadingEditId || row.is_superuser}
                             style={{
                                 opacity: (row.is_superuser || !!loadingEditId) ? 0.5 : 1,
-                                cursor: (row.is_superuser || !!loadingEditId) ? 'not-allowed' : 'pointer'
+                                cursor: (row.is_superuser || !!loadingEditId) ? 'not-allowed' : 'pointer',
+                                color: '#3b82f6', background: '#eff6ff'
                             }}
                         >
-                            {loadingEditId === row.id ? <Loader2 size={14} className="animate-spin" /> : <Edit2 size={14} />}
+                            {loadingEditId === row.id ? <Loader2 size={14} className={styles.animateSpin} /> : <Edit2 size={14} />}
                         </button>
                     </span>
                     <span className="tooltip-wrapper" data-tooltip={row.is_superuser ? 'Cannot change password' : 'Change Password'}>
                         <button
-                            className="action-btn edit"
+                            className={styles.actionBtn}
                             onClick={() => handleChangePassword(row)}
                             style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer', color: '#f59e0b', background: '#fef3c7' }}
                         >
@@ -755,7 +756,7 @@ const UserManagement: React.FC = () => {
                     </span>
                     <span className="tooltip-wrapper" data-tooltip={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
                         <button
-                            className={`action-btn ${row.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'}`}
+                            className={`${styles.actionBtn} ${row.statusCode === 'ACTIVE' ? styles.deactivate : styles.activate}`}
                             onClick={() => handleToggleStatus(row)}
                             style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer' }}
                         >
@@ -773,19 +774,19 @@ const UserManagement: React.FC = () => {
     }
 
     return (
-        <div className="management-content">
-            <div className="stats-grid">
+        <div className={styles.managementContent}>
+            <div className={styles.statsGrid}>
                 {userStats.map((stat, index) => (
                     <div
                         key={index}
-                        className={`stat-card ${stat.color} ${stat.onClick ? 'clickable' : ''} ${stat.active ? 'selected' : ''}`}
+                        className={`${styles.statCard} ${styles[stat.color]} ${stat.onClick ? styles.clickable : ''} ${stat.active ? styles.selected : ''}`}
                         onClick={stat.onClick}
                         style={{ cursor: stat.onClick ? 'pointer' : 'default' }}
                     >
-                        <div className="stat-icon">
+                        <div className={styles.statIcon}>
                             <stat.icon size={16} />
                         </div>
-                        <div className="stat-content">
+                        <div className={styles.statContent}>
                             <h3>{stat.value}</h3>
                             <p>{stat.title}</p>
                         </div>
@@ -793,8 +794,8 @@ const UserManagement: React.FC = () => {
                 ))}
             </div>
 
-            <div className="table-section" style={{ position: 'relative' }}>
-                <div className="table-header">
+            <div className={styles.tableSection} style={{ position: 'relative' }}>
+                <div className={styles.tableHeader}>
                     <h2>
                         <Users size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         Users
@@ -803,12 +804,12 @@ const UserManagement: React.FC = () => {
 
                         {/* Search, Filters and Add User Bar */}
                         <div style={{ display: 'flex', gap: (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') ? '12px' : '0', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
-                            <div className="filter-group" style={{ minWidth: '300px' }}>
+                            <div className={styles.filterGroup} style={{ minWidth: '300px' }}>
                                 <div style={{ position: 'relative' }}>
                                     <input
                                         type="text"
                                         placeholder="Search by name, email..."
-                                        className="filter-input"
+                                        className={styles.filterInput}
                                         value={searchQuery}
                                         onChange={(e) => handleSearchChange(e.target.value)}
                                     />
@@ -823,10 +824,10 @@ const UserManagement: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="filter-group" style={{ flex: '0 0 auto', minWidth: 'auto' }}>
+                            <div className={styles.filterGroup} style={{ flex: '0 0 auto', minWidth: 'auto' }}>
                                 {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
                                     <button
-                                        className="filterButton"
+                                        className={styles.filterButton}
                                         onClick={handleOpenFilters}
                                     >
                                         <Filter size={16} />
@@ -841,15 +842,15 @@ const UserManagement: React.FC = () => {
                                             if (statusFilter && statusFilter.length > 0) count++;
                                             if (createdByFilter && createdByFilter.length > 0) count++;
 
-                                            return count > 0 ? <span className="filterBadge">{count}</span> : null;
+                                            return count > 0 ? <span className={styles.filterBadge}>{count}</span> : null;
                                         })()}
                                     </button>
                                 )}
                             </div>
 
-                            <div className="filter-group" style={{ flex: '0 0 auto', minWidth: 'auto', marginLeft: 'auto' }}>
+                            <div className={styles.filterGroup} style={{ flex: '0 0 auto', minWidth: 'auto', marginLeft: 'auto' }}>
                                 {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
-                                    <button className="add-btn" onClick={handleAddNew} style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
+                                    <button className={styles.addBtn} onClick={handleAddNew} style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
                                         Add User
                                     </button>
                                 )}
@@ -864,7 +865,7 @@ const UserManagement: React.FC = () => {
                     columns={userColumns}
                     data={users}
                     maxHeight="calc(100vh - 360px)"
-                    className="user-table-container"
+                    className={styles.userTableContainer}
                 />
                 {loading && !isInitialLoading && (
                     <div style={{
@@ -985,21 +986,21 @@ const UserManagement: React.FC = () => {
             />
 
             {/* Filter Offcanvas */}
-            <div className={`offcanvas ${showFilters ? 'offcanvasOpen' : ''}`}>
-                <div className="offcanvasOverlay" onClick={() => setShowFilters(false)} />
-                <div className="offcanvasContent">
-                    <div className="offcanvasHeader">
+            <div className={`${styles.offcanvas} ${showFilters ? styles.offcanvasOpen : ''}`}>
+                <div className={styles.offcanvasOverlay} onClick={() => setShowFilters(false)} />
+                <div className={styles.offcanvasContent}>
+                    <div className={styles.offcanvasHeader}>
                         <h3>Filters</h3>
-                        <button className="closeButton" onClick={() => setShowFilters(false)}>
+                        <button className={styles.closeButton} onClick={() => setShowFilters(false)}>
                             <X size={20} />
                         </button>
                     </div>
-                    <div className="offcanvasBody">
+                    <div className={styles.offcanvasBody}>
 
 
                         {/* Organisation Filter - Show for Superuser ONLY (Hide for Org Role & Client Admin) */}
                         {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN') && (
-                            <div className="filterGroup">
+                            <div className={styles.filterGroupItem}>
                                 <label>Organisation</label>
                                 <CommonMultiSelect
                                     options={organisations}
@@ -1031,7 +1032,7 @@ const UserManagement: React.FC = () => {
 
                         {/* Client Filter - Show for Superuser AND Organisation Role (Hide for Client Admin & Standard Users) */}
                         {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE') && (
-                            <div className="filterGroup">
+                            <div className={styles.filterGroupItem}>
                                 <label>Client</label>
                                 <CommonMultiSelect
                                     options={allClients.filter(c => {
@@ -1058,7 +1059,7 @@ const UserManagement: React.FC = () => {
 
                         {/* Role Filter - Show for Admins Only */}
                         {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
-                            <div className="filterGroup">
+                            <div className={styles.filterGroupItem}>
                                 <label>Role</label>
                                 <CommonMultiSelect
                                     options={roleOptions}
@@ -1074,7 +1075,7 @@ const UserManagement: React.FC = () => {
 
                         {/* Created By Filter - Show for Superuser and Organisation Role */}
                         {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
-                            <div className="filterGroup">
+                            <div className={styles.filterGroupItem}>
                                 <label>Created By</label>
                                 <CommonMultiSelect
                                     options={createdByOptions}
@@ -1088,11 +1089,11 @@ const UserManagement: React.FC = () => {
                             </div>
                         )}
                     </div>
-                    <div className="offcanvasFooter">
-                        <button className="resetButton" onClick={handleResetFilters}>
+                    <div className={styles.offcanvasFooter}>
+                        <button className={styles.resetButton} onClick={handleResetFilters}>
                             Reset
                         </button>
-                        <button className="applyButton" onClick={handleApplyFilters}>
+                        <button className={styles.applyButton} onClick={handleApplyFilters}>
                             Apply Filters
                         </button>
                     </div>

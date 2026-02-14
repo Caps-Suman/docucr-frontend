@@ -14,6 +14,7 @@ import UserPermissionManagement from './components/UserPermissionManagement/User
 import FormManagement from './components/FormManagement/FormManagement';
 import FormBuilder from './components/FormBuilder/FormBuilder';
 import ClientManagement from './components/ClientManagement/ClientManagement';
+import ClientDetail from './components/ClientManagement/ClientDetail';
 import OrganisationManagement from './components/OrganisationManagement/OrganisationManagement';
 import DocumentTemplate from './components/DocumentTemplate/DocumentTemplate';
 import CreateTemplate from './components/DocumentTemplate/TemplateManagement/CreateTemplate';
@@ -95,6 +96,7 @@ const App: React.FC = () => {
         </Route>
         <Route path="/clients" element={<AppLayout />}>
           <Route index element={<ClientManagement />} />
+          <Route path=":id" element={<ClientDetail />} />
         </Route>
         <Route path="/organisations" element={<AppLayout />}>
           <Route index element={<OrganisationManagement />} />

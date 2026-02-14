@@ -164,7 +164,7 @@ const AppLayout: React.FC = () => {
         <div className="app-layout">
             {/* <Sidebar /> */}
             {!hideSidebar && <Sidebar />}
-            <div className="app-content">
+            <div className={`app-content ${hideSidebar ? 'no-sidebar' : ''}`}>
                 <header className="app-header">
                     <div className="breadcrumb">
                         {getBreadcrumbs().map((crumb, index) => (

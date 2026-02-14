@@ -1,0 +1,690 @@
+.managementContent {
+    padding: 0;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.statCard {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.statCard.selected {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Specific border colors for selected state */
+.statCard.blue.selected {
+    border: 1px solid #93c5fd;
+}
+
+.statCard.green.selected {
+    border: 1px solid #6ee7b7;
+}
+
+.statCard.red.selected {
+    border: 1px solid #fca5a5;
+}
+
+.statCard.orange.selected {
+    border: 1px solid #fdba74;
+}
+
+.statCard.purple.selected {
+    border: 1px solid #c4b5fd;
+}
+
+.statIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.statCard.blue .statIcon {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+.statCard.green .statIcon {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.statCard.red .statIcon {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.statCard.purple .statIcon {
+    background-color: #f3e8ff;
+    color: #7c3aed;
+}
+
+.statCard.orange .statIcon {
+    background-color: #fed7aa;
+    color: #c2410c;
+}
+
+.statContent h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 1px 0;
+}
+
+.statContent p {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+}
+
+.tableSection {
+    margin-top: 15px;
+}
+
+.tableHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.tableHeader h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.addBtn {
+    background-color: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.addBtn:hover {
+    background-color: #83cee4;
+}
+
+.actionBtn {
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.actionBtn.edit {
+    color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.actionBtn.edit:hover {
+    background-color: #dbeafe;
+}
+
+.actionBtn.deactivate {
+    color: #b91c1c;
+    background-color: #fee2e2;
+}
+
+.actionBtn.deactivate:hover {
+    background-color: #fecaca;
+}
+
+.actionBtn.activate {
+    color: #15803d;
+    background-color: #dcfce7;
+}
+
+.actionBtn.activate:hover {
+    background-color: #bbf7d0;
+}
+
+.actionBtn.delete {
+    color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.actionBtn.delete:hover {
+    background-color: #fee2e2;
+}
+
+/* Dark mode styles */
+:global(.dark) .statCard {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .statContent h3 {
+    color: #f9fafb;
+}
+
+:global(.dark) .statContent p {
+    color: #d1d5db;
+}
+
+:global(.dark) .tableHeader h2 {
+    color: #f9fafb;
+}
+
+:global(.dark) .addBtn {
+    background-color: #7dd0e9;
+}
+
+:global(.dark) .actionBtn.edit {
+    color: #60a5fa;
+    background-color: #1e3a8a;
+}
+
+:global(.dark) .actionBtn.edit:hover {
+    background-color: #1e40af;
+}
+
+:global(.dark) .actionBtn.deactivate {
+    color: #f87171;
+    background-color: #7f1d1d;
+}
+
+:global(.dark) .actionBtn.deactivate:hover {
+    background-color: #991b1b;
+}
+
+:global(.dark) .actionBtn.activate {
+    color: #4ade80;
+    background-color: #14532d;
+}
+
+:global(.dark) .actionBtn.activate:hover {
+    background-color: #166534;
+}
+
+:global(.dark) .actionBtn.delete {
+    color: #f87171;
+    background-color: #7f1d1d;
+}
+
+:global(.dark) .actionBtn.delete:hover {
+    background-color: #991b1b;
+}
+
+:global(.dark) .statCard.blue .statIcon {
+    background-color: #1e3a8a;
+    color: #93c5fd;
+}
+
+:global(.dark) .statCard.green .statIcon {
+    background-color: #14532d;
+    color: #86efac;
+}
+
+:global(.dark) .statCard.red .statIcon {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+:global(.dark) .statCard.purple .statIcon {
+    background-color: #581c87;
+    color: #c4b5fd;
+}
+
+:global(.dark) .statCard.orange .statIcon {
+    background-color: #9a3412;
+    color: #fdba74;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animateSpin {
+    animation: spin 1s linear infinite;
+}
+
+/* Search and Filter Styles matching ActivityLog */
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 180px;
+}
+
+.filterLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.filterInput {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0 12px;
+    height: 38px;
+    font-size: 13px;
+    background-color: white;
+    color: #1e293b;
+    outline: none;
+    width: 100%;
+    min-width: 0;
+    transition: all 0.2s;
+}
+
+.filterInput:focus {
+    border-color: #83cee4;
+    box-shadow: 0 0 0 3px rgba(131, 206, 228, 0.1);
+}
+
+:global(.dark) .filterInput {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+:global(.dark) .filterInput:focus {
+    border-color: #83cee4;
+    background: #374151;
+}
+
+:global(.dark) .filterLabel {
+    color: #d1d5db;
+}
+
+.userTableContainer table {
+    min-width: 1000px;
+}
+
+/* Filter Button */
+.filterButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    color: #475569;
+    border: 1px solid #f1f5f9;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    position: relative;
+    height: 40px;
+    /* Fixed height to match other inputs if needed */
+}
+
+.filterButton:hover {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.filterBadge {
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    border-radius: 12px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 18px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* Offcanvas Styles */
+.offcanvas {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.offcanvasOpen {
+    pointer-events: all;
+    opacity: 1;
+}
+
+.offcanvasOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+}
+
+.offcanvasContent {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 400px;
+    height: 100%;
+    background: white;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #f1f5f9;
+}
+
+.offcanvasOpen .offcanvasContent {
+    transform: translateX(0);
+}
+
+.offcanvasHeader {
+    padding: 20px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #e2f3f9;
+}
+
+.offcanvasHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.closeButton:hover {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.offcanvasBody {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.offcanvasFooter {
+    padding: 20px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    background: white;
+}
+
+.resetButton {
+    background: white;
+    color: #64748b;
+    border: 1px solid #f1f5f9;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.resetButton:hover {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.applyButton {
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.applyButton:hover {
+    background: #83cee4;
+}
+
+.filterGroupItem {
+    margin-bottom: 16px;
+}
+
+.filterGroupItem label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px;
+}
+
+/* Dark mode offcanvas */
+:global(.dark) .filterButton {
+    background: #1f2937;
+    color: #d1d5db;
+    border-color: #374151;
+}
+
+:global(.dark) .filterButton:hover {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+:global(.dark) .filterBadge {
+    background: #83cee4;
+    color: #011926;
+    border-color: #a5d8ea;
+}
+
+:global(.dark) .offcanvasContent {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .offcanvasHeader {
+    background: #83cee4;
+    border-color: #374151;
+}
+
+:global(.dark) .offcanvasHeader h3 {
+    color: #f9fafb;
+}
+
+:global(.dark) .closeButton {
+    color: #9ca3af;
+}
+
+:global(.dark) .closeButton:hover {
+    background: #374151;
+    color: #d1d5db;
+}
+
+:global(.dark) .filterGroupItem label {
+    color: #f9fafb;
+}
+
+:global(.dark) .offcanvasFooter {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+:global(.dark) .resetButton {
+    background: #374151;
+    color: #d1d5db;
+    border-color: #4b5563;
+}
+
+:global(.dark) .resetButton:hover {
+    background: #4b5563;
+    border-color: #6b7280;
+}
+
+:global(.dark) .applyButton {
+    background: #83cee4;
+    color: #011926;
+    border-color: #a5d8ea;
+}
+
+:global(.dark) .applyButton:hover {
+    background: #a5d8ea;
+}
+
+/* Sticky Columns for User Table */
+.userTableContainer table th:first-child,
+.userTableContainer table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 11;
+    background: white;
+    border-right: 1px solid #f1f5f9;
+}
+
+.userTableContainer table th:first-child {
+    z-index: 21;
+    background: #f8fafc;
+}
+
+.userTableContainer table th:last-child,
+.userTableContainer table td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 11;
+    background: white;
+    border-left: 1px solid #f1f5f9;
+}
+
+.userTableContainer table th:last-child {
+    z-index: 21;
+    background: #f8fafc;
+}
+
+/* Maintain hover background consistency on sticky cells */
+.userTableContainer table tbody tr:hover td:first-child,
+.userTableContainer table tbody tr:hover td:last-child {
+    background: #f8fafc;
+}
+
+/* Dark Mode Overrides for Sticky Columns */
+:global(.dark) .userTableContainer table th:first-child,
+:global(.dark) .userTableContainer table td:first-child {
+    background: #1f2937;
+    border-right-color: #374151;
+}
+
+:global(.dark) .userTableContainer table th:first-child {
+    background: #374151;
+}
+
+:global(.dark) .userTableContainer table th:last-child,
+:global(.dark) .userTableContainer table td:last-child {
+    background: #1f2937;
+    border-left-color: #374151;
+}
+
+:global(.dark) .userTableContainer table th:last-child {
+    background: #374151;
+}
+
+:global(.dark) .userTableContainer table tbody tr:hover td:first-child,
+:global(.dark) .userTableContainer table tbody tr:hover td:last-child {
+    background: #374151;
+}
+
+.usernameBadge {
+    font-size: 11px;
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    width: fit-content;
+}
+
+.statusBadge {
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.statusBadge.active {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.statusBadge.inactive {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+:global(.dark) .usernameBadge {
+    background: #374151;
+    color: #9ca3af;
+}
+
+:global(.dark) .statusBadge.active {
+    background-color: #14532d;
+    color: #4ade80;
+}
+
+:global(.dark) .statusBadge.inactive {
+    background-color: #7f1d1d;
+    color: #f87171;
+}

@@ -18,6 +18,10 @@
     overflow: hidden;
 }
 
+.app-content.no-sidebar {
+    margin-left: 10px;
+}
+
 .app-header {
     height: 45px;
     background-color: white;
