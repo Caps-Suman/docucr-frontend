@@ -21,6 +21,7 @@ export interface AuthUser {
   client_name?: string | null;
   organisation_id?: string; // Added for frontend logic
   is_superuser?: boolean;
+  profile_image_url?: string | null;
 }
 
 export interface LoginResponse {
@@ -202,6 +203,7 @@ class AuthService {
 
   saveUser(user: LoginResponse['user']): void {
     localStorage.setItem('user', JSON.stringify(user));
+    this.notify();
   }
 
   saveUserId(userId: string): void {

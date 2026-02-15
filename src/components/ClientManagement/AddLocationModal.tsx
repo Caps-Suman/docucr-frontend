@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom';
-import { X, Loader2, MapPin, Building, Globe, Hash, Pencil } from 'lucide-react';
-import styles from './ModalRedesign.module.css';
+import { X, Loader2, MapPin, Hash, Pencil } from 'lucide-react';
+import styles from './AddLocationModal.module.css';
 import clientService, { ClientLocation } from '../../services/client.service';
 import locationService from '../../services/location.service';
 import Toast, { ToastType } from '../Common/Toast';
@@ -16,10 +16,10 @@ interface AddLocationModalProps {
 }
 
 const AddLocationModal: React.FC<AddLocationModalProps> = ({ isOpen, onClose, clientId, clientName, onSuccess, location }) => {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isFetchingZip, setIsFetchingZip] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
-    const [formData, setFormData] = useState({
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isFetchingZip, setIsFetchingZip] = React.useState(false);
+    const [toast, setToast] = React.useState<{ message: string; type: ToastType } | null>(null);
+    const [formData, setFormData] = React.useState({
         address_line_1: '',
         address_line_2: '',
         city: '',
@@ -29,7 +29,7 @@ const AddLocationModal: React.FC<AddLocationModalProps> = ({ isOpen, onClose, cl
         is_primary: false
     });
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (location) {
             setFormData({
                 address_line_1: location.address_line_1 || '',
@@ -53,9 +53,7 @@ const AddLocationModal: React.FC<AddLocationModalProps> = ({ isOpen, onClose, cl
         }
     }, [location, isOpen]);
 
-
-
-    useEffect(() => {
+    React.useEffect(() => {
         const fetchZipDetails = async () => {
             if (formData.zip_code.length === 5) {
                 try {
@@ -127,129 +125,109 @@ const AddLocationModal: React.FC<AddLocationModalProps> = ({ isOpen, onClose, cl
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.content} onClick={e => e.stopPropagation()}>
                 <div className={styles.header}>
-                    <div className={styles.headerTitle}>
-                        <div className={styles.headerIcon}>
-                            {location ? <Pencil size={24} /> : <MapPin size={24} />}
-                        </div>
-                        <div>
-                            <h2 className={styles.title}>{location ? 'Edit Location' : 'Add New Location'}</h2>
-                            <p className={styles.subtitle}>{location ? `Updating ${location.address_line_1}` : `Service address for ${clientName}`}</p>
-                        </div>
-                    </div>
+                    <h2>{location ? 'Edit Location' : 'Add New Location'}</h2>
                     <button className={styles.closeButton} onClick={onClose}>
                         <X size={20} />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className={styles.body}>
-                    <div className={styles.section}>
-                        <h3 className={styles.sectionTitle}>
-                            <Building size={14} /> Address Details
-                        </h3>
-                        <div className={styles.formGrid}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Zip Code *</label>
-                                <div style={{ position: 'relative' }}>
-                                    <Hash size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                    <input
-                                        type="text"
-                                        name="zip_code"
-                                        value={formData.zip_code}
-                                        onChange={handleInputChange}
-                                        className={styles.input}
-                                        style={{ paddingLeft: '36px' }}
-                                        placeholder="Enter Zip"
-                                        maxLength={5}
-                                        required
-                                    />
-                                    {isFetchingZip && (
-                                        <Loader2 size={16} className="animate-spin" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#2563eb' }} />
-                                    )}
-                                </div>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Country</label>
-                                <div style={{ position: 'relative' }}>
-                                    <Globe size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                    <input
-                                        type="text"
-                                        name="country"
-                                        value={formData.country}
-                                        onChange={handleInputChange}
-                                        className={styles.input}
-                                        style={{ paddingLeft: '36px' }}
-                                        placeholder="Country"
-                                        disabled
-                                    />
-                                </div>
-                            </div>
-                            <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                                <label className={styles.label}>Address Line 1 *</label>
+                    <div className={styles.formGrid}>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>Zip Code *</label>
+                            <div style={{ position: 'relative' }}>
                                 <input
                                     type="text"
-                                    name="address_line_1"
-                                    value={formData.address_line_1}
+                                    name="zip_code"
+                                    value={formData.zip_code}
                                     onChange={handleInputChange}
                                     className={styles.input}
-                                    placeholder="Street address, P.O. box, company name"
+                                    style={{ width: '100%' }}
+                                    placeholder="Enter Zip"
+                                    maxLength={5}
                                     required
                                 />
+                                {isFetchingZip && (
+                                    <Loader2 size={16} className="animate-spin" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#83cee4' }} />
+                                )}
                             </div>
-                            <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                                <label className={styles.label}>Address Line 2</label>
-                                <input
-                                    type="text"
-                                    name="address_line_2"
-                                    value={formData.address_line_2}
-                                    onChange={handleInputChange}
-                                    className={styles.input}
-                                    placeholder="Apartment, suite, unit, building, floor, etc."
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>City *</label>
-                                <input
-                                    type="text"
-                                    name="city"
-                                    value={formData.city}
-                                    onChange={handleInputChange}
-                                    className={styles.input}
-                                    placeholder="City"
-                                    required
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>State Code *</label>
-                                <input
-                                    type="text"
-                                    name="state_code"
-                                    value={formData.state_code}
-                                    onChange={handleInputChange}
-                                    className={styles.input}
-                                    placeholder="e.g. CA"
-                                    maxLength={2}
-                                    required
-                                />
-                            </div>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>Country</label>
+                            <input
+                                type="text"
+                                name="country"
+                                value={formData.country}
+                                onChange={handleInputChange}
+                                className={styles.input}
+                                placeholder="Country"
+                                disabled
+                            />
+                        </div>
+                        <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                            <label className={styles.label}>Address Line 1 *</label>
+                            <input
+                                type="text"
+                                name="address_line_1"
+                                value={formData.address_line_1}
+                                onChange={handleInputChange}
+                                className={styles.input}
+                                placeholder="Street address, P.O. box, company name"
+                                required
+                            />
+                        </div>
+                        <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                            <label className={styles.label}>Address Line 2</label>
+                            <input
+                                type="text"
+                                name="address_line_2"
+                                value={formData.address_line_2}
+                                onChange={handleInputChange}
+                                className={styles.input}
+                                placeholder="Apartment, suite, unit, building, floor, etc."
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>City *</label>
+                            <input
+                                type="text"
+                                name="city"
+                                value={formData.city}
+                                onChange={handleInputChange}
+                                className={styles.input}
+                                placeholder="City"
+                                required
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>State Code *</label>
+                            <input
+                                type="text"
+                                name="state_code"
+                                value={formData.state_code}
+                                onChange={handleInputChange}
+                                className={styles.input}
+                                placeholder="e.g. CA"
+                                maxLength={2}
+                                required
+                            />
                         </div>
                     </div>
 
-                    <div className={styles.section}>
-                        <div className={styles.formGroup}>
-                            <label className={styles.checkboxGroup}>
-                                <input
-                                    type="checkbox"
-                                    name="is_primary"
-                                    checked={formData.is_primary}
-                                    onChange={handleInputChange}
-                                    className={styles.checkbox}
-                                />
-                                <div>
-                                    <span className={styles.label}>Set as Primary Location</span>
-                                    <p className={styles.subtitle} style={{ fontSize: '12px' }}>This will be the default address for this client</p>
-                                </div>
-                            </label>
-                        </div>
+                    <div className={styles.formGroup}>
+                        <label className={styles.checkboxGroup}>
+                            <input
+                                type="checkbox"
+                                name="is_primary"
+                                checked={formData.is_primary}
+                                onChange={handleInputChange}
+                                className={styles.checkbox}
+                            />
+                            <div>
+                                <span className={styles.label}>Set as Primary Location</span>
+                                <p className={styles.subtitle}>This will be the default address for this client</p>
+                            </div>
+                        </label>
                     </div>
                 </form>
 

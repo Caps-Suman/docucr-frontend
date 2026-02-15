@@ -617,6 +617,9 @@
 .userTableContainer table tbody tr:hover td:first-child,
 .userTableContainer table tbody tr:hover td:last-child {
     background: #f8fafc;
+    z-index: 111 !important;
+    /* Ensure hovered sticky cells stay on top of others for tooltips */
+    overflow: visible;
 }
 
 /* Dark Mode Overrides for Sticky Columns */
@@ -643,6 +646,7 @@
 :global(.dark) .userTableContainer table tbody tr:hover td:first-child,
 :global(.dark) .userTableContainer table tbody tr:hover td:last-child {
     background: #374151;
+    z-index: 111 !important;
 }
 
 .usernameBadge {

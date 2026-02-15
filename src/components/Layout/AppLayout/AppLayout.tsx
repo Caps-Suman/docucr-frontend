@@ -111,8 +111,18 @@ const AppLayout: React.FC = () => {
             checkModuleAccess(currentUser.email);
         }
 
+        const handleAuthChange = () => {
+            const updatedUser = authService.getUser();
+            setUser(updatedUser);
+        };
+        authService.subscribe(handleAuthChange);
+
         // Apply saved theme on mount
         document.documentElement.classList.toggle('dark', isDarkMode);
+
+        return () => {
+            authService.unsubscribe(handleAuthChange);
+        };
     }, [isDarkMode]);
 
     const checkModuleAccess = async (email: string) => {
@@ -196,8 +206,10 @@ const AppLayout: React.FC = () => {
                                 )}
                             </div>
                         )}
-                        <div className="user-details">
-                            <User size={20} />
+                        <div className="user-details" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
+                            <div className="user-avatar" style={user?.profile_image_url ? { backgroundImage: `url("${user.profile_image_url}")`, backgroundSize: '130%', backgroundPosition: 'center' } : {}}>
+                                {!user?.profile_image_url && (user?.first_name ? user.first_name.charAt(0).toUpperCase() : <User size={16} />)}
+                            </div>
                             <span>{user?.first_name || user?.email || 'User'}</span>
                         </div>
                         <div className="logout-container" ref={logoutRef}>

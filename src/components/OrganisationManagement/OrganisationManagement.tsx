@@ -140,8 +140,8 @@ const OrganisationManagement: React.FC = () => {
                 await organisationService.deactivateOrganisation(confirmModal.org.id);
                 setToast({ message: 'Organisation deactivated successfully', type: 'success' });
             } else {
-                await organisationService.deactivateOrganisation(confirmModal.org.id);
-                setToast({ message: 'Organisation deactivated successfully', type: 'success' });
+                await organisationService.activateOrganisation(confirmModal.org.id);
+                setToast({ message: 'Organisation activated successfully', type: 'success' });
             }
             loadData();
         } catch (error: any) {
@@ -279,11 +279,10 @@ const OrganisationManagement: React.FC = () => {
                         </span>
                     )}
                     {row.statusCode !== 'ACTIVE' && (
-                        <span className="tooltip-wrapper" data-tooltip="Activate not implemented">
+                        <span className="tooltip-wrapper" data-tooltip="Activate">
                             <button
                                 className={`${styles.actionBtn} ${styles.activate}`}
-                                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                                onClick={() => { }}
+                                onClick={() => handleToggleStatus(row)}
                             >
                                 <PlayCircle size={14} />
                             </button>

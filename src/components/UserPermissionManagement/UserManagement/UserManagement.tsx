@@ -34,7 +34,6 @@ type StatCard = {
 
 const UserManagement: React.FC = () => {
     const currentUser = authService.getUser();
-    console.log("CURRENT USER:", currentUser);
 
     const [currentPage, setCurrentPage] = useState(0);
     // const [itemsPerPage, setItemsPerPage] = useState(25);
@@ -450,25 +449,9 @@ const UserManagement: React.FC = () => {
         }
     };
 
-    // const handleAddNew = () => {
-    //   setEditingUser(null);
-    //   setSelectedClient(null);
-
-    //   if (canChooseUserType) {
-    //     setUserTypeModalOpen(true);
-    //   } else {
-    //     // not organisation role → directly open modal
-    //     setSelectedUserType("internal");
-    //     setIsModalOpen(true);
-    //   }
-    // };
-
-
     const handleAddNew = () => {
-
         if (!roles.length) {
-            // setToast({ message: "Roles still loading. Try again.", type: "warning" });
-            setToast({ message: "No roles found. Please create a role before proceeding.g", type: "warning" });
+            setToast({ message: "No roles found. Please create a role before proceeding.", type: "warning" });
             return;
         }
         setEditingUser(null);

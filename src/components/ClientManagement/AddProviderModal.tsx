@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom';
 import { X, Loader2, UserPlus, MapPin, Hash, User, Search, Pencil } from 'lucide-react';
-import styles from './ModalRedesign.module.css';
+import styles from './AddProviderModal.module.css';
 import clientService, { ClientLocation, Provider } from '../../services/client.service';
 import CommonDropdown from '../Common/CommonDropdown';
 import Toast, { ToastType } from '../Common/Toast';
@@ -17,12 +17,12 @@ interface AddProviderModalProps {
 }
 
 const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose, clientId, clientName, locations, onSuccess, provider }) => {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isFetchingNpi, setIsFetchingNpi] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
-    const [npiError, setNpiError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isFetchingNpi, setIsFetchingNpi] = React.useState(false);
+    const [toast, setToast] = React.useState<{ message: string; type: ToastType } | null>(null);
+    const [npiError, setNpiError] = React.useState<string | null>(null);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = React.useState({
         first_name: '',
         middle_name: '',
         last_name: '',
@@ -30,7 +30,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose, cl
         location_id: ''
     });
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (provider) {
             setFormData({
                 first_name: provider.first_name || '',
@@ -176,114 +176,88 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose, cl
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.content} onClick={e => e.stopPropagation()}>
                 <div className={styles.header}>
-                    <div className={styles.headerTitle}>
-                        <div className={styles.headerIcon}>
-                            {provider ? <Pencil size={24} /> : <UserPlus size={24} />}
-                        </div>
-                        <div>
-                            <h2 className={styles.title}>{provider ? 'Edit Provider' : 'Add New Provider'}</h2>
-                            <p className={styles.subtitle}>{provider ? `Updating details for ${provider.first_name} ${provider.last_name}` : `Enrolling for ${clientName}`}</p>
-                        </div>
-                    </div>
+                    <h2>{provider ? 'Edit Provider' : 'Add New Provider'}</h2>
                     <button className={styles.closeButton} onClick={onClose}>
                         <X size={20} />
                     </button>
                 </div>
 
                 <div className={styles.body}>
-                    <div className={styles.section}>
-                        <h3 className={styles.sectionTitle}>
-                            <Hash size={14} /> National Provider Identifier
-                        </h3>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>NPI Number *</label>
-                            <div className={styles.inputGroup}>
-                                <div style={{ position: 'relative', flex: 1 }}>
-                                    <Hash size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                    <input
-                                        type="text"
-                                        name="npi"
-                                        value={formData.npi}
-                                        onChange={handleInputChange}
-                                        className={styles.input}
-                                        style={{ paddingLeft: '36px', borderColor: npiError ? '#ef4444' : undefined }}
-                                        placeholder="Enter 10-digit NPI"
-                                        maxLength={10}
-                                        required
-                                    />
-                                </div>
-                                <button
-                                    type="button"
-                                    className={styles.lookupButton}
-                                    onClick={handleLookupNpi}
-                                    disabled={isFetchingNpi || formData.npi.length !== 10}
-                                >
-                                    {isFetchingNpi ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                                    Lookup
-                                </button>
-                            </div>
-                            {npiError && <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>{npiError}</p>}
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>NPI Number *</label>
+                        <div className={styles.inputGroup}>
+                            <input
+                                type="text"
+                                name="npi"
+                                value={formData.npi}
+                                onChange={handleInputChange}
+                                className={styles.input}
+                                style={{ flex: 1, borderColor: npiError ? '#ef4444' : undefined }}
+                                placeholder="Enter 10-digit NPI"
+                                maxLength={10}
+                                required
+                            />
+                            <button
+                                type="button"
+                                className={styles.lookupButton}
+                                onClick={handleLookupNpi}
+                                disabled={isFetchingNpi || formData.npi.length !== 10}
+                            >
+                                {isFetchingNpi ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                                Lookup
+                            </button>
                         </div>
+                        {npiError && <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>{npiError}</p>}
                     </div>
 
-                    <div className={styles.section}>
-                        <h3 className={styles.sectionTitle}>
-                            <User size={14} /> Provider Details
-                        </h3>
-                        <div className={styles.formGrid}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>First Name *</label>
-                                <input
-                                    type="text"
-                                    name="first_name"
-                                    value={formData.first_name}
-                                    onChange={handleInputChange}
-                                    className={styles.input}
-                                    placeholder="e.g. John"
-                                    required
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Middle Name</label>
-                                <input
-                                    type="text"
-                                    name="middle_name"
-                                    value={formData.middle_name}
-                                    onChange={handleInputChange}
-                                    className={styles.input}
-                                    placeholder="Optional"
-                                />
-                            </div>
-                            <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                                <label className={styles.label}>Last Name *</label>
-                                <input
-                                    type="text"
-                                    name="last_name"
-                                    value={formData.last_name}
-                                    onChange={handleInputChange}
-                                    className={styles.input}
-                                    placeholder="e.g. Doe"
-                                    required
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={styles.section}>
-                        <h3 className={styles.sectionTitle}>
-                            <MapPin size={14} /> Service Location
-                        </h3>
+                    <div className={styles.formGrid}>
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Select Office Location *</label>
-                            <CommonDropdown
-                                value={formData.location_id}
-                                onChange={handleDropdownChange}
-                                options={locationOptions}
-                                placeholder="Select a registered location..."
-                                isSearchable={true}
-                                size="md"
+                            <label className={styles.label}>First Name *</label>
+                            <input
+                                type="text"
+                                name="first_name"
+                                value={formData.first_name}
+                                onChange={handleInputChange}
+                                className={styles.input}
+                                placeholder="First Name"
+                                required
                             />
                         </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>Middle Name</label>
+                            <input
+                                type="text"
+                                name="middle_name"
+                                value={formData.middle_name}
+                                onChange={handleInputChange}
+                                className={styles.input}
+                                placeholder="Optional"
+                            />
+                        </div>
+                        <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                            <label className={styles.label}>Last Name *</label>
+                            <input
+                                type="text"
+                                name="last_name"
+                                value={formData.last_name}
+                                onChange={handleInputChange}
+                                className={styles.input}
+                                placeholder="Last Name"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Select Office Location *</label>
+                        <CommonDropdown
+                            value={formData.location_id}
+                            onChange={handleDropdownChange}
+                            options={locationOptions}
+                            placeholder="Select a registered location..."
+                            isSearchable={true}
+                            size="md"
+                        />
                     </div>
                 </div>
 
