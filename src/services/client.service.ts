@@ -20,7 +20,16 @@ export interface Provider {
     middle_name?: string;
     last_name: string;
     npi: string;
-    location_id?: string; // or linked location
+    type?: string;
+    location_id?: string;
+    // Address
+    address_line_1?: string;
+    address_line_2?: string;
+    city?: string;
+    state_code?: string;
+    state_name?: string;
+    country?: string;
+    zip_code?: string;
     created_at?: string;
 }
 
@@ -53,6 +62,7 @@ export interface Client {
     locations?: ClientLocation[];
     providers?: Provider[];
     organisation_name?: string;
+    assigned_users?: string[];
 }
 
 
@@ -165,6 +175,86 @@ const clientService = {
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.detail || "Failed to add providers");
+        }
+    },
+    updateProvider: async (
+        clientId: string,
+        providerId: string,
+        data: {
+            first_name: string;
+            middle_name?: string;
+            last_name: string;
+            npi: string;
+            address_line_1: string;
+            address_line_2?: string;
+            city: string;
+            state_code: string;
+            zip_code: string;
+            country?: string;
+        }
+    ): Promise<void> => {
+        const response = await apiClient(
+            `${API_URL}/api/clients/${clientId}/providers/${providerId}`,
+            {
+                method: "PUT",
+                body: JSON.stringify(data),
+            }
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || "Failed to update provider");
+        }
+    },
+    addLocation: async (
+        clientId: string,
+        location: {
+            address_line_1: string;
+            address_line_2?: string;
+            city: string;
+            state_code: string;
+            zip_code: string;
+            country?: string;
+            is_primary?: boolean;
+        }
+    ): Promise<void> => {
+        const response = await apiClient(
+            `${API_URL}/api/clients/${clientId}/locations`,
+            {
+                method: "POST",
+                body: JSON.stringify(location),
+            }
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || "Failed to add location");
+        }
+    },
+    updateLocation: async (
+        clientId: string,
+        locationId: string,
+        location: {
+            address_line_1: string;
+            address_line_2?: string;
+            city: string;
+            state_code: string;
+            zip_code: string;
+            country?: string;
+            is_primary?: boolean;
+        }
+    ): Promise<void> => {
+        const response = await apiClient(
+            `${API_URL}/api/clients/${clientId}/locations/${locationId}`,
+            {
+                method: "PUT",
+                body: JSON.stringify(location),
+            }
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || "Failed to update location");
         }
     },
 

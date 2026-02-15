@@ -21,6 +21,7 @@ export interface User {
     organisation_name?: string;
     client_id?: string;
     client_name?: string;
+    profile_image_url?: string;
 }
 
 export interface UserStats {

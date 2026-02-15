@@ -1006,7 +1006,7 @@ const handleShareClick = () => {
       ...baseColumns,
       ...columnConfig
         .filter((col) => {
-          if (!col.visible) return false;
+          if (!col.visible || col.id === 'select') return false;
           if (col.id === 'organisationName') {
             const user = authService.getUser();
             return user?.role?.name === "SUPER_ADMIN";
@@ -1297,22 +1297,6 @@ const handleShareClick = () => {
                   header: col.label,
                   render: (_: any, row: DocumentListItem) => (
                     <div style={{ display: "flex", gap: "8px" }}>
-                      {(row.status === "failed" ||
-                        row.status === "ai_failed" ||
-                        row.status === "upload_failed" ||
-                        row.status === "cancelled") && (
-                          <span
-                            className={styles.tooltipWrapper}
-                            data-tooltip="Retry Analysis"
-                          >
-                            <button
-                              onClick={() => handleReanalyze(row.id)}
-                              className="action-btn activate"
-                            >
-                              <RefreshCw size={14} />
-                            </button>
-                          </span>
-                        )}
 
                       {(row.status === "analyzing" ||
                         row.status === "ai_queued") && (
@@ -1437,6 +1421,23 @@ const handleShareClick = () => {
                               <Trash2 size={14} />
                             </button>
                           </span>
+
+                          {(row.status === "failed" ||
+                            row.status === "ai_failed" ||
+                            row.status === "upload_failed" ||
+                            row.status === "cancelled") && (
+                              <span
+                                className={styles.tooltipWrapper}
+                                data-tooltip="Retry Analysis"
+                              >
+                                <button
+                                  onClick={() => handleReanalyze(row.id)}
+                                  className="action-btn activate"
+                                >
+                                  <RefreshCw size={14} />
+                                </button>
+                              </span>
+                            )}
 
                           {/* for action-log view */}
                           <span

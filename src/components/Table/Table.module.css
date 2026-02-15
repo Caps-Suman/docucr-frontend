@@ -50,6 +50,8 @@
 
 .table tbody tr:hover {
   background: #f8fafc;
+  position: relative;
+  z-index: 5;
 }
 
 .table tbody tr:last-child {

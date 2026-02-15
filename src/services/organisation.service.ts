@@ -34,16 +34,16 @@ const organisationService = {
         let url = `/api/organisations?page=${page}&page_size=${pageSize}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
         if (status_id) url += `&status_id=${status_id}`;
-        
+
         const response = await fetchWithAuth(url, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to fetch organisations');
         }
-        
+
         return response.json();
     },
 
@@ -52,11 +52,11 @@ const organisationService = {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to fetch stats');
         }
-        
+
         return response.json();
     },
 
@@ -66,12 +66,12 @@ const organisationService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to create organisation');
         }
-        
+
         return response.json();
     },
 
@@ -81,12 +81,12 @@ const organisationService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to update organisation');
         }
-        
+
         return response.json();
     },
 
@@ -95,12 +95,26 @@ const organisationService = {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to deactivate organisation');
         }
-        
+
+        return response.json();
+    },
+
+    activateOrganisation: async (id: string): Promise<any> => {
+        const response = await fetchWithAuth(`/api/organisations/${id}/activate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to activate organisation');
+        }
+
         return response.json();
     }
 };

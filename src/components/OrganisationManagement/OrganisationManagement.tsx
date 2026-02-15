@@ -8,8 +8,7 @@ import ChangePasswordModal from '../UserPermissionManagement/UserManagement/Chan
 import ConfirmModal from '../Common/ConfirmModal';
 import Toast, { ToastType } from '../Common/Toast';
 import organisationService, { Organisation, OrganisationStats } from '../../services/organisation.service';
-import './OrganisationManagement.css';
-import './OrganisationManagement.css';
+import styles from './OrganisationManagement.module.css';
 
 const OrganisationManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(0);
@@ -141,8 +140,8 @@ const OrganisationManagement: React.FC = () => {
                 await organisationService.deactivateOrganisation(confirmModal.org.id);
                 setToast({ message: 'Organisation deactivated successfully', type: 'success' });
             } else {
-                await organisationService.deactivateOrganisation(confirmModal.org.id);
-                setToast({ message: 'Organisation deactivated successfully', type: 'success' });
+                await organisationService.activateOrganisation(confirmModal.org.id);
+                setToast({ message: 'Organisation activated successfully', type: 'success' });
             }
             loadData();
         } catch (error: any) {
@@ -219,7 +218,7 @@ const OrganisationManagement: React.FC = () => {
                     <span style={{ fontWeight: 600 }}>
                         {row.first_name} {row.middle_name ? row.middle_name + ' ' : ''}{row.last_name}
                     </span>
-                    <span className="username-badge">{row.username}</span>
+                    <span className={styles.usernameBadge}>{row.username}</span>
                 </div>
             )
         },
@@ -244,7 +243,7 @@ const OrganisationManagement: React.FC = () => {
             render: (value: string | undefined) => {
                 const isActive = value === 'ACTIVE';
                 return (
-                    <span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>
+                    <span className={`${styles.statusBadge} ${isActive ? styles.active : styles.inactive}`}>
                         {isActive ? 'Active' : 'Inactive'}
                     </span>
                 );
@@ -256,13 +255,13 @@ const OrganisationManagement: React.FC = () => {
             render: (_: any, row: Organisation) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <span className="tooltip-wrapper" data-tooltip="Edit">
-                        <button className="action-btn edit" onClick={() => handleEdit(row)}>
+                        <button className={styles.actionBtn} onClick={() => handleEdit(row)} style={{ color: '#3b82f6', background: '#eff6ff' }}>
                             <Edit2 size={14} />
                         </button>
                     </span>
                     <span className="tooltip-wrapper" data-tooltip="Change Password">
                         <button
-                            className="action-btn edit"
+                            className={styles.actionBtn}
                             onClick={() => handleChangePassword(row)}
                             style={{ color: '#f59e0b', background: '#fef3c7' }}
                         >
@@ -272,7 +271,7 @@ const OrganisationManagement: React.FC = () => {
                     {row.statusCode === 'ACTIVE' && (
                         <span className="tooltip-wrapper" data-tooltip="Deactivate">
                             <button
-                                className="action-btn deactivate"
+                                className={`${styles.actionBtn} ${styles.deactivate}`}
                                 onClick={() => handleToggleStatus(row)}
                             >
                                 <StopCircle size={14} />
@@ -280,11 +279,10 @@ const OrganisationManagement: React.FC = () => {
                         </span>
                     )}
                     {row.statusCode !== 'ACTIVE' && (
-                        <span className="tooltip-wrapper" data-tooltip="Activate not implemented">
+                        <span className="tooltip-wrapper" data-tooltip="Activate">
                             <button
-                                className="action-btn activate"
-                                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                                onClick={() => { }}
+                                className={`${styles.actionBtn} ${styles.activate}`}
+                                onClick={() => handleToggleStatus(row)}
                             >
                                 <PlayCircle size={14} />
                             </button>
@@ -300,19 +298,19 @@ const OrganisationManagement: React.FC = () => {
     }
 
     return (
-        <div className="management-content">
-            <div className="stats-grid">
+        <div className={styles.managementContent}>
+            <div className={styles.statsGrid}>
                 {orgStats.map((stat, index) => (
                     <div
                         key={index}
-                        className={`stat-card ${stat.color} ${stat.onClick ? 'clickable' : ''} ${stat.active ? 'selected' : ''}`}
+                        className={`${styles.statCard} ${styles[stat.color]} ${stat.onClick ? styles.clickable : ''} ${stat.active ? styles.selected : ''}`}
                         onClick={stat.onClick}
                         style={{ cursor: stat.onClick ? 'pointer' : 'default' }}
                     >
-                        <div className="stat-icon">
+                        <div className={styles.statIcon}>
                             <stat.icon size={16} />
                         </div>
-                        <div className="stat-content">
+                        <div className={styles.statContent}>
                             <h3>{stat.value}</h3>
                             <p>{stat.title}</p>
                         </div>
@@ -320,8 +318,8 @@ const OrganisationManagement: React.FC = () => {
                 ))}
             </div>
 
-            <div className="table-section" style={{ position: 'relative' }}>
-                <div className="table-header">
+            <div className={styles.tableSection} style={{ position: 'relative' }}>
+                <div className={styles.tableHeader}>
                     <h2>
                         <Building2 size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         Organisations
@@ -346,7 +344,7 @@ const OrganisationManagement: React.FC = () => {
                                 }}
                             />
                         </div>
-                        <button className="add-btn" onClick={handleAddNew}>
+                        <button className={styles.addBtn} onClick={handleAddNew}>
                             Add Organisation
                         </button>
                     </div>

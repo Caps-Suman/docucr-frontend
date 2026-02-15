@@ -264,8 +264,7 @@ const UserModal: React.FC<UserModalProps> = ({
     else if (firstName.length > 50)
       newErrors.firstName = "First name cannot exceed 50 characters";
 
-    if (!lastName.trim()) newErrors.lastName = "Last name is required";
-    else if (lastName.length > 50)
+    if (lastName && lastName.length > 50)
       newErrors.lastName = "Last name cannot exceed 50 characters";
 
     if (middleName && middleName.length > 50)
@@ -321,7 +320,7 @@ const UserModal: React.FC<UserModalProps> = ({
       username: username.trim(),
       first_name: firstName.trim(),
       middle_name: middleName.trim() || undefined,
-      last_name: lastName.trim(),
+      last_name: lastName.trim() || undefined,
       phone_country_code: phoneCountryCode,
       phone_number: phoneNumber || undefined,
       supervisor_id: selectedSupervisor || undefined,
@@ -625,7 +624,7 @@ const UserModal: React.FC<UserModalProps> = ({
                 </div>
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Last Name *</label>
+                    <label className={styles.label}>Last Name</label>
                     <input
                       type="text"
                       className={styles.input}

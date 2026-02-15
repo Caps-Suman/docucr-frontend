@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Shield, Lock, Save } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Mail, Phone, Shield, Lock, Save, Edit2 } from 'lucide-react';
 import Select from 'react-select';
 import authService from '../../services/auth.service';
 import Toast, { ToastType } from '../Common/Toast';
 import Loading from '../Common/Loading';
+import ImageCropModal from '../Common/ImageCropModal/ImageCropModal';
+import ProfileAvatarModal from './ProfileAvatarModal';
 import { getCustomSelectStyles } from '../../styles/selectStyles';
 import { fetchWithAuth } from '../../utils/api';
 import './Profile.css';
@@ -18,6 +20,7 @@ interface ProfileData {
     phone_country_code: string | null;
     phone_number: string | null;
     is_superuser: boolean;
+    profile_image_url: string | null;
     created_at: string;
 }
 
@@ -27,6 +30,10 @@ const Profile: React.FC = () => {
     const [editMode, setEditMode] = useState(false);
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [formData, setFormData] = useState({
         first_name: '',
         middle_name: '',
@@ -63,6 +70,17 @@ const Profile: React.FC = () => {
 
             const data = await response.json();
             setProfile(data);
+
+            // Sync with auth service to update header avatar
+            const currentUser = authService.getUser();
+            if (currentUser) {
+                authService.saveUser({
+                    ...currentUser,
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                    profile_image_url: data.profile_image_url
+                });
+            }
             setFormData({
                 first_name: data.first_name || '',
                 middle_name: data.middle_name || '',
@@ -76,6 +94,82 @@ const Profile: React.FC = () => {
             setToast({ message: error.message || 'Failed to load profile', type: 'error' });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleAvatarClick = () => {
+        console.log('--- handleAvatarClick called ---');
+        setIsAvatarModalOpen(true);
+    };
+
+    const handleUploadClick = () => {
+        console.log('--- handleUploadClick called ---');
+        // DON'T close the modal here, wait for file selection
+        // setIsAvatarModalOpen(false); 
+        if (fileInputRef.current) {
+            console.log('--- Triggering file click ---');
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        console.log('--- handleFileChange called ---', file?.name);
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            setToast({ message: 'Please select an image file', type: 'error' });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.addEventListener('load', () => {
+            console.log('--- Image loaded, setting selectedImage ---');
+            setSelectedImage(reader.result as string);
+            setIsAvatarModalOpen(false); // Close the preview modal only after image is loaded for cropping
+        });
+        reader.readAsDataURL(file);
+
+        // Reset input value so same file can be selected again if needed
+        event.target.value = '';
+    };
+
+    const handleCropComplete = async (croppedBlob: Blob) => {
+        if (!selectedImage) return;
+
+        try {
+            setSelectedImage(null); // Close modal
+            setIsUploadingAvatar(true);
+
+            const file = new File([croppedBlob], 'avatar.jpg', { type: 'image/jpeg' });
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetchWithAuth('/api/profile/me/avatar', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to upload avatar');
+            }
+
+            const data = await response.json();
+            const currentUser = authService.getUser();
+            if (currentUser) {
+                authService.saveUser({ ...currentUser, profile_image_url: data.profile_image_url });
+            }
+            setProfile(prev => prev ? { ...prev, profile_image_url: data.profile_image_url } : null);
+            setToast({ message: 'Avatar updated successfully', type: 'success' });
+
+            // Reload profile to sync across header
+            loadProfile();
+        } catch (error: any) {
+            console.error('Failed to upload avatar:', error);
+            setToast({ message: error.message || 'Failed to upload avatar', type: 'error' });
+        } finally {
+            setIsUploadingAvatar(false);
         }
     };
 
@@ -127,6 +221,14 @@ const Profile: React.FC = () => {
             }
 
             setToast({ message: 'Profile updated successfully', type: 'success' });
+            const currentUser = authService.getUser();
+            if (currentUser) {
+                authService.saveUser({
+                    ...currentUser,
+                    first_name: formData.first_name,
+                    last_name: formData.last_name
+                });
+            }
             setEditMode(false);
             loadProfile();
         } catch (error: any) {
@@ -175,8 +277,39 @@ const Profile: React.FC = () => {
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             <div className="profile-header">
-                <h1>Profile Settings</h1>
-                <p>Manage your account information and security</p>
+                <div className="profile-avatar-container">
+                    <div className="profile-avatar-wrapper">
+                        <div className="profile-avatar-large" style={profile?.profile_image_url ? { backgroundImage: `url(${profile.profile_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                            {!profile?.profile_image_url && (profile?.first_name ? profile.first_name.charAt(0).toUpperCase() : <User size={48} />)}
+                            {isUploadingAvatar && <div className="avatar-loading-overlay"><Loading /></div>}
+                        </div>
+                        <button
+                            className="avatar-edit-overlay"
+                            title="Change profile picture"
+                            onClick={handleAvatarClick}
+                            disabled={isUploadingAvatar}
+                        >
+                            <Edit2 size={16} />
+                        </button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                        />
+                    </div>
+                    <div className="profile-header-text">
+                        <h1>Profile Settings</h1>
+                        <p>Manage your account information and security</p>
+                        {authService.getUser()?.role && (
+                            <div className="profile-role-badge">
+                                <Shield size={14} />
+                                <span>{authService.getUser()?.role?.name?.replace(/_/g, ' ')}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className="profile-content">
@@ -186,6 +319,7 @@ const Profile: React.FC = () => {
                         <h2>Personal Information</h2>
                         {!editMode && (
                             <button className="btn-edit" onClick={() => setEditMode(true)}>
+                                <Edit2 size={16} />
                                 Edit
                             </button>
                         )}
@@ -371,6 +505,21 @@ const Profile: React.FC = () => {
                     </form>
                 </div>
             </div>
+            {isAvatarModalOpen && (
+                <ProfileAvatarModal
+                    currentImage={profile?.profile_image_url || null}
+                    firstName={profile?.first_name || ''}
+                    onClose={() => setIsAvatarModalOpen(false)}
+                    onUploadClick={handleUploadClick}
+                />
+            )}
+            {selectedImage && (
+                <ImageCropModal
+                    image={selectedImage}
+                    onCropComplete={handleCropComplete}
+                    onClose={() => setSelectedImage(null)}
+                />
+            )}
         </div>
     );
 };

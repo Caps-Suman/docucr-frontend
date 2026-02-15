@@ -441,6 +441,15 @@
     transition: all 0.2s;
 }
 
+.actionBtn.view {
+    color: #6366f1;
+    background-color: #eef2ff;
+}
+
+.actionBtn.view:hover {
+    background-color: #e0e7ff;
+}
+
 .actionBtn.edit {
     color: #3b82f6;
     background-color: #eff6ff;
