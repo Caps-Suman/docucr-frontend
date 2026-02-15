@@ -16,6 +16,9 @@ import {
   Share,
   FileSpreadsheet,
   Printer,
+  FileStack,
+  Info,
+  Activity,
 } from "lucide-react";
 import documentService from "../../../services/document.service";
 import authService from "../../../services/auth.service";
@@ -108,20 +111,20 @@ const DocumentDetail: React.FC = () => {
     return `${styles.typeBadge} ${styles[`badge${badgeNumber}` as keyof typeof styles]}`;
   };
   const getDerivedDocumentCounts = () => {
-  const counts: Record<string, number> = {};
+    const counts: Record<string, number> = {};
 
-  document?.extracted_documents?.forEach((doc) => {
-    const key = doc.document_type || "Unknown";
-    counts[key] = (counts[key] || 0) + 1;
-  });
+    document?.extracted_documents?.forEach((doc) => {
+      const key = doc.document_type || "Unknown";
+      counts[key] = (counts[key] || 0) + 1;
+    });
 
-  document?.unverified_documents?.forEach((doc) => {
-    const key = doc.suspected_type || "Unverified";
-    counts[key] = (counts[key] || 0) + 1;
-  });
+    document?.unverified_documents?.forEach((doc) => {
+      const key = doc.suspected_type || "Unverified";
+      counts[key] = (counts[key] || 0) + 1;
+    });
 
-  return counts;
-};
+    return counts;
+  };
 
   const fetchDocumentDetails = async () => {
     try {
@@ -310,7 +313,7 @@ const DocumentDetail: React.FC = () => {
 
         <div className={styles.headerActions}>
           <span
-            className="tooltip-wrapper"
+            className="tooltip-wrapper tooltip-bottom"
             data-tooltip={isReanalyzing ? "Re-analyzing..." : "Re-analyze"}
           >
             <button
@@ -324,7 +327,7 @@ const DocumentDetail: React.FC = () => {
               />
             </button>
           </span>
-          {/* <span className="tooltip-wrapper" data-tooltip="Print">
+          {/* <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Print">
             <button
               className={styles.actionButton}
               onClick={() => setShowPrintModal(true)}
@@ -332,7 +335,7 @@ const DocumentDetail: React.FC = () => {
               <Printer size={16} />
             </button>
           </span> */}
-          <span className="tooltip-wrapper" data-tooltip="Share">
+          <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Share">
             <button
               className={styles.actionButton}
               onClick={() => setShowShareModal(true)}
@@ -340,7 +343,7 @@ const DocumentDetail: React.FC = () => {
               <Share size={16} />
             </button>
           </span>
-          <span className="tooltip-wrapper" data-tooltip="Download">
+          <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Download">
             <button
               className={styles.actionButton}
               onClick={async () => {
@@ -365,7 +368,7 @@ const DocumentDetail: React.FC = () => {
             </button>
           </span>
           {document.analysis_report_s3_key && (
-            <span className="tooltip-wrapper" data-tooltip="Download Report">
+            <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Download Report">
               <button
                 className={`${styles.actionButton} ${styles.primaryAction}`}
                 onClick={async () => {
@@ -394,14 +397,14 @@ const DocumentDetail: React.FC = () => {
             </span>
           )}
           {!document.is_archived && (
-            <span className="tooltip-wrapper" data-tooltip="Archive">
+            <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Archive">
               <button className={styles.actionButton} onClick={handleArchive}>
                 <Archive size={16} />
               </button>
             </span>
           )}
           {document.is_archived && (
-            <span className="tooltip-wrapper" data-tooltip="Unarchive">
+            <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Unarchive">
               <button
                 className={`${styles.actionButton} ${styles.primaryAction}`}
                 onClick={handleUnarchive}
@@ -410,7 +413,7 @@ const DocumentDetail: React.FC = () => {
               </button>
             </span>
           )}
-          <span className="tooltip-wrapper" data-tooltip="Delete">
+          <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Delete">
             <button
               className={`${styles.actionButton} ${styles.deleteAction}`}
               onClick={() => setShowDeleteModal(true)}
@@ -425,50 +428,53 @@ const DocumentDetail: React.FC = () => {
         <div className={styles.leftPanel}>
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>Derived Documents</h3>
+              <h3 className={styles.cardTitle}>
+                <FileStack size={14} />
+                Derived Documents
+              </h3>
             </div>
             <div className={styles.badgeList}>
               {Object.entries(getDerivedDocumentCounts()).map(
-  ([type, count], index) => (
-    <span key={type} className={getBadgeClass(index)}>
-      {type}: {count}
-    </span>
-  )
-)}
+                ([type, count], index) => (
+                  <span key={type} className={getBadgeClass(index)}>
+                    {type}: {count}
+                  </span>
+                )
+              )}
 
-{Object.keys(getDerivedDocumentCounts()).length === 0 && (
-  <p className={styles.emptyMessage}>
-    No derived documents found.
-  </p>
-)}
+              {Object.keys(getDerivedDocumentCounts()).length === 0 && (
+                <p className={styles.emptyMessage}>
+                  No derived documents found.
+                </p>
+              )}
             </div>
           </div>
           {id && <MetadataCard documentId={id} />}
 
-         {id && (
-  document.analysis_report_s3_key ? (
-    <ExtractedReportCard documentId={id} />
-  ) : (
-    <div className={styles.card}>
-      <div className={styles.cardHeader}>
-        <h3 className={styles.cardTitle}>
-          <FileSpreadsheet size={18} />
-          Extracted Analysis
-        </h3>
-      </div>
+          {id && (
+            document.analysis_report_s3_key ? (
+              <ExtractedReportCard documentId={id} />
+            ) : (
+              <div className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <h3 className={styles.cardTitle}>
+                    <Activity size={18} />
+                    Extracted Analysis
+                  </h3>
+                </div>
 
-      <div className={styles.metaList}>
-        {document.statusCode === "ANALYZING" || document.statusCode === "AI_QUEUED" ? (
-          <p className={styles.emptyMessage}>Analysis in progress…</p>
-        ) : document.statusCode === "FAILED" || document.statusCode === "AI_FAILED" ? (
-          <p className={styles.emptyMessage}>Analysis failed. Try re-analyzing.</p>
-        ) : (
-          <p className={styles.emptyMessage}>No extracted data found.</p>
-        )}
-      </div>
-    </div>
-  )
-)}
+                <div className={styles.metaList}>
+                  {document.statusCode === "ANALYZING" || document.statusCode === "AI_QUEUED" ? (
+                    <p className={styles.emptyMessage}>Analysis in progress…</p>
+                  ) : document.statusCode === "FAILED" || document.statusCode === "AI_FAILED" ? (
+                    <p className={styles.emptyMessage}>Analysis failed. Try re-analyzing.</p>
+                  ) : (
+                    <p className={styles.emptyMessage}>No extracted data found.</p>
+                  )}
+                </div>
+              </div>
+            )
+          )}
 
         </div>
 
@@ -673,7 +679,7 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h3 className={styles.cardTitle}>
-            <FileText size={18} />
+            <Info size={18} />
             Uploaded Metadata
           </h3>
           <button
@@ -892,16 +898,16 @@ const ExtractedReportCard: React.FC<{ documentId: string }> = ({
     if (entries.length === 0) return null;
 
     return (
-      <div key={idx} className={styles.typeItem} style={{ marginBottom: idx === reportData.findings.length - 1 ? 0 : "16px" }}>
+      <div key={idx} className={styles.typeItem}>
         <div className={styles.typeHeader}>
           <span className={styles.typeBadge} style={{ background: "var(--color-primary-light)", color: "var(--color-primary-dark)", border: "1px solid var(--color-primary)" }}>
             {finding.document_type}
           </span>
           <span className={styles.typePageRange}>Pages: {finding.page_range}</span>
         </div>
-        <div className={styles.metaList} style={{ marginTop: "12px" }}>
+        <div className={styles.metaList}>
           {entries.map(([key, value]) => (
-            <div key={key} className={styles.summaryItem} style={{ marginBottom: "12px" }}>
+            <div key={key} className={styles.summaryItem}>
               <div className={styles.summaryKey}>{formatLabel(key)}</div>
               <div className={styles.summaryValue} style={{ fontSize: "14px" }}>
                 {parseAndRenderValue(value)}
