@@ -101,12 +101,11 @@ const DocumentList: React.FC = () => {
     !user?.is_client &&
     !!user?.organisation_id &&
     !user?.client_id;
-
-  const isClient = user?.is_client === true && !user?.client_id;
-  const isClientUser = !!user?.client_id && user?.is_client === true;
+const isClientAdmin = user?.role?.name === "CLIENT_ADMIN";
+const isClientUser = !!user?.client_id;
 
   const showUploadedByFilter =
-    isSuperAdmin || isOrgAdmin || isClient;
+    isSuperAdmin || isOrgAdmin || isClientAdmin;
 
   const showOrganisationFilter =
     isSuperAdmin;
@@ -131,6 +130,7 @@ const DocumentList: React.FC = () => {
     uploaded_by: "",
     organisation_filter: "",
   });
+  
   const [showActionLogModal, setShowActionLogModal] = useState(false);
   const [actionLogDocumentId, setActionLogDocumentId] = useState<string | null>(
     null,
@@ -161,6 +161,8 @@ const DocumentList: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [statusTooltipVisible, setStatusTooltipVisible] = useState(false);
   const [statusTooltipPos, setStatusTooltipPos] = useState({ top: 0, left: 0 });
+  const [showShareTypeModal, setShowShareTypeModal] = useState(false);
+const [shareMode, setShareMode] = useState<"client" | "internal" | null>(null);
 
   const activeFilterCount = Object.entries(activeFilters).filter(
     ([key, value]) => {
@@ -201,6 +203,17 @@ const DocumentList: React.FC = () => {
     setActiveFilters(resetState);
     setCurrentPage(0);
   };
+const handleShareClick = () => {
+  if (isClientAdmin || isClientUser) {
+    setShareMode("client"); 
+    setShowShareModal(true);
+    return;
+  }
+
+  if (isOrgUser || isSuperAdmin) {
+    setShowShareTypeModal(true); // NEW modal
+  }
+};
 
   const checkScroll = () => {
     if (tableContainerRef.current) {
@@ -276,61 +289,6 @@ const DocumentList: React.FC = () => {
   useEffect(() => {
     loadDocuments();
   }, [activeFilters, currentPage, pageSize]);
-
-  // Load documents when filters change
-  // useEffect(() => {
-  //   if (clients.length > 0 || documentTypes.length > 0) {
-  //     loadDocuments();
-  //   }
-  //   // setupWebSocket();
-
-  //   return () => {
-  //     if (wsRef.current) {
-  //       wsRef.current.close();
-  //     }
-  //   };
-  // }, [activeFilters, clients, documentTypes, currentPage, pageSize]);
-
-  //   const loadMetadata = async () => {
-  //     try {
-  //       const [clientsRes, docTypesRes, activeFormRes] = await Promise.all([
-  //         clientService.getClients(1, 1000),
-  //         documentTypeService.getDocumentTypes(1, 1000),
-  //         authService.getUser()?.role?.name !== "SUPER_ADMIN"
-  //           ? formService.getActiveForm().catch(() => null)
-  //           : Promise.resolve(null),
-  //       ]);
-  //       try {
-  //   const uploadedRes = await documentService.getUploadedByFilter();
-  //   setUploadedByOptions(uploadedRes || []);
-  // } catch {}
-
-  // const user = authService.getUser();
-  // if (user?.role?.name === "SUPER_ADMIN") {
-  //   try {
-  //     const orgRes = await documentService.getOrganisationFilter();
-  //     setOrganisationOptions(orgRes || []);
-  //   } catch {}
-  // }
-
-  //       // Handle different response formats safely
-  //       const clientList = Array.isArray(clientsRes)
-  //         ? clientsRes
-  //         : (clientsRes as any).clients || [];
-  //       const typeList = Array.isArray(docTypesRes)
-  //         ? docTypesRes
-  //         : (docTypesRes as any).document_types || [];
-
-  //       setClients(clientList);
-  //       setDocumentTypes(typeList);
-
-  //       if (activeFormRes && activeFormRes.fields) {
-  //         setFormFields(activeFormRes.fields);
-  //       }
-  //     } catch (err) {
-  //       console.error("Failed to load metadata for labels:", err);
-  //     }
-  //   };
 
   const loadMetadata = async () => {
     try {
@@ -1879,6 +1837,25 @@ const DocumentList: React.FC = () => {
         type="danger"
         loading={deleting}
       />
+    {showShareTypeModal && (
+  <ConfirmModal
+    isOpen={true}
+    title="Share with"
+    message="Who do you want to share with?"
+    confirmText="Client Users"
+    cancelText="Internal Team"
+    onConfirm={() => {
+      setShareMode("client");
+      setShowShareTypeModal(false);
+      setShowShareModal(true);
+    }}
+    onClose={() => {
+      setShareMode("internal");
+      setShowShareTypeModal(false);
+      setShowShareModal(true);
+    }}
+  />
+)}
 
       <ActionLogModal
         isOpen={showActionLogModal}
