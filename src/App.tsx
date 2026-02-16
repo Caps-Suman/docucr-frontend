@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 import Login from './pages/Login';
@@ -39,34 +39,17 @@ const App: React.FC = () => {
     return hasSeenIntro !== 'true';
   });
 
-  const handleIntroComplete = () => {
+  const handleIntroComplete = useCallback(() => {
     sessionStorage.setItem('hasSeenIntro', 'true');
     setShowIntro(false);
-  };
-
-  React.useEffect(() => {
-    // Reset intro flag when component mounts if needed
-    const hasSeenIntro = sessionStorage.getItem('hasSeenIntro');
-    if (hasSeenIntro !== 'true') {
-      setShowIntro(true);
-    }
   }, []);
 
   return (
     <BrowserRouter>
+      {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
       <Routes>
-        <Route path="/" element={
-          <>
-            <Login />
-            {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
-          </>
-        } />
-        <Route path="/login" element={
-          <>
-            <Login />
-            {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
-          </>
-        } />
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/role-selection" element={<RoleSelection />} />
 
         {/* Public Sharing Route */}
