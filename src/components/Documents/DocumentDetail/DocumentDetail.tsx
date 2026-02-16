@@ -98,7 +98,10 @@ const DocumentDetail: React.FC = () => {
     message: string;
     type: ToastType;
   } | null>(null);
+const user = authService.getUser();
 
+const shareMode: "client" | "internal" =
+  user?.client_id ? "client" : "internal";
   // Actions state
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -534,6 +537,7 @@ const DocumentDetail: React.FC = () => {
       />
 
       <ShareDocumentsModal
+      mode={shareMode}
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         documentIds={id ? [id] : []}

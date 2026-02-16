@@ -96,11 +96,7 @@ const DocumentList: React.FC = () => {
 
   const isSuperAdmin = user?.role?.name === "SUPER_ADMIN";
   const isOrgAdmin = user?.role?.name === "ORGANISATION_ROLE"; // adjust if different
-  const isOrgUser =
-    !isSuperAdmin &&
-    !user?.is_client &&
-    !!user?.organisation_id &&
-    !user?.client_id;
+
 const isClientAdmin = user?.role?.name === "CLIENT_ADMIN";
 const isClientUser = !!user?.client_id;
 
@@ -162,7 +158,8 @@ const isClientUser = !!user?.client_id;
   const [statusTooltipVisible, setStatusTooltipVisible] = useState(false);
   const [statusTooltipPos, setStatusTooltipPos] = useState({ top: 0, left: 0 });
   const [showShareTypeModal, setShowShareTypeModal] = useState(false);
-const [shareMode, setShareMode] = useState<"client" | "internal" | null>(null);
+const [shareMode, setShareMode] = useState<"client" | "internal">("internal");
+const defaultMode: "client" | "internal" = isClientUser ? "client" : "internal";
 
   const activeFilterCount = Object.entries(activeFilters).filter(
     ([key, value]) => {
@@ -203,17 +200,34 @@ const [shareMode, setShareMode] = useState<"client" | "internal" | null>(null);
     setActiveFilters(resetState);
     setCurrentPage(0);
   };
+
+
+const isOrganisationLogin =
+    user?.role?.name === "ORGANISATION_ROLE";
+
+const isOrgUser =
+  !!user?.organisation_id && !user?.client_id;
+
 const handleShareClick = () => {
+  // CLIENT LOGIN
   if (isClientAdmin || isClientUser) {
-    setShareMode("client"); 
+    setShareMode("client");
     setShowShareModal(true);
     return;
   }
 
+  // 🔥 ORGANISATION LOGIN (entity)
+  if (isOrganisationLogin) {
+    setShowShareTypeModal(true);
+    return;
+  }
+
+  // ORG USER / SUPERADMIN
   if (isOrgUser || isSuperAdmin) {
-    setShowShareTypeModal(true); // NEW modal
+    setShowShareTypeModal(true);
   }
 };
+
 
   const checkScroll = () => {
     if (tableContainerRef.current) {
@@ -1006,7 +1020,7 @@ const handleShareClick = () => {
       ...baseColumns,
       ...columnConfig
         .filter((col) => {
-          if (!col.visible || col.id === 'select') return false;
+          if (!col.visible) return false;
           if (col.id === 'organisationName') {
             const user = authService.getUser();
             return user?.role?.name === "SUPER_ADMIN";
@@ -1297,6 +1311,22 @@ const handleShareClick = () => {
                   header: col.label,
                   render: (_: any, row: DocumentListItem) => (
                     <div style={{ display: "flex", gap: "8px" }}>
+                      {(row.status === "failed" ||
+                        row.status === "ai_failed" ||
+                        row.status === "upload_failed" ||
+                        row.status === "cancelled") && (
+                          <span
+                            className={styles.tooltipWrapper}
+                            data-tooltip="Retry Analysis"
+                          >
+                            <button
+                              onClick={() => handleReanalyze(row.id)}
+                              className="action-btn activate"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                          </span>
+                        )}
 
                       {(row.status === "analyzing" ||
                         row.status === "ai_queued") && (
@@ -1421,23 +1451,6 @@ const handleShareClick = () => {
                               <Trash2 size={14} />
                             </button>
                           </span>
-
-                          {(row.status === "failed" ||
-                            row.status === "ai_failed" ||
-                            row.status === "upload_failed" ||
-                            row.status === "cancelled") && (
-                              <span
-                                className={styles.tooltipWrapper}
-                                data-tooltip="Retry Analysis"
-                              >
-                                <button
-                                  onClick={() => handleReanalyze(row.id)}
-                                  className="action-btn activate"
-                                >
-                                  <RefreshCw size={14} />
-                                </button>
-                              </span>
-                            )}
 
                           {/* for action-log view */}
                           <span
@@ -1693,7 +1706,7 @@ const handleShareClick = () => {
               <>
                 <button
                   className={styles.shareButton}
-                  onClick={() => setShowShareModal(true)}
+                   onClick={handleShareClick}
                 >
                   <Share size={16} />
                   Share ({selectedDocuments.size})
@@ -1874,6 +1887,7 @@ const handleShareClick = () => {
       )}
 
       <ShareDocumentsModal
+        mode={shareMode}
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         documentIds={Array.from(selectedDocuments)}

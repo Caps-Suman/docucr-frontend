@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Share, Users, Mail, Lock, Search } from "lucide-react";
 import { fetchWithAuth } from "../../../utils/api";
 import styles from "./ShareDocumentsModal.module.css";
+import authService from "../../../services/auth.service";
 
 interface User {
   id: string;
@@ -48,37 +49,54 @@ const ShareDocumentsModal: React.FC<Props> = ({
       loadUsers();
     }
   }, [isOpen, debouncedSearch, activeTab, mode]);
+useEffect(() => {
+  if (!isOpen) {
+    setUsers([]);
+    setSelectedUsers([]);
+    setSearch("");
+    setActiveTab("internal");   // reset
+  }
+}, [isOpen]);
 
-  const finalMode = mode || activeTab;
+const finalMode = forcedMode ? mode : activeTab;
 
-  const loadUsers = async () => {
-    try {
-      setLoading(true);
+const loadUsers = async () => {
+  try {
+    setLoading(true);
 
-      let url = "/api/users?";
+    let url = "/api/users/share/users?";
 
-      if (finalMode === "client") {
-        url += "type=client";
-      } else {
-        url += "type=internal";
-      }
-
-      if (debouncedSearch) {
-        url += `&search=${encodeURIComponent(debouncedSearch)}`;
-      }
-
-      const res = await fetchWithAuth(url);
-
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users || data);
-      }
-    } catch (err) {
-      console.error("load users failed", err);
-    } finally {
-      setLoading(false);
+    if (finalMode === "internal") {
+      url += "is_client=false";
     }
-  };
+
+    if (finalMode === "client") {
+      url += "is_client=true";
+    }
+
+    if (debouncedSearch) {
+      url += `&search=${encodeURIComponent(debouncedSearch)}`;
+    }
+
+    const res = await fetchWithAuth(url);
+
+    if (res.ok) {
+      const data = await res.json();
+
+      if (Array.isArray(data.users)) {
+        setUsers(data.users);
+      } else {
+        setUsers([]);
+      }
+    }
+  } catch (err) {
+    console.error("load users failed", err);
+    setUsers([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const toggleUser = (id: string) => {
     setSelectedUsers((prev) =>
@@ -113,8 +131,7 @@ const ShareDocumentsModal: React.FC<Props> = ({
     }
   };
 
-  if (!isOpen) return null;
-
+  if (!isOpen) return null
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
