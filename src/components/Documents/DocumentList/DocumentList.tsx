@@ -158,7 +158,8 @@ const isClientUser = !!user?.client_id;
   const [statusTooltipVisible, setStatusTooltipVisible] = useState(false);
   const [statusTooltipPos, setStatusTooltipPos] = useState({ top: 0, left: 0 });
   const [showShareTypeModal, setShowShareTypeModal] = useState(false);
-const [shareMode, setShareMode] = useState<"client" | "internal">("internal");
+const [shareMode, setShareMode] = useState<"client" | "internal" | null>(null);
+const [askShareType, setAskShareType] = useState(false);
 const defaultMode: "client" | "internal" = isClientUser ? "client" : "internal";
 
   const activeFilterCount = Object.entries(activeFilters).filter(
@@ -207,24 +208,46 @@ const isOrganisationLogin =
 
 const isOrgUser =
   !!user?.organisation_id && !user?.client_id;
+// const handleShareClick = () => {
+//   // CLIENT LOGIN → direct client mode
+//   if (isClientAdmin || isClientUser) {
+//     setShareMode("client");
+//     setAskShareType(false);
+//     setShowShareModal(true);
+//     return;
+//   }
 
+//   // ORG ENTITY LOGIN → must choose
+//   if (isOrganisationLogin) {
+//     setShareMode(null);
+//     setAskShareType(true);
+//     setShowShareModal(true);
+//     return;
+//   }
+
+//   // ORG USER / SUPERADMIN → must choose
+//   if (isOrgUser || isSuperAdmin) {
+//     setShareMode(null);
+//     setAskShareType(true);
+//     setShowShareModal(true);
+//   }
+// };
 const handleShareClick = () => {
-  // CLIENT LOGIN
   if (isClientAdmin || isClientUser) {
     setShareMode("client");
     setShowShareModal(true);
     return;
   }
 
-  // 🔥 ORGANISATION LOGIN (entity)
   if (isOrganisationLogin) {
-    setShowShareTypeModal(true);
+    setShareMode(null);
+    setShowShareModal(true);
     return;
   }
 
-  // ORG USER / SUPERADMIN
   if (isOrgUser || isSuperAdmin) {
-    setShowShareTypeModal(true);
+    setShareMode(null);
+    setShowShareModal(true);
   }
 };
 
@@ -509,11 +532,11 @@ const handleShareClick = () => {
       // ================================
       // FRONTEND FILTERS (ONLY TABS)
       // ================================
-      if (activeFilters.sharedOnly) {
-        formattedDocs = formattedDocs.filter(d => d.isSharedWithMe);
-      }
+      // if (activeFilters.sharedOnly) {
+      //   formattedDocs = formattedDocs.filter(d => d.isSharedWithMe);
+      // }
 
-      else if (activeFilters.status === "ARCHIVED") {
+      if (activeFilters.status === "ARCHIVED") {
         formattedDocs = formattedDocs.filter(d => d.isArchived);
       }
 
@@ -529,14 +552,8 @@ const handleShareClick = () => {
         );
       }
 
-      // ================================
-      // SET DOCUMENTS
-      // ================================
       setDocuments(formattedDocs);
 
-      // ================================
-      // COLUMN CONFIG (UNCHANGED)
-      // ================================
       try {
         const configRes = await documentListConfigService.getMyConfig();
 
@@ -1851,7 +1868,7 @@ const handleShareClick = () => {
         type="danger"
         loading={deleting}
       />
-    {showShareTypeModal && (
+    {/* {showShareTypeModal && (
   <ConfirmModal
     isOpen={true}
     title="Share with"
@@ -1869,7 +1886,7 @@ const handleShareClick = () => {
       setShowShareModal(true);
     }}
   />
-)}
+)} */}
 
       <ActionLogModal
         isOpen={showActionLogModal}
@@ -1886,19 +1903,19 @@ const handleShareClick = () => {
         />
       )}
 
-      <ShareDocumentsModal
-        mode={shareMode}
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        documentIds={Array.from(selectedDocuments)}
-        onShare={() => {
-          setToast({
-            message: "Documents shared successfully",
-            type: "success",
-          });
-          setSelectedDocuments(new Set());
-        }}
-      />
+<ShareDocumentsModal
+  mode={shareMode}
+  isOpen={showShareModal}
+  onClose={() => setShowShareModal(false)}
+  documentIds={Array.from(selectedDocuments)}
+  onShare={() => {
+    setToast({
+      message: "Documents shared successfully",
+      type: "success",
+    });
+    setSelectedDocuments(new Set());
+  }}
+/>
 
       {/* Filter Offcanvas */}
       <div
