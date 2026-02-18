@@ -140,6 +140,15 @@ const AppLayout: React.FC = () => {
             if (response.ok) {
                 const userData = await response.json();
                 setUserRoleCount(userData.roles?.length || 0);
+
+                // Sync with auth service to ensure profile_image_url is updated locally
+                const currentUser = authService.getUser();
+                if (currentUser) {
+                    authService.saveUser({
+                        ...currentUser,
+                        ...userData
+                    });
+                }
             }
         } catch (error) {
             console.error('Failed to fetch user roles:', error);

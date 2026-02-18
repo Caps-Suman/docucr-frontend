@@ -97,8 +97,8 @@ const DocumentList: React.FC = () => {
   const isSuperAdmin = user?.role?.name === "SUPER_ADMIN";
   const isOrgAdmin = user?.role?.name === "ORGANISATION_ROLE"; // adjust if different
 
-const isClientAdmin = user?.role?.name === "CLIENT_ADMIN";
-const isClientUser = !!user?.client_id;
+  const isClientAdmin = user?.role?.name === "CLIENT_ADMIN";
+  const isClientUser = !!user?.client_id;
 
   const showUploadedByFilter =
     isSuperAdmin || isOrgAdmin || isClientAdmin;
@@ -126,7 +126,7 @@ const isClientUser = !!user?.client_id;
     uploaded_by: "",
     organisation_filter: "",
   });
-  
+
   const [showActionLogModal, setShowActionLogModal] = useState(false);
   const [actionLogDocumentId, setActionLogDocumentId] = useState<string | null>(
     null,
@@ -158,9 +158,9 @@ const isClientUser = !!user?.client_id;
   const [statusTooltipVisible, setStatusTooltipVisible] = useState(false);
   const [statusTooltipPos, setStatusTooltipPos] = useState({ top: 0, left: 0 });
   const [showShareTypeModal, setShowShareTypeModal] = useState(false);
-const [shareMode, setShareMode] = useState<"client" | "internal" | null>(null);
-const [askShareType, setAskShareType] = useState(false);
-const defaultMode: "client" | "internal" = isClientUser ? "client" : "internal";
+  const [shareMode, setShareMode] = useState<"client" | "internal" | null>(null);
+  const [askShareType, setAskShareType] = useState(false);
+  const defaultMode: "client" | "internal" = isClientUser ? "client" : "internal";
 
   const activeFilterCount = Object.entries(activeFilters).filter(
     ([key, value]) => {
@@ -203,53 +203,59 @@ const defaultMode: "client" | "internal" = isClientUser ? "client" : "internal";
   };
 
 
-const isOrganisationLogin =
+  const isOrganisationLogin =
     user?.role?.name === "ORGANISATION_ROLE";
 
-const isOrgUser =
-  !!user?.organisation_id && !user?.client_id;
-// const handleShareClick = () => {
-//   // CLIENT LOGIN → direct client mode
-//   if (isClientAdmin || isClientUser) {
-//     setShareMode("client");
-//     setAskShareType(false);
-//     setShowShareModal(true);
-//     return;
-//   }
+  const isOrgUser =
+    !!user?.organisation_id && !user?.client_id;
+  // const handleShareClick = () => {
+  //   // CLIENT LOGIN → direct client mode
+  //   if (isClientAdmin || isClientUser) {
+  //     setShareMode("client");
+  //     setAskShareType(false);
+  //     setShowShareModal(true);
+  //     return;
+  //   }
 
-//   // ORG ENTITY LOGIN → must choose
-//   if (isOrganisationLogin) {
-//     setShareMode(null);
-//     setAskShareType(true);
-//     setShowShareModal(true);
-//     return;
-//   }
+  //   // ORG ENTITY LOGIN → must choose
+  //   if (isOrganisationLogin) {
+  //     setShareMode(null);
+  //     setAskShareType(true);
+  //     setShowShareModal(true);
+  //     return;
+  //   }
 
-//   // ORG USER / SUPERADMIN → must choose
-//   if (isOrgUser || isSuperAdmin) {
-//     setShareMode(null);
-//     setAskShareType(true);
-//     setShowShareModal(true);
-//   }
-// };
-const handleShareClick = () => {
-  if (isClientAdmin || isClientUser) {
-    setShareMode("client");
+  //   // ORG USER / SUPERADMIN → must choose
+  //   if (isOrgUser || isSuperAdmin) {
+  //     setShareMode(null);
+  //     setAskShareType(true);
+  //     setShowShareModal(true);
+  //   }
+  // };
+  const handleShareClick = () => {
+    if (selectedDocuments.size === 0) return;
+
+    // Determine default mode based on user role if possible
+    if (isClientAdmin || isClientUser) {
+      setShareMode("client");
+    } else {
+      setShareMode(null);
+    }
+
     setShowShareModal(true);
-    return;
-  }
+  };
 
-  if (isOrganisationLogin) {
-    setShareMode(null);
-    setShowShareModal(true);
-    return;
-  }
+  const handleSingleShare = (docId: string) => {
+    setSelectedDocuments(new Set([docId]));
 
-  if (isOrgUser || isSuperAdmin) {
-    setShareMode(null);
+    if (isClientAdmin || isClientUser) {
+      setShareMode("client");
+    } else {
+      setShareMode(null);
+    }
+
     setShowShareModal(true);
-  }
-};
+  };
 
 
   const checkScroll = () => {
@@ -454,7 +460,7 @@ const handleShareClick = () => {
         if (key.startsWith("form_")) {
           const fieldId = key.replace("form_", "");
           const fieldMeta = formFields.find(f => String(f.id) === fieldId);
-          console.log("FORM FIELDS:", formFields);
+          // console.log("FORM FIELDS:", formFields);
 
           if (!fieldMeta) return;
 
@@ -510,7 +516,7 @@ const handleShareClick = () => {
       // ================================
       // API CALL
       // ================================
-      console.log("SERVICE FILTERS >>>", serviceFilters);
+      // console.log("SERVICE FILTERS >>>", serviceFilters);
 
       const response = await documentService.getDocuments(serviceFilters);
 
@@ -830,11 +836,11 @@ const handleShareClick = () => {
 
     setIsDownloading(true);
     try {
-      console.log(
-        "Starting bulk download for",
-        selectedDocuments.size,
-        "documents",
-      );
+      // console.log(
+      //   "Starting bulk download for",
+      //   selectedDocuments.size,
+      //   "documents",
+      // );
 
       const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
@@ -847,7 +853,7 @@ const handleShareClick = () => {
       // Download all files and add to ZIP
       for (const doc of selectedDocs) {
         try {
-          console.log("Processing document:", doc.name);
+          // console.log("Processing document:", doc.name);
 
           // Create folder for each document
           const folderName = `${doc.name.replace(/\.[^/.]+$/, "")}_${doc.id}`;
@@ -860,7 +866,7 @@ const handleShareClick = () => {
           if (docResponse.ok) {
             const docBlob = await docResponse.blob();
             docFolder?.file(doc.originalFilename || doc.name, docBlob);
-            console.log("Added document to folder:", doc.name);
+            // console.log("Added document to folder:", doc.name);
           }
 
           // Try to download report file
@@ -874,7 +880,7 @@ const handleShareClick = () => {
               const reportBlob = await reportResponse.blob();
               const reportFileName = `analysis_report_${doc.name.replace(/\.[^/.]+$/, "")}.xlsx`;
               docFolder?.file(reportFileName, reportBlob);
-              console.log("Added report to folder:", reportFileName);
+              // console.log("Added report to folder:", reportFileName);
             }
           } catch (reportError) {
             console.log("No report available for:", doc.name);
@@ -884,10 +890,10 @@ const handleShareClick = () => {
         }
       }
 
-      console.log("Generating ZIP...");
+      // console.log("Generating ZIP...");
       // Generate ZIP and download
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      console.log("ZIP generated, size:", zipBlob.size);
+      // console.log("ZIP generated, size:", zipBlob.size);
 
       const zipUrl = URL.createObjectURL(zipBlob);
 
@@ -1002,7 +1008,7 @@ const handleShareClick = () => {
       "actions",
     ];
 
-    console.log(authService.getUser());
+    // console.log(authService.getUser());
 
     const baseColumns = [
       {
@@ -1037,7 +1043,7 @@ const handleShareClick = () => {
       ...baseColumns,
       ...columnConfig
         .filter((col) => {
-          if (!col.visible) return false;
+          if (!col.visible || col.id === "select") return false;
           if (col.id === 'organisationName') {
             const user = authService.getUser();
             return user?.role?.name === "SUPER_ADMIN";
@@ -1392,6 +1398,17 @@ const handleShareClick = () => {
                               <Eye size={14} />
                             </button>
                           </span>
+                          {/* <span
+                            className={styles.tooltipWrapper}
+                            data-tooltip="Share"
+                          >
+                            <button
+                              className="action-btn "
+                              onClick={() => handleSingleShare(row.id)}
+                            >
+                              <Share size={14} />
+                            </button>
+                          </span> */}
                           <span
                             className={styles.tooltipWrapper}
                             data-tooltip="Download"
@@ -1723,7 +1740,7 @@ const handleShareClick = () => {
               <>
                 <button
                   className={styles.shareButton}
-                   onClick={handleShareClick}
+                  onClick={handleShareClick}
                 >
                   <Share size={16} />
                   Share ({selectedDocuments.size})
@@ -1868,7 +1885,7 @@ const handleShareClick = () => {
         type="danger"
         loading={deleting}
       />
-    {/* {showShareTypeModal && (
+      {/* {showShareTypeModal && (
   <ConfirmModal
     isOpen={true}
     title="Share with"
@@ -1903,19 +1920,19 @@ const handleShareClick = () => {
         />
       )}
 
-<ShareDocumentsModal
-  mode={shareMode}
-  isOpen={showShareModal}
-  onClose={() => setShowShareModal(false)}
-  documentIds={Array.from(selectedDocuments)}
-  onShare={() => {
-    setToast({
-      message: "Documents shared successfully",
-      type: "success",
-    });
-    setSelectedDocuments(new Set());
-  }}
-/>
+      <ShareDocumentsModal
+        mode={shareMode}
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        documentIds={Array.from(selectedDocuments)}
+        onShare={() => {
+          setToast({
+            message: "Documents shared successfully",
+            type: "success",
+          });
+          setSelectedDocuments(new Set());
+        }}
+      />
 
       {/* Filter Offcanvas */}
       <div

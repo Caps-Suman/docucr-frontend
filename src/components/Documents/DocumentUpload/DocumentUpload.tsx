@@ -348,8 +348,8 @@ const DocumentUpload: React.FC = () => {
         }
       }
       const payloadFormData = { ...formData };
-      console.log("isClientUser", isClientUser);
-      console.log("fields", selectedForm?.fields);
+      // console.log("isClientUser", isClientUser);
+      // console.log("fields", selectedForm?.fields);
 
       if (isClientUser && clientField?.id) {
         payloadFormData[clientField.id] = currentUser.client_id;
@@ -363,7 +363,7 @@ const DocumentUpload: React.FC = () => {
         formId: selectedForm?.id,
         customFormData: payloadFormData,
       });
-      console.log("Upload initiated:", uploadResults);
+      // console.log("Upload initiated:", uploadResults);
 
       // Update upload store with document IDs
       const { updateUpload } = uploadStore.getState();
@@ -379,7 +379,7 @@ const DocumentUpload: React.FC = () => {
 
       // Show success message
       // Show success message
-      console.log(`${uploadResults.length} document(s) queued for upload.`);
+      // console.log(`${uploadResults.length} document(s) queued for upload.`);
 
       // Navigate immediately to documents list to show queued documents
       navigate("/documents");
@@ -403,11 +403,11 @@ const DocumentUpload: React.FC = () => {
       const value = isClientUser
         ? currentUser?.client_id ?? ""
         : formData[field.id!] ?? "";
-      console.log("CLIENT DROPDOWN DEBUG", {
-        value,
-        options: clients,
-        userClientId: currentUser?.client_id
-      });
+      // console.log("CLIENT DROPDOWN DEBUG", {
+      //   value,
+      //   options: clients,
+      //   userClientId: currentUser?.client_id
+      // });
 
       return (
         <CommonDropdown

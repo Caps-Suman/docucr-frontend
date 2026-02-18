@@ -417,7 +417,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
       payload.zip_code = zipCode;
       payload.country = country;
     }
-    console.log("CREATE CLIENT PAYLOAD:", JSON.stringify(payload, null, 2));
+    // console.log("CREATE CLIENT PAYLOAD:", JSON.stringify(payload, null, 2));
     if (payload.providers) {
       for (const p of payload.providers) {
         if (!p.zip_code || !/^\d{5}-\d{4}$/.test(p.zip_code)) {
@@ -425,13 +425,13 @@ const ClientModal: React.FC<ClientModalProps> = ({
         }
       }
     }
-    console.log("PROVIDERS FINAL:", providers);
-    console.log("PRIMARY TEMP:", primaryTempId);
-    console.log("EXTRA ADDRESSES BEFORE SEND:", extraAddresses);
+    // console.log("PROVIDERS FINAL:", providers);
+    // console.log("PRIMARY TEMP:", primaryTempId);
+    // console.log("EXTRA ADDRESSES BEFORE SEND:", extraAddresses);
     // ensure all providers have location id
 
-    console.log("PRIMARY:", primaryTempId);
-    console.log("PROVIDERS:", providers);
+    // console.log("PRIMARY:", primaryTempId);
+    // console.log("PROVIDERS:", providers);
 
     return await onSubmit(payload);
 
@@ -920,7 +920,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
       }
 
       const data = await clientService.lookupNPI(currentNpi);
-      console.log('currentNPI: ', data)
+      // console.log('currentNPI: ', data)
       if (data.results && data.results.length > 0) {
         const result = data.results[0];
         const basic = result.basic;

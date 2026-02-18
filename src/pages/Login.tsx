@@ -32,6 +32,7 @@ const Login: React.FC = () => {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [tempToken, setTempToken] = useState<string>('');
   const [loginCredentials, setLoginCredentials] = useState<{ email: string; password: string; rememberMe: boolean } | null>(null);
+  const [loggingInUserImage, setLoggingInUserImage] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData & { otp?: string; confirmPassword?: string }>({
     email: '',
     password: '',
@@ -175,6 +176,7 @@ const Login: React.FC = () => {
 
         if (data.requires_2fa) {
           setLoginCredentials({ email: formData.email, password: formData.password, rememberMe: formData.rememberMe });
+          setLoggingInUserImage(data.profile_image_url || null);
           setIs2FARequired(true);
           setMessage(data.message || '2FA code sent to your email');
         } else if (data.requires_role_selection && data.roles) {
@@ -283,6 +285,10 @@ const Login: React.FC = () => {
       prevBox?.focus();
     }
 
+    if (e.key === 'Enter') {
+      handle2FAVerification();
+    }
+
     // Move focus forward if typing a number even if current box has value
     if (/^\d$/.test(e.key) && formData.otp?.[index] && index < 5) {
       const nextBox = document.querySelector(`input[name="otp-${index + 1}"]`) as HTMLInputElement;
@@ -386,7 +392,13 @@ const Login: React.FC = () => {
         {is2FARequired ? (
           <div className="login-form-wrapper">
             <div className="role-selection-header">
-              <Shield size={40} className="role-icon" style={{ color: '#83cee4', marginBottom: '12px' }} />
+              {loggingInUserImage ? (
+                <div className="otp-avatar-container">
+                  <img src={loggingInUserImage} alt="User" className="otp-avatar" />
+                </div>
+              ) : (
+                <Shield size={40} className="role-icon" style={{ color: '#83cee4', marginBottom: '12px' }} />
+              )}
               <h2>Two-Factor Authentication</h2>
               <p className="subtitle">
                 Enter the 6-digit code sent to your email

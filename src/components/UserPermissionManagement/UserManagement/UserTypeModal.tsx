@@ -249,7 +249,7 @@ export default function App() {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onNext={(type) => {
-          console.log("Selected type:", type);
+          // console.log("Selected type:", type);
           setIsOpen(false);
         }}
       />
