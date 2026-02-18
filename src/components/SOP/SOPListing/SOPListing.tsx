@@ -83,9 +83,9 @@ const SOPListing: React.FC = () => {
   const [providerModalOpen, setProviderModalOpen] = useState(false);
   const [selectedClientForCreation, setSelectedClientForCreation] = useState<{ id: string, name: string, type: string } | null>(null);
 
-  const canReadSOP = can("SOPS", "READ");
-  const canCreateSOP = can("SOPS", "CREATE");
-  const canUpdateSOP = can("SOPS", "UPDATE");
+  const canReadSOP = can("SOPs", "READ");
+  const canCreateSOP = can("SOPs", "CREATE");
+  const canUpdateSOP = can("SOPs", "UPDATE");
   const [stats, setStats] = useState({
     totalSOPs: 0,
     activeSOPs: 0,
@@ -536,12 +536,6 @@ const SOPListing: React.FC = () => {
       render: (_: any, row: SOP) => (
         <span className={styles.badge}>{getCategoryLabel(row.category)}</span>
       ),
-    },
-    {
-      key: "software",
-      header: "Software",
-      width: "120px",
-      render: (_: any, row: SOP) => row.providerInfo?.software || "-",
     },
     {
       key: "updatedAt",

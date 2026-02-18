@@ -179,11 +179,34 @@ const sopService = {
       inactiveSOPs: data.inactive_sops
     };
   },
-  checkSOPExistence: async (clientId: string): Promise<{ exists: boolean }> => {
-    const response = await apiClient(`${API_URL}/api/sops/check-client-sop/${clientId}`);
-    if (!response.ok) throw new Error('Failed to check SOP existence');
-    return response.json();
-  },
+checkSOPExistence: async (
+  clientId: string,
+  providerIds: string[]
+): Promise<{ exists: boolean }> => {
+
+  const response = await apiClient(
+    `${API_URL}/api/sops/check-client-sop/${clientId}`,
+    {
+      method: "POST",
+      body: JSON.stringify({ provider_ids: providerIds })
+    }
+  );
+
+  if (!response.ok) throw new Error("Failed to check SOP existence");
+  return response.json();
+},
+checkProviders: async (clientId: string, providerIds: string[]) => {
+  const res = await apiClient(
+    `${API_URL}/api/sops/check-providers/${clientId}`,
+    {
+      method: "POST",
+      body: JSON.stringify({ provider_ids: providerIds })
+    }
+  );
+
+  return res.json();
+},
+
   uploadAndExtractSOP: async (file: File, signal?: AbortSignal) => {
     const formData = new FormData();
     formData.append("file", file);

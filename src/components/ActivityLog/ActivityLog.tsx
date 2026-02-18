@@ -29,6 +29,9 @@ const ActivityLogPage: React.FC = () => {
     const [debouncedUserNameFilter, setDebouncedUserNameFilter] = useState<string>('');
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
+    const [entityTypes, setEntityTypes] = useState<{label:string,value:string}[]>([
+  { label: 'All Entities', value: '' }
+]);
 
     // Pre-defined Actions and Entity Types
     const actions = [
@@ -41,19 +44,35 @@ const ActivityLogPage: React.FC = () => {
         { label: 'Export', value: 'EXPORT' }
     ];
 
-    const entityTypes = [
-        { label: 'All Entities', value: '' },
-        { label: 'Document', value: 'document' },
-        { label: 'Template', value: 'template' },
-        { label: 'Form', value: 'form' },
-        { label: 'User', value: 'user' },
-        { label: 'Role', value: 'role' },
-        { label: 'Client', value: 'client' },
-        { label: 'Printer', value: 'printer' },
-        { label: 'Webhook', value: 'webhook' },
-        { label: 'Doc Type', value: 'document_type' },
-        { label: 'Config', value: 'document_list_config' }
-    ];
+    // const entityTypes = [
+    //     { label: 'All Entities', value: '' },
+    //     { label: 'Document', value: 'document' },
+    //     { label: 'Template', value: 'template' },
+    //     { label: 'Form', value: 'form' },
+    //     { label: 'User', value: 'user' },
+    //     { label: 'Role', value: 'role' },
+    //     { label: 'Client', value: 'client' },
+    //     { label: 'Printer', value: 'printer' },
+    //     { label: 'Webhook', value: 'webhook' },
+    //     { label: 'Doc Type', value: 'document_type' },
+    //     { label: 'Config', value: 'document_list_config' }
+    // ];
+    const fetchEntityTypes = async () => {
+  try {
+const data = await activityLogService.getEntityTypes();
+
+setEntityTypes([
+  { label: "All Entities", value: "" },
+  ...data
+]);
+
+  } catch (e) {
+    console.error("Failed to load entity types", e);
+  }
+};
+useEffect(() => {
+  fetchEntityTypes();
+}, []);
 
     const fetchLogs = async () => {
         setLoading(true);

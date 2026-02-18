@@ -138,8 +138,8 @@ export interface SOP {
   codingRulesICD?:CodingRuleICD[];
   providers?: any[];
   statusId?: number;
-    status?: SOPStatus;   // ✅ ADD THIS
-    createdAt?: string;
+  status?: SOPStatus;   // ✅ ADD THIS
+  createdAt?: string;
   updatedAt?: string;
   created_by?: string;
   created_by_name?: string;

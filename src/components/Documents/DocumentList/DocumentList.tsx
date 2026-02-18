@@ -1768,8 +1768,8 @@ const handleShareClick = () => {
           className={`${styles.tableContainer} ${isScrolled ? styles.hasScrollShadow : ""}`}
         >
           <table className={styles.table}>
-            <thead>
-              <tr>
+            <thead >
+              <tr >
                 {columns.map((column: any) => (
                   <th
                     key={column.key}
@@ -1814,11 +1814,13 @@ const handleShareClick = () => {
                   uniqueMap.set(item.id, item);
                 });
 
-                const finalData = Array.from(uniqueMap.values());
+const finalData = Array.from(uniqueMap.values()).filter(r => r && r.id);
                 // Use finalData directly since filtering is now done on backend
                 const filteredData = finalData;
 
-                return filteredData.map((row: any, index: number) => (
+return filteredData
+  .filter(row => row && row.id)
+  .map((row, index) => (
                   <tr key={row.id || index}>
                     {columns.map((column: any) => (
                       <td

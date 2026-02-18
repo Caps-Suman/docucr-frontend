@@ -50,6 +50,8 @@ const CreateSOP: React.FC = () => {
   const location = useLocation();
   const [providerIds, setProviderIds] = useState<string[]>([]);
   const [selectedProvidersList, setSelectedProvidersList] = useState<any[]>([]);
+const [expandCpt, setExpandCpt] = useState(true);
+const [expandIcd, setExpandIcd] = useState(true);
 
   // --- Stepper State ---
   const [currentStep, setCurrentStep] = useState(1);
@@ -163,6 +165,7 @@ const CreateSOP: React.FC = () => {
     message: string;
     type: ToastType;
   } | null>(null);
+  const [blockedProviders, setBlockedProviders] = useState<string[]>([]);
 
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -170,8 +173,8 @@ const CreateSOP: React.FC = () => {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const { can } = usePermission();
-  const canCreateSOP = can("SOPS", "CREATE");
-  const canUpdateSOP = can("SOPS", "UPDATE");
+  const canCreateSOP = can("SOPs", "CREATE");
+  const canUpdateSOP = can("SOPs", "UPDATE");
   const handleResetClick = () => {
     setIsResetModalOpen(true);
   };
@@ -208,14 +211,7 @@ const CreateSOP: React.FC = () => {
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
-  useEffect(() => {
-    if (!canCreateSOP && !isEditMode) {
-      navigate("/unauthorized");
-    }
-    if (isEditMode && !canUpdateSOP) {
-      navigate("/unauthorized");
-    }
-  }, [canCreateSOP, canUpdateSOP, isEditMode, navigate]);
+
 
   // --- Effects ---
   useEffect(() => {
@@ -271,6 +267,20 @@ const CreateSOP: React.FC = () => {
       }
     }
   }, [location.state]);
+useEffect(() => {
+  if (!selectedClientId || modalProviders.length === 0) return;
+
+  const ids = modalProviders.map(p => p.id);
+
+  sopService.checkProviders(selectedClientId, ids)
+    .then(res => {
+      setBlockedProviders(res.blocked_provider_ids || []);
+    })
+    .catch(() => {
+      setBlockedProviders([]);
+    });
+
+}, [modalProviders, selectedClientId]);
 
   const loadSOP = async (sopId: string) => {
     try {
@@ -574,7 +584,7 @@ const CreateSOP: React.FC = () => {
       if (!isEditMode)
         try {
           setLoading(true);
-          const { exists } = await sopService.checkSOPExistence(selectedClientId);
+          const { exists } = await sopService.checkSOPExistence(selectedClientId, providerIds);
           setLoading(false);
 
           if (exists) {
@@ -795,6 +805,17 @@ const CreateSOP: React.FC = () => {
     }
 
     setSaving(true); // Set saving immediately after validation
+    const res = await sopService.checkProviders(selectedClientId, providerIds);
+
+if (res.blocked_provider_ids?.length) {
+  setToast({
+    message: "Some providers already have SOP",
+    type: "warning"
+  });
+    setSaving(false);
+
+  return;
+}
 
     const payload = {
       title,
@@ -869,7 +890,7 @@ const CreateSOP: React.FC = () => {
               Upload is for filling Step 1. So it should probably be in Step 1 or Global.
               Let's keep it in the header for now.
           */}
-          {uploading ? (
+          {/* {uploading ? (
             <>
               <button className={styles.saveButton} type="button" disabled>
                 Extracting...
@@ -908,8 +929,8 @@ const CreateSOP: React.FC = () => {
               <Upload size={16} />
               Upload SOP
             </button>
-          )}
-          <input
+          )} */}
+          {/* <input
             ref={fileInputRef}
             type="file"
             accept=".pdf,.docx,.png,.jpg,.jpeg"
@@ -921,7 +942,7 @@ const CreateSOP: React.FC = () => {
                 e.target.value = "";
               }
             }}
-          />
+          /> */}
         </div>
       </div>
 
@@ -950,31 +971,7 @@ const CreateSOP: React.FC = () => {
         {/* Right Panel: Content */}
         <div className={styles.rightPanel}>
           <div className={styles.scrollableContent}>
-            {/* {errors.length > 0 && (
-              <div
-                className={styles.section}
-                style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2" }}
-              >
-                <div
-                  className={styles.sectionTitle}
-                  style={{ color: "#ef4444", marginBottom: "8px" }}
-                >
-                  Please fix the following errors:
-                </div>
-                <ul
-                  style={{
-                    listStyle: "disc",
-                    paddingLeft: "20px",
-                    color: "#b91c1c",
-                    margin: 0,
-                  }}
-                >
-                  {errors.map((err, i) => (
-                    <li key={i}>{err}</li>
-                  ))}
-                </ul>
-              </div>
-            )} */}
+
 
             {/* Step 1: Select Client */}
             {getSteps().find(s => s.number === currentStep)?.title === "Select Client" && (
@@ -1111,51 +1108,67 @@ const CreateSOP: React.FC = () => {
                     <Loading message="Loading Providers..." />
                   </div>
                 ) : (
-                  <Table
-                    columns={[
-                      {
-                        key: 'select',
-                        header: 'Select',
-                        render: (_, row) => (
-                          <div
-                            style={{
-                              width: '16px',
-                              height: '16px',
-                              borderRadius: '4px',
-                              border: providerIds.includes(row.id) ? 'none' : '1px solid #cbd5e1',
-                              backgroundColor: providerIds.includes(row.id) ? '#3b82f6' : 'white',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                            onClick={() => {
-                              setProviderIds(prev =>
-                                prev.includes(row.id)
-                                  ? prev.filter(id => id !== row.id)
-                                  : [...prev, row.id]
-                              );
-                              // Maintain selected providers list for preview
-                              setSelectedProvidersList(prev => {
-                                const exists = prev.find(p => p.id === row.id);
-                                if (exists) return prev.filter(p => p.id !== row.id);
-                                return [...prev, row];
-                              });
-                            }}
-                          >
-                            {providerIds.includes(row.id) && <Check size={12} color="white" />}
-                          </div>
-                        ),
-                        width: '50px'
-                      },
-                      { key: 'name', header: 'Provider Name' },
-                      { key: 'npi', header: 'NPI', render: (v) => v || '-' },
-                      { key: 'type', header: 'Type' }
-                    ]}
-                    data={modalProviders}
-                    maxHeight="calc(100vh - 350px)"
-                    stickyHeader
-                  />
+<Table
+  columns={[
+    {
+      key: 'select',
+      header: 'Select',
+      width: '50px',
+      render: (_: any, row: any) => {
+        const isBlocked = blockedProviders.includes(row.id);
+
+        return (
+          <div
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: 4,
+              border: providerIds.includes(row.id)
+                ? 'none'
+                : '1px solid #cbd5e1',
+              backgroundColor: isBlocked
+                ? '#e5e7eb'
+                : providerIds.includes(row.id)
+                ? '#3b82f6'
+                : 'white',
+              cursor: isBlocked ? 'not-allowed' : 'pointer',
+              opacity: isBlocked ? 0.5 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title={isBlocked ? "SOP already exists for this provider" : ""}
+            onClick={() => {
+              if (isBlocked) return;
+
+              setProviderIds(prev =>
+                prev.includes(row.id)
+                  ? prev.filter(id => id !== row.id)
+                  : [...prev, row.id]
+              );
+
+              setSelectedProvidersList(prev => {
+                const exists = prev.find(p => p.id === row.id);
+                if (exists) return prev.filter(p => p.id !== row.id);
+                return [...prev, row];
+              });
+            }}
+          >
+            {providerIds.includes(row.id) && (
+              <Check size={12} color="white" />
+            )}
+          </div>
+        );
+      }
+    },
+    { key: 'name', header: 'Provider Name' },
+    { key: 'npi', header: 'NPI', render: (v: any) => v || '-' },
+    { key: 'type', header: 'Type' }
+  ]}
+  data={modalProviders}
+  maxHeight="calc(100vh - 350px)"
+  stickyHeader
+/>
                 )}
 
                 {!loadingProviders && (
@@ -1184,10 +1197,55 @@ const CreateSOP: React.FC = () => {
             )}
 
             {/* Step 3 (or 2): Basic Information */}
+
             {getSteps().find(s => s.number === currentStep)?.title === "Basic Information" && (
 
               <div className={styles.stepContainer}>
-
+                     <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+  {uploading ? (
+    <>
+      <button className={styles.saveButton} type="button" disabled>
+        Extracting...
+      </button>
+      <button
+        className={styles.saveButton}
+        type="button"
+        onClick={handleCancelUpload}
+        style={{
+          backgroundColor: "#ef4444",
+          borderColor: "#ef4444",
+          color: "white",
+          marginLeft: 8
+        }}
+      >
+        <X size={16} />
+        Cancel
+      </button>
+    </>
+  ) : (
+    <button
+      className={styles.saveButton}
+      type="button"
+      onClick={handleUploadClick}
+    >
+      <Upload size={16} />
+      Upload SOP
+    </button>
+  )}
+            <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,.png,.jpg,.jpeg"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                handleSOPUpload(file);
+                e.target.value = "";
+              }
+            }}
+          />
+</div>
                 {errors.length > 0 && (
                   <div
                     className={styles.section}
@@ -1661,133 +1719,6 @@ const CreateSOP: React.FC = () => {
                 </div>
 
 
-                {/* Coding Rules */}
-                {/* <div className={styles.section}>
-                  <div className={styles.sectionTitle}>Coding Rules</div>
-                  <div className={styles.toggleGroup}>
-                    <button
-                      className={`${styles.toggleButton} ${codingType === "CPT" ? styles.active : ""}`}
-                      onClick={() => setCodingType("CPT")}
-                    >
-                      <FileText size={16} />
-                      CPT Codes
-                    </button>
-                    <button
-                      className={`${styles.toggleButton} ${codingType === "ICD" ? styles.active : ""}`}
-                      onClick={() => setCodingType("ICD")}
-                    >
-                      <Hash size={16} />
-                      ICD Codes
-                    </button>
-                  </div>
-
-                  <div className={styles.helperText}>
-                    {codingType === "CPT" ? (
-                      <div className={styles.formGridWithButton}>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>CPT Code</label>
-                          <input className={styles.input} value={newCpt.cptCode} onChange={e => setNewCpt({ ...newCpt, cptCode: e.target.value })} />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>Description</label>
-                          <input className={styles.input} value={newCpt.description} onChange={e => setNewCpt({ ...newCpt, description: e.target.value })} />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>&nbsp;</label>
-                          <button type="button" className={styles.saveButton} onClick={handleAddCodingRule}>
-                            <Plus size={16} /> Add
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={styles.formGridWithButton}>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>ICD Code</label>
-                          <input className={styles.input} value={newIcd.icdCode} onChange={e => setNewIcd({ ...newIcd, icdCode: e.target.value })} />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>Description</label>
-                          <input className={styles.input} value={newIcd.description} onChange={e => setNewIcd({ ...newIcd, description: e.target.value })} />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>&nbsp;</label>
-                          <button type="button" className={styles.saveButton} onClick={handleAddCodingRule}>
-                            <Plus size={16} /> Add
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {["CPT", "ICD"].includes(codingType) && (
-                      <>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>NDC Code</label>
-                          <input
-                            className={styles.input}
-                            value={newCpt.ndcCode}
-                            onChange={(e) =>
-                              setNewCpt({ ...newCpt, ndcCode: e.target.value })
-                            }
-                          />
-                        </div>
-
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>Units</label>
-                          <input
-                            className={styles.input}
-                            value={newCpt.units}
-                            onChange={(e) =>
-                              setNewCpt({ ...newCpt, units: e.target.value })
-                            }
-                          />
-                        </div>
-
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>Charge per Unit</label>
-                          <input
-                            className={styles.input}
-                            value={newCpt.chargePerUnit}
-                            onChange={(e) =>
-                              setNewCpt({ ...newCpt, chargePerUnit: e.target.value })
-                            }
-                          />
-                        </div>
-
-                      </>
-                    )}
-
-                  </div>
-
-                  <div className={styles.cardList}>
-                    {codingType === "CPT" ? (
-                      codingRulesCPT.map((r, i) => (
-                        <div key={i} className={styles.cardItem}>
-                          <div className={styles.cardContent}>
-                            <h4>{r.cptCode}</h4>
-                            <p>{r.description}</p>
-                          </div>
-                          <button className={styles.deleteButton} onClick={() => handleRemoveCpt(r.id!)}><Trash2 size={16} /></button>
-                        </div>
-                      ))
-                    ) : (
-                      codingRulesICD.map((r, i) => (
-                        <div key={i} className={styles.cardItem}>
-                          <div className={styles.cardContent}>
-                            <h4>{r.icdCode}</h4>
-                            <p>{r.description}</p>
-                          </div>
-                          <button className={styles.deleteButton} onClick={() => handleRemoveIcd(r.id!)}><Trash2 size={16} /></button>
-                        </div>
-                      ))
-                    )}
-                  </div>  
-                </div> */}
-
-
-                {/* prev coding ruld */}
-                {/* Coding Guidelines */}
-
-
                 <div className={styles.section}>
 
                   <div className={styles.sectionHeaderRow}>
@@ -1924,7 +1855,61 @@ const CreateSOP: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                  {codingRulesCPT.length > 0 && (
+  <div className={styles.guidelineItem}>
 
+    {/* HEADER */}
+    <div
+      className={styles.guidelineCategory}
+      style={{ cursor: "pointer" }}
+      onClick={() => setExpandCpt(!expandCpt)}
+    >
+      CPT Codes ({codingRulesCPT.length})
+      <span style={{ marginLeft: 8 }}>
+        {expandCpt ? "▲" : "▼"}
+      </span>
+    </div>
+
+    {/* BODY */}
+    {expandCpt && (
+      <div className={styles.cardList}>
+        {codingRulesCPT.map((r, i) => (
+          <div key={i} className={styles.cardItem}>
+            <div className={styles.cardContent} style={{ width: "100%" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                <strong>CPT: {r.cptCode}</strong>
+                {r.description && <> | {r.description}</>}
+                {r.ndcCode && <> | NDC: {r.ndcCode}</>}
+                {r.units && <> | Units: {r.units}</>}
+                {r.chargePerUnit && <> | Charge: {r.chargePerUnit}</>}
+                {r.modifier && <> | Mod: {r.modifier}</>}
+                {r.replacementCPT && <> | Replace: {r.replacementCPT}</>}
+              </div>
+            </div>
+
+            <button
+              className={styles.deleteButton}
+              onClick={() => handleRemoveCpt(r.id || "")}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
+                        {/* {codingRulesCPT.length > 0 && (
+  <>
+    <div style={{
+      fontWeight: 600,
+      marginTop: 16,
+      marginBottom: 8,
+      color: "#111827"
+    }}>
+      CPT Codes
+    </div>
                   <div className={styles.cardList}>
                     {codingRulesCPT.map((r, i) => (
                       <div key={i} className={styles.cardItem}>
@@ -1998,8 +1983,21 @@ const CreateSOP: React.FC = () => {
                         >
                           <Trash2 size={16} />
                         </button>
-                      </div>
-                    ))}
+                     </div>
+      ))}
+    </div>
+  </>
+)} */}
+                    {/* {codingRulesICD.length > 0 && (
+  <>
+    <div style={{
+      fontWeight: 600,
+      marginTop: 20,
+      marginBottom: 8,
+      color: "#111827"
+    }}>
+      ICD Codes
+    </div>
                     {codingRulesICD.map((r, i) => (
                       <div key={`icd_${i}`} className={styles.cardItem}>
                         <div className={styles.cardContent} style={{ width: "100%" }}>
@@ -2073,20 +2071,59 @@ const CreateSOP: React.FC = () => {
                             )}
                           </div>
                         </div>
-                        <button
-                          className={styles.deleteButton}
-                          onClick={() => handleRemoveIcd(r.id || "")}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {/* prev coding ruld end */}
+                               <button
+            className={styles.deleteButton}
+            onClick={() => handleRemoveIcd(r.id || "")}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ))}
+    </div>
+  </>
+)} */}
+{codingRulesICD.length > 0 && (
+  <div className={styles.guidelineItem} style={{ marginTop: 12 }}>
 
+    {/* HEADER */}
+    <div
+      className={styles.guidelineCategory}
+      style={{ cursor: "pointer" }}
+      onClick={() => setExpandIcd(!expandIcd)}
+    >
+      ICD Codes ({codingRulesICD.length})
+      <span style={{ marginLeft: 8 }}>
+        {expandIcd ? "▲" : "▼"}
+      </span>
+    </div>
 
+    {/* BODY */}
+    {expandIcd && (
+      <div className={styles.cardList}>
+        {codingRulesICD.map((r, i) => (
+          <div key={i} className={styles.cardItem}>
+            <div className={styles.cardContent} style={{ width: "100%" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                <strong>ICD: {r.icdCode}</strong>
+                {r.description && <> | {r.description}</>}
+                {r.notes && <> | Notes: {r.notes}</>}
               </div>
+            </div>
+
+            <button
+              className={styles.deleteButton}
+              onClick={() => handleRemoveIcd(r.id || "")}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+</div>
+</div>
             )}
 
             {/* Step 4: Preview & Save */}
@@ -2308,50 +2345,6 @@ const CreateSOP: React.FC = () => {
                       )}
                     </div>
                   )}
-
-                  {/* {selectedClientId && (
-                    <div className={styles.previewSection}>
-                      <div className={styles.previewHeaderRow}>
-                        <h3 className={styles.previewHeader}>Selected Client</h3>
-                        <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(1)} title="Edit Client">
-                          <Edit2 size={14} />
-                        </button>
-                      </div>
-                      <div className={styles.previewGrid}>
-                        {(() => {
-                          const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
-                          return client ? (
-                            <>
-                              <div className={styles.previewItem}>
-                                <label>Client Name</label>
-                                <span>{client.name || (client.type === 'individual' ? `${client.first_name} ${client.last_name}` : client.business_name)}</span>
-                              </div>
-                              <div className={styles.previewItem}>
-                                <label>NPI</label>
-                                <span>{client.npi}</span>
-                              </div>
-                            </>
-                          ) : <div>No client selected</div>;
-                        })()}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedProvidersList.length > 0 && (
-                    <div className={styles.previewSection}>
-                      <div className={styles.previewHeaderRow}>
-                        <h3 className={styles.previewHeader}>Selected Providers ({selectedProvidersList.length})</h3>
-                        <button type="button" className={styles.editIcon} onClick={() => setCurrentStep(2)} title="Edit Providers">
-                          <Edit2 size={14} />
-                        </button>
-                      </div>
-                      <ul className={styles.previewList}>
-                        {selectedProvidersList.map(p => (
-                          <li key={p.id}>{p.first_name} {p.last_name} <span className={styles.mutedText}>({p.npi})</span></li>
-                        ))}
-                      </ul>
-                    </div>
-                  )} */}
 
                 </div>
               </div>

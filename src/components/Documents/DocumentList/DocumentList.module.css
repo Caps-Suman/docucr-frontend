@@ -1053,10 +1053,10 @@
 }
 
 .table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
     font-size: 13px;
-    table-layout: fixed;
 }
 
 .table th,
@@ -1067,10 +1067,11 @@
 }
 
 /* Default column width */
-.table th:not(.stickyCol),
-.table td:not(.stickyCol) {
-    width: 182px;
+.table th,
+.table td {
+    white-space: nowrap;
 }
+
 
 /* Checkbox column - narrower */
 .table th:first-child,
