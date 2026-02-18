@@ -56,7 +56,9 @@
     align-items: center;
     justify-content: center;
 }
-
+.loadingIcon{
+    animation: spin 1s linear infinite;
+}
 :global(.dark) .iconWrapper {
     background: rgba(131, 206, 228, 0.1);
     color: var(--color-primary);
