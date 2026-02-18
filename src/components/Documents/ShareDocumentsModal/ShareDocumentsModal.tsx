@@ -190,9 +190,13 @@ const ShareDocumentsModal: React.FC<Props> = ({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className={styles.closeButton}>
-            <X size={20} />
-          </button>
+<button
+  onClick={() => !sharing && onClose()}
+  className={styles.closeButton}
+>
+  <X size={20} />
+</button>
+
         </div>
 
         {/* BODY */}
@@ -388,62 +392,72 @@ const ShareDocumentsModal: React.FC<Props> = ({
           </div>
 
           <div className={styles.footerActions}>
-            <button
-              onClick={onClose}
-              className={styles.cancelButton}
-            >
-              Cancel
-            </button>
+<button
+  onClick={onClose}
+  disabled={sharing}
+  className={styles.cancelButton}
+>
+  Cancel
+</button>
+
 
             {step === "users" ? (
               <button
-                disabled={selectedUsers.length === 0}
+                disabled={selectedUsers.length === 0 || sharing}
                 onClick={() => setStep("method")}
                 className={styles.continueButton}
               >
                 Continue
               </button>
             ) : step === "method" ? (
-              <button
-                onClick={() => {
-                  if (shareMethod === "system") {
-                    handleShare();
-                  } else {
-                    setStep("email-config");
-                  }
-                }}
-                className={styles.shareButton}
-              >
-                {shareMethod === "system" ? (
-                  <>
-                    <ShieldCheck size={16} />
-                    <span>Share in System</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Continue to Config</span>
-                    <ArrowLeft style={{ transform: 'rotate(180deg)' }} size={16} />
-                  </>
-                )}
-              </button>
+             <button
+  onClick={() => {
+    if (shareMethod === "system") {
+      handleShare();
+    } else {
+      setStep("email-config");
+    }
+  }}
+  disabled={sharing}
+  className={styles.shareButton}
+>
+  {sharing ? (
+    <>
+      <Loader2 className={styles.loadingIcon} size={16} />
+      <span>Sharing...</span>
+    </>
+  ) : shareMethod === "system" ? (
+    <>
+      <ShieldCheck size={16} />
+      <span>Share in System</span>
+    </>
+  ) : (
+    <>
+      <span>Continue to Config</span>
+      <ArrowLeft style={{ transform: "rotate(180deg)" }} size={16} />
+    </>
+  )}
+</button>
+
             ) : step === "email-config" ? (
-              <button
-                onClick={handleShare}
-                disabled={sharing || !password}
-                className={styles.shareButton}
-              >
-                {sharing ? (
-                  <>
-                    <Loader2 className={styles.loadingIcon} size={16} />
-                    <span>Sharing...</span>
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck size={16} />
-                    <span>Share Over Email</span>
-                  </>
-                )}
-              </button>
+             <button
+  onClick={handleShare}
+  disabled={sharing || !password}
+  className={styles.shareButton}
+>
+  {sharing ? (
+    <>
+      <Loader2 className={styles.loadingIcon} size={16} />
+      <span>Sharing...</span>
+    </>
+  ) : (
+    <>
+      <ShieldCheck size={16} />
+      <span>Share Over Email</span>
+    </>
+  )}
+</button>
+
             ) : null}
           </div>
         </div>
