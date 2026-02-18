@@ -34,6 +34,7 @@ export interface LoginResponse {
   temp_token?: string;
   roles?: Array<{ id: string; name: string }>;
   message?: string;
+  profile_image_url?: string;
   user: AuthUser;
 }
 

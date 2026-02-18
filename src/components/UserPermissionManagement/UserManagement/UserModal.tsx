@@ -115,7 +115,7 @@ const UserModal: React.FC<UserModalProps> = ({
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
-    console.log("allowUserTypeSelection in modal:", allowUserTypeSelection);
+    // console.log("allowUserTypeSelection in modal:", allowUserTypeSelection);
   }, [allowUserTypeSelection]);
 
   const goBackToType = () => {

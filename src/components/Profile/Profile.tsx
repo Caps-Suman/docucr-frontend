@@ -98,23 +98,23 @@ const Profile: React.FC = () => {
     };
 
     const handleAvatarClick = () => {
-        console.log('--- handleAvatarClick called ---');
+        // console.log('--- handleAvatarClick called ---');
         setIsAvatarModalOpen(true);
     };
 
     const handleUploadClick = () => {
-        console.log('--- handleUploadClick called ---');
+        // console.log('--- handleUploadClick called ---');
         // DON'T close the modal here, wait for file selection
         // setIsAvatarModalOpen(false); 
         if (fileInputRef.current) {
-            console.log('--- Triggering file click ---');
+            // console.log('--- Triggering file click ---');
             fileInputRef.current.click();
         }
     };
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        console.log('--- handleFileChange called ---', file?.name);
+        // console.log('--- handleFileChange called ---', file?.name);
         if (!file) return;
 
         if (!file.type.startsWith('image/')) {
@@ -124,7 +124,7 @@ const Profile: React.FC = () => {
 
         const reader = new FileReader();
         reader.addEventListener('load', () => {
-            console.log('--- Image loaded, setting selectedImage ---');
+            // console.log('--- Image loaded, setting selectedImage ---');
             setSelectedImage(reader.result as string);
             setIsAvatarModalOpen(false); // Close the preview modal only after image is loaded for cropping
         });
