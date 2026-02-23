@@ -34,7 +34,7 @@ type StatCard = {
 
 const UserManagement: React.FC = () => {
     const currentUser = authService.getUser();
-
+    console.log("Current User in UserManagement:", currentUser);
     const [currentPage, setCurrentPage] = useState(0);
     // const [itemsPerPage, setItemsPerPage] = useState(25);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -830,9 +830,8 @@ const UserManagement: React.FC = () => {
                                     </button>
                                 )}
                             </div>
-
                             <div className={styles.filterGroup} style={{ flex: '0 0 auto', minWidth: 'auto', marginLeft: 'auto' }}>
-                                {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                                {(  currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
                                     <button className={styles.addBtn} onClick={handleAddNew} style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
                                         Add User
                                     </button>
@@ -915,7 +914,7 @@ const UserManagement: React.FC = () => {
                 roles={roles}
                 clientAdminRoleId={roles.find(r => r.name === "CLIENT_ADMIN")?.id}
                 allowUserTypeSelection={
-                    currentUser?.role?.name === "ORGANISATION_ROLE"
+                    currentUser?.role?.name === "ORGANISATION_ROLE" || currentUser?.role?.name === "SUPER_ADMIN" || currentUser?.is_superuser   
                 }
             />
             <ChangePasswordModal

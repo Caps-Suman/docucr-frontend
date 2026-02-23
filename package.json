@@ -12,6 +12,7 @@
     "ajv-keywords": "^5.1.0",
     "filerobot-image-editor": "^4.8.1",
     "jszip": "^3.10.1",
+    "jwt-decode": "^4.0.0",
     "konva": "^9.3.6",
     "lucide-react": "^0.562.0",
     "primeicons": "^7.0.0",

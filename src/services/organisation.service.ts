@@ -116,7 +116,23 @@ const organisationService = {
         }
 
         return response.json();
+    },
+    selectOrganisation: async (org_id: string) => {
+    const response = await fetchWithAuth(
+        `/api/organisations/select-organisation/${org_id}`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        }
+    );
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to select organisation");
     }
+
+    return response.json();
+},
 };
 
 export default organisationService;

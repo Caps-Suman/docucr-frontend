@@ -10,7 +10,11 @@ export const fetchWithAuth = async (url: string, options: FetchOptions = {}): Pr
   const { skipAuth, ...fetchOptions } = options;
   
   let token = authService.getToken();
-  
+        if (!token) {
+        return new Response(null, { status: 401 }); // don't throw
+    }
+
+
   if (!skipAuth && !token) {
     throw new Error('No authentication token found');
   }

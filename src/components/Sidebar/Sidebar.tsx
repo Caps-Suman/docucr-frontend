@@ -15,8 +15,14 @@ import {
     FileEdit
 } from 'lucide-react';
 import modulesService, { Module } from '../../services/modules.service';
-import authService from '../../services/auth.service';
 import styles from './Sidebar.module.css';
+import { jwtDecode } from "jwt-decode";
+import authService from '../../services/auth.service';
+
+const token = authService.getToken();
+const payload: any = token ? jwtDecode(token) : null;
+
+const isTempSession = payload?.temp === true;
 
 interface SidebarProps {
     onCollapseChange?: (collapsed: boolean) => void;

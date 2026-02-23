@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
 import Login from './pages/Login';
 import RoleSelection from './pages/RoleSelection';
@@ -25,6 +25,8 @@ import PublicShare from './components/PublicShare/PublicShare';
 import ComingSoon from './components/Common/ComingSoon';
 import { FileSearch } from 'lucide-react';
 import ActivityLogPage from './components/ActivityLog/ActivityLog';
+import authService from './services/auth.service';
+import { jwtDecode } from "jwt-decode";
 
 const DefaultComponent: React.FC = () => (
   <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -43,11 +45,27 @@ const App: React.FC = () => {
     sessionStorage.setItem('hasSeenIntro', 'true');
     setShowIntro(false);
   }, []);
+const token = authService.getToken();
+const payload: any = token ? jwtDecode(token) : null;
+  const isTempSuperadmin = payload?.superadmin && payload?.temp;
 
   return (
     <BrowserRouter>
       {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
       <Routes>
+                {/* 🔴 SUPERADMIN TEMP ROUTE */}
+        {isTempSuperadmin && (
+          <>
+            <Route path="/organisations" element={<AppLayout />}>
+              <Route index element={<OrganisationManagement />} />
+            </Route>
+
+            {/* block everything else */}
+            <Route path="*" element={<Navigate to="/organisations" replace />} />
+          </>
+        )}
+          {!isTempSuperadmin && (
+          <>
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/role-selection" element={<RoleSelection />} />
@@ -98,6 +116,8 @@ const App: React.FC = () => {
         <Route path="/activity-logs" element={<AppLayout />}>
           <Route index element={<ActivityLogPage />} />
         </Route>
+        </>
+        )}
 
       </Routes>
     </BrowserRouter>

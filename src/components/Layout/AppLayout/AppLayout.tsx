@@ -6,8 +6,9 @@ import modulesService from '../../../services/modules.service';
 import apiClient, { API_BASE_URL } from '../../../utils/apiClient';
 import Sidebar from '../../Sidebar/Sidebar';
 import './AppLayout.css';
+import { jwtDecode } from "jwt-decode";
 
-const HIDE_SIDEBAR_ROUTES = ["/sops/create", "/sops/edit"];
+// const HIDE_SIDEBAR_ROUTES = ["/sops/create", "/sops/edit"];
 
 const AppLayout: React.FC = () => {
     const navigate = useNavigate();
@@ -15,13 +16,17 @@ const AppLayout: React.FC = () => {
     const [showLogoutTray, setShowLogoutTray] = useState(false);
     const [user, setUser] = useState<any>(null);
     const [userRoleCount, setUserRoleCount] = useState(0);
+    const token = authService.getToken();
+    const payload: any = token ? jwtDecode(token) : null;
+
+    const isTempSession = payload?.temp === true;
+
     const [hasModuleAccess, setHasModuleAccess] = useState(true);
     const [isDarkMode, setIsDarkMode] = useState(() => {
         const saved = localStorage.getItem('theme');
         return saved === 'dark';
     });
     const logoutRef = useRef<HTMLDivElement>(null);
-    const hideSidebar = HIDE_SIDEBAR_ROUTES.some(route => location.pathname.startsWith(route));
 
     const getBreadcrumbs = () => {
         const path = location.pathname;
@@ -133,7 +138,14 @@ const AppLayout: React.FC = () => {
             console.error('Failed to check module access', error);
         }
     };
-
+const handleSwitchOrganisation = async () => {
+  try {
+    await authService.exitOrganisation();
+    navigate('/organisations');
+  } catch (err) {
+    console.error(err);
+  }
+};
     const fetchUserRoleCount = async () => {
         try {
             const response = await apiClient(`${API_BASE_URL}/api/users/me`);
@@ -173,17 +185,22 @@ const AppLayout: React.FC = () => {
         localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
     };
 
+    // const handleLogout = () => {
+    //     authService.logout();
+    //     sessionStorage.removeItem('hasSeenIntro');
+    //     navigate('/login');
+    // };
     const handleLogout = () => {
-        authService.logout();
-        sessionStorage.removeItem('hasSeenIntro');
-        navigate('/login');
-    };
-
+    authService.logout();
+    sessionStorage.removeItem('hasSeenIntro');
+    window.location.href = "/login";   // 🔴 HARD RESET
+};  
+const hidesidebar = location.pathname.startsWith('/organisations');
     return (
         <div className="app-layout">
             {/* <Sidebar /> */}
-            {!hideSidebar && <Sidebar />}
-            <div className={`app-content ${hideSidebar ? 'no-sidebar' : ''}`}>
+            {!hidesidebar  && <Sidebar />}
+            <div className={`app-content ${isTempSession ? 'no-sidebar' : ''}`}>
                 <header className="app-header">
                     <div className="breadcrumb">
                         {getBreadcrumbs().map((crumb, index) => (
@@ -215,9 +232,32 @@ const AppLayout: React.FC = () => {
                                 )}
                             </div>
                         )}
+                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+  <div
+    className="organisation-name"
+    style={{ fontSize: "0.75em", color: "#666" }}
+  >
+    <span>{user?.organisation_name} 
+    {user?.is_superuser && user?.organisation_name && (
+    <button
+      onClick={handleSwitchOrganisation}
+      style={{
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        padding: 0,
+        color: "#3b82f6"
+      }}
+    >
+      <Edit2 size={14} />
+    </button>
+  )}
+    </span>
+  </div>
+</div>
                         <div className="user-details" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
                             <div className="user-avatar" style={user?.profile_image_url ? { backgroundImage: `url("${user.profile_image_url}")`, backgroundSize: '130%', backgroundPosition: 'center' } : {}}>
-                                {!user?.profile_image_url && (user?.first_name ? user.first_name.charAt(0).toUpperCase() : <User size={16} />)}
+                                {!user?.profile_image_url && user?.organisation_name && (user?.first_name ? user.first_name.charAt(0).toUpperCase() : <User size={16} />)}
                             </div>
                             <span>{user?.first_name || user?.email || 'User'}</span>
                         </div>

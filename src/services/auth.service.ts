@@ -30,6 +30,8 @@ export interface LoginResponse {
   token_type?: string;
   expires_in?: number;
   requires_role_selection?: boolean;
+  requires_org_selection?: boolean;   // ADD
+  organisations?: any;                // ADD
   requires_2fa?: boolean;
   temp_token?: string;
   roles?: Array<{ id: string; name: string }>;
@@ -227,7 +229,38 @@ class AuthService {
   getCurrentUserId(): string | null {
     return localStorage.getItem('user_id');
   }
+  async exitOrganisation(): Promise<LoginResponse> {
+  const token = this.getToken();
 
+  const response = await fetch(`${API_BASE_URL}/api/organisations/exit-organisation`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  });
+
+  if (!response.ok) {
+    const error: any = await response.json();
+    throw new Error(error.detail || 'Failed to exit organisation');
+  }
+
+  const result = await response.json();
+
+  if (result.access_token) {
+    this.saveToken(result.access_token);
+  }
+
+  if (result.refresh_token) {
+    this.saveRefreshToken(result.refresh_token);
+  }
+
+  if (result.user) {
+    this.saveUser(result.user);
+  }
+
+  return result;
+}
   async refreshAccessToken(): Promise<string> {
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) {

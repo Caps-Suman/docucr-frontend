@@ -4,6 +4,9 @@ import Select from "react-select";
 import { getCustomSelectStyles } from "../../styles/selectStyles";
 import styles from "./OrganisationModal.module.css";
 import organisationService from "../../services/organisation.service";
+import { useLocation, useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import authService from "../../services/auth.service";
 
 interface OrganisationModalProps {
     isOpen: boolean;
@@ -50,6 +53,12 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
     const [password, setPassword] = useState("");
     const [phoneCountryCode, setPhoneCountryCode] = useState("+91");
     const [phoneNumber, setPhoneNumber] = useState("");
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const state: any = location.state;
+
+    const isSelectionMode = state?.requiresOrgSelection === true;
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -118,7 +127,6 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validate()) {

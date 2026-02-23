@@ -184,6 +184,19 @@ const Login: React.FC = () => {
           setUserInfo(data.user);
           setTempToken(data.temp_token || '');
           setShowRoleSelection(true);
+        }else if (data.requires_org_selection) {
+  // 🔴 SUPERADMIN FIRST LOGIN FLOW
+
+  authService.saveToken(data.temp_token!); // temp token
+  authService.saveUser(data.user);
+
+  navigate('/organisations', {
+    state: {
+      requiresOrgSelection: true,
+      organisations: data.organisations
+    }
+  });
+
         } else {
           authService.saveToken(data.access_token!);
           if (data.refresh_token) {

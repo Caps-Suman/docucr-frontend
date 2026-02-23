@@ -623,15 +623,6 @@ const SOPListing: React.FC = () => {
       },
     },
   ];
-  if (!canReadSOP && !isInitialLoading) {
-    return (
-      <div style={{ padding: "40px" }}>
-        <h2>Access Denied</h2>
-        <p>You do not have permission to view SOPs.</p>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.container}>
       {/* Stats Grid */}
