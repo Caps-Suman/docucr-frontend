@@ -85,7 +85,7 @@ const SOPListing: React.FC = () => {
 
   const canReadSOP = can("SOPs", "READ");
   const canCreateSOP = can("SOPs", "CREATE");
-  const canUpdateSOP = can("SOPs", "UPDATE");
+  // const canUpdateSOP = can("SOPs", "UPDATE");
   const [stats, setStats] = useState({
     totalSOPs: 0,
     activeSOPs: 0,
@@ -202,23 +202,24 @@ const SOPListing: React.FC = () => {
         createdBy: activeFilters.createdBy?.length > 0 ? activeFilters.createdBy.join(',') : undefined,
         clientId: activeFilters.clientId?.length > 0 ? activeFilters.clientId.join(',') : undefined,
       });
-      setSops(
-        data.sops.map((sop: any) => ({
-          ...sop,
+     setSops(
+  data.sops.map((sop: any) => ({
+    ...sop,
+    statusId: sop.statusId ?? sop.status_id,
+    providerInfo: sop.providerInfo ?? sop.provider_info ?? {},
+    updatedAt: sop.updatedAt ?? sop.updated_at ?? null,
+    category:
+      typeof sop.category === "string"
+        ? sop.category
+        : (sop.category?.title ?? "—"),
+  }))
+);
 
-          // normalize provider info
-          providerInfo: sop.providerInfo ?? sop.provider_info ?? {},
-
-          // normalize updatedAt
-          updatedAt: sop.updatedAt ?? sop.updated_at ?? null,
-
-          // existing category logic
-          category:
-            typeof sop.category === "string"
-              ? sop.category
-              : (sop.category?.title ?? "—"),
-        })),
-      );
+console.log("SOPS FROM API →", data.sops);
+console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
+  ...sop,
+  statusId: sop.statusId ?? sop.status_id,
+})));
       setTotalSOPs(data.total);
     } catch (error) {
       console.error("Failed to load SOPs:", error);
@@ -561,66 +562,87 @@ const SOPListing: React.FC = () => {
       header: "Actions",
       width: "150px",
       render: (_: any, row: SOP) => {
-        // ✅ CORRECT PLACE
-        const isActive = row.statusId === activeStatusId;
+  const isActive = row.statusId === activeStatusId;
 
-        return (
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              className={styles.viewButton}
-              onClick={() => handleViewSOP(row)}
-              title="View SOP"
-            >
-              <Eye size={14} />
-            </button>
+  return (
+    <div style={{ display: "flex", gap: "8px" }}>
+      <button
+        className={styles.viewButton}
+        onClick={() => handleViewSOP(row)}
+      >
+        <Eye size={14} />
+      </button>
 
-            <button
-              className={styles.downloadButton}
-              onClick={() => handleDownloadPDF(row)}
-              disabled={downloadingId === row.id}
-              title="Download PDF"
-            >
-              {downloadingId === row.id ? (
-                <div className={styles.smallSpinner}></div>
-              ) : (
-                <Download size={14} />
-              )}
-            </button>
+      <button
+        className={styles.downloadButton}
+        onClick={() => handleDownloadPDF(row)}
+      >
+        <Download size={14} />
+      </button>
 
-            <button
-              className={`${styles.editButton} ${!canUpdateSOP ? styles.disabled : ""}`}
-              disabled={!canUpdateSOP}
-              onClick={() => canUpdateSOP && navigate(`/sops/edit/${row.id}`)}
-              title={
-                canUpdateSOP
-                  ? "Edit SOP"
-                  : "You do not have permission to edit SOPs"
-              }
-            >
-              <Edit size={14} />
-            </button>
+      <button
+        className={`${styles.editButton} }`}
+        onClick={() => navigate(`/sops/edit/${row.id}`)}
+      >
+        <Edit size={14} />
+      </button>
 
-            {/* ✅ STATUS ACTION BUTTON */}
-            <button
-              className={`${isActive ? styles.deactivateButton : styles.activateButton} ${!canUpdateSOP ? styles.disabled : ""
-                }`}
-              disabled={!canUpdateSOP}
-              onClick={() =>
-                canUpdateSOP && handleToggleStatus(row.id, row.statusId)
-              }
-              title={
-                canUpdateSOP
-                  ? isActive
-                    ? "Deactivate SOP"
-                    : "Activate SOP"
-                  : "You do not have permission to update SOPs"
-              }
-            >
-              {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
-            </button>
-          </div>
-        );
-      },
+      <button
+        className={`${isActive ? styles.deactivateButton : styles.activateButton}}`}
+        onClick={() => handleToggleStatus(row.id, row.statusId)}
+      >
+        {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+      </button>
+    </div>
+  );
+}
+  //     render: (_: any, row: SOP) => {
+  //       // ✅ CORRECT PLACE
+  //       const isActive = row.statusId === activeStatusId;
+
+  //       return (
+  //         <div style={{ display: "flex", gap: "8px" }}>
+  //           <button
+  //             className={styles.viewButton}
+  //             onClick={() => handleViewSOP(row)}
+  //             title="View SOP"
+  //           >
+  //             <Eye size={14} />
+  //           </button>
+
+  //           <button
+  //             className={styles.downloadButton}
+  //             onClick={() => handleDownloadPDF(row)}
+  //             disabled={downloadingId === row.id}
+  //             title="Download PDF"
+  //           >
+  //             {downloadingId === row.id ? (
+  //               <div className={styles.smallSpinner}></div>
+  //             ) : (
+  //               <Download size={14} />
+  //             )}
+  //           </button>
+
+  //           <button
+  //             className={`${styles.editButton} ${!canUpdateSOP ? styles.disabled : ""}`}
+  //             onClick={() => canUpdateSOP && navigate(`/sops/edit/${row.id}`)}
+  //           >
+  //             <Edit size={14} />
+  //           </button>
+
+  //           {/* ✅ STATUS ACTION BUTTON */}
+  //           <button
+  //             className={`${isActive ? styles.deactivateButton : styles.activateButton} ${!canUpdateSOP ? styles.disabled : ""
+  //               }`}
+  //             onClick={() =>
+  //               handleToggleStatus(row.id, row.statusId)
+  //             }
+  //           >
+  //             {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+  //           </button>
+  //         </div>
+  //       );
+  //     },
     },
   ];
   return (
