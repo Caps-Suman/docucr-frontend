@@ -141,8 +141,9 @@
 
 .action-btn {
     background: none;
-    border: none;
-    padding: 6px;
+    border: 1px solid transparent;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     cursor: pointer;
     display: inline-flex;
@@ -163,19 +164,23 @@
 .action-btn.deactivate {
     color: #b91c1c;
     background-color: #fee2e2;
+    border-color: #fecaca;
 }
 
 .action-btn.deactivate:hover {
     background-color: #fecaca;
+    color: #7f1d1d;
 }
 
 .action-btn.activate {
-    color: #15803d;
-    background-color: #dcfce7;
+    color: #431407;
+    background-color: #fff7ed;
+    border-color: rgb(254, 215, 170);
 }
 
 .action-btn.activate:hover {
-    background-color: #bbf7d0;
+    background-color: rgb(254, 215, 170);
+    border-color: #fdba74;
 }
 
 .action-btn.delete {
@@ -222,7 +227,8 @@
 
 .dark .action-btn.deactivate {
     color: #f87171;
-    background-color: #7f1d1d;
+    background-color: #450a0a;
+    border-color: #7f1d1d;
 }
 
 .dark .action-btn.deactivate:hover {
@@ -230,12 +236,14 @@
 }
 
 .dark .action-btn.activate {
-    color: #4ade80;
-    background-color: #14532d;
+    color: #fdba74;
+    background-color: #431407;
+    border-color: #9a3412;
 }
 
 .dark .action-btn.activate:hover {
-    background-color: #166534;
+    background-color: #9a3412;
+    color: #ffedd5;
 }
 
 .dark .action-btn.delete {

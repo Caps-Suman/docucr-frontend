@@ -33,14 +33,14 @@ const OrganisationManagement: React.FC = () => {
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
-    
+
     const navigate = useNavigate();
 
     const token = authService.getToken();
     const payload: any = token ? jwtDecode(token) : null;
 
     const isTempSession = payload?.temp === true;
-        // Debounce Search
+    // Debounce Search
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(searchTerm);
@@ -58,7 +58,7 @@ const OrganisationManagement: React.FC = () => {
 
     const loadData = async () => {
         const token = authService.getToken();
-        if (!token) return;  
+        if (!token) return;
         try {
             setLoading(true);
             const [orgsData, statsData] = await Promise.all([
@@ -76,57 +76,60 @@ const OrganisationManagement: React.FC = () => {
             setIsInitialLoading(false);
         }
     };
-const handleSelectOrganisation = async (org_id: string) => {
-  try {
-    const data = await organisationService.selectOrganisation(org_id);
+    const handleSelectOrganisation = async (org_id: string) => {
+        try {
+            setLoading(true);
+            setIsInitialLoading(false);
+            const data = await organisationService.selectOrganisation(org_id);
 
-    // 🔴 Save new tokens
-    authService.saveToken(data.access_token);
-    authService.saveRefreshToken(data.refresh_token);
+            // 🔴 Save new tokens
+            authService.saveToken(data.access_token);
+            authService.saveRefreshToken(data.refresh_token);
 
-    // 🔴 NOW fetch fresh user from backend
-    const response = await fetchWithAuth("/api/users/me", {
-      method: "GET",
-      headers: { "Content-Type": "application/json" }
-    });
+            // 🔴 NOW fetch fresh user from backend
+            const response = await fetchWithAuth("/api/users/me", {
+                method: "GET",
+                headers: { "Content-Type": "application/json" }
+            });
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch user after org select");
-    }
+            if (!response.ok) {
+                throw new Error("Failed to fetch user after org select");
+            }
 
-    const freshUser = await response.json();
+            const freshUser = await response.json();
 
-    // 🔴 Save full updated user (roles, permissions, org, everything)
-    authService.saveUser(freshUser);
+            // 🔴 Save full updated user (roles, permissions, org, everything)
+            authService.saveUser(freshUser);
 
-    // 🔴 HARD reload to reset app state completely
-    window.location.href = "/dashboard";
+            // 🔴 HARD reload to reset app state completely
+            window.location.href = "/dashboard";
 
-  } catch (err) {
-    console.error("Select organisation failed", err);
-  }
-};
+        } catch (err) {
+            setLoading(false);
+            console.error("Select organisation failed", err);
+        }
+    };
 
 
 
-const handleEdit = async (org: Organisation) => {
-    try {
-        setLoading(true);
+    const handleEdit = async (org: Organisation) => {
+        try {
+            setLoading(true);
 
-        const fullOrg = await organisationService.getOrganisationById(org.id);
+            const fullOrg = await organisationService.getOrganisationById(org.id);
 
-        setEditingOrg(fullOrg);
-        setIsModalOpen(true);
-    } catch (error: any) {
-        console.error("Failed to load organisation details:", error);
-        setToast({
-            message: error.message || "Failed to load organisation details",
-            type: "error"
-        });
-    } finally {
-        setLoading(false);
-    }
-};
+            setEditingOrg(fullOrg);
+            setIsModalOpen(true);
+        } catch (error: any) {
+            console.error("Failed to load organisation details:", error);
+            setToast({
+                message: error.message || "Failed to load organisation details",
+                type: "error"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleChangePassword = (org: Organisation) => {
         setChangePasswordOrg(org);
@@ -314,14 +317,15 @@ const handleEdit = async (org: Organisation) => {
             render: (_: any, row: Organisation) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <span className="tooltip-wrapper" data-tooltip="Edit">
-                        <button className={styles.actionBtn} onClick={(e) =>  {   
-                        e.stopPropagation();
-handleEdit(row)}} 
-style={{ color: '#3b82f6', background: '#eff6ff' }}
->
+                        <button className={styles.actionBtn} onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(row)
+                        }}
+                            style={{ color: '#3b82f6', background: '#eff6ff' }}
+                        >
                             <Edit2 size={14} />
                         </button>
-   {/* <button onClick={() => handleSelectOrganisation(row.id)}>
+                        {/* <button onClick={() => handleSelectOrganisation(row.id)}>
       Select
    </button> */}
 
@@ -372,7 +376,7 @@ style={{ color: '#3b82f6', background: '#eff6ff' }}
     if (isInitialLoading) {
         return <Loading message="Loading organisations..." />;
     }
-    
+
     return (
         <div className={styles.managementContent}>
             <div className={styles.statsGrid}>

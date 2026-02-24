@@ -11,6 +11,14 @@ import {
   Edit2,
   FileText,
   Hash,
+  User,
+  Users,
+  MapPin,
+  Activity,
+  Stethoscope,
+  Info,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../../styles/selectStyles";
@@ -50,8 +58,8 @@ const CreateSOP: React.FC = () => {
   const location = useLocation();
   const [providerIds, setProviderIds] = useState<string[]>([]);
   const [selectedProvidersList, setSelectedProvidersList] = useState<any[]>([]);
-const [expandCpt, setExpandCpt] = useState(true);
-const [expandIcd, setExpandIcd] = useState(true);
+  const [expandCpt, setExpandCpt] = useState(true);
+  const [expandIcd, setExpandIcd] = useState(true);
 
   // --- Stepper State ---
   const [currentStep, setCurrentStep] = useState(1);
@@ -267,20 +275,20 @@ const [expandIcd, setExpandIcd] = useState(true);
       }
     }
   }, [location.state]);
-useEffect(() => {
-  if (!selectedClientId || modalProviders.length === 0) return;
+  useEffect(() => {
+    if (!selectedClientId || modalProviders.length === 0) return;
 
-  const ids = modalProviders.map(p => p.id);
+    const ids = modalProviders.map(p => p.id);
 
-  sopService.checkProviders(selectedClientId, ids)
-    .then(res => {
-      setBlockedProviders(res.blocked_provider_ids || []);
-    })
-    .catch(() => {
-      setBlockedProviders([]);
-    });
+    sopService.checkProviders(selectedClientId, ids)
+      .then(res => {
+        setBlockedProviders(res.blocked_provider_ids || []);
+      })
+      .catch(() => {
+        setBlockedProviders([]);
+      });
 
-}, [modalProviders, selectedClientId]);
+  }, [modalProviders, selectedClientId]);
 
   const loadSOP = async (sopId: string) => {
     try {
@@ -807,15 +815,15 @@ useEffect(() => {
     setSaving(true); // Set saving immediately after validation
     const res = await sopService.checkProviders(selectedClientId, providerIds);
 
-if (res.blocked_provider_ids?.length) {
-  setToast({
-    message: "Some providers already have SOP",
-    type: "warning"
-  });
-    setSaving(false);
+    if (res.blocked_provider_ids?.length) {
+      setToast({
+        message: "Some providers already have SOP",
+        type: "warning"
+      });
+      setSaving(false);
 
-  return;
-}
+      return;
+    }
 
     const payload = {
       title,
@@ -865,6 +873,7 @@ if (res.blocked_provider_ids?.length) {
             className={styles.backButton}
             onClick={() => navigate("/sops")}
             title="Back to List"
+            disabled={uploading}
           >
             <ArrowLeft size={18} />
           </button>
@@ -1108,67 +1117,67 @@ if (res.blocked_provider_ids?.length) {
                     <Loading message="Loading Providers..." />
                   </div>
                 ) : (
-<Table
-  columns={[
-    {
-      key: 'select',
-      header: 'Select',
-      width: '50px',
-      render: (_: any, row: any) => {
-        const isBlocked = blockedProviders.includes(row.id);
+                  <Table
+                    columns={[
+                      {
+                        key: 'select',
+                        header: 'Select',
+                        width: '50px',
+                        render: (_: any, row: any) => {
+                          const isBlocked = blockedProviders.includes(row.id);
 
-        return (
-          <div
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: 4,
-              border: providerIds.includes(row.id)
-                ? 'none'
-                : '1px solid #cbd5e1',
-              backgroundColor: isBlocked
-                ? '#e5e7eb'
-                : providerIds.includes(row.id)
-                ? '#3b82f6'
-                : 'white',
-              cursor: isBlocked ? 'not-allowed' : 'pointer',
-              opacity: isBlocked ? 0.5 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            title={isBlocked ? "SOP already exists for this provider" : ""}
-            onClick={() => {
-              if (isBlocked) return;
+                          return (
+                            <div
+                              style={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: 4,
+                                border: providerIds.includes(row.id)
+                                  ? 'none'
+                                  : '1px solid #cbd5e1',
+                                backgroundColor: isBlocked
+                                  ? '#e5e7eb'
+                                  : providerIds.includes(row.id)
+                                    ? '#3b82f6'
+                                    : 'white',
+                                cursor: isBlocked ? 'not-allowed' : 'pointer',
+                                opacity: isBlocked ? 0.5 : 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              title={isBlocked ? "SOP already exists for this provider" : ""}
+                              onClick={() => {
+                                if (isBlocked) return;
 
-              setProviderIds(prev =>
-                prev.includes(row.id)
-                  ? prev.filter(id => id !== row.id)
-                  : [...prev, row.id]
-              );
+                                setProviderIds(prev =>
+                                  prev.includes(row.id)
+                                    ? prev.filter(id => id !== row.id)
+                                    : [...prev, row.id]
+                                );
 
-              setSelectedProvidersList(prev => {
-                const exists = prev.find(p => p.id === row.id);
-                if (exists) return prev.filter(p => p.id !== row.id);
-                return [...prev, row];
-              });
-            }}
-          >
-            {providerIds.includes(row.id) && (
-              <Check size={12} color="white" />
-            )}
-          </div>
-        );
-      }
-    },
-    { key: 'name', header: 'Provider Name' },
-    { key: 'npi', header: 'NPI', render: (v: any) => v || '-' },
-    { key: 'type', header: 'Type' }
-  ]}
-  data={modalProviders}
-  maxHeight="calc(100vh - 350px)"
-  stickyHeader
-/>
+                                setSelectedProvidersList(prev => {
+                                  const exists = prev.find(p => p.id === row.id);
+                                  if (exists) return prev.filter(p => p.id !== row.id);
+                                  return [...prev, row];
+                                });
+                              }}
+                            >
+                              {providerIds.includes(row.id) && (
+                                <Check size={12} color="white" />
+                              )}
+                            </div>
+                          );
+                        }
+                      },
+                      { key: 'name', header: 'Provider Name' },
+                      { key: 'npi', header: 'NPI', render: (v: any) => v || '-' },
+                      { key: 'type', header: 'Type' }
+                    ]}
+                    data={modalProviders}
+                    maxHeight="calc(100vh - 350px)"
+                    stickyHeader
+                  />
                 )}
 
                 {!loadingProviders && (
@@ -1201,51 +1210,51 @@ if (res.blocked_provider_ids?.length) {
             {getSteps().find(s => s.number === currentStep)?.title === "Basic Information" && (
 
               <div className={styles.stepContainer}>
-                     <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-  {uploading ? (
-    <>
-      <button className={styles.saveButton} type="button" disabled>
-        Extracting...
-      </button>
-      <button
-        className={styles.saveButton}
-        type="button"
-        onClick={handleCancelUpload}
-        style={{
-          backgroundColor: "#ef4444",
-          borderColor: "#ef4444",
-          color: "white",
-          marginLeft: 8
-        }}
-      >
-        <X size={16} />
-        Cancel
-      </button>
-    </>
-  ) : (
-    <button
-      className={styles.saveButton}
-      type="button"
-      onClick={handleUploadClick}
-    >
-      <Upload size={16} />
-      Upload SOP
-    </button>
-  )}
-            <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.docx,.png,.jpg,.jpeg"
-            style={{ display: "none" }}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                handleSOPUpload(file);
-                e.target.value = "";
-              }
-            }}
-          />
-</div>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                  {uploading ? (
+                    <>
+                      <button className={styles.saveButton} type="button" disabled>
+                        Extracting...
+                      </button>
+                      <button
+                        className={styles.saveButton}
+                        type="button"
+                        onClick={handleCancelUpload}
+                        style={{
+                          backgroundColor: "#ef4444",
+                          borderColor: "#ef4444",
+                          color: "white",
+                          marginLeft: 8
+                        }}
+                      >
+                        <X size={16} />
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className={styles.saveButton}
+                      type="button"
+                      onClick={handleUploadClick}
+                    >
+                      <Upload size={16} />
+                      Upload SOP
+                    </button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.docx,.png,.jpg,.jpeg"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleSOPUpload(file);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                </div>
                 {errors.length > 0 && (
                   <div
                     className={styles.section}
@@ -1273,52 +1282,52 @@ if (res.blocked_provider_ids?.length) {
                 )}
 
                 {/* Display Selected Client & Provider Info */}
-                <div className={styles.section} style={{ marginBottom: '16px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', gap: '32px' }}>
-
-                    {/* Client Info */}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
-                        Selected Client
-                      </div>
-                      {selectedClient ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <div style={{ fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>
-                            {selectedClient.name || selectedClient.business_name || `${selectedClient.first_name || ''} ${selectedClient.last_name || ''}`.trim() || 'Unknown Client'}
-                          </div>
-                          <div style={{ fontSize: '13px', color: '#475569' }}>
-                            NPI: {selectedClient.npi || '-'}
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: '14px', fontStyle: 'italic', color: '#94a3b8' }}>
-                          No client selected
-                        </div>
-                      )}
+                <div className={styles.selectionSummary}>
+                  {/* Client Info */}
+                  <div className={styles.summarySection}>
+                    <div className={styles.summaryLabel}>
+                      <User size={14} /> Selected Client
                     </div>
-
-                    {/* Provider Info */}
-                    {selectedProvidersList.length > 0 && (
-                      <div style={{ flex: 1, borderLeft: '1px solid #cbd5e1', paddingLeft: '32px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
-                          Selected Providers ({selectedProvidersList.length})
+                    {selectedClient ? (
+                      <div className={styles.summaryContent}>
+                        <div className={styles.summaryValue}>
+                          {selectedClient.name || selectedClient.business_name || `${selectedClient.first_name || ''} ${selectedClient.last_name || ''}`.trim() || 'Unknown Client'}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {selectedProvidersList.slice(0, 3).map(p => (
-                            <div key={p.id} style={{ fontSize: '14px', color: '#334155' }}>
-                              {p.name} <span style={{ color: '#94a3b8', fontSize: '12px' }}>({p.npi || 'No NPI'})</span>
-                            </div>
-                          ))}
-                          {selectedProvidersList.length > 3 && (
-                            <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 500 }}>
-                              +{selectedProvidersList.length - 3} more
-                            </div>
-                          )}
+                        <div className={styles.summarySubValue}>
+                          <Hash size={12} /> NPI: {selectedClient.npi || '-'}
                         </div>
+                        {selectedClient.email && (
+                          <div className={styles.summarySubValue}>
+                            {selectedClient.email}
+                          </div>
+                        )}
                       </div>
+                    ) : (
+                      <div className={styles.mutedText}>No client selected</div>
                     )}
-
                   </div>
+
+                  {/* Provider Info */}
+                  {selectedProvidersList.length > 0 && (
+                    <div className={styles.summarySection} style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '40px' }}>
+                      <div className={styles.summaryLabel}>
+                        <Users size={14} /> Selected Providers ({selectedProvidersList.length})
+                      </div>
+                      <div className={styles.providerList}>
+                        {selectedProvidersList.slice(0, 3).map(p => (
+                          <div key={p.id} className={styles.providerItem}>
+                            <span>{p.name}</span>
+                            <span className={styles.mutedText} style={{ fontSize: '11px' }}>NPI: {p.npi || 'N/A'}</span>
+                          </div>
+                        ))}
+                        {selectedProvidersList.length > 3 && (
+                          <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 600, textAlign: 'right' }}>
+                            + {selectedProvidersList.length - 3} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Basic Info Form */}
@@ -1627,23 +1636,29 @@ if (res.blocked_provider_ids?.length) {
                     </div>
                   </div>
 
-                  <div className={styles.cardList}>
+                  <div className={styles.guidelineGrid}>
                     {billingGuidelines.map((g, i) => (
-                      <div key={i} className={styles.cardItem}>
-                        <div className={styles.cardContent}>
-                          <h4>{g.category}</h4>
-                          <ul style={{ paddingLeft: "18px", margin: 0 }}>
-                            {(g.rules ?? []).map((r, j) => (
-                              <li key={j}>{r.description}</li>
-                            ))}
-                          </ul>
+                      <div key={i} className={styles.guidelineItem}>
+                        <div className={styles.guidelineHeader}>
+                          <h4><Stethoscope size={16} /> {g.category}</h4>
+                          <button
+                            className={styles.deleteButton}
+                            onClick={() => handleRemoveGuideline(g.id, i)}
+                            title="Remove Category"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
-                        <button
-                          className={styles.deleteButton}
-                          onClick={() => handleRemoveGuideline(g.id, i)}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className={styles.guidelineBody}>
+                          <div className={styles.guidelinePoints}>
+                            {(g.rules ?? []).map((r, j) => (
+                              <div key={j} className={styles.guidelinePoint}>
+                                <CheckCircle2 size={14} className={styles.pointIcon} />
+                                <span>{r.description}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1856,51 +1871,83 @@ if (res.blocked_provider_ids?.length) {
                     </div>
                   </div>
                   {codingRulesCPT.length > 0 && (
-  <div className={styles.guidelineItem}>
+                    <div className={styles.guidelineItem}>
+                      {/* HEADER */}
+                      <div
+                        className={styles.accordionHeader}
+                        onClick={() => setExpandCpt(!expandCpt)}
+                      >
+                        <div className={styles.accordionHeaderTitle}>
+                          <Activity size={18} color="#3b82f6" />
+                          <span>CPT Codes ({codingRulesCPT.length})</span>
+                        </div>
+                        {expandCpt ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </div>
 
-    {/* HEADER */}
-    <div
-      className={styles.guidelineCategory}
-      style={{ cursor: "pointer" }}
-      onClick={() => setExpandCpt(!expandCpt)}
-    >
-      CPT Codes ({codingRulesCPT.length})
-      <span style={{ marginLeft: 8 }}>
-        {expandCpt ? "▲" : "▼"}
-      </span>
-    </div>
+                      {/* BODY */}
+                      {expandCpt && (
+                        <div className={styles.guidelineBody}>
+                          <div className={styles.cardList}>
+                            {codingRulesCPT.map((r, i) => (
+                              <div key={i} className={styles.cardItem}>
+                                <div className={styles.cardContent} style={{ width: "100%" }}>
+                                  <div className={styles.codeBadge}>CPT: {r.cptCode}</div>
 
-    {/* BODY */}
-    {expandCpt && (
-      <div className={styles.cardList}>
-        {codingRulesCPT.map((r, i) => (
-          <div key={i} className={styles.cardItem}>
-            <div className={styles.cardContent} style={{ width: "100%" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                <strong>CPT: {r.cptCode}</strong>
-                {r.description && <> | {r.description}</>}
-                {r.ndcCode && <> | NDC: {r.ndcCode}</>}
-                {r.units && <> | Units: {r.units}</>}
-                {r.chargePerUnit && <> | Charge: {r.chargePerUnit}</>}
-                {r.modifier && <> | Mod: {r.modifier}</>}
-                {r.replacementCPT && <> | Replace: {r.replacementCPT}</>}
-              </div>
-            </div>
+                                  <div className={styles.metaGrid}>
+                                    {r.ndcCode && (
+                                      <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>NDC Code</span>
+                                        <span className={styles.metaValue}>{r.ndcCode}</span>
+                                      </div>
+                                    )}
+                                    {r.units && (
+                                      <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Units</span>
+                                        <span className={styles.metaValue}>{r.units}</span>
+                                      </div>
+                                    )}
+                                    {r.chargePerUnit && (
+                                      <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Charge/Unit</span>
+                                        <span className={styles.metaValue}>${r.chargePerUnit}</span>
+                                      </div>
+                                    )}
+                                    {r.modifier && (
+                                      <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Modifier</span>
+                                        <span className={styles.metaValue}>{r.modifier}</span>
+                                      </div>
+                                    )}
+                                    {r.replacementCPT && (
+                                      <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Replace CPT</span>
+                                        <span className={styles.metaValue}>{r.replacementCPT}</span>
+                                      </div>
+                                    )}
+                                  </div>
 
-            <button
-              className={styles.deleteButton}
-              onClick={() => handleRemoveCpt(r.id || "")}
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
+                                  {r.description && (
+                                    <div className={styles.codeDescription}>
+                                      {r.description}
+                                    </div>
+                                  )}
+                                </div>
 
-                        {/* {codingRulesCPT.length > 0 && (
+                                <button
+                                  className={styles.deleteButton}
+                                  onClick={() => handleRemoveCpt(r.id || "")}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* {codingRulesCPT.length > 0 && (
   <>
     <div style={{
       fontWeight: 600,
@@ -1988,7 +2035,7 @@ if (res.blocked_provider_ids?.length) {
     </div>
   </>
 )} */}
-                    {/* {codingRulesICD.length > 0 && (
+                  {/* {codingRulesICD.length > 0 && (
   <>
     <div style={{
       fontWeight: 600,
@@ -2082,48 +2129,57 @@ if (res.blocked_provider_ids?.length) {
     </div>
   </>
 )} */}
-{codingRulesICD.length > 0 && (
-  <div className={styles.guidelineItem} style={{ marginTop: 12 }}>
+                  {codingRulesICD.length > 0 && (
+                    <div className={styles.guidelineItem} style={{ marginTop: 12 }}>
+                      {/* HEADER */}
+                      <div
+                        className={styles.accordionHeader}
+                        onClick={() => setExpandIcd(!expandIcd)}
+                      >
+                        <div className={styles.accordionHeaderTitle}>
+                          <Hash size={18} color="#3b82f6" />
+                          <span>ICD Codes ({codingRulesICD.length})</span>
+                        </div>
+                        {expandIcd ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </div>
 
-    {/* HEADER */}
-    <div
-      className={styles.guidelineCategory}
-      style={{ cursor: "pointer" }}
-      onClick={() => setExpandIcd(!expandIcd)}
-    >
-      ICD Codes ({codingRulesICD.length})
-      <span style={{ marginLeft: 8 }}>
-        {expandIcd ? "▲" : "▼"}
-      </span>
-    </div>
+                      {/* BODY */}
+                      {expandIcd && (
+                        <div className={styles.guidelineBody}>
+                          <div className={styles.cardList}>
+                            {codingRulesICD.map((r, i) => (
+                              <div key={i} className={styles.cardItem}>
+                                <div className={styles.cardContent} style={{ width: "100%" }}>
+                                  <div className={styles.codeBadge}>ICD: {r.icdCode}</div>
 
-    {/* BODY */}
-    {expandIcd && (
-      <div className={styles.cardList}>
-        {codingRulesICD.map((r, i) => (
-          <div key={i} className={styles.cardItem}>
-            <div className={styles.cardContent} style={{ width: "100%" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                <strong>ICD: {r.icdCode}</strong>
-                {r.description && <> | {r.description}</>}
-                {r.notes && <> | Notes: {r.notes}</>}
+                                  {r.description && (
+                                    <div className={styles.codeDescription}>
+                                      {r.description}
+                                    </div>
+                                  )}
+
+                                  {r.notes && (
+                                    <div className={styles.mutedText} style={{ fontSize: '12px', borderLeft: '1px solid #e2e8f0', paddingLeft: '12px' }}>
+                                      <strong>Notes:</strong> {r.notes}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <button
+                                  className={styles.deleteButton}
+                                  onClick={() => handleRemoveIcd(r.id || "")}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-
-            <button
-              className={styles.deleteButton}
-              onClick={() => handleRemoveIcd(r.id || "")}
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
-</div>
-</div>
             )}
 
             {/* Step 4: Preview & Save */}
@@ -2317,10 +2373,24 @@ if (res.blocked_provider_ids?.length) {
                             {codingRulesCPT.map((rule, i) => (
                               <div key={i} className={styles.previewCard}>
                                 <div className={styles.cardContent}>
-                                  <div><strong>{rule.cptCode}</strong> – {rule.description}</div>
-                                  {rule.ndcCode && <div className={styles.mutedText}>NDC: {rule.ndcCode}</div>}
-                                  {rule.units && <div className={styles.mutedText}>Units: {rule.units}</div>}
-                                  {rule.chargePerUnit && <div className={styles.mutedText}>Charge: {rule.chargePerUnit}</div>}
+                                  <div className={styles.codeBadge}>CPT: {rule.cptCode}</div>
+                                  <div className={styles.metaGrid}>
+                                    {rule.ndcCode && (
+                                      <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>NDC</span>
+                                        <span className={styles.metaValue}>{rule.ndcCode}</span>
+                                      </div>
+                                    )}
+                                    {rule.units && (
+                                      <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Units</span>
+                                        <span className={styles.metaValue}>{rule.units}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {rule.description && (
+                                    <div className={styles.codeDescription}>{rule.description}</div>
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -2335,8 +2405,15 @@ if (res.blocked_provider_ids?.length) {
                             {codingRulesICD.map((rule, i) => (
                               <div key={i} className={styles.previewCard}>
                                 <div className={styles.cardContent}>
-                                  <div><strong>{rule.icdCode}</strong> – {rule.description}</div>
-                                  {rule.notes && <div className={styles.mutedText}>Notes: {rule.notes}</div>}
+                                  <div className={styles.codeBadge}>ICD: {rule.icdCode}</div>
+                                  {rule.description && (
+                                    <div className={styles.codeDescription}>{rule.description}</div>
+                                  )}
+                                  {rule.notes && (
+                                    <div className={styles.mutedText} style={{ fontSize: '12px', borderLeft: '1px solid #e2e8f0', paddingLeft: '12px' }}>
+                                      Notes: {rule.notes}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -2358,6 +2435,7 @@ if (res.blocked_provider_ids?.length) {
               <button
                 className={styles.backButton}
                 onClick={() => navigate("/sops")}
+                disabled={uploading}
               >
                 Close
               </button>
@@ -2367,6 +2445,7 @@ if (res.blocked_provider_ids?.length) {
               <button
                 className={styles.backButton}
                 onClick={handleBackStep}
+                disabled={uploading}
               >
                 Back
               </button>
@@ -2375,7 +2454,7 @@ if (res.blocked_provider_ids?.length) {
             <button
               className={styles.saveButton}
               onClick={currentStep === getSteps().length ? handleSave : handleNextStep}
-              disabled={saving}
+              disabled={saving || uploading}
             >
               {currentStep === getSteps().length ? (
                 <>
