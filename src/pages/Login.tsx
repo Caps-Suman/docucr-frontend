@@ -184,18 +184,18 @@ const Login: React.FC = () => {
           setUserInfo(data.user);
           setTempToken(data.temp_token || '');
           setShowRoleSelection(true);
-        }else if (data.requires_org_selection) {
-  // 🔴 SUPERADMIN FIRST LOGIN FLOW
+        } else if (data.requires_org_selection) {
+          // 🔴 SUPERADMIN FIRST LOGIN FLOW
 
-  authService.saveToken(data.temp_token!); // temp token
-  authService.saveUser(data.user);
+          authService.saveToken(data.temp_token!); // temp token
+          authService.saveUser(data.user);
 
-  navigate('/organisations', {
-    state: {
-      requiresOrgSelection: true,
-      organisations: data.organisations
-    }
-  });
+          navigate('/organisations', {
+            state: {
+              requiresOrgSelection: true,
+              organisations: data.organisations
+            }
+          });
 
         } else {
           authService.saveToken(data.access_token!);
@@ -653,7 +653,7 @@ const Login: React.FC = () => {
               )}
 
               <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Please wait...' : (isForgotPassword ? (isOtpSent ? 'Reset Password' : 'Send Reset Link') : 'Sign In')}
+                {loading ? 'Please wait...' : (isForgotPassword ? (isOtpSent ? 'Reset Password' : 'Send Reset OTP') : 'Sign In')}
               </button>
             </form>
 

@@ -127,15 +127,15 @@ const UserModal: React.FC<UserModalProps> = ({
   useEffect(() => {
     const initializeData = async () => {
       if (initialData) {
-        setEmail(initialData.email);
-        setUsername(initialData.username);
-        setFirstName(initialData.first_name);
+        setEmail(initialData.email || "");
+        setUsername(initialData.username || "");
+        setFirstName(initialData.first_name || "");
         setMiddleName(initialData.middle_name || "");
-        setLastName(initialData.last_name);
+        setLastName(initialData.last_name || "");
         setPhoneCountryCode((initialData as any).phone_country_code || "+91");
         setPhoneNumber((initialData as any).phone_number || "");
         setUserRoles(
-          initialData.roles.map((r) => ({ value: r.id, label: r.name })),
+          (initialData.roles || []).map((r) => ({ value: r.id, label: r.name })),
         );
         setSelectedSupervisor(initialData.supervisor_id || null);
         setPassword("");
@@ -250,18 +250,18 @@ const UserModal: React.FC<UserModalProps> = ({
   const validateStep1 = () => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!email.trim()) newErrors.email = "Email is required";
+    if (!(email || "").trim()) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       newErrors.email = "Invalid email format";
 
-    if (!username.trim()) newErrors.username = "Username is required";
-    else if (username.length < 3)
+    if (!(username || "").trim()) newErrors.username = "Username is required";
+    else if (username && username.length < 3)
       newErrors.username = "Username must be at least 3 characters";
-    else if (username.length > 50)
+    else if (username && username.length > 50)
       newErrors.username = "Username cannot exceed 50 characters";
 
-    if (!firstName.trim()) newErrors.firstName = "First name is required";
-    else if (firstName.length > 50)
+    if (!(firstName || "").trim()) newErrors.firstName = "First name is required";
+    else if (firstName && firstName.length > 50)
       newErrors.firstName = "First name cannot exceed 50 characters";
 
     if (lastName && lastName.length > 50)
@@ -270,9 +270,9 @@ const UserModal: React.FC<UserModalProps> = ({
     if (middleName && middleName.length > 50)
       newErrors.middleName = "Middle name cannot exceed 50 characters";
 
-    if (!initialData?.id && !password.trim())
+    if (!initialData?.id && !(password || "").trim())
       newErrors.password = "Password is required";
-    else if (!initialData?.id && password.length < 6)
+    else if (!initialData?.id && password && password.length < 6)
       newErrors.password = "Password must be at least 6 characters";
 
     if (phoneNumber && !/^\d{10,15}$/.test(phoneNumber)) {
@@ -316,11 +316,11 @@ const UserModal: React.FC<UserModalProps> = ({
     if (!validateStep1()) return;
 
     const payload: any = {
-      email: email.trim(),
-      username: username.trim(),
-      first_name: firstName.trim(),
-      middle_name: middleName.trim() || undefined,
-      last_name: lastName.trim() || undefined,
+      email: (email || "").trim(),
+      username: (username || "").trim(),
+      first_name: (firstName || "").trim(),
+      middle_name: (middleName || "").trim() || undefined,
+      last_name: (lastName || "").trim() || undefined,
       phone_country_code: phoneCountryCode,
       phone_number: phoneNumber || undefined,
       supervisor_id: selectedSupervisor || undefined,

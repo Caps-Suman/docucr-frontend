@@ -118,7 +118,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
     };
 
     const addExtractionField = () => {
-        if (newField.fieldName.trim()) {
+        if ((newField.fieldName || "").trim()) {
             if (editingIndex !== null) {
                 // Update existing field
                 setExtractionFields(prev => prev.map((item, i) =>
@@ -170,7 +170,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
 
-        if (!formData.template_name.trim()) {
+        if (!(formData.template_name || "").trim()) {
             newErrors.template_name = 'Template name is required';
         }
 
@@ -179,7 +179,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
         }
 
         extractionFields.forEach((field, index) => {
-            if (!field.fieldName.trim()) {
+            if (!(field.fieldName || "").trim()) {
                 newErrors[`field_${index}_name`] = 'Field name is required';
             }
         });
@@ -196,10 +196,10 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
         }
 
         const data = {
-            template_name: formData.template_name.trim(),
-            description: formData.description.trim() || undefined,
+            template_name: (formData.template_name || "").trim(),
+            description: (formData.description || "").trim() || undefined,
             document_type_id: formData.document_type_id,
-            extraction_fields: extractionFields.filter(field => field.fieldName.trim())
+            extraction_fields: extractionFields.filter(field => (field.fieldName || "").trim())
         };
 
         if (isEditMode) {
@@ -366,8 +366,8 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
                             <div className={styles.fieldHeader}>
                                 <h3>
                                     Field Definition
-                                    <button 
-                                        className={styles.infoButton} 
+                                    <button
+                                        className={styles.infoButton}
                                         onClick={() => setShowHelp(!showHelp)}
                                         title={showHelp ? 'Hide help' : 'Show help'}
                                     >

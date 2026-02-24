@@ -51,7 +51,7 @@ const OrganisationManagement: React.FC = () => {
     }, [searchTerm]);
 
     useEffect(() => {
-        if (!authService.getToken()) return;  // 🔴 important
+        if (!authService.getToken()) return;  // important
 
         loadData();
     }, [currentPage, itemsPerPage, statusFilter, debouncedSearch]);
@@ -82,11 +82,11 @@ const OrganisationManagement: React.FC = () => {
             setIsInitialLoading(false);
             const data = await organisationService.selectOrganisation(org_id);
 
-            // 🔴 Save new tokens
+            // Save new tokens
             authService.saveToken(data.access_token);
             authService.saveRefreshToken(data.refresh_token);
 
-            // 🔴 NOW fetch fresh user from backend
+            // NOW fetch fresh user from backend
             const response = await fetchWithAuth("/api/users/me", {
                 method: "GET",
                 headers: { "Content-Type": "application/json" }
@@ -98,10 +98,10 @@ const OrganisationManagement: React.FC = () => {
 
             const freshUser = await response.json();
 
-            // 🔴 Save full updated user (roles, permissions, org, everything)
+            // Save full updated user (roles, permissions, org, everything)
             authService.saveUser(freshUser);
 
-            // 🔴 HARD reload to reset app state completely
+            // HARD reload to reset app state completely
             window.location.href = "/dashboard";
 
         } catch (err) {
@@ -273,15 +273,22 @@ const OrganisationManagement: React.FC = () => {
             )
         },
         {
-            key: 'username',
-            header: 'Details',
-            render: (_: any, row: Organisation) => (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
+            key: 'admin_name',
+            header: 'Admin Name',
+            render: (_: any, row: Organisation) => {
+                const fullName = [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(' ');
+                return (
                     <span style={{ fontWeight: 600 }}>
-                        {row.first_name} {row.middle_name ? row.middle_name + ' ' : ''}{row.last_name}
+                        {fullName || '-'}
                     </span>
-                    <span className={styles.usernameBadge}>{row.username}</span>
-                </div>
+                );
+            }
+        },
+        {
+            key: 'username',
+            header: 'Username',
+            render: (_: any, row: Organisation) => (
+                row.username ? <span className={styles.usernameBadge}>{row.username}</span> : <span>-</span>
             )
         },
         {
@@ -294,11 +301,15 @@ const OrganisationManagement: React.FC = () => {
                 return phone ? (
                     <span>{phone}</span>
                 ) : (
-                    <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>None</span>
+                    <span>-</span>
                 );
             }
         },
-        { key: 'email', header: 'Email' },
+        {
+            key: 'email',
+            header: 'Email',
+            render: (value: string) => value || "-"
+        },
         {
             key: 'statusCode',
             header: 'Status',
