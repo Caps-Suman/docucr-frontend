@@ -85,7 +85,7 @@ const SOPListing: React.FC = () => {
 
   const canReadSOP = can("SOPs", "READ");
   const canCreateSOP = can("SOPs", "CREATE");
-  // const canUpdateSOP = can("SOPs", "UPDATE");
+  const canUpdateSOP = can("SOPs", "UPDATE");
   const [stats, setStats] = useState({
     totalSOPs: 0,
     activeSOPs: 0,
@@ -483,23 +483,6 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
   };
 
   const columns = [
-    // {
-    //   key: "providerName",
-    //   header: "Provider",
-    //   width: "32%",
-    //   render: (_: string, row: SOP) => (
-    //     <div>
-    //       <div style={{ fontWeight: 500, color: "#111827" }}>
-    //         {row.providerInfo?.providerName || row.title}
-    //       </div>
-    //       <div style={{ fontSize: "12px", color: "#6b7280" }}>
-    //         {typeof row.providerInfo?.billingProviderName === "string"
-    //           ? row.providerInfo.billingProviderName
-    //           : getCategoryLabel(row.category)}
-    //       </div>
-    //     </div>
-    //   ),
-    // },
     {
       key: "title",
       header: "Title",

@@ -36,7 +36,8 @@ import Loading from "../../Common/Loading";
 
 const CreateSOP: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: sopId } = useParams();
+  const id = sopId;
   const isEditMode = !!id;
 
   // --- State ---
@@ -50,8 +51,8 @@ const CreateSOP: React.FC = () => {
   const location = useLocation();
   const [providerIds, setProviderIds] = useState<string[]>([]);
   const [selectedProvidersList, setSelectedProvidersList] = useState<any[]>([]);
-const [expandCpt, setExpandCpt] = useState(true);
-const [expandIcd, setExpandIcd] = useState(true);
+  const [expandCpt, setExpandCpt] = useState(true);
+  const [expandIcd, setExpandIcd] = useState(true);
 
   // --- Stepper State ---
   const [currentStep, setCurrentStep] = useState(1);
