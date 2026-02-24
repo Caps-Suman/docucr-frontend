@@ -105,10 +105,13 @@ const AppLayout: React.FC = () => {
     };
 
     const formatRoleName = (name: string) => {
-        return name
+        if (!name) return '';
+        const formatted = name
             .split('_')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ');
+
+        return formatted === 'Organisation Role' ? 'Organisation' : formatted;
     };
 
     useEffect(() => {
@@ -197,7 +200,7 @@ const AppLayout: React.FC = () => {
     const handleLogout = () => {
         authService.logout();
         sessionStorage.removeItem('hasSeenIntro');
-        window.location.href = "/login";   // 🔴 HARD RESET
+        window.location.href = "/login";   // HARD RESET
     };
     const hidesidebar = location.pathname.startsWith('/organisations') ||
         location.pathname.startsWith('/sops/create') ||

@@ -99,7 +99,7 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
     };
 
     const updateExtractionField = (index: number, field: keyof ExtractionField, value: string) => {
-        setExtractionFields(prev => prev.map((item, i) => 
+        setExtractionFields(prev => prev.map((item, i) =>
             i === index ? { ...item, [field]: value } : item
         ));
     };
@@ -111,7 +111,7 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
 
-        if (!formData.template_name.trim()) {
+        if (!(formData.template_name || "").trim()) {
             newErrors.template_name = 'Template name is required';
         }
 
@@ -121,7 +121,7 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
 
         // Validate extraction fields
         extractionFields.forEach((field, index) => {
-            if (!field.fieldName.trim()) {
+            if (!(field.fieldName || "").trim()) {
                 newErrors[`field_${index}_name`] = 'Field name is required';
             }
         });
@@ -132,16 +132,16 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             return;
         }
 
         onSubmit({
-            template_name: formData.template_name.trim(),
-            description: formData.description.trim() || undefined,
+            template_name: (formData.template_name || "").trim(),
+            description: (formData.description || "").trim() || undefined,
             document_type_id: formData.document_type_id,
-            extraction_fields: extractionFields.filter(field => field.fieldName.trim())
+            extraction_fields: extractionFields.filter(field => (field.fieldName || "").trim())
         });
     };
 

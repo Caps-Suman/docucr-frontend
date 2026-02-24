@@ -788,12 +788,12 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
     // Step 1 Validation
     if (step === 1) {
-      if (type === "Group" && !businessName.trim()) {
+      if (type === "Group" && !(businessName || "").trim()) {
         newErrors.businessName = "Business Name is required";
         isValid = false;
       }
 
-      if (type === "Individual" && !firstName.trim()) {
+      if (type === "Individual" && !(firstName || "").trim()) {
         newErrors.firstName = "First Name is required";
         isValid = false;
       }

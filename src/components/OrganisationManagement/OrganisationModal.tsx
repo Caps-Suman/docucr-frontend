@@ -66,11 +66,11 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
     useEffect(() => {
         if (initialData) {
             setName((initialData as any).name || ""); // Initialize name
-            setEmail(initialData.email);
-            setUsername(initialData.username);
-            setFirstName(initialData.first_name);
+            setEmail(initialData.email || "");
+            setUsername(initialData.username || "");
+            setFirstName(initialData.first_name || "");
             setMiddleName(initialData.middle_name || "");
-            setLastName(initialData.last_name);
+            setLastName(initialData.last_name || "");
             setPhoneCountryCode(initialData.phone_country_code || "+91");
             setPhoneNumber(initialData.phone_number || "");
             setPassword("");
@@ -91,33 +91,33 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
 
-        if (!name.trim()) newErrors.name = "Organisation Name is required";
-        if (name.length > 100) newErrors.name = "Name cannot exceed 100 characters";
+        if (!(name || "").trim()) newErrors.name = "Organisation Name is required";
+        if (name && name.length > 100) newErrors.name = "Name cannot exceed 100 characters";
 
-        if (!email.trim()) newErrors.email = "Email is required";
+        if (!(email || "").trim()) newErrors.email = "Email is required";
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
             newErrors.email = "Invalid email format";
 
-        if (!username.trim()) newErrors.username = "Username is required";
-        else if (username.length < 3)
+        if (!(username || "").trim()) newErrors.username = "Username is required";
+        else if (username && username.length < 3)
             newErrors.username = "Username must be at least 3 characters";
-        else if (username.length > 50)
+        else if (username && username.length > 50)
             newErrors.username = "Username cannot exceed 50 characters";
 
-        if (!firstName.trim()) newErrors.firstName = "First name is required";
-        else if (firstName.length > 50)
+        if (!(firstName || "").trim()) newErrors.firstName = "First name is required";
+        else if (firstName && firstName.length > 50)
             newErrors.firstName = "First name cannot exceed 50 characters";
 
-        if (!lastName.trim()) newErrors.lastName = "Last name is required";
-        else if (lastName.length > 50)
+        if (!(lastName || "").trim()) newErrors.lastName = "Last name is required";
+        else if (lastName && lastName.length > 50)
             newErrors.lastName = "Last name cannot exceed 50 characters";
 
         if (middleName && middleName.length > 50)
             newErrors.middleName = "Middle name cannot exceed 50 characters";
 
-        if (!initialData?.id && !password.trim())
+        if (!initialData?.id && !(password || "").trim())
             newErrors.password = "Password is required";
-        else if (!initialData?.id && password.length < 6)
+        else if (!initialData?.id && password && password.length < 6)
             newErrors.password = "Password must be at least 6 characters";
 
         if (phoneNumber && !/^\d{10,15}$/.test(phoneNumber)) {
@@ -134,12 +134,12 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
         }
 
         const data: any = {
-            name: name.trim(), // Include name
-            email: email.trim(),
-            username: username.trim(),
-            first_name: firstName.trim(),
-            middle_name: middleName.trim() || undefined,
-            last_name: lastName.trim(),
+            name: (name || "").trim(), // Include name
+            email: (email || "").trim(),
+            username: (username || "").trim(),
+            first_name: (firstName || "").trim(),
+            middle_name: (middleName || "").trim() || undefined,
+            last_name: (lastName || "").trim(),
             phone_country_code: phoneCountryCode,
             phone_number: phoneNumber || undefined,
         };
@@ -173,43 +173,28 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                     </button>
                 </div>
                 <form className={styles.form} onSubmit={handleSubmit}>
-                    <div className={styles.formContent} style={{ position: 'relative', minHeight: '200px' }}>
+                    <div className={styles.formContent}>
                         {isLoading && (
-                            <div style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                background: 'rgba(255, 255, 255, 0.7)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 10,
-                                borderRadius: '8px'
-                            }}>
+                            <div className={styles.loaderOverlay}>
                                 <div className={styles.loader}>Loading form data...</div>
                             </div>
                         )}
 
-                        {/* Name Field */}
-                        <div className={styles.formRow}>
-                            <div className={styles.formGroup} style={{ width: '100%' }}>
-                                <label className={styles.label}>Organisation Name *</label>
-                                <input
-                                    type="text"
-                                    className={styles.input}
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="Enter organisation name"
-                                    style={{
-                                        borderColor: errors.name ? "#ef4444" : "#d1d5db",
-                                    }}
-                                />
-                                {errors.name && (
-                                    <span className={styles.errorText}>{errors.name}</span>
-                                )}
-                            </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>Organisation Name *</label>
+                            <input
+                                type="text"
+                                className={styles.input}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Enter organisation name"
+                                style={{
+                                    borderColor: errors.name ? "#ef4444" : undefined,
+                                }}
+                            />
+                            {errors.name && (
+                                <span className={styles.errorText}>{errors.name}</span>
+                            )}
                         </div>
 
                         <div className={styles.formRow}>
@@ -222,7 +207,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="Enter email"
                                     style={{
-                                        borderColor: errors.email ? "#ef4444" : "#d1d5db",
+                                        borderColor: errors.email ? "#ef4444" : undefined,
                                     }}
                                 />
                                 {errors.email && (
@@ -239,7 +224,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                     placeholder="Enter username"
                                     maxLength={50}
                                     style={{
-                                        borderColor: errors.username ? "#ef4444" : "#d1d5db",
+                                        borderColor: errors.username ? "#ef4444" : undefined,
                                     }}
                                 />
                                 {errors.username && (
@@ -249,6 +234,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                 )}
                             </div>
                         </div>
+
                         <div className={styles.formRow}>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>First Name *</label>
@@ -260,7 +246,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                     placeholder="Enter first name"
                                     maxLength={50}
                                     style={{
-                                        borderColor: errors.firstName ? "#ef4444" : "#d1d5db",
+                                        borderColor: errors.firstName ? "#ef4444" : undefined,
                                     }}
                                 />
                                 {errors.firstName && (
@@ -279,7 +265,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                     placeholder="Enter middle name"
                                     maxLength={50}
                                     style={{
-                                        borderColor: errors.middleName ? "#ef4444" : "#d1d5db",
+                                        borderColor: errors.middleName ? "#ef4444" : undefined,
                                     }}
                                 />
                                 {errors.middleName && (
@@ -289,6 +275,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                 )}
                             </div>
                         </div>
+
                         <div className={styles.formRow}>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Last Name *</label>
@@ -300,7 +287,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                     placeholder="Enter last name"
                                     maxLength={50}
                                     style={{
-                                        borderColor: errors.lastName ? "#ef4444" : "#d1d5db",
+                                        borderColor: errors.lastName ? "#ef4444" : undefined,
                                     }}
                                 />
                                 {errors.lastName && (
@@ -319,7 +306,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder="Enter password"
                                         style={{
-                                            borderColor: errors.password ? "#ef4444" : "#d1d5db",
+                                            borderColor: errors.password ? "#ef4444" : undefined,
                                         }}
                                     />
                                     {errors.password && (
@@ -330,34 +317,36 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                 </div>
                             )}
                         </div>
+
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Phone</label>
+                            <label className={styles.label}>Phone Number</label>
                             <div className={styles.phoneInputGroup}>
-                                <Select
-                                    value={countryCodeOptions.find(
-                                        (opt) => opt.value === phoneCountryCode,
-                                    )}
-                                    onChange={(selected) =>
-                                        setPhoneCountryCode(selected?.value || "+91")
-                                    }
-                                    options={countryCodeOptions}
-                                    className={styles.countryCodeSelect}
-                                    classNamePrefix="select"
-                                    styles={{
-                                        ...getCustomSelectStyles(),
-                                        menu: (base) => ({
-                                            ...getCustomSelectStyles().menu(base),
-                                            zIndex: 10000,
-                                        }),
-                                        menuPortal: (base) => ({
-                                            ...base,
-                                            zIndex: 10000,
-                                        }),
-                                    }}
-                                    isSearchable={false}
-                                    menuPortalTarget={document.body}
-                                    menuPosition="fixed"
-                                />
+                                <div className={styles.countryCodeSelect}>
+                                    <Select
+                                        value={countryCodeOptions.find(
+                                            (opt) => opt.value === phoneCountryCode,
+                                        )}
+                                        onChange={(selected) =>
+                                            setPhoneCountryCode(selected?.value || "+91")
+                                        }
+                                        options={countryCodeOptions}
+                                        classNamePrefix="select"
+                                        styles={{
+                                            ...getCustomSelectStyles(),
+                                            menu: (base) => ({
+                                                ...getCustomSelectStyles().menu(base),
+                                                zIndex: 10000,
+                                            }),
+                                            menuPortal: (base) => ({
+                                                ...base,
+                                                zIndex: 10000,
+                                            }),
+                                        }}
+                                        isSearchable={false}
+                                        menuPortalTarget={document.body}
+                                        menuPosition="fixed"
+                                    />
+                                </div>
                                 <input
                                     type="tel"
                                     value={phoneNumber}
@@ -370,7 +359,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                                     placeholder="10-15 digits"
                                     className={styles.phoneNumberInput}
                                     style={{
-                                        borderColor: errors.phoneNumber ? "#ef4444" : "#d1d5db",
+                                        borderColor: errors.phoneNumber ? "#ef4444" : undefined,
                                     }}
                                 />
                             </div>
