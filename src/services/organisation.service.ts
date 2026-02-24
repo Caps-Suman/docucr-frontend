@@ -74,7 +74,19 @@ const organisationService = {
 
         return response.json();
     },
+    getOrganisationById: async (id: string): Promise<Organisation> => {
+    const response = await fetchWithAuth(`/api/organisations/${id}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" }
+    });
 
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || "Failed to fetch organisation");
+    }
+
+    return response.json();
+},
     updateOrganisation: async (id: string, data: any): Promise<Organisation> => {
         const response = await fetchWithAuth(`/api/organisations/${id}`, {
             method: 'PUT',

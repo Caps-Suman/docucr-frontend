@@ -586,13 +586,12 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       >
         <Edit size={14} />
       </button>
-
-      <button
-        className={`${isActive ? styles.deactivateButton : styles.activateButton}}`}
-        onClick={() => handleToggleStatus(row.id, row.statusId)}
-      >
-        {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
-      </button>
+<button
+  className={`${styles.statusButton} ${isActive ? styles.active : styles.inactive}`}
+  onClick={() => handleToggleStatus(row.id, row.statusId)}
+>
+  {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+</button>
     </div>
   );
 }

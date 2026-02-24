@@ -14,9 +14,10 @@ interface TableProps {
     className?: string;
     maxHeight?: string;
     stickyHeader?: boolean;
+    onRowClick?: (row: any) => void;   // 🔴 ADD THIS
 }
 
-const Table: React.FC<TableProps> = ({ columns, data, className = '', maxHeight, stickyHeader = true }) => {
+const Table: React.FC<TableProps> = ({ columns, data, className = '', maxHeight, stickyHeader = true, onRowClick }) => {
     return (
         <div
             className={`${styles.container} ${className}`}
@@ -30,28 +31,40 @@ const Table: React.FC<TableProps> = ({ columns, data, className = '', maxHeight,
                         ))}
                     </tr>
                 </thead>
-                <tbody>
-                    {data.length === 0 ? (
-                        <tr>
-                            <td colSpan={columns.length} className={styles.empty}>
-                                No data available
-                            </td>
-                        </tr>
-                    ) : (
-                        data.map((row, index) => (
-                            <tr key={index}>
-                                {columns.map((column) => (
-                                    <td key={column.key} style={{ width: column.width, minWidth: column.width, maxWidth: column.width, whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                                        {column.render
-                                            ? column.render(row[column.key], row)
-                                            : row[column.key]
-                                        }
-                                    </td>
-                                ))}
-                            </tr>
-                        ))
-                    )}
-                </tbody>
+               <tbody>
+  {data.length === 0 ? (
+    <tr>
+      <td colSpan={columns.length} className={styles.empty}>
+        No data available
+      </td>
+    </tr>
+  ) : (
+    data.map((row, index) => (
+      <tr
+        key={index}
+        onClick={() => onRowClick?.(row)}
+        style={{ cursor: onRowClick ? "pointer" : "default" }}
+      >
+        {columns.map((column) => (
+          <td
+            key={column.key}
+            style={{
+              width: column.width,
+              minWidth: column.width,
+              maxWidth: column.width,
+              whiteSpace: "normal",
+              wordBreak: "break-word"
+            }}
+          >
+            {column.render
+              ? column.render(row[column.key], row)
+              : row[column.key]}
+          </td>
+        ))}
+      </tr>
+    ))
+  )}
+</tbody>
             </table>
         </div>
     );

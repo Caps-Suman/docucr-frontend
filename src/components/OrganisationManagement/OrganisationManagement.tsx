@@ -109,10 +109,24 @@ const handleSelectOrganisation = async (org_id: string) => {
 
 
 
-    const handleEdit = (org: Organisation) => {
-        setEditingOrg(org);
+const handleEdit = async (org: Organisation) => {
+    try {
+        setLoading(true);
+
+        const fullOrg = await organisationService.getOrganisationById(org.id);
+
+        setEditingOrg(fullOrg);
         setIsModalOpen(true);
-    };
+    } catch (error: any) {
+        console.error("Failed to load organisation details:", error);
+        setToast({
+            message: error.message || "Failed to load organisation details",
+            type: "error"
+        });
+    } finally {
+        setLoading(false);
+    }
+};
 
     const handleChangePassword = (org: Organisation) => {
         setChangePasswordOrg(org);
@@ -300,18 +314,25 @@ const handleSelectOrganisation = async (org_id: string) => {
             render: (_: any, row: Organisation) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <span className="tooltip-wrapper" data-tooltip="Edit">
-                        <button className={styles.actionBtn} onClick={() => handleEdit(row)} style={{ color: '#3b82f6', background: '#eff6ff' }}>
+                        <button className={styles.actionBtn} onClick={(e) =>  {   
+                        e.stopPropagation();
+handleEdit(row)}} 
+style={{ color: '#3b82f6', background: '#eff6ff' }}
+>
                             <Edit2 size={14} />
                         </button>
-   <button onClick={() => handleSelectOrganisation(row.id)}>
+   {/* <button onClick={() => handleSelectOrganisation(row.id)}>
       Select
-   </button>
+   </button> */}
 
                     </span>
                     <span className="tooltip-wrapper" data-tooltip="Change Password">
                         <button
                             className={styles.actionBtn}
-                            onClick={() => handleChangePassword(row)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleChangePassword(row);
+                            }}
                             style={{ color: '#f59e0b', background: '#fef3c7' }}
                         >
                             <Key size={14} />
@@ -321,7 +342,10 @@ const handleSelectOrganisation = async (org_id: string) => {
                         <span className="tooltip-wrapper" data-tooltip="Deactivate">
                             <button
                                 className={`${styles.actionBtn} ${styles.deactivate}`}
-                                onClick={() => handleToggleStatus(row)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleStatus(row);
+                                }}
                             >
                                 <StopCircle size={14} />
                             </button>
@@ -331,7 +355,10 @@ const handleSelectOrganisation = async (org_id: string) => {
                         <span className="tooltip-wrapper" data-tooltip="Activate">
                             <button
                                 className={`${styles.actionBtn} ${styles.activate}`}
-                                onClick={() => handleToggleStatus(row)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleStatus(row);
+                                }}
                             >
                                 <PlayCircle size={14} />
                             </button>
@@ -402,6 +429,7 @@ const handleSelectOrganisation = async (org_id: string) => {
                     columns={columns}
                     data={organisations}
                     maxHeight="calc(100vh - 360px)"
+                    onRowClick={(row) => handleSelectOrganisation(row.id)}
                 />
                 {loading && !isInitialLoading && (
                     <div style={{
