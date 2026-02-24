@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit, Activity, LogOut } from 'lucide-react';
+import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit, Activity, LogOut, Building2 } from 'lucide-react';
 import authService from '../../../services/auth.service';
 import modulesService from '../../../services/modules.service';
 import apiClient, { API_BASE_URL } from '../../../utils/apiClient';
@@ -76,6 +76,11 @@ const AppLayout: React.FC = () => {
             return crumbs;
         }
 
+        if (path.startsWith('/organisations')) {
+            crumbs.push({ icon: Building2, label: 'Organisations' });
+            return crumbs;
+        }
+
         if (path.startsWith('/settings')) {
             crumbs.push({ icon: Settings, label: 'Settings' });
             return crumbs;
@@ -137,14 +142,14 @@ const AppLayout: React.FC = () => {
             console.error('Failed to check module access', error);
         }
     };
-const handleSwitchOrganisation = async () => {
-  try {
-    await authService.exitOrganisation();
-    navigate('/organisations');
-  } catch (err) {
-    console.error(err);
-  }
-};
+    const handleSwitchOrganisation = async () => {
+        try {
+            await authService.exitOrganisation();
+            navigate('/organisations');
+        } catch (err) {
+            console.error(err);
+        }
+    };
     const fetchUserRoleCount = async () => {
         try {
             const response = await apiClient(`${API_BASE_URL}/api/users/me`);
@@ -190,16 +195,18 @@ const handleSwitchOrganisation = async () => {
     //     navigate('/login');
     // };
     const handleLogout = () => {
-    authService.logout();
-    sessionStorage.removeItem('hasSeenIntro');
-    window.location.href = "/login";   // 🔴 HARD RESET
-};  
-const hidesidebar = location.pathname.startsWith('/organisations');
+        authService.logout();
+        sessionStorage.removeItem('hasSeenIntro');
+        window.location.href = "/login";   // 🔴 HARD RESET
+    };
+    const hidesidebar = location.pathname.startsWith('/organisations') ||
+        location.pathname.startsWith('/sops/create') ||
+        location.pathname.startsWith('/sops/edit');
     return (
         <div className="app-layout">
             {/* <Sidebar /> */}
-            {!hidesidebar  && <Sidebar />}
-            <div className={`app-content ${isTempSession ? 'no-sidebar' : ''}`}>
+            {!hidesidebar && <Sidebar />}
+            <div className={`app-content ${(isTempSession || hidesidebar) ? 'no-sidebar' : ''}`}>
                 <header className="app-header">
                     <div className="breadcrumb">
                         {getBreadcrumbs().map((crumb, index) => (
@@ -214,6 +221,20 @@ const hidesidebar = location.pathname.startsWith('/organisations');
                         {/* <button className="theme-toggle" onClick={toggleDarkMode}>
                             {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
                         </button> */}
+                        {!location.pathname.startsWith('/organisations') && user?.organisation_name && (
+                            <div className="organisation-name-pill">
+                                <span>{user.organisation_name}</span>
+                                {user?.is_superuser && (
+                                    <button
+                                        onClick={handleSwitchOrganisation}
+                                        className="switch-org-btn"
+                                        title="Switch Organisation"
+                                    >
+                                        <Edit2 size={13} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
                         {user?.role && (
                             <div className="role-display">
                                 <Shield size={16} />
@@ -231,29 +252,12 @@ const hidesidebar = location.pathname.startsWith('/organisations');
                                 )}
                             </div>
                         )}
-                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-  <div
-    className="organisation-name"
-    style={{ fontSize: "0.75em", color: "#666" }}
-  >
-    <span>{user?.organisation_name} 
-    {user?.is_superuser && user?.organisation_name && (
-    <button
-      onClick={handleSwitchOrganisation}
-      style={{
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        padding: 0,
-        color: "#3b82f6"
-      }}
-    >
-      <Edit2 size={14} />
-    </button>
-  )}
-    </span>
-  </div>
-</div>
+                        {!user?.role && payload?.superadmin && (
+                            <div className="role-display">
+                                <Shield size={16} />
+                                <span>Super Admin</span>
+                            </div>
+                        )}
                         <div className="user-details" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
                             <div className="user-avatar" style={user?.profile_image_url ? { backgroundImage: `url("${user.profile_image_url}")`, backgroundSize: '130%', backgroundPosition: 'center' } : {}}>
                                 {!user?.profile_image_url && user?.organisation_name && (user?.first_name ? user.first_name.charAt(0).toUpperCase() : <User size={16} />)}

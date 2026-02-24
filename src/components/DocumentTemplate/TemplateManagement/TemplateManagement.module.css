@@ -78,8 +78,9 @@
 .editButton,
 .activateButton,
 .deactivateButton {
-    padding: 6px;
-    border: none;
+    width: 28px;
+    height: 28px;
+    border: 1px solid transparent;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
@@ -99,23 +100,25 @@
 }
 
 .activateButton {
-    background: #dcfce7;
-    color: #15803d;
+    color: #431407;
+    background-color: #fff7ed;
+    border-color: rgb(254, 215, 170);
 }
 
 .activateButton:hover {
-    background: #bbf7d0;
-    color: #16a34a;
+    background-color: rgb(254, 215, 170);
+    border-color: #fdba74;
 }
 
 .deactivateButton {
-    background: #fee2e2;
     color: #b91c1c;
+    background-color: #fee2e2;
+    border-color: #fecaca;
 }
 
 .deactivateButton:hover {
-    background: #fecaca;
-    color: #b91c1c;
+    background-color: #fecaca;
+    color: #7f1d1d;
 }
 
 /* Dark mode */
@@ -151,18 +154,20 @@
 }
 
 :global(.dark) .activateButton {
-    background: #14532d;
-    color: #4ade80;
+    color: #fdba74;
+    background-color: #431407;
+    border-color: #9a3412;
 }
 
 :global(.dark) .activateButton:hover {
-    background: #166534;
-    color: #22c55e;
+    background-color: #9a3412;
+    color: #ffedd5;
 }
 
 :global(.dark) .deactivateButton {
-    background: #7f1d1d;
     color: #f87171;
+    background-color: #450a0a;
+    border-color: #7f1d1d;
 }
 
 :global(.dark) .deactivateButton:hover {

@@ -137,8 +137,9 @@
 /* Global Action Button Styles */
 :global(.action-btn) {
     background: none;
-    border: none;
-    padding: 6px;
+    border: 1px solid transparent;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     cursor: pointer;
     display: inline-flex;
@@ -159,19 +160,23 @@
 :global(.action-btn.deactivate) {
     color: #b91c1c;
     background-color: #fee2e2;
+    border-color: #fecaca;
 }
 
 :global(.action-btn.deactivate:hover) {
     background-color: #fecaca;
+    color: #7f1d1d;
 }
 
 :global(.action-btn.activate) {
-    color: #15803d;
-    background-color: #dcfce7;
+    color: #431407;
+    background-color: #fff7ed;
+    border-color: rgb(254, 215, 170);
 }
 
 :global(.action-btn.activate:hover) {
-    background-color: #bbf7d0;
+    background-color: rgb(254, 215, 170);
+    border-color: #fdba74;
 }
 
 :global(.action-btn.loading) {

@@ -12,35 +12,43 @@
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 15px;
 }
+
 .statusButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  color: white; /* Text/Icon color */
-  transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 /* Red when active (to stop/deactivate) */
 .active {
-  background-color: #ff4d4f;
+    color: #b91c1c;
+    background-color: #fee2e2;
+    border-color: #fecaca;
 }
 
 .active:hover {
-  background-color: #cf1322;
+    background-color: #fecaca;
+    color: #7f1d1d;
 }
 
-/* Green when inactive (to start/activate) */
+/* Orange when inactive (to start/activate) - matching the header theme */
 .inactive {
-  background-color: #52c41a;
+    color: #431407;
+    background-color: #fff7ed;
+    border-color: rgb(254, 215, 170);
 }
 
 .inactive:hover {
-  background-color: #389e0d;
+    background-color: rgb(254, 215, 170);
+    border-color: #fdba74;
 }
+
 .statCard {
     background: white;
     border-radius: 12px;
