@@ -28,6 +28,7 @@ import clientService from "../../../services/client.service";
 import documentTypeService from "../../../services/documentType.service";
 import ConfirmModal from "../../Common/ConfirmModal";
 import CommonDropdown from "../../Common/CommonDropdown";
+import { Tooltip } from "../../Common/Tooltip";
 import ShareDocumentsModal from "../ShareDocumentsModal/ShareDocumentsModal";
 import PrintModal from "./PrintModal";
 import EditMetadataModal from "./EditMetadataModal";
@@ -315,10 +316,11 @@ const shareMode: "client" | "internal" =
         </div>
 
         <div className={styles.headerActions}>
-          <span
-            className="tooltip-wrapper tooltip-bottom"
-            data-tooltip={isReanalyzing ? "Re-analyzing..." : "Re-analyze"}
+          <Tooltip 
+            content={isReanalyzing ? "Re-analyzing..." : "Re-analyze"}
+            preferredPosition="left"
           >
+            <span style={{ display: 'inline-block' }}>
             <button
               className={`${styles.actionButton} ${isReanalyzing ? "disabled" : ""}`}
               onClick={handleReanalyze}
@@ -329,24 +331,30 @@ const shareMode: "client" | "internal" =
                 className={isReanalyzing ? styles.animateSpin : ""}
               />
             </button>
-          </span>
-          {/* <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Print">
+            </span>
+          </Tooltip>
+          {/* <Tooltip content="Print" preferredPosition="left">
+            <span style={{ display: 'inline-block' }}>
             <button
               className={styles.actionButton}
               onClick={() => setShowPrintModal(true)}
             >
               <Printer size={16} />
             </button>
-          </span> */}
-          <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Share">
+            </span>
+          </Tooltip> */}
+          <Tooltip content="Share" preferredPosition="left">
+            <span style={{ display: 'inline-block' }}>
             <button
               className={styles.actionButton}
               onClick={() => setShowShareModal(true)}
             >
               <Share size={16} />
             </button>
-          </span>
-          <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Download">
+            </span>
+          </Tooltip>
+          <Tooltip content="Download" preferredPosition="left">
+            <span style={{ display: 'inline-block' }}>
             <button
               className={styles.actionButton}
               onClick={async () => {
@@ -369,9 +377,11 @@ const shareMode: "client" | "internal" =
             >
               <Download size={16} />
             </button>
-          </span>
+            </span>
+          </Tooltip>
           {document.analysis_report_s3_key && (
-            <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Download Report">
+            <Tooltip content="Download Report" preferredPosition="left">
+              <span style={{ display: 'inline-block' }}>
               <button
                 className={`${styles.actionButton} ${styles.primaryAction}`}
                 onClick={async () => {
@@ -397,33 +407,40 @@ const shareMode: "client" | "internal" =
               >
                 <FileSpreadsheet size={16} />
               </button>
-            </span>
+              </span>
+            </Tooltip>
           )}
           {!document.is_archived && (
-            <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Archive">
+            <Tooltip content="Archive" preferredPosition="left">
+              <span style={{ display: 'inline-block' }}>
               <button className={styles.actionButton} onClick={handleArchive}>
                 <Archive size={16} />
               </button>
-            </span>
+              </span>
+            </Tooltip>
           )}
           {document.is_archived && (
-            <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Unarchive">
+            <Tooltip content="Unarchive" preferredPosition="left">
+              <span style={{ display: 'inline-block' }}>
               <button
                 className={`${styles.actionButton} ${styles.primaryAction}`}
                 onClick={handleUnarchive}
               >
                 <ArchiveRestore size={16} />
               </button>
-            </span>
+              </span>
+            </Tooltip>
           )}
-          <span className="tooltip-wrapper tooltip-bottom" data-tooltip="Delete">
+          <Tooltip content="Delete" preferredPosition="left">
+            <span style={{ display: 'inline-block' }}>
             <button
               className={`${styles.actionButton} ${styles.deleteAction}`}
               onClick={() => setShowDeleteModal(true)}
             >
               <Trash2 size={16} />
             </button>
-          </span>
+            </span>
+          </Tooltip>
         </div>
       </div>
 
@@ -878,7 +895,7 @@ const ExtractedReportCard: React.FC<{ documentId: string }> = ({
       if (items.length === 0) return null;
 
       return (
-        <div key={idx} className={styles.typeItem} style={{ marginBottom: "16px" }}>
+        <div key={idx} className={styles.typeItem} style={{ marginLeft: "16px" }}>
           <div className={styles.typeHeader}>
             <span className={styles.typeBadge} style={{ background: "var(--color-primary-light)", color: "var(--color-primary-dark)", border: "1px solid var(--color-primary)" }}>
               {finding.document_type}

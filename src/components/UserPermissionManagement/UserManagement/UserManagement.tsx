@@ -7,6 +7,7 @@ import Loading from '../../Common/Loading';
 import UserModal from './UserModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import ConfirmModal from '../../Common/ConfirmModal';
+import { Tooltip } from '../../Common/Tooltip';
 import Toast, { ToastType } from '../../Common/Toast';
 import userService, { User, UserStats } from '../../../services/user.service';
 import authService from '../../../services/auth.service';
@@ -714,7 +715,8 @@ const UserManagement: React.FC = () => {
             header: 'Actions',
             render: (_: any, row: User) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <span className="tooltip-wrapper" data-tooltip={row.is_superuser ? 'Cannot edit superuser' : 'Edit'}>
+                    <Tooltip content={row.is_superuser ? 'Cannot edit superuser' : 'Edit'} preferredPosition="left">
+                        <span style={{ display: 'inline-block' }}>
                         <button
                             className={styles.actionBtn}
                             onClick={() => !loadingEditId && handleEdit(row)}
@@ -727,8 +729,10 @@ const UserManagement: React.FC = () => {
                         >
                             {loadingEditId === row.id ? <Loader2 size={14} className={styles.animateSpin} /> : <Edit2 size={14} />}
                         </button>
-                    </span>
-                    <span className="tooltip-wrapper" data-tooltip={row.is_superuser ? 'Cannot change password' : 'Change Password'}>
+                        </span>
+                    </Tooltip>
+                    <Tooltip content={row.is_superuser ? 'Cannot change password' : 'Change Password'} preferredPosition="left">
+                        <span style={{ display: 'inline-block' }}>
                         <button
                             className={styles.actionBtn}
                             onClick={() => handleChangePassword(row)}
@@ -736,8 +740,10 @@ const UserManagement: React.FC = () => {
                         >
                             <Key size={14} />
                         </button>
-                    </span>
-                    <span className="tooltip-wrapper" data-tooltip={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
+                        </span>
+                    </Tooltip>
+                    <Tooltip content={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'} preferredPosition="left">
+                        <span style={{ display: 'inline-block' }}>
                         <button
                             className={`${styles.actionBtn} ${row.statusCode === 'ACTIVE' ? styles.deactivate : styles.activate}`}
                             onClick={() => handleToggleStatus(row)}
@@ -745,7 +751,8 @@ const UserManagement: React.FC = () => {
                         >
                             {row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />}
                         </button>
-                    </span>
+                        </span>
+                    </Tooltip>
                 </div>
             ),
             width: '120px'

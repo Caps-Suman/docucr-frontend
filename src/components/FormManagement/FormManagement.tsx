@@ -5,6 +5,7 @@ import Table from '../Table/Table';
 import Loading from '../Common/Loading';
 import formService, { Form, FormStats } from '../../services/form.service';
 import CommonPagination from '../Common/CommonPagination';
+import { Tooltip } from "../Common/Tooltip";
 import ConfirmModal from '../Common/ConfirmModal';
 import Toast from '../Common/Toast';
 import styles from './FormManagement.module.css';

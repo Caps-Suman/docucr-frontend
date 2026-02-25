@@ -121,6 +121,10 @@
     transition: all 0.2s;
 }
 
+.organisation-name-pill.no-edit-btn {
+    padding-right: 10px;
+}
+
 .organisation-name-pill:hover {
     border-color: #fdba74;
     background-color: #ffedd5;
