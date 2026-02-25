@@ -29,6 +29,7 @@ import { BillingGuideline, SOP } from "../../../types/sop";
 import ConfirmModal from "../../Common/ConfirmModal";
 import Toast, { ToastType } from "../../Common/Toast";
 import CommonDropdown from "../../Common/CommonDropdown";
+import { Tooltip } from "../../Common/Tooltip";
 import CommonDatePicker from "../../Common/CommonDatePicker";
 import { usePermission } from "../../../context/PermissionContext";
 import ClientSelectionModal from "./ClientSelectionModal";
@@ -549,32 +550,53 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
 
   return (
     <div style={{ display: "flex", gap: "8px" }}>
-      <button
-        className={styles.viewButton}
-        onClick={() => handleViewSOP(row)}
-      >
-        <Eye size={14} />
-      </button>
+      <Tooltip content="View SOP" preferredPosition="left">
+        <span style={{ display: 'inline-block' }}>
+        <button
+          className={styles.viewButton}
+          onClick={() => handleViewSOP(row)}
+        >
+          <Eye size={14} />
+        </button>
+        </span>
+      </Tooltip>
 
-      <button
-        className={styles.downloadButton}
-        onClick={() => handleDownloadPDF(row)}
-      >
-        <Download size={14} />
-      </button>
+      <Tooltip content="Download PDF" preferredPosition="left">
+        <span style={{ display: 'inline-block' }}>
+        <button
+          className={styles.downloadButton}
+          onClick={() => handleDownloadPDF(row)}
+        >
+          {downloadingId === row.id ? (
+            <Loader2 size={14} className={styles.animateSpin} />
+          ) : (
+            <Download size={14} />
+          )}
+        </button>
+        </span>
+      </Tooltip>
 
-      <button
-        className={`${styles.editButton} }`}
-        onClick={() => navigate(`/sops/edit/${row.id}`)}
-      >
-        <Edit size={14} />
-      </button>
-<button
-  className={`${styles.statusButton} ${isActive ? styles.active : styles.inactive}`}
-  onClick={() => handleToggleStatus(row.id, row.statusId)}
->
-  {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
-</button>
+      <Tooltip content="Edit" preferredPosition="left">
+        <span style={{ display: 'inline-block' }}>
+        <button
+          className={`${styles.editButton} }`}
+          onClick={() => navigate(`/sops/edit/${row.id}`)}
+        >
+          <Edit size={14} />
+        </button>
+        </span>
+      </Tooltip>
+
+      <Tooltip content={isActive ? "Deactivate" : "Activate"} preferredPosition="left">
+        <span style={{ display: 'inline-block' }}>
+        <button
+          className={`${styles.statusButton} ${isActive ? styles.active : styles.inactive}`}
+          onClick={() => handleToggleStatus(row.id, row.statusId)}
+        >
+          {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+        </button>
+        </span>
+      </Tooltip>
     </div>
   );
 }

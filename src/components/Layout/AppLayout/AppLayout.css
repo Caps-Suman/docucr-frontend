@@ -113,12 +113,16 @@
     font-weight: 500;
     background-color: #fff7ed;
     /* Lightest orange background for pill */
-    padding: 6px 12px 6px 10px;
+    padding: 6px 4px 6px 10px;
     border-radius: 14px;
     border: 1px solid rgb(254, 215, 170);
     /* The requested rgb color */
     height: 32px;
     transition: all 0.2s;
+}
+
+.organisation-name-pill.no-edit-btn {
+    padding-right: 10px;
 }
 
 .organisation-name-pill:hover {

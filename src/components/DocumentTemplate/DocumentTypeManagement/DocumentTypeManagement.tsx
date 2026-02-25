@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Files, CheckCircle, XCircle } from 'lucide-react';
 import Table from '../../Table/Table';
 import DocumentTypeModal from './DocumentTypeModal';
+import { Tooltip } from "../../Common/Tooltip";
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
 import Loading from '../../Common/Loading';

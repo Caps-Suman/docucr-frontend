@@ -225,7 +225,7 @@ const AppLayout: React.FC = () => {
                             {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
                         </button> */}
                         {!location.pathname.startsWith('/organisations') && user?.organisation_name && (
-                            <div className="organisation-name-pill">
+                            <div className={`organisation-name-pill ${!user?.is_superuser ? 'no-edit-btn' : ''}`}>
                                 <span>{user.organisation_name}</span>
                                 {user?.is_superuser && (
                                     <button
@@ -263,7 +263,7 @@ const AppLayout: React.FC = () => {
                         )}
                         <div className="user-details" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
                             <div className="user-avatar" style={user?.profile_image_url ? { backgroundImage: `url("${user.profile_image_url}")`, backgroundSize: '130%', backgroundPosition: 'center' } : {}}>
-                                {!user?.profile_image_url && user?.organisation_name && (user?.first_name ? user.first_name.charAt(0).toUpperCase() : <User size={16} />)}
+                                {!user?.profile_image_url && (user?.first_name ? user.first_name.charAt(0).toUpperCase() : <User size={16} />)}
                             </div>
                             <span>{user?.first_name || user?.email || 'User'}</span>
                         </div>

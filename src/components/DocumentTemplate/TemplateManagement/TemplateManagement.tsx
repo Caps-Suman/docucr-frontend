@@ -3,6 +3,7 @@ import { Plus, Edit, Power, PowerOff, Layout } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Table from '../../Table/Table';
 import TemplateModal from './TemplateModal';
+import { Tooltip } from "../../Common/Tooltip";
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
 import Loading from '../../Common/Loading';

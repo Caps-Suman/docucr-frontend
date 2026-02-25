@@ -9,6 +9,7 @@ import { uploadStore } from "../../../store/uploadStore";
 import CommonDropdown from "../../Common/CommonDropdown";
 import CommonDatePicker from "../../Common/CommonDatePicker";
 import Toast, { ToastType } from "../../Common/Toast";
+import { Tooltip } from "../../Common/Tooltip";
 import styles from "./DocumentUpload.module.css";
 import authService from "../../../services/auth.service";
 
@@ -571,12 +572,14 @@ const DocumentUpload: React.FC = () => {
                 />
                 <span style={{ fontWeight: 500 }}>Enable AI Analysis</span>
               </label>
-              <span
-                className="tooltip-wrapper tooltip-bottom"
-                data-tooltip="AI will automatically identify document types, extract data using all active templates (handling mixed documents), and generate a detailed Excel analysis report with confidence scores."
+              <Tooltip 
+                content="AI will automatically identify document types, extract data using all active templates (handling mixed documents), and generate a detailed Excel analysis report with confidence scores."
+                preferredPosition="left"
               >
+                <span style={{ display: 'inline-block' }}>
                 <Info size={16} style={{ color: "#64748b", cursor: "help" }} />
-              </span>
+                </span>
+              </Tooltip>
             </div>
 
             <button

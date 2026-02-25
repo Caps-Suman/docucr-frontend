@@ -24,6 +24,7 @@ import { createPortal } from "react-dom";
 import Table from "../Table/Table";
 import CommonPagination from "../Common/CommonPagination";
 import Loading from "../Common/Loading";
+import { Tooltip } from "../Common/Tooltip";
 import ConfirmModal from "../Common/ConfirmModal";
 import Toast, { ToastType } from "../Common/Toast";
 import CommonDropdown from "../Common/CommonDropdown";

@@ -25,6 +25,7 @@ import PublicShare from './components/PublicShare/PublicShare';
 import ComingSoon from './components/Common/ComingSoon';
 import { FileSearch } from 'lucide-react';
 import ActivityLogPage from './components/ActivityLog/ActivityLog';
+import ProtectedRoute from './components/Common/ProtectedRoute';
 import authService from './services/auth.service';
 import { jwtDecode } from "jwt-decode";
 
@@ -77,44 +78,62 @@ const payload: any = token ? jwtDecode(token) : null;
         <Route path="/dashboard" element={<AppLayout />}>
           <Route index element={<Home />} />
         </Route>
-        <Route path="/users-permissions" element={<AppLayout />}>
-          <Route index element={<UserPermissionManagement />} />
+        <Route path="/users-permissions" element={<ProtectedRoute moduleRoute="/users-permissions" />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<UserPermissionManagement />} />
+          </Route>
         </Route>
-        <Route path="/documents" element={<AppLayout />}>
-          <Route index element={<DocumentList />} />
-          <Route path="upload" element={<DocumentUpload />} />
-          <Route path=":id" element={<DocumentDetail />} />
+        <Route path="/documents" element={<ProtectedRoute moduleRoute="/documents" />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<DocumentList />} />
+            <Route path="upload" element={<DocumentUpload />} />
+            <Route path=":id" element={<DocumentDetail />} />
+          </Route>
         </Route>
-        <Route path="/templates" element={<AppLayout />}>
-          <Route index element={<DocumentTemplate />} />
-          <Route path="create" element={<CreateTemplate />} />
-          <Route path="edit/:id" element={<CreateTemplate />} />
+        <Route path="/templates" element={<ProtectedRoute moduleRoute="/templates" />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<DocumentTemplate />} />
+            <Route path="create" element={<CreateTemplate />} />
+            <Route path="edit/:id" element={<CreateTemplate />} />
+          </Route>
         </Route>
-        <Route path="/sops" element={<AppLayout />}>
-          <Route index element={<SOPListing />} />
-          <Route path="create" element={<CreateSOP />} />
-          <Route path="edit/:id" element={<CreateSOP />} />
+        <Route path="/sops" element={<ProtectedRoute moduleRoute="/sops" />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<SOPListing />} />
+            <Route path="create" element={<CreateSOP />} />
+            <Route path="edit/:id" element={<CreateSOP />} />
+          </Route>
         </Route>
-        <Route path="/clients" element={<AppLayout />}>
-          <Route index element={<ClientManagement />} />
-          <Route path=":id" element={<ClientDetail />} />
+        <Route path="/clients" element={<ProtectedRoute moduleRoute="/clients" />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<ClientManagement />} />
+            <Route path=":id" element={<ClientDetail />} />
+          </Route>
         </Route>
-        <Route path="/organisations" element={<AppLayout />}>
-          <Route index element={<OrganisationManagement />} />
+        <Route path="/organisations" element={<ProtectedRoute moduleRoute="/organisations" />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<OrganisationManagement />} />
+          </Route>
         </Route>
-        <Route path="/settings" element={<AppLayout />}>
-          <Route index element={<Settings />} />
+        <Route path="/settings" element={<ProtectedRoute moduleRoute="/settings" />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<Settings />} />
+          </Route>
         </Route>
         <Route path="/profile" element={<AppLayout />}>
           <Route index element={<Profile />} />
         </Route>
-        <Route path="/forms" element={<AppLayout />}>
-          <Route index element={<FormManagement />} />
-          <Route path="create" element={<FormBuilder />} />
-          <Route path=":id" element={<FormBuilder />} />
+        <Route path="/forms" element={<ProtectedRoute moduleRoute="/forms" />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<FormManagement />} />
+            <Route path="create" element={<FormBuilder />} />
+            <Route path=":id" element={<FormBuilder />} />
+          </Route>
         </Route>
-        <Route path="/activity-logs" element={<AppLayout />}>
-          <Route index element={<ActivityLogPage />} />
+        <Route path="/activity-logs" element={<ProtectedRoute moduleRoute="/activity-logs" />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<ActivityLogPage />} />
+          </Route>
         </Route>
         </>
         )}

@@ -5,6 +5,7 @@ import CommonPagination from '../Common/CommonPagination';
 import Loading from '../Common/Loading';
 import OrganisationModal from './OrganisationModal';
 import ChangePasswordModal from '../UserPermissionManagement/UserManagement/ChangePasswordModal';
+import { Tooltip } from "../Common/Tooltip";
 import ConfirmModal from '../Common/ConfirmModal';
 import Toast, { ToastType } from '../Common/Toast';
 import organisationService, { Organisation, OrganisationStats } from '../../services/organisation.service';

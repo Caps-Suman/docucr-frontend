@@ -6,6 +6,7 @@ import CommonPagination from '../../Common/CommonPagination';
 import Loading from '../../Common/Loading';
 import RoleModal from './RoleModal';
 import RoleUsersModal from './RoleUsersModal';
+import { Tooltip } from "../../Common/Tooltip";
 import ConfirmModal from '../../Common/ConfirmModal';
 import Toast, { ToastType } from '../../Common/Toast';
 import roleService, { Role, RoleStats } from '../../../services/role.service';
