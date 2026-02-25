@@ -90,13 +90,12 @@
 }
 
 .editButton {
-    background: #f1f5f9;
-    color: #64748b;
+    color: #3b82f6;
+    background-color: #eff6ff;
 }
 
 .editButton:hover {
-    background: #e2e8f0;
-    color: #334155;
+    background-color: #dbeafe;
 }
 
 .activateButton {
@@ -144,13 +143,12 @@
 }
 
 :global(.dark) .editButton {
-    background: #374151;
-    color: #d1d5db;
+    color: #60a5fa;
+    background-color: #1e3a8a;
 }
 
 :global(.dark) .editButton:hover {
-    background: #4b5563;
-    color: #f9fafb;
+    background-color: #1e40af;
 }
 
 :global(.dark) .activateButton {

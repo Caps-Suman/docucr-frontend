@@ -351,24 +351,24 @@ const RoleManagement: React.FC = () => {
             header: 'Actions',
             render: (_: any, row: Role) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <span className="tooltip-wrapper" data-tooltip={row.can_edit ? "Edit" : "Cannot edit system role"}>
+                    <Tooltip content={row.can_edit ? "Edit" : "Cannot edit system role"} preferredPosition="left">
                         <button
-                            className="action-btn edit"
+                            className={`${styles.actionBtn} ${styles.edit}`}
                             onClick={() => handleEdit(row)}
                             style={{ opacity: row.can_edit ? 1 : 0.5, cursor: row.can_edit ? 'pointer' : 'not-allowed' }}
                         >
                             <Edit2 size={14} />
                         </button>
-                    </span>
-                    <span className="tooltip-wrapper" data-tooltip={row.can_edit ? (row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate') : "Cannot modify system role"}>
+                    </Tooltip>
+                    <Tooltip content={row.can_edit ? (row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate') : "Cannot modify system role"} preferredPosition="left">
                         <button
-                            className={`action-btn ${row.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'}`}
+                            className={`${styles.actionBtn} ${row.statusCode === 'ACTIVE' ? styles.deactivate : styles.activate}`}
                             onClick={() => handleToggleStatus(row)}
                             style={{ opacity: row.can_edit ? 1 : 0.5, cursor: row.can_edit ? 'pointer' : 'not-allowed' }}
                         >
                             {row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />}
                         </button>
-                    </span>
+                    </Tooltip>
                 </div>
             )
         }

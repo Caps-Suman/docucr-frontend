@@ -166,7 +166,7 @@ useEffect(() => {
         if (log.details?.sub_action) {
             const actionText = log.details.sub_action === 'ARCHIVE' ? 'Archived' :
                 log.details.sub_action === 'UNARCHIVE' ? 'Unarchived' :
-                    log.details.sub_action;
+                    log.details.sub_action.replace(/_/g, ' ');
             content = (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className={styles.subActionLabel}>{actionText}</span>
@@ -192,7 +192,7 @@ useEffect(() => {
             } else if (log.details.url) {
                 content = <span className={styles.detailText} title={log.details.url}>{log.details.url}</span>;
             } else if (log.details.updated_fields && Array.isArray(log.details.updated_fields)) {
-                content = <span className={styles.detailText} title={log.details.updated_fields.join(', ')}>Updated: {log.details.updated_fields.join(', ')}</span>;
+                content = <span className={styles.detailText} title={log.details.updated_fields.join(', ')}>Updated: {log.details.updated_fields.join(', ').replace(/_/g, ' ')}</span>;
             }
         }
 
@@ -206,7 +206,7 @@ useEffect(() => {
                 <div className={styles.diffContainer}>
                     {displayChanges.map(([field, change]: [string, any], index) => (
                         <div key={field} className={styles.diffLine}>
-                            <span className={styles.diffField}>{field}:</span>
+                            <span className={styles.diffField}>{field.replace(/_/g, ' ')}:</span>
                             <span className={styles.diffFrom}>{String(change.from || 'None')}</span>
                             <span className={styles.diffArrow}>→</span>
                             <span className={styles.diffTo}>{String(change.to || 'None')}</span>
@@ -272,17 +272,17 @@ useEffect(() => {
             header: 'Action',
             render: (value: string) => (
                 <span className={`${styles.badge} ${getBadgeClass(value)}`}>
-                    {value}
+                    {value ? value.replace(/_/g, ' ') : ''}
                 </span>
             ),
-            width: '100px'
+            width: '140px'
         },
         {
             key: 'entity_type',
             header: 'Entity',
             render: (value: string) => (
                 <div className={styles.entityCell}>
-                    <span className={styles.entityType}>{value}</span>
+                    <span className={styles.entityType}>{value ? value.replace(/_/g, ' ') : ''}</span>
                 </div>
             ),
             width: '120px'

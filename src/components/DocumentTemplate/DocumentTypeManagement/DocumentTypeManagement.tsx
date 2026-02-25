@@ -212,32 +212,32 @@ const DocumentTypeManagement: React.FC = () => {
             width: '120px',
             render: (_: any, row: DocumentType) => (
                 <div className={styles.actions}>
-                    <span className="tooltip-wrapper" data-tooltip="Edit">
+                    <Tooltip content="Edit">
                         <button
                             className={styles.editButton}
                             onClick={() => handleEdit(row)}
                         >
                             <Edit size={16} />
                         </button>
-                    </span>
+                    </Tooltip>
                     {row.statusCode === 'ACTIVE' ? (
-                        <span className="tooltip-wrapper" data-tooltip="Deactivate">
+                        <Tooltip content="Deactivate" preferredPosition="left">
                             <button
                                 className={styles.deactivateButton}
                                 onClick={() => handleDeactivate(row)}
                             >
                                 <XCircle size={16} />
                             </button>
-                        </span>
+                        </Tooltip>
                     ) : (
-                        <span className="tooltip-wrapper" data-tooltip="Activate">
+                        <Tooltip content="Activate" preferredPosition="left">
                             <button
                                 className={styles.activateButton}
                                 onClick={() => handleActivate(row)}
                             >
                                 <CheckCircle size={16} />
                             </button>
-                        </span>
+                        </Tooltip>
                     )}
                     {/* <span className="tooltip-wrapper" data-tooltip="Delete">
                         <button

@@ -308,3 +308,78 @@
     background-color: #374151;
     color: #6b7280;
 }
+
+.actionBtn {
+    background: none;
+    border: 1px solid transparent;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.actionBtn.edit {
+    color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.actionBtn.edit:hover:not(:disabled) {
+    background-color: #dbeafe;
+}
+
+.actionBtn.deactivate {
+    color: #b91c1c;
+    background-color: #fee2e2;
+    border-color: #fecaca;
+}
+
+.actionBtn.deactivate:hover:not(:disabled) {
+    background-color: #fecaca;
+    color: #7f1d1d;
+}
+
+.actionBtn.activate {
+    color: #431407;
+    background-color: #fff7ed;
+    border-color: rgb(254, 215, 170);
+}
+
+.actionBtn.activate:hover:not(:disabled) {
+    background-color: rgb(254, 215, 170);
+    border-color: #fdba74;
+}
+
+/* Dark mode styles */
+:global(.dark) .actionBtn.edit {
+    color: #60a5fa;
+    background-color: #1e3a8a;
+}
+
+:global(.dark) .actionBtn.edit:hover:not(:disabled) {
+    background-color: #1e40af;
+}
+
+:global(.dark) .actionBtn.deactivate {
+    color: #f87171;
+    background-color: #450a0a;
+    border-color: #7f1d1d;
+}
+
+:global(.dark) .actionBtn.deactivate:hover:not(:disabled) {
+    background-color: #991b1b;
+}
+
+:global(.dark) .actionBtn.activate {
+    color: #fdba74;
+    background-color: #431407;
+    border-color: #9a3412;
+}
+
+:global(.dark) .actionBtn.activate:hover:not(:disabled) {
+    background-color: #9a3412;
+    color: #ffedd5;
+}

@@ -155,6 +155,15 @@
     background-color: #dbeafe;
 }
 
+.actionBtn.key {
+    color: #f59e0b;
+    background-color: #fef3c7;
+}
+
+.actionBtn.key:hover {
+    background-color: #fde68a;
+}
+
 .actionBtn.deactivate {
     color: #b91c1c;
     background-color: #fee2e2;
@@ -215,6 +224,15 @@
 
 :global(.dark) .actionBtn.edit:hover {
     background-color: #1e40af;
+}
+
+:global(.dark) .actionBtn.key {
+    color: #fbbf24;
+    background-color: #78350f;
+}
+
+:global(.dark) .actionBtn.key:hover {
+    background-color: #92400e;
 }
 
 :global(.dark) .actionBtn.deactivate {
