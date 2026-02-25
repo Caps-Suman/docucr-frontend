@@ -225,41 +225,50 @@ const AppLayout: React.FC = () => {
                             {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
                         </button> */}
                         {!location.pathname.startsWith('/organisations') && user?.organisation_name && (
-                            <div className={`organisation-name-pill ${!user?.is_superuser ? 'no-edit-btn' : ''}`}>
-                                <span>{user.organisation_name}</span>
-                                {user?.is_superuser && (
-                                    <button
-                                        onClick={handleSwitchOrganisation}
-                                        className="switch-org-btn"
-                                        title="Switch Organisation"
-                                    >
-                                        <Edit2 size={13} />
-                                    </button>
-                                )}
-                            </div>
+                            <>
+                                <div className={`organisation-name-pill ${!user?.is_superuser ? 'no-edit-btn' : ''}`}>
+                                    <span>{user.organisation_name}</span>
+                                    {user?.is_superuser && (
+                                        <button
+                                            onClick={handleSwitchOrganisation}
+                                            className="switch-org-btn"
+                                            title="Switch Organisation"
+                                        >
+                                            <Edit2 size={13} />
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="h-divider" />
+                            </>
                         )}
                         {user?.role && (
-                            <div className="role-display">
-                                <Shield size={16} />
-                                <span>{formatRoleName(user.role.name)}</span>
-                                {userRoleCount > 1 && (
-                                    <button
-                                        className="role-edit-btn"
-                                        onClick={() => {
-                                            navigate('/login', { state: { showRoleSelection: true } });
-                                        }}
-                                        title="Change role"
-                                    >
-                                        <Edit2 size={14} />
-                                    </button>
-                                )}
-                            </div>
+                            <>
+                                <div className="role-display">
+                                    <Shield size={16} />
+                                    <span>{formatRoleName(user.role.name)}</span>
+                                    {userRoleCount > 1 && (
+                                        <button
+                                            className="role-edit-btn"
+                                            onClick={() => {
+                                                navigate('/login', { state: { showRoleSelection: true } });
+                                            }}
+                                            title="Change role"
+                                        >
+                                            <Edit2 size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="h-divider" />
+                            </>
                         )}
                         {!user?.role && payload?.superadmin && (
-                            <div className="role-display">
-                                <Shield size={16} />
-                                <span>Super Admin</span>
-                            </div>
+                            <>
+                                <div className="role-display">
+                                    <Shield size={16} />
+                                    <span>Super Admin</span>
+                                </div>
+                                <div className="h-divider" />
+                            </>
                         )}
                         <div className="user-details" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
                             <div className="user-avatar" style={user?.profile_image_url ? { backgroundImage: `url("${user.profile_image_url}")`, backgroundSize: '130%', backgroundPosition: 'center' } : {}}>
@@ -267,6 +276,7 @@ const AppLayout: React.FC = () => {
                             </div>
                             <span>{user?.first_name || user?.email || 'User'}</span>
                         </div>
+                        <div className="h-divider" />
                         <div className="logout-container" ref={logoutRef}>
                             <button
                                 className="logout-btn"

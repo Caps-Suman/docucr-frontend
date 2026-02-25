@@ -203,7 +203,9 @@ const Login: React.FC = () => {
             authService.saveRefreshToken(data.refresh_token);
           }
           authService.saveUser(data.user);
-          navigate('/dashboard');
+          const isSuperAdmin = data.user.is_superuser || data.user.role?.name === 'SUPER_ADMIN';
+          const destination = isSuperAdmin ? '/organisations' : '/dashboard';
+          navigate(destination);
         }
       }
     } catch (error: any) {
@@ -240,7 +242,9 @@ const Login: React.FC = () => {
           authService.saveRefreshToken(data.refresh_token);
         }
         authService.saveUser(data.user);
-        navigate('/dashboard');
+        const isSuperAdmin = data.user.is_superuser || data.user.role?.name === 'SUPER_ADMIN';
+        const destination = isSuperAdmin ? '/organisations' : '/dashboard';
+        navigate(destination);
       }
     } catch (error: any) {
       setErrors({ otp: error.message || 'Invalid 2FA code' });
@@ -372,7 +376,9 @@ const Login: React.FC = () => {
         authService.saveRefreshToken(data.refresh_token);
       }
       authService.saveUser(data.user);
-      navigate('/dashboard');
+      const isSuperAdmin = data.user.is_superuser || data.user.role?.name === 'SUPER_ADMIN';
+      const destination = isSuperAdmin ? '/organisations' : '/dashboard';
+      navigate(destination);
     } catch (error: any) {
       setErrors({ submit: error.message || 'Failed to select role' });
     } finally {
