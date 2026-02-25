@@ -44,9 +44,10 @@ import Loading from "../../Common/Loading";
 
 const CreateSOP: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: sopId } = useParams();
+  const id = sopId;
   const isEditMode = !!id;
-
+  const [initialProviderIds, setInitialProviderIds] = useState<string[]>([]);
   // --- State ---
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
@@ -186,6 +187,7 @@ const CreateSOP: React.FC = () => {
   const handleResetClick = () => {
     setIsResetModalOpen(true);
   };
+  const isNavLocked = uploading || saving ;
 
   const confirmReset = () => {
     setTitle("");
@@ -275,20 +277,36 @@ const CreateSOP: React.FC = () => {
       }
     }
   }, [location.state]);
-  useEffect(() => {
-    if (!selectedClientId || modalProviders.length === 0) return;
+useEffect(() => {
+  if (!selectedClientId) return;
 
-    const ids = modalProviders.map(p => p.id);
+  const ids = providerIds;   // ✅ ONLY selected providers
 
+  if (!ids.length) {
+    setBlockedProviders([]);
+    return;
+  }
+
+  // CREATE MODE
+  if (!isEditMode) {
     sopService.checkProviders(selectedClientId, ids)
-      .then(res => {
-        setBlockedProviders(res.blocked_provider_ids || []);
-      })
-      .catch(() => {
-        setBlockedProviders([]);
-      });
+      .then(res => setBlockedProviders(res.blocked_provider_ids || []))
+      .catch(() => setBlockedProviders([]));
+    return;
+  }
 
-  }, [modalProviders, selectedClientId]);
+  // EDIT MODE → only validate if providers changed
+  const hasChanged =
+    JSON.stringify([...ids].sort()) !==
+    JSON.stringify([...initialProviderIds].sort());
+
+  if (!hasChanged) return;
+
+  sopService.checkProviders(selectedClientId, ids, sopId)
+    .then(res => setBlockedProviders(res.blocked_provider_ids || []))
+    .catch(() => setBlockedProviders([]));
+
+}, [providerIds, selectedClientId, sopId]);
 
   const loadSOP = async (sopId: string) => {
     try {
@@ -317,6 +335,7 @@ const CreateSOP: React.FC = () => {
       // Map JSONB fields back to state
       if (sop.providers) {
         setProviderIds(sop.providers.map((p: any) => p.id));
+        setInitialProviderIds(sop.providers.map((p: any) => p.id));
         setSelectedProvidersList(sop.providers);
       }
 
@@ -813,7 +832,7 @@ const CreateSOP: React.FC = () => {
     }
 
     setSaving(true); // Set saving immediately after validation
-    const res = await sopService.checkProviders(selectedClientId, providerIds);
+    const res = await sopService.checkProviders(selectedClientId, providerIds, id);
 
     if (res.blocked_provider_ids?.length) {
       setToast({
@@ -2432,20 +2451,22 @@ const CreateSOP: React.FC = () => {
           {/* Footer */}
           <div className={styles.footer}>
             {currentStep == 1 && (
-              <button
-                className={styles.backButton}
-                onClick={() => navigate("/sops")}
-                disabled={uploading}
-              >
-                Close
-              </button>
-            )}
+  <button
+    className={styles.backButton}
+    onClick={() => navigate("/sops")}
+    disabled={isNavLocked}
+  >
+    Close
+  </button>
+)}
+
+
 
             {currentStep > 1 && (
               <button
                 className={styles.backButton}
                 onClick={handleBackStep}
-                disabled={uploading}
+                disabled={isNavLocked}
               >
                 Back
               </button>
@@ -2454,7 +2475,7 @@ const CreateSOP: React.FC = () => {
             <button
               className={styles.saveButton}
               onClick={currentStep === getSteps().length ? handleSave : handleNextStep}
-              disabled={saving || uploading}
+              disabled={isNavLocked}
             >
               {currentStep === getSteps().length ? (
                 <>

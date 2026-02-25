@@ -624,7 +624,7 @@ const UserModal: React.FC<UserModalProps> = ({
                 </div>
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Last Name</label>
+                    <label className={styles.label}>Last Name *</label>
                     <input
                       type="text"
                       className={styles.input}

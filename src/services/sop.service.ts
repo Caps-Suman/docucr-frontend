@@ -195,12 +195,19 @@ checkSOPExistence: async (
   if (!response.ok) throw new Error("Failed to check SOP existence");
   return response.json();
 },
-checkProviders: async (clientId: string, providerIds: string[]) => {
+checkProviders: async (
+  clientId: string,
+  providerIds: string[],
+  sopId?: string   // 👈 optional
+) => {
   const res = await apiClient(
     `${API_URL}/api/sops/check-providers/${clientId}`,
     {
       method: "POST",
-      body: JSON.stringify({ provider_ids: providerIds })
+      body: JSON.stringify({
+        provider_ids: providerIds,
+        sop_id: sopId ?? null   // send null to backend if undefined
+      })
     }
   );
 

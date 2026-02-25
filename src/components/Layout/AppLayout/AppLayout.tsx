@@ -8,7 +8,6 @@ import Sidebar from '../../Sidebar/Sidebar';
 import './AppLayout.css';
 import { jwtDecode } from "jwt-decode";
 
-// const HIDE_SIDEBAR_ROUTES = ["/sops/create", "/sops/edit"];
 
 const AppLayout: React.FC = () => {
     const navigate = useNavigate();
@@ -68,7 +67,7 @@ const AppLayout: React.FC = () => {
         if (path.startsWith('/sops')) {
             crumbs.push({ icon: BookOpen, label: 'SOPs' });
             if (path.includes('/create')) crumbs.push({ icon: BookOpen, label: 'Create' });
-            else if (path.includes('/edit')) crumbs.push({ icon: BookOpen, label: 'Edit' });
+            else if (path.includes('/edit/{id}')) crumbs.push({ icon: BookOpen, label: 'Edit' });
             return crumbs;
         }
 
