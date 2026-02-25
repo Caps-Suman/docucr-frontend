@@ -168,35 +168,35 @@ useEffect(() => {
             header: 'Actions',
             render: (_: any, row: Form) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <span className="tooltip-wrapper" data-tooltip="Edit">
+                    <Tooltip content="Edit">
                         <button
-                            className="action-btn edit"
+                            className={`${styles.actionBtn} ${styles.edit}`}
                             onClick={() => navigate(`/forms/${row.id}`)}
                         >
                             <Edit2 size={14} />
                         </button>
-                    </span>
-                    <span className="tooltip-wrapper" data-tooltip={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
+                    </Tooltip>
+                    <Tooltip content={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
                         <button
-                            className={`action-btn ${row.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'} ${actionLoading === row.id ? 'loading' : ''}`}
+                            className={`${styles.actionBtn} ${row.statusCode === 'ACTIVE' ? styles.deactivate : styles.activate} ${actionLoading === row.id ? styles.loading : ''}`}
                             onClick={() => handleToggleStatus(row)}
                             disabled={actionLoading === row.id}
                         >
                             {actionLoading === row.id ? (
-                                <div className="spinner" />
+                                <div className={styles.spinner} />
                             ) : (
                                 row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />
                             )}
                         </button>
-                    </span>
-                    <span className="tooltip-wrapper" data-tooltip="Delete">
+                    </Tooltip>
+                    <Tooltip content="Delete">
                         <button
-                            className="action-btn delete"
+                            className={`${styles.actionBtn} ${styles.delete}`}
                             onClick={() => handleDeleteClick(row.id)}
                         >
                             <Trash2 size={14} />
                         </button>
-                    </span>
+                    </Tooltip>
                 </div>
             )
         }

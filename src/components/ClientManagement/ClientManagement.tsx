@@ -582,24 +582,24 @@ const ClientManagement: React.FC = () => {
       header: "Actions",
       render: (_: any, row: Client) => (
         <div style={{ display: "flex", gap: "8px" }}>
-          <span className="tooltip-wrapper" data-tooltip="View Detail">
+          <Tooltip content="View Detail">
             <button
               className={`${styles.actionBtn} ${styles.view}`}
               onClick={() => navigate(`/clients/${row.id}`)}
             >
               <Eye size={14} />
             </button>
-          </span>
-          <span className="tooltip-wrapper" data-tooltip="Edit">
+          </Tooltip>
+          <Tooltip content="Edit">
             <button
               className={`${styles.actionBtn} ${styles.edit}`}
               onClick={() => handleEdit(row)}
             >
               <Edit2 size={14} />
             </button>
-          </span>
+          </Tooltip>
           {/* {!row.is_user && (
-            <span className="tooltip-wrapper" data-tooltip="Create User">
+            <Tooltip content="Create User">
               <button
                 className={`${styles.actionBtn} ${styles.createUser}`}
                 onClick={() => {
@@ -627,11 +627,10 @@ const ClientManagement: React.FC = () => {
               >
                 <UserCheck size={14} />
               </button>
-            </span>
+            </Tooltip>
           )} */}
-          <span
-            className="tooltip-wrapper"
-            data-tooltip={
+          <Tooltip
+            content={
               row.status_code === "ACTIVE" ? "Deactivate" : "Activate"
             }
           >
@@ -645,7 +644,7 @@ const ClientManagement: React.FC = () => {
                 <PlayCircle size={14} />
               )}
             </button>
-          </span>
+          </Tooltip>
         </div>
       ),
     },

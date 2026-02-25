@@ -328,34 +328,30 @@ const OrganisationManagement: React.FC = () => {
             header: 'Actions',
             render: (_: any, row: Organisation) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <span className="tooltip-wrapper" data-tooltip="Edit">
-                        <button className={styles.actionBtn} onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(row)
-                        }}
-                            style={{ color: '#3b82f6', background: '#eff6ff' }}
+                    <Tooltip content="Edit">
+                        <button 
+                            className={`${styles.actionBtn} ${styles.edit}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(row)
+                            }}
                         >
                             <Edit2 size={14} />
                         </button>
-                        {/* <button onClick={() => handleSelectOrganisation(row.id)}>
-      Select
-   </button> */}
-
-                    </span>
-                    <span className="tooltip-wrapper" data-tooltip="Change Password">
+                    </Tooltip>
+                    <Tooltip content="Change Password">
                         <button
-                            className={styles.actionBtn}
+                            className={`${styles.actionBtn} ${styles.key}`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleChangePassword(row);
                             }}
-                            style={{ color: '#f59e0b', background: '#fef3c7' }}
                         >
                             <Key size={14} />
                         </button>
-                    </span>
+                    </Tooltip>
                     {row.statusCode === 'ACTIVE' && (
-                        <span className="tooltip-wrapper" data-tooltip="Deactivate">
+                        <Tooltip content="Deactivate">
                             <button
                                 className={`${styles.actionBtn} ${styles.deactivate}`}
                                 onClick={(e) => {
@@ -365,10 +361,10 @@ const OrganisationManagement: React.FC = () => {
                             >
                                 <StopCircle size={14} />
                             </button>
-                        </span>
+                        </Tooltip>
                     )}
                     {row.statusCode !== 'ACTIVE' && (
-                        <span className="tooltip-wrapper" data-tooltip="Activate">
+                        <Tooltip content="Activate">
                             <button
                                 className={`${styles.actionBtn} ${styles.activate}`}
                                 onClick={(e) => {
@@ -378,7 +374,7 @@ const OrganisationManagement: React.FC = () => {
                             >
                                 <PlayCircle size={14} />
                             </button>
-                        </span>
+                        </Tooltip>
                     )}
                 </div>
             )

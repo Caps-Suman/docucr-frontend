@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../Common/Loading";
+import { Tooltip } from "../../Common/Tooltip";
 import ConfirmModal from "../../Common/ConfirmModal";
 import Toast, { ToastType } from "../../Common/Toast";
 import CommonDropdown from "../../Common/CommonDropdown";
@@ -1056,13 +1057,10 @@ const DocumentList: React.FC = () => {
             switch (col.id) {
               case "name":
                 return {
-                  key: "name",
-                  header: col.label,
-                  render: (value: string, row: DocumentListItem) => (
-                    <span
-                      className={styles.tooltipWrapper}
-                      data-tooltip={value}
-                    >
+                   key: "name",
+                   header: col.label,
+                   render: (value: string, row: DocumentListItem) => (
+                    <Tooltip content={value}>
                       <div
                         className={styles.documentName}
                         style={{ maxWidth: "100%", overflow: "hidden" }}
@@ -1070,20 +1068,17 @@ const DocumentList: React.FC = () => {
                         <FileText size={16} style={{ flexShrink: 0 }} />
                         <span className={styles.cellContent}>{value}</span>
                       </div>
-                    </span>
-                  ),
+                    </Tooltip>
+                   ),
                 };
               case "type":
                 return {
                   key: "type",
                   header: col.label,
                   render: (value: string) => (
-                    <span
-                      className={styles.tooltipWrapper}
-                      data-tooltip={value}
-                    >
+                    <Tooltip content={value}>
                       <span className={styles.documentType}>{value}</span>
-                    </span>
+                    </Tooltip>
                   ),
                 };
               case "uploadedBy":
@@ -1127,12 +1122,9 @@ const DocumentList: React.FC = () => {
                   render: (value: number) => {
                     const sizeText = `${value.toFixed(2)} MB`;
                     return (
-                      <span
-                        className={styles.tooltipWrapper}
-                        data-tooltip={sizeText}
-                      >
+                      <Tooltip content={sizeText}>
                         <span className={styles.cellContent}>{sizeText}</span>
-                      </span>
+                      </Tooltip>
                     );
                   },
                 };
@@ -1153,12 +1145,9 @@ const DocumentList: React.FC = () => {
                     const dateText = new Date(value).toLocaleDateString();
                     const fullDate = new Date(value).toLocaleString();
                     return (
-                      <span
-                        className={styles.tooltipWrapper}
-                        data-tooltip={fullDate}
-                      >
+                      <Tooltip content={fullDate}>
                         <span className={styles.cellContent}>{dateText}</span>
-                      </span>
+                      </Tooltip>
                     );
                   },
                 };
@@ -1338,39 +1327,32 @@ const DocumentList: React.FC = () => {
                         row.status === "ai_failed" ||
                         row.status === "upload_failed" ||
                         row.status === "cancelled") && (
-                          <span
-                            className={styles.tooltipWrapper}
-                            data-tooltip="Retry Analysis"
-                          >
+                          <Tooltip content="Retry Analysis">
                             <button
                               onClick={() => handleReanalyze(row.id)}
                               className="action-btn activate"
                             >
                               <RefreshCw size={14} />
                             </button>
-                          </span>
+                          </Tooltip>
                         )}
 
                       {(row.status === "analyzing" ||
                         row.status === "ai_queued") && (
-                          <span
-                            className={styles.tooltipWrapper}
-                            data-tooltip="Cancel Analysis"
-                          >
+                          <Tooltip content="Cancel Analysis">
                             <button
                               onClick={() => handleCancel(row.id)}
                               className="action-btn delete"
                             >
                               <Ban size={14} />
                             </button>
-                          </span>
+                          </Tooltip>
                         )}
 
                       {!row.isUploading && (
                         <>
-                          <span
-                            className={styles.tooltipWrapper}
-                            data-tooltip={
+                          <Tooltip
+                            content={
                               row.status === "queued" ||
                                 row.status === "uploading" ||
                                 row.status === "upload_failed"
@@ -1397,22 +1379,8 @@ const DocumentList: React.FC = () => {
                             >
                               <Eye size={14} />
                             </button>
-                          </span>
-                          {/* <span
-                            className={styles.tooltipWrapper}
-                            data-tooltip="Share"
-                          >
-                            <button
-                              className="action-btn "
-                              onClick={() => handleSingleShare(row.id)}
-                            >
-                              <Share size={14} />
-                            </button>
-                          </span> */}
-                          <span
-                            className={styles.tooltipWrapper}
-                            data-tooltip="Download"
-                          >
+                          </Tooltip>
+                          <Tooltip content="Download">
                             <button
                               className="action-btn activate"
                               onClick={async (e) => {
@@ -1447,68 +1415,53 @@ const DocumentList: React.FC = () => {
                             >
                               <Download size={14} />
                             </button>
-                          </span>
+                          </Tooltip>
                           {!row.isArchived && (
-                            <span
-                              className={styles.tooltipWrapper}
-                              data-tooltip="Archive"
-                            >
+                            <Tooltip content="Archive">
                               <button
-                                className="action-btn"
+                                className="action-btn archive"
                                 onClick={() => handleArchive(row.id)}
                               >
                                 <Archive size={14} />
                               </button>
-                            </span>
+                            </Tooltip>
                           )}
                           {row.isArchived && (
-                            <span
-                              className={styles.tooltipWrapper}
-                              data-tooltip="Unarchive"
-                            >
+                            <Tooltip content="Unarchive">
                               <button
                                 className="action-btn activate"
                                 onClick={() => handleUnarchive(row.id)}
                               >
                                 <ArchiveRestore size={14} />
                               </button>
-                            </span>
+                            </Tooltip>
                           )}
-                          <span
-                            className={styles.tooltipWrapper}
-                            data-tooltip="Delete"
-                          >
+                          <Tooltip content="Delete">
                             <button
                               className="action-btn delete"
                               onClick={() => handleDeleteClick(row)}
                             >
                               <Trash2 size={14} />
                             </button>
-                          </span>
+                          </Tooltip>
 
                           {/* for action-log view */}
-                          <span
-                            className={styles.tooltipWrapper}
-                            data-tooltip="View Log"
-                          >
+                          <Tooltip content="View Log">
                             <button
                               className="action-btn view-log"
                               onClick={() => handleActionLogClick(row)}
                             >
                               <FileText size={14} />
                             </button>
-                          </span>
+                          </Tooltip>
                         </>
                       )}
                       {row.isUploading && (
-                        <span
-                          className={styles.tooltipWrapper}
-                          data-tooltip="Uploading..."
-                        >
+                        <Tooltip content="Uploading...">
                           <button className="action-btn" disabled>
                             <Clock size={14} />
                           </button>
-                        </span>
+                        </Tooltip>
                       )}
                     </div>
                   ),
@@ -1593,12 +1546,9 @@ const DocumentList: React.FC = () => {
                       `${client.first_name} ${client.last_name}`.trim()
                       : `Unknown Client (${String(val).substring(0, 8)}...)`;
                     return (
-                      <span
-                        className={styles.tooltipWrapper}
-                        data-tooltip={clientName}
-                      >
+                      <Tooltip content={clientName}>
                         <span className={styles.cellContent}>{clientName}</span>
-                      </span>
+                      </Tooltip>
                     );
                   }
 
@@ -1617,12 +1567,9 @@ const DocumentList: React.FC = () => {
                       ? type.name
                       : `Unknown Type (${String(val).substring(0, 8)}...)`;
                     return (
-                      <span
-                        className={styles.tooltipWrapper}
-                        data-tooltip={typeName}
-                      >
+                      <Tooltip content={typeName}>
                         <span className={styles.cellContent}>{typeName}</span>
-                      </span>
+                      </Tooltip>
                     );
                   }
                 }
@@ -1631,12 +1578,9 @@ const DocumentList: React.FC = () => {
                   ? val.join(", ")
                   : String(val);
                 return (
-                  <span
-                    className={styles.tooltipWrapper}
-                    data-tooltip={displayValue}
-                  >
+                  <Tooltip content={displayValue}>
                     <span className={styles.cellContent}>{displayValue}</span>
-                  </span>
+                  </Tooltip>
                 );
               },
             };

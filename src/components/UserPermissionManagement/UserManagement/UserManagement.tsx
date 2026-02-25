@@ -718,13 +718,12 @@ const UserManagement: React.FC = () => {
                     <Tooltip content={row.is_superuser ? 'Cannot edit superuser' : 'Edit'} preferredPosition="left">
                         <span style={{ display: 'inline-block' }}>
                         <button
-                            className={styles.actionBtn}
+                            className={`${styles.actionBtn} ${styles.edit}`}
                             onClick={() => !loadingEditId && handleEdit(row)}
                             disabled={!!loadingEditId || row.is_superuser}
                             style={{
                                 opacity: (row.is_superuser || !!loadingEditId) ? 0.5 : 1,
-                                cursor: (row.is_superuser || !!loadingEditId) ? 'not-allowed' : 'pointer',
-                                color: '#3b82f6', background: '#eff6ff'
+                                cursor: (row.is_superuser || !!loadingEditId) ? 'not-allowed' : 'pointer'
                             }}
                         >
                             {loadingEditId === row.id ? <Loader2 size={14} className={styles.animateSpin} /> : <Edit2 size={14} />}
@@ -734,9 +733,9 @@ const UserManagement: React.FC = () => {
                     <Tooltip content={row.is_superuser ? 'Cannot change password' : 'Change Password'} preferredPosition="left">
                         <span style={{ display: 'inline-block' }}>
                         <button
-                            className={styles.actionBtn}
+                            className={`${styles.actionBtn} ${styles.key}`}
                             onClick={() => handleChangePassword(row)}
-                            style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer', color: '#f59e0b', background: '#fef3c7' }}
+                            style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer' }}
                         >
                             <Key size={14} />
                         </button>

@@ -263,6 +263,7 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    word-break: break-word;
 }
 
 .detailText {
@@ -291,37 +292,48 @@
 
 .diffLine {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
     color: var(--text-tertiary);
+    flex-wrap: wrap;
+    word-break: break-word;
 }
 
 .diffField {
     font-weight: 500;
     color: var(--text-secondary);
     text-transform: capitalize;
+    flex-shrink: 0;
 }
 
 .diffFrom {
     background-color: var(--color-error-light);
     color: var(--color-error-dark);
-    padding: 0 4px;
+    padding: 2px 6px;
     border-radius: 4px;
     text-decoration: line-through;
     opacity: 0.8;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .diffTo {
     background-color: var(--color-success-light);
     color: var(--color-success-dark);
-    padding: 0 4px;
+    padding: 2px 6px;
     border-radius: 4px;
     font-weight: 500;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .diffArrow {
     color: var(--text-tertiary);
     font-size: 10px;
+    flex-shrink: 0;
+    margin-top: 4px;
 }
 
 .moreLink {

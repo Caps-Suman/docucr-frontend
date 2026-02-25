@@ -134,8 +134,8 @@
     margin: 0;
 }
 
-/* Global Action Button Styles */
-:global(.action-btn) {
+/* Local Action Button Styles */
+.actionBtn {
     background: none;
     border: 1px solid transparent;
     width: 28px;
@@ -148,68 +148,58 @@
     transition: all 0.2s;
 }
 
-:global(.action-btn.edit) {
+.actionBtn.edit {
     color: #3b82f6;
     background-color: #eff6ff;
 }
 
-:global(.action-btn.edit:hover) {
+.actionBtn.edit:hover {
     background-color: #dbeafe;
 }
 
-:global(.action-btn.deactivate) {
+.actionBtn.deactivate {
     color: #b91c1c;
     background-color: #fee2e2;
     border-color: #fecaca;
 }
 
-:global(.action-btn.deactivate:hover) {
+.actionBtn.deactivate:hover {
     background-color: #fecaca;
     color: #7f1d1d;
 }
 
-:global(.action-btn.activate) {
+.actionBtn.activate {
     color: #431407;
     background-color: #fff7ed;
     border-color: rgb(254, 215, 170);
 }
 
-:global(.action-btn.activate:hover) {
+.actionBtn.activate:hover {
     background-color: rgb(254, 215, 170);
     border-color: #fdba74;
 }
 
-:global(.action-btn.loading) {
+.actionBtn.delete {
+    color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.actionBtn.delete:hover {
+    background-color: #fee2e2;
+}
+
+.actionBtn.loading {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-:global(.spinner) {
+.spinner {
     width: 14px;
     height: 14px;
     border: 2px solid transparent;
     border-top: 2px solid currentColor;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-:global(.action-btn.delete) {
-    color: #ef4444;
-    background-color: #fef2f2;
-}
-
-:global(.action-btn.delete:hover) {
-    background-color: #fee2e2;
 }
 
 :global(.status-badge) {

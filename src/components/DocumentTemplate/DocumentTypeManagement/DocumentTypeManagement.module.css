@@ -90,43 +90,43 @@
 }
 
 .editButton {
-    background: #f1f5f9;
-    color: #64748b;
+    color: #3b82f6;
+    background-color: #eff6ff;
 }
 
 .editButton:hover {
-    background: #e2e8f0;
-    color: #334155;
+    background-color: #dbeafe;
 }
 
 .activateButton {
-    background: #dcfce7;
-    color: #15803d;
+    color: #431407;
+    background-color: #fff7ed;
+    border: 1px solid rgb(254, 215, 170);
 }
 
 .activateButton:hover {
-    background: #bbf7d0;
-    color: #16a34a;
+    background-color: rgb(254, 215, 170);
+    border-color: #fdba74;
 }
 
 .deactivateButton {
-    background: #fee2e2;
     color: #b91c1c;
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
 }
 
 .deactivateButton:hover {
-    background: #fecaca;
-    color: #b91c1c;
+    background-color: #fecaca;
+    color: #7f1d1d;
 }
 
 .deleteButton {
-    background: #fef2f2;
-    color: #dc2626;
+    color: #ef4444;
+    background-color: #fef2f2;
 }
 
 .deleteButton:hover {
-    background: #fee2e2;
-    color: #b91c1c;
+    background-color: #fee2e2;
 }
 
 /* Dark mode */
@@ -152,43 +152,42 @@
 }
 
 :global(.dark) .editButton {
-    background: #374151;
-    color: #d1d5db;
+    color: #60a5fa;
+    background-color: #1e3a8a;
 }
 
 :global(.dark) .editButton:hover {
-    background: #4b5563;
-    color: #f9fafb;
+    background-color: #1e40af;
 }
 
 :global(.dark) .activateButton {
-    background: #14532d;
-    color: #4ade80;
+    color: #fdba74;
+    background-color: #431407;
+    border-color: #9a3412;
 }
 
 :global(.dark) .activateButton:hover {
-    background: #166534;
-    color: #22c55e;
+    background-color: #9a3412;
+    color: #ffedd5;
 }
 
 :global(.dark) .deactivateButton {
-    background: #7f1d1d;
     color: #f87171;
+    background-color: #450a0a;
+    border-color: #7f1d1d;
 }
 
 :global(.dark) .deactivateButton:hover {
-    background: #991b1b;
-    color: #fca5a5;
+    background-color: #991b1b;
 }
 
 :global(.dark) .deleteButton {
-    background: #7f1d1d;
     color: #f87171;
+    background-color: #7f1d1d;
 }
 
 :global(.dark) .deleteButton:hover {
-    background: #991b1b;
-    color: #fca5a5;
+    background-color: #991b1b;
 }
 
 :global(html.dark) .createButton,
