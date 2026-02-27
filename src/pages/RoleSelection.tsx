@@ -90,7 +90,9 @@ const RoleSelection: React.FC = () => {
 
             authService.saveToken(data.access_token);
             authService.saveUser(data.user);
-            navigate('/dashboard');
+            const isSuperAdmin = data.user.is_superuser || data.user.role?.name === 'SUPER_ADMIN';
+            const destination = isSuperAdmin ? '/organisations' : '/dashboard';
+            navigate(destination);
         } catch (err: any) {
             setError(err.message || 'Failed to select role');
         } finally {

@@ -40,7 +40,7 @@ const OrganisationManagement: React.FC = () => {
     const token = authService.getToken();
     const payload: any = token ? jwtDecode(token) : null;
 
-    const isTempSession = payload?.temp === true;
+
     // Debounce Search
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -102,7 +102,7 @@ const OrganisationManagement: React.FC = () => {
             // Save full updated user (roles, permissions, org, everything)
             authService.saveUser(freshUser);
 
-            // HARD reload to reset app state completely
+            // HARD reload to reset app state completely - always to dashboard when explicitly selecting an org
             window.location.href = "/dashboard";
 
         } catch (err) {

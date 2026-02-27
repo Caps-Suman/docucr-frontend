@@ -53,7 +53,18 @@
 .user-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
+}
+
+.h-divider {
+    width: 1px;
+    height: 18px;
+    background-color: #cbd5e1;
+    flex-shrink: 0;
+}
+
+.dark .h-divider {
+    background-color: #374151;
 }
 
 .role-display {
