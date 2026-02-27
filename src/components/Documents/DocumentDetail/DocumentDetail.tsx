@@ -939,7 +939,6 @@ const ExtractedReportCard: React.FC<{ documentId: string }> = ({
       </div>
     );
   }).filter((f: React.ReactNode) => f !== null);
-
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
@@ -963,11 +962,15 @@ const ExtractedReportCard: React.FC<{ documentId: string }> = ({
           </div>
         )}
       </div>
-      <div className={styles.metaList}>
-        {renderedFindings.length > 0 ? renderedFindings : (
-          <p className={styles.emptyMessage}>No specific data points were extracted for this document page.</p>
-        )}
-      </div>
+<div className={styles.extractedScrollContainer}>
+  {renderedFindings.length > 0 ? (
+    renderedFindings
+  ) : (
+    <p className={styles.emptyMessage}>
+      No specific data points were extracted for this document page.
+    </p>
+  )}
+</div>
     </div>
   );
 };

@@ -24,7 +24,26 @@
     align-items: center;
     gap: 16px;
 }
+.extractedScrollContainer {
+  max-height: 500px;            /* adjust if needed */
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-top: 8px;
+}
 
+/* Optional: smooth modern scrollbar */
+.extractedScrollContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.extractedScrollContainer::-webkit-scrollbar-thumb {
+  background-color: var(--color-gray-300);
+  border-radius: 6px;
+}
+
+.extractedScrollContainer::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-gray-400);
+}
 .backButton {
     background: var(--color-gray-50);
     border: 1px solid var(--color-gray-200);
