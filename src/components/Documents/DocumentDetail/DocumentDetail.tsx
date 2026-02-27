@@ -483,7 +483,7 @@ const shareMode: "client" | "internal" =
                   </h3>
                 </div>
 
-                <div className={styles.metaList}>
+                <div className={styles.extractedScrollContainer}>
                   {document.statusCode === "ANALYZING" || document.statusCode === "AI_QUEUED" ? (
                     <p className={styles.emptyMessage}>Analysis in progress…</p>
                   ) : document.statusCode === "FAILED" || document.statusCode === "AI_FAILED" ? (

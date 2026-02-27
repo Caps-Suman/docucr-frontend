@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock } from 'lucide-react';
+import { X, Lock, Eye, EyeOff } from 'lucide-react';
 import styles from './UserModal.module.css'; // Reusing UserModal styles for consistency
 
 interface ChangePasswordModalProps {
@@ -17,6 +17,8 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 }) => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,7 +60,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                         <Lock size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         Change Password
                     </h2>
-                    <button className={styles.closeButton} onClick={onClose}>
+                    <button className={styles.closeButton} onClick={onClose} disabled={isSubmitting}>
                         <X size={20} />
                     </button>
                 </div>
@@ -71,32 +73,54 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                     <div className={styles.formContent}>
                         <div className={styles.formGroup}>
                             <label className={styles.label}>New Password</label>
-                            <input
-                                type="password"
-                                className={styles.input}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Enter new password"
-                                required
-                            />
+                            <div className={styles.passwordInputWrapper}>
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    className={styles.input}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Enter new password"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className={styles.passwordToggle}
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    tabIndex={-1}
+                                    disabled={isSubmitting}
+                                >
+                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Confirm Password</label>
-                            <input
-                                type="password"
-                                className={styles.input}
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="Confirm new password"
-                                required
-                                style={{ borderColor: error ? '#ef4444' : '#d1d5db' }}
-                            />
+                            <div className={styles.passwordInputWrapper}>
+                                <input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    className={styles.input}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="Confirm new password"
+                                    required
+                                    style={{ borderColor: error ? '#ef4444' : '#d1d5db' }}
+                                />
+                                <button
+                                    type="button"
+                                    className={styles.passwordToggle}
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    tabIndex={-1}
+                                    disabled={isSubmitting}
+                                >
+                                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
                             {error && <span className={styles.errorText}>{error}</span>}
                         </div>
                     </div>
 
                     <div className={styles.actions}>
-                        <button type="button" className={styles.cancelButton} onClick={onClose}>
+                        <button type="button" className={styles.cancelButton} onClick={onClose} disabled={isSubmitting}>
                             Cancel
                         </button>
                         <button

@@ -34,7 +34,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                     <div className={`${styles.icon} ${type === 'warning' ? styles.iconWarning : type === 'danger' ? styles.iconDanger : styles.iconInfo}`}>
                         {type === 'info' ? <Info size={24} /> : <AlertTriangle size={24} />}
                     </div>
-                    <button className={styles.closeButton} onClick={onClose}>
+                    <button className={styles.closeButton} onClick={onClose} disabled={loading}>
                         <X size={20} />
                     </button>
                 </div>

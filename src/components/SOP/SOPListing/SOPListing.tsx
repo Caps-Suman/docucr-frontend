@@ -529,7 +529,7 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       render: (_: any, row: SOP) =>
         row.updatedAt ? new Date(row.updatedAt).toLocaleDateString() : "-",
     },
-    ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' ? [{
+    ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' ? [{
       key: 'created_by_name',
       header: 'Created By',
       width: '150px',
@@ -881,7 +881,7 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
                 )}
 
                 {/* Client Filter */}
-                {/* {(currentUser as any)?.role?.name === "SUPER_ADMIN" || (currentUser as any)?.role?.name === "ORGANISATION_ROLE" ? ( */}
+                {/* {(currentUser as any)?.role?.name === "SUPER_ADMIN" || (currentUser as any)?.role?.name === "ORGANISATION_ADMIN" ? ( */}
                 <div className={styles.filterGroup}>
                   <label>Client</label>
                   <CommonDropdown
@@ -907,7 +907,7 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
                 {/* // ) : null} */}
 
                 {/* Created By Filter */}
-                {(currentUser as any)?.role?.name === "SUPER_ADMIN" || (currentUser as any)?.role?.name === "ORGANISATION_ROLE" ? (
+                {(currentUser as any)?.role?.name === "SUPER_ADMIN" || (currentUser as any)?.role?.name === "ORGANISATION_ADMIN" ? (
                   <div className={styles.filterGroup}>
                     <label>Created By</label>
                     <CommonDropdown

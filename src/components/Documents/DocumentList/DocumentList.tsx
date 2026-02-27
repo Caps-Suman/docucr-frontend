@@ -96,7 +96,7 @@ const DocumentList: React.FC = () => {
   const user = authService.getUser();
 
   const isSuperAdmin = user?.role?.name === "SUPER_ADMIN";
-  const isOrgAdmin = user?.role?.name === "ORGANISATION_ROLE"; // adjust if different
+  const isOrgAdmin = user?.role?.name === "ORGANISATION_ADMIN"; // adjust if different
 
   const isClientAdmin = user?.role?.name === "CLIENT_ADMIN";
   const isClientUser = !!user?.client_id;
@@ -205,7 +205,7 @@ const DocumentList: React.FC = () => {
 
 
   const isOrganisationLogin =
-    user?.role?.name === "ORGANISATION_ROLE";
+    user?.role?.name === "ORGANISATION_ADMIN";
 
   const isOrgUser =
     !!user?.organisation_id && !user?.client_id;

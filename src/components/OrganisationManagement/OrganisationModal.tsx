@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, ChevronRight, ChevronLeft } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Eye, EyeOff } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../styles/selectStyles";
 import styles from "./OrganisationModal.module.css";
@@ -62,6 +62,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         if (initialData) {
@@ -168,7 +169,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
             <div className={styles.content} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.header}>
                     <h2>{title}</h2>
-                    <button className={styles.closeButton} onClick={onClose}>
+                    <button className={styles.closeButton} onClick={onClose} disabled={isSubmitting}>
                         <X size={20} />
                     </button>
                 </div>
@@ -299,16 +300,27 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                             {!initialData?.id && (
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Password *</label>
-                                    <input
-                                        type="password"
-                                        className={styles.input}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="Enter password"
-                                        style={{
-                                            borderColor: errors.password ? "#ef4444" : undefined,
-                                        }}
-                                    />
+                                    <div className={styles.passwordInputWrapper}>
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            className={styles.input}
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="Enter password"
+                                            style={{
+                                                borderColor: errors.password ? "#ef4444" : undefined,
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            className={styles.passwordToggle}
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            tabIndex={-1}
+                                            disabled={isSubmitting}
+                                        >
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
                                     {errors.password && (
                                         <span className={styles.errorText}>
                                             {errors.password}
@@ -376,6 +388,7 @@ const OrganisationModal: React.FC<OrganisationModalProps> = ({
                             type="button"
                             className={styles.cancelButton}
                             onClick={onClose}
+                            disabled={isSubmitting}
                         >
                             Cancel
                         </button>

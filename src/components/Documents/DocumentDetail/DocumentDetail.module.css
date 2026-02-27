@@ -25,13 +25,11 @@
     gap: 16px;
 }
 .extractedScrollContainer {
-  max-height: 500px;            /* adjust if needed */
+  max-height: 500px;
   overflow-y: auto;
-  padding-right: 8px;
-  margin-top: 8px;
+  padding: 16px;
 }
 
-/* Optional: smooth modern scrollbar */
 .extractedScrollContainer::-webkit-scrollbar {
   width: 6px;
 }
@@ -362,15 +360,20 @@
 
 .typeItem {
     padding: 16px;
-    background: var(--bg-tertiary);
-    border-radius: 12px;
-    border: 1px solid var(--color-gray-200);
-    border-left: 4px solid var(--color-primary);
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
     transition: all 0.2s;
+    margin-bottom: 12px;
+}
+
+.typeItem:last-child {
+    margin-bottom: 0;
 }
 
 .typeItem:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
 }
 
 .typeHeader {

@@ -113,6 +113,43 @@
   margin-top: 4px;
 }
 
+/* Password Toggle */
+.passwordInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordInputWrapper .input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.passwordToggle:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+:global(.dark) .passwordToggle:hover {
+  background: #374151;
+  color: #f9fafb;
+}
+
 /* Phone Input Group */
 .phoneInputGroup {
   display: flex;
@@ -184,7 +221,7 @@
 }
 
 .nextButton {
-  background: #e2f3f9;
+  background: #83cee4;
   color: #011926;
   border: 1px solid #83cee4;
   font-weight: 600;
@@ -195,7 +232,7 @@
 }
 
 .submitButton {
-  background: #e2f3f9;
+  background: #83cee4;
   color: #fff;
   border: 1px solid #83cee4;
   font-weight: 600;

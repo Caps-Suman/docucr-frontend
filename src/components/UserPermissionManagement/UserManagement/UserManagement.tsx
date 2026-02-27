@@ -93,7 +93,7 @@ const UserManagement: React.FC = () => {
     const [userType, setUserType] = useState<"internal" | "client" | null>(null);
 
     const canChooseUserType =
-        currentUser?.role?.name === "ORGANISATION_ROLE";
+        currentUser?.role?.name === "ORGANISATION_ADMIN";
     const clientAdmin = currentUser?.role?.name === "CLIENT_ADMIN";
 
     const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
@@ -153,7 +153,7 @@ const UserManagement: React.FC = () => {
     useEffect(() => {
         if (!currentUser) return;
 
-        if (currentUser.role?.name === 'ORGANISATION_ROLE' && currentUser.organisation_id) {
+        if (currentUser.role?.name === 'ORGANISATION_ADMIN' && currentUser.organisation_id) {
             // Organisation Role: specific org, allow client selection
             const orgId = currentUser.organisation_id;
             setSelectedOrg([orgId]);
@@ -221,7 +221,7 @@ const UserManagement: React.FC = () => {
     useEffect(() => {
         if (!rolesLoadedRef.current) {
             // ONLY load roles/filters for Admins (Super, Org, Client)
-            if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') {
+            if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') {
                 rolesLoadedRef.current = true;
                 loadRoles();
                 loadFilterOptions();
@@ -313,12 +313,12 @@ const UserManagement: React.FC = () => {
         if (!showFilters) return;
 
         // Fetch Creators - ONLY for Admins who can filter by creator
-        if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') {
+        if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') {
             fetchCreators(creatorSearch, tempSelectedOrg, tempSelectedClientFilter);
         }
 
         // Fetch Roles - ONLY for Admins who can filter by role
-        if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') {
+        if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') {
             fetchLightRoles(roleSearch, tempSelectedOrg, tempSelectedClientFilter);
         }
 
@@ -628,7 +628,7 @@ const UserManagement: React.FC = () => {
             },
             width: '140px'
         },
-        ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' ? [{
+        ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' ? [{
             key: 'created_by_name',
             header: 'Created By',
             render: (_: any, row: User) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>,
@@ -710,7 +710,7 @@ const UserManagement: React.FC = () => {
             },
             width: '150px'
         },
-        ...(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN' ? [{
+        ...(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN' ? [{
             key: 'actions',
             header: 'Actions',
             render: (_: any, row: User) => (
@@ -792,7 +792,7 @@ const UserManagement: React.FC = () => {
                     <div>
 
                         {/* Search, Filters and Add User Bar */}
-                        <div style={{ display: 'flex', gap: (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') ? '12px' : '0', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
+                        <div style={{ display: 'flex', gap: (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') ? '12px' : '0', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
                             <div className={styles.filterGroup} style={{ minWidth: '300px' }}>
                                 <div style={{ position: 'relative' }}>
                                     <input
@@ -814,7 +814,7 @@ const UserManagement: React.FC = () => {
                             </div>
 
                             <div className={styles.filterGroup} style={{ flex: '0 0 auto', minWidth: 'auto' }}>
-                                {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                                {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
                                     <button
                                         className={styles.filterButton}
                                         onClick={handleOpenFilters}
@@ -825,7 +825,7 @@ const UserManagement: React.FC = () => {
                                             let count = 0;
                                             if (selectedRole && selectedRole.length > 0) count++;
                                             // Don't count Org filter for Org Admins (implicit)
-                                            if (selectedOrg && selectedOrg.length > 0 && currentUser?.role?.name !== 'ORGANISATION_ROLE') count++;
+                                            if (selectedOrg && selectedOrg.length > 0 && currentUser?.role?.name !== 'ORGANISATION_ADMIN') count++;
                                             // Don't count Client filter for Client Admins (implicit)
                                             if (selectedClientFilter && selectedClientFilter.length > 0 && currentUser?.role?.name !== 'CLIENT_ADMIN' && !currentUser?.is_client) count++;
                                             if (statusFilter && statusFilter.length > 0) count++;
@@ -837,7 +837,7 @@ const UserManagement: React.FC = () => {
                                 )}
                             </div>
                             <div className={styles.filterGroup} style={{ flex: '0 0 auto', minWidth: 'auto', marginLeft: 'auto' }}>
-                                {(  currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                                {(  currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
                                     <button className={styles.addBtn} onClick={handleAddNew} style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
                                         Add User
                                     </button>
@@ -920,7 +920,7 @@ const UserManagement: React.FC = () => {
                 roles={roles}
                 clientAdminRoleId={roles.find(r => r.name === "CLIENT_ADMIN")?.id}
                 allowUserTypeSelection={
-                    currentUser?.role?.name === "ORGANISATION_ROLE" || currentUser?.role?.name === "SUPER_ADMIN" || currentUser?.is_superuser   
+                    currentUser?.role?.name === "ORGANISATION_ADMIN" || currentUser?.role?.name === "SUPER_ADMIN" || currentUser?.is_superuser   
                 }
             />
             <ChangePasswordModal
@@ -1019,7 +1019,7 @@ const UserManagement: React.FC = () => {
                         )}
 
                         {/* Client Filter - Show for Superuser AND Organisation Role (Hide for Client Admin & Standard Users) */}
-                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE') && (
+                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN') && (
                             <div className={styles.filterGroupItem}>
                                 <label>Client</label>
                                 <CommonMultiSelect
@@ -1046,7 +1046,7 @@ const UserManagement: React.FC = () => {
                         )}
 
                         {/* Role Filter - Show for Admins Only */}
-                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
                             <div className={styles.filterGroupItem}>
                                 <label>Role</label>
                                 <CommonMultiSelect
@@ -1062,7 +1062,7 @@ const UserManagement: React.FC = () => {
                         )}
 
                         {/* Created By Filter - Show for Superuser and Organisation Role */}
-                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
                             <div className={styles.filterGroupItem}>
                                 <label>Created By</label>
                                 <CommonMultiSelect

@@ -312,7 +312,7 @@ const RoleManagement: React.FC = () => {
         //     render: (_: any, row: Role) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>
         // },
         // ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
-        ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ROLE' ? [{
+        ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' ? [{
             key: 'created_by_name',
             header: 'Created By',
             render: (_: any, row: Role) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>

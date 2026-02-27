@@ -29,6 +29,7 @@ const OrganisationManagement: React.FC = () => {
     // Search State
     const [searchTerm, setSearchTerm] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [isToggleLoading, setIsToggleLoading] = useState(false);
 
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; org: Organisation | null; action: 'toggle' }>({ isOpen: false, org: null, action: 'toggle' });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -198,6 +199,7 @@ const OrganisationManagement: React.FC = () => {
         if (!confirmModal.org) return;
 
         try {
+            setIsToggleLoading(true);
             const isActive = confirmModal.org.statusCode === 'ACTIVE';
             if (isActive) {
                 await organisationService.deactivateOrganisation(confirmModal.org.id);
@@ -207,12 +209,13 @@ const OrganisationManagement: React.FC = () => {
                 setToast({ message: 'Organisation activated successfully', type: 'success' });
             }
             loadData();
+            setConfirmModal({ isOpen: false, org: null, action: 'toggle' });
         } catch (error: any) {
             console.error('Failed to perform action:', error);
             const errorMessage = error?.response?.data?.detail || error?.message || 'Failed to perform action';
             setToast({ message: errorMessage, type: 'error' });
         } finally {
-            setConfirmModal({ isOpen: false, org: null, action: 'toggle' });
+            setIsToggleLoading(false);
         }
     };
 
@@ -502,10 +505,11 @@ const OrganisationManagement: React.FC = () => {
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ isOpen: false, org: null, action: 'toggle' })}
                 onConfirm={handleConfirmAction}
-                title="Deactivate Organisation"
-                message="Are you sure you want to deactivate this organisation?"
-                confirmText="Deactivate"
-                type="warning"
+                title={confirmModal.org?.statusCode === 'ACTIVE' ? "Deactivate Organisation" : "Activate Organisation"}
+                message={`Are you sure you want to ${confirmModal.org?.statusCode === 'ACTIVE' ? 'deactivate' : 'activate'} this organisation?`}
+                confirmText={confirmModal.org?.statusCode === 'ACTIVE' ? "Deactivate" : "Activate"}
+                type={confirmModal.org?.statusCode === 'ACTIVE' ? "warning" : "info"}
+                loading={isToggleLoading}
             />
 
             {toast && (
