@@ -169,100 +169,172 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
                         </div>
 
                         <div className={styles.accordionItem}>
-                            <div className={styles.accordionHeader} onClick={() => toggleSection("coding")}>
-                                <span><Database size={16} /> Coding Rules ({(sop.codingRulesCPT?.length || 0) + (sop.codingRulesICD?.length || 0)})</span>
-                                {expandedSections.coding ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                            </div>
-                     {expandedSections.coding && (
-  <div className={styles.accordionContent}>
-
-    {/* CPT ACCORDION */}
-    <div className={styles.accordionItem}>
-      <div
-        className={styles.accordionHeader}
-        onClick={() => toggleSection("cpt")}
-      >
-        <span>
-          CPT Codes ({sop.codingRulesCPT?.length || 0})
-        </span>
-        {expandedSections.cpt ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-      </div>
-
-      {expandedSections.cpt && (
-        <div className={styles.accordionContent}>
-          {sop.codingRulesCPT?.length ? (
-            <ul className={styles.ruleList}>
-              {sop.codingRulesCPT.map((r, i) => (
-                <li key={`cpt_${i}`} className={styles.ruleItem}>
-                  <div className={styles.codeLabel}>
-                    <strong>{r.cptCode}</strong> — {r.description}
-                  </div>
-
-                  <div className={styles.codeDetails}>
-                    {r.ndcCode && <span className={styles.detailTag}>NDC: {r.ndcCode}</span>}
-                    {r.units && <span className={styles.detailTag}>Units: {r.units}</span>}
-                    {r.chargePerUnit && <span className={styles.detailTag}>Charge: {r.chargePerUnit}</span>}
-                    {r.modifier && <span className={styles.detailTag}>Modifier: {r.modifier}</span>}
-                    {r.replacementCPT && <span className={styles.detailTag}>Replace: {r.replacementCPT}</span>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className={styles.emptyMessage}>No CPT rules.</div>
-          )}
-        </div>
-      )}
-    </div>
-
-
-    {/* ICD ACCORDION */}
-    <div className={styles.accordionItem}>
-      <div
-        className={styles.accordionHeader}
-        onClick={() => toggleSection("icd")}
-      >
-        <span>
-          ICD Codes ({sop.codingRulesICD?.length || 0})
-        </span>
-        {expandedSections.icd ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-      </div>
-
-      {expandedSections.icd && (
-        <div className={styles.accordionContent}>
-          {sop.codingRulesICD?.length ? (
-            <ul className={styles.ruleList}>
-              {sop.codingRulesICD.map((r, i) => (
-                <li key={`icd_${i}`} className={styles.ruleItem}>
-                  <div className={styles.codeLabel}>
-                    <strong>{r.icdCode}</strong> — {r.description}
-                  </div>
-
-                  {r.notes && (
-                    <div className={styles.codeNotes}>
-                      Notes: {r.notes}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className={styles.emptyMessage}>No ICD rules.</div>
-          )}
-        </div>
-      )}
-    </div>
-
+                          <div className={styles.accordionItem}>
+  <div
+    className={styles.accordionHeader}
+    onClick={() => toggleSection("coding")}
+  >
+    <span>
+      <Database size={16} /> Coding Rules (
+      {(sop.codingRulesCPT?.length || 0) +
+        (sop.codingRulesICD?.length || 0)}
+      )
+    </span>
+    {expandedSections.coding ? (
+      <ChevronUp size={16} />
+    ) : (
+      <ChevronDown size={16} />
+    )}
   </div>
-)}
 
+  {expandedSections.coding && (
+    <div className={styles.accordionContent}>
 
-                        </div>
-                    </div>
-                </div>
-            </div>
+      {/* ================= CPT ================= */}
+      <div className={styles.accordionItem}>
+        <div
+          className={styles.accordionHeader}
+          onClick={() => toggleSection("cpt")}
+        >
+          <span>
+            CPT Codes ({sop.codingRulesCPT?.length || 0})
+          </span>
+          {expandedSections.cpt ? (
+            <ChevronUp size={16} />
+          ) : (
+            <ChevronDown size={16} />
+          )}
         </div>
-    );
-};
+
+        {expandedSections.cpt && (
+          <div className={styles.accordionContent}>
+            {sop.codingRulesCPT?.length ? (
+              <ul className={styles.ruleList}>
+                {sop.codingRulesCPT.map((r, i) => (
+                  <li key={`cpt_${i}`} className={styles.ruleItem}>
+                    <div className={styles.codeLabel}>
+                      <strong>{r.cptCode}</strong> — {r.description}
+                    </div>
+
+                    <div className={styles.codeDetails}>
+                      {r.ndcCode && (
+                        <span className={styles.detailTag}>
+                          NDC: {r.ndcCode}
+                        </span>
+                      )}
+                      {r.units && (
+                        <span className={styles.detailTag}>
+                          Units: {r.units}
+                        </span>
+                      )}
+                      {r.chargePerUnit && (
+                        <span className={styles.detailTag}>
+                          Charge: {r.chargePerUnit}
+                        </span>
+                      )}
+                      {r.modifier && (
+                        <span className={styles.detailTag}>
+                          Modifier: {r.modifier}
+                        </span>
+                      )}
+                      {r.replacementCPT && (
+                        <span className={styles.detailTag}>
+                          Replace: {r.replacementCPT}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className={styles.emptyMessage}>
+                No CPT rules.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ================= ICD ================= */}
+      <div className={styles.accordionItem}>
+        <div
+          className={styles.accordionHeader}
+          onClick={() => toggleSection("icd")}
+        >
+          <span>
+            ICD Codes ({sop.codingRulesICD?.length || 0})
+          </span>
+          {expandedSections.icd ? (
+            <ChevronUp size={16} />
+          ) : (
+            <ChevronDown size={16} />
+          )}
+        </div>
+
+        {expandedSections.icd && (
+          <div className={styles.accordionContent}>
+            {sop.codingRulesICD?.length ? (
+              <ul className={styles.ruleList}>
+                {sop.codingRulesICD.map((r, i) => (
+                  <li key={`icd_${i}`} className={styles.ruleItem}>
+                    <div className={styles.codeLabel}>
+                      <strong>{r.icdCode}</strong>
+                      {r.description && <> — {r.description}</>}
+                    </div>
+
+                    <div className={styles.codeDetails}>
+                      {r.ndcCode && (
+                        <span className={styles.detailTag}>
+                          NDC: {r.ndcCode}
+                        </span>
+                      )}
+                      {r.units && (
+                        <span className={styles.detailTag}>
+                          Units: {r.units}
+                        </span>
+                      )}
+                      {r.chargePerUnit && (
+                        <span className={styles.detailTag}>
+                          Charge: {r.chargePerUnit}
+                        </span>
+                      )}
+                      {r.modifier && (
+                        <span className={styles.detailTag}>
+                          Modifier: {r.modifier}
+                        </span>
+                      )}
+                      {r.replacementCPT && (
+                        <span className={styles.detailTag}>
+                          Replace: {r.replacementCPT}
+                        </span>
+                      )}
+                      {r.notes && (
+                        <span className={styles.detailTag}>
+                          Notes: {r.notes}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className={styles.emptyMessage}>
+                No ICD rules.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+    </div>
+  )}
+</div>
+                                    </div>
+          </div>
+          </div>
+        </div>
+        </div>
+     );
+ };
 
 export default SOPReadOnlyView;

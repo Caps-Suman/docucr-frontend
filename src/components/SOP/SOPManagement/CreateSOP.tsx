@@ -597,49 +597,88 @@ useEffect(() => {
 
     // Current Step 1: Client Selection
     if (currentStep === 1) {
-      if (providerType === 'new') {
-        setCurrentStep(2);
-        return;
+  if (!selectedClientId) {
+    setToast({
+      message: "Please select a client",
+      type: "warning",
+    });
+    return;
+  }
+
+  // Only check in CREATE mode
+  if (!isEditMode) {
+    try {
+      setLoading(true);
+
+      const res = await sopService.checkSOPExistence(selectedClientId, providerIds);
+
+      setLoading(false);
+
+      if (res.exists) {
+        setToast({
+          message: "This client already has an SOP.",
+          type: "warning",
+        });
+        return; // 🚨 STOP HERE
       }
-
-      if (!selectedClientId) {
-        setToast({ message: "Client selection is required", type: "warning" });
-        return;
-      }
-
-      // Check if SOP already exists for this client
-      if (!isEditMode)
-        try {
-          setLoading(true);
-          const { exists } = await sopService.checkSOPExistence(selectedClientId, providerIds);
-          setLoading(false);
-
-          if (exists) {
-            setToast({
-              message: "You can't create sop for this client because already created",
-              type: "warning"
-            });
-            return;
-          }
-        } catch (error) {
-          console.error("Failed to check SOP existence", error);
-          setLoading(false);
-          // Optional: Decide if we block or allow on error. Safe default is to allow or show error.
-          // Let's show error and block to be safe.
-          setToast({ message: "Error validating client SOP status.", type: "error" });
-          return;
-        }
-
-
-      // Valid client selected & No existing SOP
-      const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
-
-      if (client && client.type !== 'Individual') {
-        setCurrentStep(2);
-      } else {
-        setCurrentStep(2);
-      }
+    } catch (err) {
+      setLoading(false);
+      setToast({
+        message: "Failed to validate SOP existence.",
+        type: "error",
+      });
+      return;
     }
+  }
+
+  setCurrentStep(2);
+  return;
+}
+
+    // if (currentStep === 1) {
+    //   if (providerType === 'new') {
+    //     setCurrentStep(2);
+    //     return;
+    //   }
+
+    //   if (!selectedClientId) {
+    //     setToast({ message: "Client selection is required", type: "warning" });
+    //     return;
+    //   }
+
+    //   // Check if SOP already exists for this client
+    //   if (!isEditMode)
+    //     try {
+    //       setLoading(true);
+    //       const { exists } = await sopService.checkSOPExistence(selectedClientId, providerIds);
+    //       setLoading(false);
+
+    //       if (exists) {
+    //         setToast({
+    //           message: "You can't create sop for this client because already created",
+    //           type: "warning"
+    //         });
+    //         return;
+    //       }
+    //     } catch (error) {
+    //       console.error("Failed to check SOP existence", error);
+    //       setLoading(false);
+    //       // Optional: Decide if we block or allow on error. Safe default is to allow or show error.
+    //       // Let's show error and block to be safe.
+    //       setToast({ message: "Error validating client SOP status.", type: "error" });
+    //       return;
+    //     }
+
+
+    //   // Valid client selected & No existing SOP
+    //   const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
+
+    //   if (client && client.type !== 'Individual') {
+    //     setCurrentStep(2);
+    //   } else {
+    //     setCurrentStep(2);
+    //   }
+    // }
     // Current Step 2: Provider Selection (Only if visible)
     else if (currentStep === 2 && getSteps().find(s => s.number === 2)?.title === "Select Providers") {
       if (providerIds.length === 0) {
