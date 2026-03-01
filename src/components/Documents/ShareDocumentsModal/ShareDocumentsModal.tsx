@@ -1,16 +1,27 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Share2, Users, UserPlus, Search, ArrowLeft, Loader2, Mail, ShieldCheck, AlertCircle } from "lucide-react";
+import {
+  X,
+  Share2,
+  Users,
+  UserPlus,
+  Search,
+  ArrowLeft,
+  Loader2,
+  Mail,
+  ShieldCheck,
+  AlertCircle,
+} from "lucide-react";
 import { fetchWithAuth } from "../../../utils/api";
 import styles from "./ShareDocumentsModal.module.css";
 
-interface User {
+interface ShareUser {
   id: string;
   first_name: string;
   last_name: string;
   email: string;
+  roles: { id: string; name: string }[];
 }
-
 interface Props {
   mode: "client" | "internal" | null;
   isOpen: boolean;
@@ -28,14 +39,18 @@ const ShareDocumentsModal: React.FC<Props> = ({
 }) => {
   const forcedMode = mode !== null;
 
-  const [step, setStep] = useState<"type" | "users" | "method" | "email-config">(mode ? "users" : "type");
-  const [shareType, setShareType] = useState<"internal" | "client">(mode || "internal");
+  const [step, setStep] = useState<
+    "type" | "users" | "method" | "email-config"
+  >(mode ? "users" : "type");
+  const [shareType, setShareType] = useState<"internal" | "client">(
+    mode || "internal",
+  );
   const [shareMethod, setShareMethod] = useState<"system" | "email">("system");
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<ShareUser[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<ShareUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
 
@@ -43,9 +58,12 @@ const ShareDocumentsModal: React.FC<Props> = ({
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const filteredUsers = useMemo(() => {
-    return users.filter(u =>
-      `${u.first_name} ${u.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
+    return users.filter(
+      (u) =>
+        `${u.first_name} ${u.last_name}`
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase()),
     );
   }, [users, search]);
 
@@ -100,11 +118,11 @@ const ShareDocumentsModal: React.FC<Props> = ({
     }
   };
 
-  const toggleUser = (user: User) => {
-    setSelectedUsers(prev =>
-      prev.find(u => u.id === user.id)
-        ? prev.filter(u => u.id !== user.id)
-        : [...prev, user]
+  const toggleUser = (user: ShareUser) => {
+    setSelectedUsers((prev) =>
+      prev.find((u) => u.id === user.id)
+        ? prev.filter((u) => u.id !== user.id)
+        : [...prev, user],
     );
   };
 
@@ -126,7 +144,7 @@ const ShareDocumentsModal: React.FC<Props> = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             document_ids: documentIds,
-            user_ids: selectedUsers.map(u => u.id),
+            user_ids: selectedUsers.map((u) => u.id),
           }),
         });
 
@@ -136,26 +154,28 @@ const ShareDocumentsModal: React.FC<Props> = ({
         }
       } else {
         // Email sharing (External)
-        const sharePromises = selectedUsers.map(user => {
+        const sharePromises = selectedUsers.map((user) => {
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!user.email || !emailRegex.test(user.email)) {
-            throw new Error(`Invalid email for ${user.first_name} ${user.last_name}: ${user.email}`);
+            throw new Error(
+              `Invalid email for ${user.first_name} ${user.last_name}: ${user.email}`,
+            );
           }
 
           return fetchWithAuth("/api/documents/share/external/batch", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              document_ids: documentIds.map(id => parseInt(id)),
+              document_ids: documentIds.map((id) => parseInt(id)),
               email: user.email,
               password: password,
-              expires_in_days: 7
+              expires_in_days: 7,
             }),
           });
         });
 
         const results = await Promise.all(sharePromises);
-        const allOk = results.every(res => res.ok);
+        const allOk = results.every((res) => res.ok);
 
         if (allOk) {
           onShare();
@@ -186,17 +206,17 @@ const ShareDocumentsModal: React.FC<Props> = ({
             <div className={styles.headerText}>
               <h3>Share Documents</h3>
               <p className={styles.headerSubtitle}>
-                {documentIds.length} item{documentIds.length !== 1 ? 's' : ''} selected
+                {documentIds.length} item{documentIds.length !== 1 ? "s" : ""}{" "}
+                selected
               </p>
             </div>
           </div>
-<button
-  onClick={() => !sharing && onClose()}
-  className={styles.closeButton}
->
-  <X size={20} />
-</button>
-
+          <button
+            onClick={() => !sharing && onClose()}
+            className={styles.closeButton}
+          >
+            <X size={20} />
+          </button>
         </div>
 
         {/* BODY */}
@@ -207,7 +227,10 @@ const ShareDocumentsModal: React.FC<Props> = ({
               <p className={styles.stepLabel}>Select share destination</p>
 
               <button
-                onClick={() => { setShareType("internal"); setStep("users"); }}
+                onClick={() => {
+                  setShareType("internal");
+                  setStep("users");
+                }}
                 className={styles.typeCard}
               >
                 <div className={styles.typeIcon}>
@@ -220,7 +243,10 @@ const ShareDocumentsModal: React.FC<Props> = ({
               </button>
 
               <button
-                onClick={() => { setShareType("client"); setStep("users"); }}
+                onClick={() => {
+                  setShareType("client");
+                  setStep("users");
+                }}
                 className={styles.typeCard}
               >
                 <div className={styles.typeIcon}>
@@ -244,7 +270,7 @@ const ShareDocumentsModal: React.FC<Props> = ({
                     autoFocus
                     placeholder="Search users..."
                     value={search}
-                    onChange={e => setSearch(e.target.value)}
+                    onChange={(e) => setSearch(e.target.value)}
                     className={styles.searchInput}
                   />
                 </div>
@@ -261,21 +287,28 @@ const ShareDocumentsModal: React.FC<Props> = ({
                     <p>No users found.</p>
                   </div>
                 ) : (
-                  filteredUsers.map(u => (
+                  filteredUsers.map((u) => (
                     <label
                       key={u.id}
-                      className={`${styles.userItem} ${selectedUsers.find(su => su.id === u.id) ? styles.selectedUserItem : ''}`}
+                      className={`${styles.userItem} ${selectedUsers.find((su) => su.id === u.id) ? styles.selectedUserItem : ""}`}
                     >
                       <input
                         type="checkbox"
                         className={styles.checkbox}
-                        checked={!!selectedUsers.find(su => su.id === u.id)}
+                        checked={!!selectedUsers.find((su) => su.id === u.id)}
                         onChange={() => toggleUser(u)}
                       />
                       <div className={styles.userDetails}>
                         <div className={styles.userName}>
                           {u.first_name} {u.last_name}
                         </div>
+
+                        {u.roles && u.roles.length > 0 && (
+                          <div className={styles.userRole}>
+                            {u.roles.map((r) => r.name).join(", ")}
+                          </div>
+                        )}
+
                         <div className={styles.userEmail}>
                           <Mail size={12} /> {u.email}
                         </div>
@@ -332,7 +365,7 @@ const ShareDocumentsModal: React.FC<Props> = ({
                     className={styles.formInput}
                     placeholder="Set a password for the users..."
                     value={password}
-                    onChange={e => {
+                    onChange={(e) => {
                       setPassword(e.target.value);
                       if (e.target.value) setPasswordError("");
                     }}
@@ -349,10 +382,27 @@ const ShareDocumentsModal: React.FC<Props> = ({
               </div>
 
               <div className={styles.userDetails}>
-                <p className={styles.headerSubtitle} style={{ marginTop: '16px' }}>Sharing with {selectedUsers.length} user{selectedUsers.length !== 1 ? 's' : ''}:</p>
-                <div className={styles.userList} style={{ maxHeight: '100px', overflowY: 'auto', border: 'none' }}>
-                  {selectedUsers.map(u => (
-                    <div key={u.id} className={styles.userEmail} style={{ padding: '4px 0' }}>
+                <p
+                  className={styles.headerSubtitle}
+                  style={{ marginTop: "16px" }}
+                >
+                  Sharing with {selectedUsers.length} user
+                  {selectedUsers.length !== 1 ? "s" : ""}:
+                </p>
+                <div
+                  className={styles.userList}
+                  style={{
+                    maxHeight: "100px",
+                    overflowY: "auto",
+                    border: "none",
+                  }}
+                >
+                  {selectedUsers.map((u) => (
+                    <div
+                      key={u.id}
+                      className={styles.userEmail}
+                      style={{ padding: "4px 0" }}
+                    >
                       <Mail size={10} /> {u.email}
                     </div>
                   ))}
@@ -392,14 +442,13 @@ const ShareDocumentsModal: React.FC<Props> = ({
           </div>
 
           <div className={styles.footerActions}>
-<button
-  onClick={onClose}
-  disabled={sharing}
-  className={styles.cancelButton}
->
-  Cancel
-</button>
-
+            <button
+              onClick={onClose}
+              disabled={sharing}
+              className={styles.cancelButton}
+            >
+              Cancel
+            </button>
 
             {step === "users" ? (
               <button
@@ -410,60 +459,61 @@ const ShareDocumentsModal: React.FC<Props> = ({
                 Continue
               </button>
             ) : step === "method" ? (
-             <button
-  onClick={() => {
-    if (shareMethod === "system") {
-      handleShare();
-    } else {
-      setStep("email-config");
-    }
-  }}
-  disabled={sharing}
-  className={styles.shareButton}
->
-  {sharing ? (
-    <>
-      <Loader2 className={styles.loadingIcon} size={16} />
-      <span>Sharing...</span>
-    </>
-  ) : shareMethod === "system" ? (
-    <>
-      <ShieldCheck size={16} />
-      <span>Share in System</span>
-    </>
-  ) : (
-    <>
-      <span>Continue to Config</span>
-      <ArrowLeft style={{ transform: "rotate(180deg)" }} size={16} />
-    </>
-  )}
-</button>
-
+              <button
+                onClick={() => {
+                  if (shareMethod === "system") {
+                    handleShare();
+                  } else {
+                    setStep("email-config");
+                  }
+                }}
+                disabled={sharing}
+                className={styles.shareButton}
+              >
+                {sharing ? (
+                  <>
+                    <Loader2 className={styles.loadingIcon} size={16} />
+                    <span>Sharing...</span>
+                  </>
+                ) : shareMethod === "system" ? (
+                  <>
+                    <ShieldCheck size={16} />
+                    <span>Share in System</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Continue to Config</span>
+                    <ArrowLeft
+                      style={{ transform: "rotate(180deg)" }}
+                      size={16}
+                    />
+                  </>
+                )}
+              </button>
             ) : step === "email-config" ? (
-             <button
-  onClick={handleShare}
-  disabled={sharing || !password}
-  className={styles.shareButton}
->
-  {sharing ? (
-    <>
-      <Loader2 className={styles.loadingIcon} size={16} />
-      <span>Sharing...</span>
-    </>
-  ) : (
-    <>
-      <ShieldCheck size={16} />
-      <span>Share Over Email</span>
-    </>
-  )}
-</button>
-
+              <button
+                onClick={handleShare}
+                disabled={sharing || !password}
+                className={styles.shareButton}
+              >
+                {sharing ? (
+                  <>
+                    <Loader2 className={styles.loadingIcon} size={16} />
+                    <span>Sharing...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck size={16} />
+                    <span>Share Over Email</span>
+                  </>
+                )}
+              </button>
             ) : null}
           </div>
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 

@@ -47,6 +47,12 @@
     gap: 12px;
 }
 
+.userRole {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  margin-top: 2px;
+}
 .iconWrapper {
     padding: 8px;
     background: var(--color-primary-light);
