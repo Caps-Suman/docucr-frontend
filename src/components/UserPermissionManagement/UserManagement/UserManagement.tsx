@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, act } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key, Loader2, Search, Filter, X, ChevronDown } from 'lucide-react';
 import Table from '../../Table/Table';
@@ -48,8 +48,7 @@ const UserManagement: React.FC = () => {
     const [changePasswordUser, setChangePasswordUser] = useState<User | null>(null);
     const [statusFilter, setStatusFilter] = useState<string[]>([]);
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
-
-
+    const [activeTab, setActiveTab] = useState<"internal" | "client">("internal");
     // const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
     const [userTypeModalOpen, setUserTypeModalOpen] = useState(false);
     const [selectedUserType, setSelectedUserType] = useState<"internal" | "client" | null>(null);
@@ -213,7 +212,7 @@ const UserManagement: React.FC = () => {
 
     useEffect(() => {
         loadData();
-    }, [currentPage, itemsPerPage, statusFilter, debouncedSearch, selectedRole, selectedOrg, selectedClientFilter, createdByFilter]);
+    }, [currentPage, itemsPerPage, statusFilter, debouncedSearch, selectedRole, selectedOrg, selectedClientFilter, createdByFilter, activeTab]);
 
     const rolesLoadedRef = React.useRef(false);
     const dataLoadingRef = React.useRef(false);
@@ -378,7 +377,8 @@ const UserManagement: React.FC = () => {
                     (selectedRole && selectedRole.length > 0) ? selectedRole : undefined,
                     (selectedOrg && selectedOrg.length > 0) ? selectedOrg : undefined,
                     (selectedClientFilter && selectedClientFilter.length > 0) ? selectedClientFilter : undefined,
-                    (createdByFilter && createdByFilter.length > 0) ? createdByFilter : undefined
+                    (createdByFilter && createdByFilter.length > 0) ? createdByFilter : undefined,
+                    (activeTab === "client") // isClient flag based on active tab
                 ),
                 userService.getUserStats()
             ]);
@@ -765,6 +765,7 @@ const UserManagement: React.FC = () => {
     return (
         <div className={styles.managementContent}>
             <div className={styles.statsGrid}>
+
                 {userStats.map((stat, index) => (
                     <div
                         key={index}
@@ -782,7 +783,45 @@ const UserManagement: React.FC = () => {
                     </div>
                 ))}
             </div>
+                <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+  <button
+    onClick={() => {
+      setActiveTab("internal");
+      setCurrentPage(0);
+    }}
+    style={{
+      padding: "8px 16px",
+      borderBottom: activeTab === "internal" ? "2px solid #2563eb" : "2px solid transparent",
+      background: "none",
+      borderTop: "none",
+      borderLeft: "none",
+      borderRight: "none",
+      fontWeight: activeTab === "internal" ? 600 : 400,
+      cursor: "pointer"
+    }}
+  >
+    Internal Users
+  </button>
 
+  <button
+    onClick={() => {
+      setActiveTab("client");
+      setCurrentPage(0);
+    }}
+    style={{
+      padding: "8px 16px",
+      borderBottom: activeTab === "client" ? "2px solid #2563eb" : "2px solid transparent",
+      background: "none",
+      borderTop: "none",
+      borderLeft: "none",
+      borderRight: "none",
+      fontWeight: activeTab === "client" ? 600 : 400,
+      cursor: "pointer"
+    }}
+  >
+    Client Users
+  </button>
+</div>
             <div className={styles.tableSection} style={{ position: 'relative' }}>
                 <div className={styles.tableHeader}>
                     <h2>

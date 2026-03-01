@@ -69,10 +69,12 @@ const userService = {
         roleId?: string | string[],
         organisationId?: string | string[],
         clientId?: string | string[],
-        createdBy?: string | string[]
+        createdBy?: string | string[],
+        isClient?: boolean
     ): Promise<UserListResponse> => {
         const params = new URLSearchParams({ page: page.toString(), page_size: pageSize.toString() });
         if (search) params.append('search', search);
+        if (isClient !== undefined) params.append('is_client', isClient.toString());
 
         const appendParam = (key: string, value?: string | string[]) => {
             if (!value) return;
@@ -82,7 +84,7 @@ const userService = {
                 params.append(key, value);
             }
         };
-
+            
         appendParam('status_id', statusId);
         appendParam('role_id', roleId);
         appendParam('organisation_id', organisationId);
