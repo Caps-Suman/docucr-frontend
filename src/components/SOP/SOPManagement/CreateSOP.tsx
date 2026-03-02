@@ -2010,8 +2010,7 @@ useEffect(() => {
     <div style={{
       fontWeight: 600,
       marginTop: 16,
-      marginBottom: 8,
-      color: "#111827"
+      marginBottom: 8
     }}>
       CPT Codes
     </div>
@@ -2028,7 +2027,7 @@ useEffect(() => {
                               fontSize: "13px",
                             }}
                           >
-                            <span style={{ fontWeight: 600, color: "#111827" }}>
+                            <span style={{ fontWeight: 600 }}>
                               CPT: {r.cptCode}
                             </span>
                             {r.description && (
@@ -2098,8 +2097,7 @@ useEffect(() => {
     <div style={{
       fontWeight: 600,
       marginTop: 20,
-      marginBottom: 8,
-      color: "#111827"
+      marginBottom: 8
     }}>
       ICD Codes
     </div>
@@ -2115,7 +2113,7 @@ useEffect(() => {
                               fontSize: "13px",
                             }}
                           >
-                            <span style={{ fontWeight: 600, color: "#111827" }}>
+                            <span style={{ fontWeight: 600 }}>
                               ICD: {r.icdCode}
                             </span>
                             {r.description && (

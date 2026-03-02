@@ -125,7 +125,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
                                                 // Checked can be managed if we passed selectedClientId, but simple click select is fine for now
                                                 />
                                             </td>
-                                            <td style={{ padding: "12px", fontWeight: 500, color: "#1e293b" }}>{client.name}</td>
+                                            <td style={{ padding: "12px", fontWeight: 500 }}>{client.name}</td>
                                             <td style={{ padding: "12px", color: "#64748b" }}>{client.npi || "-"}</td>
                                             <td style={{ padding: "12px" }}>
                                                 <span className={styles.badge}>{client.type}</span>

@@ -204,7 +204,7 @@ const ProviderSelectionModal: React.FC<ProviderSelectionModalProps> = ({
                                                     onClick={(e) => e.stopPropagation()}
                                                 />
                                             </td>
-                                            <td style={{ padding: "12px", fontWeight: 500, color: "#1e293b" }}>
+                                            <td style={{ padding: "12px", fontWeight: 500 }}>
                                                 {provider.first_name} {provider.middle_name} {provider.last_name}
                                             </td>
                                             <td style={{ padding: "12px", color: "#64748b" }}>{provider.npi || "-"}</td>

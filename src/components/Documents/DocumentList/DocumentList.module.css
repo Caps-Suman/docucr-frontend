@@ -954,7 +954,8 @@
 :global(.action-btn) {
     background: none;
     border: none;
-    padding: 6px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     cursor: pointer;
     display: inline-flex;
@@ -1106,6 +1107,9 @@
 .table th,
 .table td {
     white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 
@@ -1227,7 +1231,7 @@
 /* Truncation for cells */
 .cellContent {
     display: block;
-    max-width: 100%;
+    max-width: 250px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

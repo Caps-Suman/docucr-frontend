@@ -57,7 +57,17 @@ const UserMappingModal: React.FC<UserMappingModalProps> = ({ isOpen, onClose, cl
             // Fetch all available users to calculate unassigned
             // In a real large-scale app, we might want a specific API for "available users"
             // For now, mirroring ClientMappingModal logic: fetch all and filter
-            const allUsersResp = await userService.getUsers(1, 1000); // Fetch mostly all
+            const allUsersResp = await userService.getUsers(
+                1,
+                1000,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                false
+            ); // Fetch mostly all internal users
             const allUsers = allUsersResp.users;
 
             const assignedIds = new Set(assigned.map((u: any) => u.id));

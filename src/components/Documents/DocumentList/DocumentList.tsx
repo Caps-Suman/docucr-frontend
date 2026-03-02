@@ -970,7 +970,7 @@ const DocumentList: React.FC = () => {
         setDocuments((prev) =>
           prev.filter((doc) => doc.id !== documentToDelete.id),
         );
-        loadStats(); // 🔥 REQUIRED
+        loadStats(); // REQUIRED
         setShowDeleteModal(false);
         setDocumentToDelete(null);
         setToast({ message: "Document deleted successfully", type: "success" });

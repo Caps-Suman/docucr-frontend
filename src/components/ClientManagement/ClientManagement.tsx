@@ -167,7 +167,17 @@ const ClientManagement: React.FC = () => {
       try {
         setUsersLoading(true);
 
-        const usersData = await userService.getUsers(1, 1000);
+        const usersData = await userService.getUsers(
+          1,
+          1000,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          false
+        );
 
         setUsers(
           usersData.users.map((u) => ({
@@ -974,6 +984,8 @@ const ClientManagement: React.FC = () => {
                     value={selectedUserId}
                     onChange={(val) => setSelectedUserId(val)}
                     placeholder="Select a user..."
+                    size="md"
+                    isSearchable={true}
                   />
 
                   <p style={{ marginTop: 8, color: "#475569" }}>

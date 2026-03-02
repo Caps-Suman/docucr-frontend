@@ -29,7 +29,6 @@
 .active {
     color: #b91c1c;
     background-color: #fee2e2;
-    border-color: #fecaca;
 }
 
 .active:hover {
@@ -39,14 +38,12 @@
 
 /* Orange when inactive (to start/activate) - matching the header theme */
 .inactive {
-    color: #431407;
-    background-color: #fff7ed;
-    border-color: rgb(254, 215, 170);
+    color: #166534;
+    background-color: #dcfce7;
 }
 
 .inactive:hover {
-    background-color: rgb(254, 215, 170);
-    border-color: #fdba74;
+    background-color: #bbf7d0;
 }
 
 .statCard {
@@ -203,7 +200,8 @@
 .editButton {
     background: none;
     border: none;
-    padding: 6px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     cursor: pointer;
     display: inline-flex;
@@ -221,7 +219,8 @@
 .activateButton {
     background: none;
     border: none;
-    padding: 6px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     cursor: pointer;
     display: inline-flex;
@@ -239,7 +238,8 @@
 .deactivateButton {
     background: none;
     border: none;
-    padding: 6px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     cursor: pointer;
     display: inline-flex;
@@ -257,7 +257,8 @@
 .viewButton {
     background: none;
     border: none;
-    padding: 6px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     cursor: pointer;
     display: inline-flex;
@@ -275,7 +276,8 @@
 .downloadButton {
     background: none;
     border: none;
-    padding: 6px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     cursor: pointer;
     display: inline-flex;

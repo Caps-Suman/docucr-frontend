@@ -167,7 +167,6 @@
 .actionBtn.deactivate {
     color: #b91c1c;
     background-color: #fee2e2;
-    border-color: #fecaca;
 }
 
 .actionBtn.deactivate:hover {
@@ -178,12 +177,10 @@
 .actionBtn.activate {
     color: #166534;
     background-color: #dcfce7;
-    border-color: #bbf7d0;
 }
 
 .actionBtn.activate:hover {
     background-color: #bbf7d0;
-    border-color: #86efac;
 }
 
 .actionBtn.delete {
@@ -238,7 +235,6 @@
 :global(.dark) .actionBtn.deactivate {
     color: #f87171;
     background-color: #450a0a;
-    border-color: #7f1d1d;
 }
 
 :global(.dark) .actionBtn.deactivate:hover {
@@ -248,7 +244,6 @@
 :global(.dark) .actionBtn.activate {
     color: #4ade80;
     background-color: #064e3b;
-    border-color: #065f46;
 }
 
 :global(.dark) .actionBtn.activate:hover {
