@@ -318,124 +318,204 @@ const ClientModal: React.FC<ClientModalProps> = ({
       }, 400);
     });
   }, [providers, step]);
-
   const handleFinish = async () => {
-    const pid = primaryTempId || crypto.randomUUID();
+  const isEdit = !!initialData;
+  const pid = primaryTempId || crypto.randomUUID();
 
-    // Construct Payload
-    const payload: any = {
-      is_user: false,
-      type: type === "Group" ? "NPI2" : "NPI1",
-      description,
+  const payload: any = {
+    is_user: false,
+    type: type === "Group" ? "NPI2" : "NPI1",
+    description,
+  };
+
+  // ---------- PRIMARY LOCATION ----------
+  const primaryLocation: any = {
+    address_line_1: addressLine1,
+    address_line_2: addressLine2,
+    city,
+    state_code: stateCode,
+    state_name: stateName,
+    zip_code: zipCode,
+    country,
+    is_primary: true
+  };
+
+  if (isEdit) {
+    primaryLocation.id = pid;         // 🔥 CRITICAL FIX
+  } else {
+    primaryLocation.temp_id = pid;
+  }
+
+  // ---------- SECONDARY LOCATIONS ----------
+  const secondaryLocations = extraAddresses.map(a => {
+    const loc: any = {
+      address_line_1: a.address_line_1,
+      address_line_2: a.address_line_2,
+      city: a.city,
+      state_code: a.state_code,
+      state_name: a.state_name,
+      zip_code: a.zip_code,
+      country: a.country,
+      is_primary: false
     };
 
-    if (type === "Group") {
-      payload.business_name = businessName;
-      payload.npi = npi;
-      payload.primary_temp_id = pid;
-      payload.locations = [
-        // Construct locations array for Individual client too
-        {
-          temp_id: pid,
-          address_line_1: addressLine1,
-          address_line_2: addressLine2,
-          city,
-          state_code: stateCode,
-          state_name: stateName,
-          zip_code: zipCode,
-          country,
-          is_primary: true
-        },
-        ...extraAddresses.map(a => ({
-          ...a,
-          temp_id: a.temp_id,
-          is_primary: false
-        }))
-      ];
-
-
-
-      // PRIMARY ORG ADDRESS
-      payload.address_line_1 = addressLine1;
-      payload.address_line_2 = addressLine2;
-      payload.city = city;
-      payload.state_code = stateCode;
-      payload.state_name = stateName;
-      payload.zip_code = zipCode;
-      payload.country = country;
-
-      let fixedProviders: any[] = [];
-
-      if (isProviderOrg) {
-        fixedProviders = providers.map(p => ({
-          ...p,
-          location_temp_id: p.location_temp_id || primaryTempId
-        }));
-
-        for (const p of fixedProviders) {
-          if (!p.location_temp_id) {
-            throw new Error("Provider missing location link");
-          }
-        }
-
-        payload.providers = fixedProviders;
-      }
-
+    if (a.id) {
+      loc.id = a.id;        // existing
     } else {
-      payload.first_name = firstName;
-      payload.middle_name = middleName;
-      payload.last_name = lastName;
-      payload.npi = npi;
-      //need to put this:  payload.primary_temp_id = primaryTempId || providers[0].location_temp_id;
-      payload.primary_temp_id = pid;
-
-      // Construct locations array for Individual client too
-      payload.locations = [
-        {
-          temp_id: pid,
-          address_line_1: addressLine1,
-          address_line_2: addressLine2,
-          city,
-          state_code: stateCode,
-          state_name: stateName,
-          zip_code: zipCode,
-          country,
-          is_primary: true
-        },
-        ...extraAddresses.map(a => ({
-          ...a,
-          temp_id: a.temp_id,
-          is_primary: false
-        }))
-      ];
-
-      payload.address_line_1 = addressLine1;
-      payload.address_line_2 = addressLine2;
-      payload.city = city;
-      payload.state_code = stateCode;
-      payload.state_name = stateName;
-      payload.zip_code = zipCode;
-      payload.country = country;
+      loc.temp_id = a.temp_id;  // new
     }
-    // console.log("CREATE CLIENT PAYLOAD:", JSON.stringify(payload, null, 2));
-    if (payload.providers) {
-      for (const p of payload.providers) {
-        if (!p.zip_code || !/^\d{5}-\d{4}$/.test(p.zip_code)) {
-          throw new Error("Each provider must have a valid ZIP code");
-        }
+
+    return loc;
+  });
+
+  payload.locations = [primaryLocation, ...secondaryLocations];
+
+  // ---------- BASIC FIELDS ----------
+  if (type === "Group") {
+    payload.business_name = businessName;
+    payload.npi = npi;
+  } else {
+    payload.first_name = firstName;
+    payload.middle_name = middleName;
+    payload.last_name = lastName;
+    payload.npi = npi;
+  }
+
+  payload.address_line_1 = addressLine1;
+  payload.address_line_2 = addressLine2;
+  payload.city = city;
+  payload.state_code = stateCode;
+  payload.state_name = stateName;
+  payload.zip_code = zipCode;
+  payload.country = country;
+
+  // ---------- PROVIDERS ----------
+  if (type === "Group" && isProviderOrg) {
+    payload.providers = providers.map(p => ({
+      ...p,
+      location_temp_id: p.location_temp_id || pid
+    }));
+
+    for (const p of payload.providers) {
+      if (!p.location_temp_id) {
+        throw new Error("Provider missing location link");
+      }
+      if (!p.zip_code || !/^\d{5}-\d{4}$/.test(p.zip_code)) {
+        throw new Error("Each provider must have a valid ZIP code");
       }
     }
-    // console.log("PROVIDERS FINAL:", providers);
-    // console.log("PRIMARY TEMP:", primaryTempId);
-    // console.log("EXTRA ADDRESSES BEFORE SEND:", extraAddresses);
-    // ensure all providers have location id
+  }
 
-    // console.log("PRIMARY:", primaryTempId);
-    // console.log("PROVIDERS:", providers);
+  return await onSubmit(payload);
+};
+  // const handleFinish = async () => {
+  //   const pid = primaryTempId || crypto.randomUUID();
 
-    return await onSubmit(payload);
+  //   // Construct Payload
+  //   const payload: any = {
+  //     is_user: false,
+  //     type: type === "Group" ? "NPI2" : "NPI1",
+  //     description,
+  //   };
 
-  };
+  //   if (type === "Group") {
+  //     payload.business_name = businessName;
+  //     payload.npi = npi;
+  //     payload.primary_temp_id = pid;
+  //     payload.locations = [
+  //       // Construct locations array for Individual client too
+  //       {
+  //         temp_id: pid,
+  //         address_line_1: addressLine1,
+  //         address_line_2: addressLine2,
+  //         city,
+  //         state_code: stateCode,
+  //         state_name: stateName,
+  //         zip_code: zipCode,
+  //         country,
+  //         is_primary: true
+  //       },
+  //       ...extraAddresses.map(a => ({
+  //         ...a,
+  //         temp_id: a.temp_id,
+  //         is_primary: false
+  //       }))
+  //     ];
+
+
+
+  //     // PRIMARY ORG ADDRESS
+  //     payload.address_line_1 = addressLine1;
+  //     payload.address_line_2 = addressLine2;
+  //     payload.city = city;
+  //     payload.state_code = stateCode;
+  //     payload.state_name = stateName;
+  //     payload.zip_code = zipCode;
+  //     payload.country = country;
+
+  //     let fixedProviders: any[] = [];
+
+  //     if (isProviderOrg) {
+  //       fixedProviders = providers.map(p => ({
+  //         ...p,
+  //         location_temp_id: p.location_temp_id || primaryTempId
+  //       }));
+
+  //       for (const p of fixedProviders) {
+  //         if (!p.location_temp_id) {
+  //           throw new Error("Provider missing location link");
+  //         }
+  //       }
+
+  //       payload.providers = fixedProviders;
+  //     }
+
+  //   } else {
+  //     payload.first_name = firstName;
+  //     payload.middle_name = middleName;
+  //     payload.last_name = lastName;
+  //     payload.npi = npi;
+  //     //need to put this:  payload.primary_temp_id = primaryTempId || providers[0].location_temp_id;
+  //     payload.primary_temp_id = pid;
+
+  //     // Construct locations array for Individual client too
+  //     payload.locations = [
+  //       {
+  //         temp_id: pid,
+  //         address_line_1: addressLine1,
+  //         address_line_2: addressLine2,
+  //         city,
+  //         state_code: stateCode,
+  //         state_name: stateName,
+  //         zip_code: zipCode,
+  //         country,
+  //         is_primary: true
+  //       },
+  //       ...extraAddresses.map(a => ({
+  //         ...a,
+  //         temp_id: a.temp_id,
+  //         is_primary: false
+  //       }))
+  //     ];
+
+  //     payload.address_line_1 = addressLine1;
+  //     payload.address_line_2 = addressLine2;
+  //     payload.city = city;
+  //     payload.state_code = stateCode;
+  //     payload.state_name = stateName;
+  //     payload.zip_code = zipCode;
+  //     payload.country = country;
+  //   }
+  //   // console.log("CREATE CLIENT PAYLOAD:", JSON.stringify(payload, null, 2));
+  //   if (payload.providers) {
+  //     for (const p of payload.providers) {
+  //       if (!p.zip_code || !/^\d{5}-\d{4}$/.test(p.zip_code)) {
+  //         throw new Error("Each provider must have a valid ZIP code");
+  //       }
+  //     }
+  //   }
+  //   return await onSubmit(payload);
+  // };
 
   const [providerErrors, setProviderErrors] = useState<string | null>(null);
 
@@ -451,39 +531,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
   const isProviderStep = type === "Group" && isProviderOrg && step === 2;
   const uiMode: "ORG" | "INDIVIDUAL" =
     step === 2 ? "INDIVIDUAL" : type === "Group" ? "ORG" : "INDIVIDUAL";
-
-  //   const person = isProviderStep
-  //     ? providers[0]
-  //     : {
-  //         first_name: firstName,
-  //         middle_name: middleName,
-  //         last_name: lastName,
-  //         npi,
-  //         address_line_1: addressLine1,
-  //         address_line_2: addressLine2,
-  //         city,
-  //         state_code: stateCode,
-  //         state_name: stateName,
-  //         zip_code: zipCode,
-  //         country,
-  //       };
-  //   const person = isProviderStep
-  //     ? providers[0] // provider data
-  //     : {
-  //         first_name: firstName,
-  //         middle_name: middleName,
-  //         last_name: lastName,
-  //         npi,
-  //         address_line_1: addressLine1,
-  //         address_line_2: addressLine2,
-  //         city,
-  //         state_code: stateCode,
-  //         state_name: stateName,
-  //         zip_code: zipCode,
-  //         country,
-  //       };
-
-  // validatedProviders removed (moved to below)
   const activeProvider = providers[activeProviderIndex];
 
   const person =

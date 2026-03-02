@@ -74,7 +74,10 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
   }
 
   const updated = await clientService.updateClient(client.id, data);
+
   setClient(updated);
+  setIsEditClientModalOpen(false);   // 🔥 CLOSE MODAL
+
   return updated;
 };
     const refreshClient = async () => {
