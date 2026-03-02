@@ -31,6 +31,7 @@ export interface Provider {
     country?: string;
     zip_code?: string;
     created_at?: string;
+    description?: string;
 }
 
 export interface Client {

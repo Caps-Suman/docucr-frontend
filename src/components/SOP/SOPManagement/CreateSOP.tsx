@@ -381,35 +381,45 @@ useEffect(() => {
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
   const handleSOPUpload = async (file: File) => {
-    try {
-      setUploading(true);
-
-      // Create new abort controller
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      const response = await sopService.uploadAndExtractSOP(
-        file,
-        controller.signal,
-      );
-
-      if (!response?.extracted_data) {
-        throw new Error("No extracted data returned from AI");
-      }
-
-      applyExtractedSOP(response.extracted_data);
-    } catch (err: any) {
-      if (err.name === "AbortError") {
-        console.log("SOP extraction cancelled");
-      } else {
-        console.error(err);
-        alert("Failed to extract SOP from file");
-      }
-    } finally {
-      setUploading(false);
-      abortControllerRef.current = null;
+  try {
+    if (!selectedClientId) {
+      alert("Please select a client before uploading.");
+      return;
     }
-  };
+
+    setUploading(true);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("provider_type", providerType);
+    formData.append("client_id", selectedClientId);
+    providerIds.forEach(id => {
+      formData.append("provider_ids", id);
+    });
+
+    await sopService.uploadAndExtractSOP(
+      formData,
+      controller.signal
+    );
+
+    // Immediately go back to listing
+    navigate("/sops");
+
+  } catch (err: any) {
+    if (err.name === "AbortError") {
+      console.log("SOP extraction cancelled");
+    } else {
+      console.error(err);
+      alert("Failed to upload SOP");
+    }
+  } finally {
+    setUploading(false);
+    abortControllerRef.current = null;
+  }
+};
 
   const handleCancelUpload = () => {
     if (abortControllerRef.current) {

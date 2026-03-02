@@ -590,14 +590,14 @@ const ClientManagement: React.FC = () => {
               <Eye size={14} />
             </button>
           </Tooltip>
-          {/* <Tooltip content="Edit">
+          <Tooltip content="Edit">
             <button
               className={`${styles.actionBtn} ${styles.edit}`}
               onClick={() => handleEdit(row)}
             >
               <Edit2 size={14} />
             </button>
-          </Tooltip> */}
+          </Tooltip>
       
           <Tooltip
             content={

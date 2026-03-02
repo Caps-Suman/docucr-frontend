@@ -214,30 +214,27 @@ checkProviders: async (
   return res.json();
 },
 
-  uploadAndExtractSOP: async (file: File, signal?: AbortSignal) => {
-    const formData = new FormData();
-    formData.append("file", file);
+  uploadAndExtractSOP: async (formData: FormData, signal?: AbortSignal) => {
+  const token = localStorage.getItem("access_token");
 
-    const token = localStorage.getItem("access_token");
-
-    const response = await fetch(
-      `${API_URL}/api/sops/ai/extract-sop`,
-      {
-        method: "POST",
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        signal,
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(await response.text());
+  const response = await fetch(
+    `${API_URL}/api/sops/ai/extract-sop`,
+    {
+      method: "POST",
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      signal,
     }
+  );
 
-    return response.json();
-  },
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  return response.json();
+},
   getSOPById: async (id: string): Promise<SOP> => {
     const response = await apiClient(`${API_URL}/api/sops/${id}`);
     if (!response.ok) throw new Error('Failed to fetch SOP');

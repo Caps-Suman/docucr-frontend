@@ -92,7 +92,6 @@ const SOPListing: React.FC = () => {
     activeSOPs: 0,
     inactiveSOPs: 0,
   });
-
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Record<string, any>>({
     fromDate: null,
@@ -113,7 +112,6 @@ const SOPListing: React.FC = () => {
   const [clientsForFilter, setClientsForFilter] = useState<any[]>([]);
   const [usersForFilter, setUsersForFilter] = useState<any[]>([]);
   const [loadingFilterData, setLoadingFilterData] = useState(false);
-
   const activeFilterCount = Object.entries(activeFilters).filter(
     ([key, value]) => {
       if (key === "fromDate" || key === "toDate") {
@@ -294,6 +292,17 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
     }
   }, [showFilters]);
 
+  useEffect(() => {
+  const hasExtracting = sops.some(s => s.status?.code === "EXTRACTING");
+
+  if (!hasExtracting) return;
+
+  const interval = setInterval(() => {
+    loadSOPs(debouncedSearchTerm, statusFilter);
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, [sops]);
   const handleApplyFilters = () => {
     setActiveFilters(filters);
     setCurrentPage(0);
@@ -542,17 +551,45 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       render: (_: any, row: SOP) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
     }] : []),
     {
+  key: "status",
+  header: "Status",
+  width: "140px",
+  render: (_: any, row: SOP) => {
+    const code = row.status?.code;
+
+    if (code === "EXTRACTING") {
+      return (
+        <span className={styles.extractingBadge}>
+          <Loader2 size={14} className={styles.animateSpin} />
+          Extracting...
+        </span>
+      );
+    }
+
+    if (code === "ACTIVE") {
+      return <span className={styles.activeBadge}>Active</span>;
+    }
+
+    if (code === "INACTIVE") {
+      return <span className={styles.inactiveBadge}>Inactive</span>;
+    }
+
+    return "-";
+  },
+},
+    {
       key: "actions",
       header: "Actions",
       width: "150px",
       render: (_: any, row: SOP) => {
   const isActive = row.statusId === activeStatusId;
-
+  const isExtracting = row.status?.code === "EXTRACTING";
   return (
     <div style={{ display: "flex", gap: "8px" }}>
       <Tooltip content="View SOP" preferredPosition="left">
         <span style={{ display: 'inline-block' }}>
         <button
+          disabled={isExtracting}
           className={styles.viewButton}
           onClick={() => handleViewSOP(row)}
         >
@@ -564,6 +601,7 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       <Tooltip content="Download PDF" preferredPosition="left">
         <span style={{ display: 'inline-block' }}>
         <button
+          disabled={isExtracting}
           className={styles.downloadButton}
           onClick={() => handleDownloadPDF(row)}
         >
@@ -579,6 +617,7 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       <Tooltip content="Edit" preferredPosition="left">
         <span style={{ display: 'inline-block' }}>
         <button
+          disabled={isExtracting}
           className={`${styles.editButton} }`}
           onClick={() => navigate(`/sops/edit/${row.id}`)}
         >
@@ -590,6 +629,7 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       <Tooltip content={isActive ? "Deactivate" : "Activate"} preferredPosition="left">
         <span style={{ display: 'inline-block' }}>
         <button
+          disabled={isExtracting}
           className={`${styles.statusButton} ${isActive ? styles.active : styles.inactive}`}
           onClick={() => handleToggleStatus(row.id, row.statusId)}
         >
@@ -600,53 +640,6 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
     </div>
   );
 }
-  //     render: (_: any, row: SOP) => {
-  //       // ✅ CORRECT PLACE
-  //       const isActive = row.statusId === activeStatusId;
-
-  //       return (
-  //         <div style={{ display: "flex", gap: "8px" }}>
-  //           <button
-  //             className={styles.viewButton}
-  //             onClick={() => handleViewSOP(row)}
-  //             title="View SOP"
-  //           >
-  //             <Eye size={14} />
-  //           </button>
-
-  //           <button
-  //             className={styles.downloadButton}
-  //             onClick={() => handleDownloadPDF(row)}
-  //             disabled={downloadingId === row.id}
-  //             title="Download PDF"
-  //           >
-  //             {downloadingId === row.id ? (
-  //               <div className={styles.smallSpinner}></div>
-  //             ) : (
-  //               <Download size={14} />
-  //             )}
-  //           </button>
-
-  //           <button
-  //             className={`${styles.editButton} ${!canUpdateSOP ? styles.disabled : ""}`}
-  //             onClick={() => canUpdateSOP && navigate(`/sops/edit/${row.id}`)}
-  //           >
-  //             <Edit size={14} />
-  //           </button>
-
-  //           {/* ✅ STATUS ACTION BUTTON */}
-  //           <button
-  //             className={`${isActive ? styles.deactivateButton : styles.activateButton} ${!canUpdateSOP ? styles.disabled : ""
-  //               }`}
-  //             onClick={() =>
-  //               handleToggleStatus(row.id, row.statusId)
-  //             }
-  //           >
-  //             {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
-  //           </button>
-  //         </div>
-  //       );
-  //     },
     },
   ];
   return (

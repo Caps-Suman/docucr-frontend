@@ -77,7 +77,7 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
                         <div className={styles.infoGrid}>
                             <div className={styles.infoItem}>
                                 <strong>Practice Name</strong>
-                                <span>{sop.providerInfo?.practiceName || "—"}</span>
+                                <span>{sop.client_name || "—"}</span>
                             </div>
                             <div className={styles.infoItem}>
                                 <strong>Software</strong>
@@ -100,7 +100,7 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
 
                     {sop.providers && sop.providers.length > 0 && (
                         <div className={styles.infoSection}>
-                            <h3><Users size={16} /> Linked Providers</h3>
+                            <h3><Users size={16} /> Associated Providers</h3>
                             <table className={styles.detailsTable}>
                                 <thead>
                                     <tr>
