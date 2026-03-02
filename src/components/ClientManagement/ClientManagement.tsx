@@ -590,45 +590,15 @@ const ClientManagement: React.FC = () => {
               <Eye size={14} />
             </button>
           </Tooltip>
-          <Tooltip content="Edit">
+          {/* <Tooltip content="Edit">
             <button
               className={`${styles.actionBtn} ${styles.edit}`}
               onClick={() => handleEdit(row)}
             >
               <Edit2 size={14} />
             </button>
-          </Tooltip>
-          {/* {!row.is_user && (
-            <Tooltip content="Create User">
-              <button
-                className={`${styles.actionBtn} ${styles.createUser}`}
-                onClick={() => {
-                  loadUserFormData();
-
-                  const clientRole = roles.find(
-                    (r) => r.name.toUpperCase() === "CLIENT",
-                  );
-
-                  setCrossCreationData({
-                    client_id: row.id,
-                    email: "",
-                    username: "",
-                    first_name: row.first_name || "",
-                    middle_name: row.middle_name || "",
-                    last_name: row.last_name || "",
-                    roles: clientRole
-                      ? [{ id: clientRole.id, name: clientRole.name }]
-                      : [],
-                    supervisor_id: undefined,
-                  });
-
-                  setIsUserModalOpen(true);
-                }}
-              >
-                <UserCheck size={14} />
-              </button>
-            </Tooltip>
-          )} */}
+          </Tooltip> */}
+      
           <Tooltip
             content={
               row.status_code === "ACTIVE" ? "Deactivate" : "Activate"

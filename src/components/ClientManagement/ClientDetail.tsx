@@ -26,6 +26,7 @@ import SOPReadOnlyView from "../SOP/SOPReadOnlyView/SOPReadOnlyView";
 import AddProviderModal from "./AddProviderModal";
 import AddLocationModal from "./AddLocationModal";
 import styles from "./ClientDetail.module.css";
+import ClientModal from "../ClientManagement/ClientModal";
 
 const ClientDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -40,7 +41,7 @@ const ClientDetail: React.FC = () => {
     const [isAddLocationModalOpen, setIsAddLocationModalOpen] = useState(false);
     const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
     const [editingLocation, setEditingLocation] = useState<ClientLocation | null>(null);
-
+    const [isEditClientModalOpen, setIsEditClientModalOpen] = useState(false);
     useEffect(() => {
         const fetchClientDetails = async () => {
             try {
@@ -67,7 +68,15 @@ const ClientDetail: React.FC = () => {
 
         fetchClientDetails();
     }, [id]);
+const handleClientUpdate = async (data: any): Promise<Client> => {
+  if (!client) {
+    throw new Error("Client not loaded");
+  }
 
+  const updated = await clientService.updateClient(client.id, data);
+  setClient(updated);
+  return updated;
+};
     const refreshClient = async () => {
         try {
             if (!id) return;
@@ -174,12 +183,22 @@ const ClientDetail: React.FC = () => {
                         </button>
                     )}
                     <button
+                    className={styles.primaryAction}
+                    onClick={() => setIsEditClientModalOpen(true)}
+                    >
+                    <Pencil size={16} />
+                    Edit Client
+                    </button>
+                    {client.type !== "NPI1" && (
+                    <button
                         className={styles.secondaryAction}
                         onClick={() => setIsAddLocationModalOpen(true)}
                     >
                         <Plus size={16} />
                         Add Location
                     </button>
+                    )}
+                    {client.type !== "NPI1" && (
                     <button
                         className={styles.primaryAction}
                         onClick={() => setIsAddProviderModalOpen(true)}
@@ -187,6 +206,7 @@ const ClientDetail: React.FC = () => {
                         <Plus size={16} />
                         Add Provider
                     </button>
+                    )}
                 </div>
             </div>
 
@@ -434,6 +454,15 @@ const ClientDetail: React.FC = () => {
                     location={editingLocation || undefined}
                 />
             )}
+            {isEditClientModalOpen && client && (
+  <ClientModal
+    isOpen={isEditClientModalOpen}
+    onClose={() => setIsEditClientModalOpen(false)}
+    onSubmit={handleClientUpdate}
+    initialData={client}
+    title="Edit Client"
+  />
+)}
         </div>
     );
 };
