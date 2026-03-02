@@ -499,7 +499,7 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       width: "250px",
       render: (_: string, row: SOP) => (
         <div>
-          <div style={{ fontWeight: 500, color: "#111827" }}>
+          <div style={{ fontWeight: 500 }}>
             {row.title}
           </div>
         </div>
@@ -511,7 +511,7 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       width: "200px",
       render: (_: string, row: SOP) => (
         <div>
-          <div style={{ fontWeight: 500, color: "#111827" }}>
+          <div style={{ fontWeight: 500 }}>
             {row.client_name}
           </div>
         </div>

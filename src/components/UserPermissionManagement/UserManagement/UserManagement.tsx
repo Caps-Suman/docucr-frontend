@@ -1,6 +1,6 @@
 import React, { useState, useEffect, act } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key, Loader2, Search, Filter, X, ChevronDown } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key, Loader2, Search, Filter, X, ChevronDown, Building2 } from 'lucide-react';
 import Table from '../../Table/Table';
 import CommonPagination from '../../Common/CommonPagination';
 import Loading from '../../Common/Loading';
@@ -783,51 +783,32 @@ const UserManagement: React.FC = () => {
                     </div>
                 ))}
             </div>
-                <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
-  <button
-    onClick={() => {
-      setActiveTab("internal");
-      setCurrentPage(0);
-    }}
-    style={{
-      padding: "8px 16px",
-      borderBottom: activeTab === "internal" ? "2px solid #2563eb" : "2px solid transparent",
-      background: "none",
-      borderTop: "none",
-      borderLeft: "none",
-      borderRight: "none",
-      fontWeight: activeTab === "internal" ? 600 : 400,
-      cursor: "pointer"
-    }}
-  >
-    Internal Users
-  </button>
 
-  <button
-    onClick={() => {
-      setActiveTab("client");
-      setCurrentPage(0);
-    }}
-    style={{
-      padding: "8px 16px",
-      borderBottom: activeTab === "client" ? "2px solid #2563eb" : "2px solid transparent",
-      background: "none",
-      borderTop: "none",
-      borderLeft: "none",
-      borderRight: "none",
-      fontWeight: activeTab === "client" ? 600 : 400,
-      cursor: "pointer"
-    }}
-  >
-    Client Users
-  </button>
-</div>
             <div className={styles.tableSection} style={{ position: 'relative' }}>
                 <div className={styles.tableHeader}>
-                    <h2>
-                        <Users size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-                        Users
-                    </h2>
+                    <div className={styles.headerTabs}>
+                        <button
+                            onClick={() => {
+                                setActiveTab("internal");
+                                setCurrentPage(0);
+                            }}
+                            className={`${styles.headerTabBtn} ${activeTab === "internal" ? styles.active : ""}`}
+                        >
+                            <Shield size={16} />
+                            Internal Users
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setActiveTab("client");
+                                setCurrentPage(0);
+                            }}
+                            className={`${styles.headerTabBtn} ${activeTab === "client" ? styles.active : ""}`}
+                        >
+                            <Building2 size={16} />
+                            Client Users
+                        </button>
+                    </div>
                     <div>
 
                         {/* Search, Filters and Add User Bar */}
