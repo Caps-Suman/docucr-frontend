@@ -65,6 +65,7 @@ type RawSOP = Omit<
 
 
 export const normalizeSOP = (raw: RawSOP): SOP => {
+  if (!raw) return {} as SOP;
   return {
     ...raw,
 
@@ -131,7 +132,8 @@ codingRulesICD: (raw.codingRulesICD ?? []).map((r, i) => ({
 };
 };
 
-const normalizeBillingGuidelines = (input: any[] = []): BillingGuideline[] => {
+const normalizeBillingGuidelines = (input: any[]): BillingGuideline[] => {
+  if (!input || !Array.isArray(input)) return [];
   return input.map((g, i) => ({
     id: g.id || `bg_${i}`,
     category: g.category || `Guideline ${i + 1}`,
@@ -161,8 +163,8 @@ const sopService = {
     if (!response.ok) throw new Error('Failed to fetch SOPs');
     const data = await response.json();
     return {
-      sops: data.sops.map(mapExampleToSOP),
-      total: data.total
+      sops: (data?.sops || []).map(mapExampleToSOP),
+      total: data?.total || 0
     };
   },
   getSOPStats: async (): Promise<{
@@ -367,6 +369,28 @@ createFromExtracted: async (payload: {
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+  },
+
+  reanalyseSOP: async (id: string): Promise<{ message: string; sop_id: string }> => {
+    const response = await apiClient(`${API_URL}/api/sops/sops/${id}/reanalyse`, {
+      method: "POST"
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "Failed to reanalyse SOP");
+    }
+    return response.json();
+  },
+
+  stopSOP: async (id: string): Promise<{ message: string; sop_id: string }> => {
+    const response = await apiClient(`${API_URL}/api/sops/sops/${id}/stop`, {
+      method: "POST"
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "Failed to stop SOP extraction");
+    }
+    return response.json();
   }
 };
 

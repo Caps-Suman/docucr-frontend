@@ -16,6 +16,8 @@ import {
   Filter,
   Loader2,
   X,
+  RotateCcw,
+  Trash2,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import Table from "../../Table/Table";
@@ -59,11 +61,20 @@ const SOPListing: React.FC = () => {
   const [expandedSections, setExpandedSections] = useState<{
     [key: string]: boolean;
   }>({});
+
+  const hasFailedSOPs = useMemo(() => {
+    return sops.some(
+      (sop) =>
+        sop.status?.code === "FAILED" || sop.status?.code === "AI_FAILED"
+    );
+  }, [sops]);
+
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     sopId: string;
-    action: "activate" | "deactivate";
+    action: "activate" | "deactivate" | "delete";
   }>({ isOpen: false, sopId: "", action: "activate" });
+  const [isConfirmLoading, setIsConfirmLoading] = useState(false);
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [activeStatusId, setActiveStatusId] = useState<number | null>(null);
   const [inactiveStatusId, setInactiveStatusId] = useState<number | null>(null);
@@ -383,19 +394,31 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
 
   const confirmToggleStatus = async () => {
     try {
-      const newStatusId =
-        confirmModal.action === "activate" ? activeStatusId : inactiveStatusId;
-      if (newStatusId) {
-        await sopService.toggleSOPStatus(confirmModal.sopId, newStatusId);
+      setIsConfirmLoading(true);
+      if (confirmModal.action === "delete") {
+        await sopService.deleteSOP(confirmModal.sopId);
         await Promise.all([
           loadSOPs(debouncedSearchTerm, statusFilter),
           loadStats(),
         ]);
-        // loadSOPs(debouncedSearchTerm, statusFilter);
         setToast({
-          message: `SOP ${confirmModal.action === "activate" ? "activated" : "deactivated"} successfully`,
+          message: "SOP deleted successfully",
           type: "success",
         });
+      } else {
+        const newStatusId =
+          confirmModal.action === "activate" ? activeStatusId : inactiveStatusId;
+        if (newStatusId) {
+          await sopService.toggleSOPStatus(confirmModal.sopId, newStatusId);
+          await Promise.all([
+            loadSOPs(debouncedSearchTerm, statusFilter),
+            loadStats(),
+          ]);
+          setToast({
+            message: `SOP ${confirmModal.action === "activate" ? "activated" : "deactivated"} successfully`,
+            type: "success",
+          });
+        }
       }
       setConfirmModal({ isOpen: false, sopId: "", action: "activate" });
     } catch (error) {
@@ -404,6 +427,46 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
         message: `Failed to ${confirmModal.action} SOP`,
         type: "error",
       });
+    } finally {
+      setIsConfirmLoading(false);
+    }
+  };
+
+  const [reanalysingId, setReanalysingId] = useState<string | null>(null);
+
+  const handleReanalyse = async (sop: SOP) => {
+    try {
+      setReanalysingId(sop.id);
+      await sopService.reanalyseSOP(sop.id);
+      setToast({ message: "Reanalysis started successfully", type: "success" });
+      loadSOPs(debouncedSearchTerm, statusFilter);
+    } catch (error: any) {
+      console.error("Failed to reanalyse SOP:", error);
+      setToast({ 
+        message: error.response?.data?.detail || "Failed to start reanalysis", 
+        type: "error" 
+      });
+    } finally {
+      setReanalysingId(null);
+    }
+  };
+
+  const [stoppingId, setStoppingId] = useState<string | null>(null);
+
+  const handleStop = async (sop: SOP) => {
+    try {
+      setStoppingId(sop.id);
+      await sopService.stopSOP(sop.id);
+      setToast({ message: "Extraction stopped", type: "success" });
+      loadSOPs(debouncedSearchTerm, statusFilter);
+    } catch (error: any) {
+      console.error("Failed to stop SOP:", error);
+      setToast({ 
+        message: error.response?.data?.detail || "Failed to stop extraction", 
+        type: "error" 
+      });
+    } finally {
+      setStoppingId(null);
     }
   };
 
@@ -574,14 +637,18 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       return <span className={styles.inactiveBadge}>Inactive</span>;
     }
 
+    if (code === "FAILED") {
+      return <span className={styles.failedBadge}>Failed</span>;
+    }
+
     return "-";
   },
 },
     {
       key: "actions",
       header: "Actions",
-      width: "150px",
-     render: (_: any, row: SOP) => {
+      width: hasFailedSOPs ? "210px" : "180px",
+      render: (_: any, row: SOP) => {
   const isActive = row.statusId === activeStatusId;
   const isExtracting = row.status?.code === "EXTRACTING";
 
@@ -597,8 +664,8 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
     <div
       style={{
         display: "flex",
-        gap: "8px",
-        ...(isExtracting ? { opacity: 0.6 } : {})
+        gap: "10px",
+        alignItems: "center"
       }}
     >
       <Tooltip content="View SOP" preferredPosition="left">
@@ -657,6 +724,85 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
           </button>
         </span>
       </Tooltip>
+
+      {(row.status?.code === "FAILED" || row.status?.code === "AI_FAILED") && (
+        <>
+          <Tooltip content="Reanalyse" preferredPosition="left">
+            <span style={{ display: "inline-block" }}>
+              <button
+                className={styles.reanalyseButton}
+                onClick={() => handleReanalyse(row)}
+                disabled={reanalysingId === row.id}
+              >
+                {reanalysingId === row.id ? (
+                  <Loader2 size={14} className={styles.animateSpin} />
+                ) : (
+                  <RotateCcw size={14} />
+                )}
+              </button>
+            </span>
+          </Tooltip>
+
+          <Tooltip content="Remove" preferredPosition="left">
+            <span style={{ display: "inline-block" }}>
+              <button
+                className={styles.deleteButton}
+                onClick={() =>
+                  setConfirmModal({
+                    isOpen: true,
+                    sopId: row.id,
+                    action: "delete",
+                  })
+                }
+                style={{
+                  backgroundColor: "#fff7ed",
+                  color: "#ea580c",
+                  border: "1px solid #ffedd5",
+                  padding: "6px",
+                  borderRadius: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  marginLeft: "4px"
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </span>
+          </Tooltip>
+        </>
+      )}
+
+      {row.status?.code === "EXTRACTING" && (
+        <Tooltip content="Stop Extracting" preferredPosition="left">
+          <span style={{ display: "inline-block" }}>
+            <button
+              className={styles.stopButton}
+              onClick={() => handleStop(row)}
+              disabled={stoppingId === row.id}
+              style={{
+                backgroundColor: "#fef2f2",
+                color: "#ef4444",
+                border: "1px solid #fee2e2",
+                padding: "6px",
+                borderRadius: "6px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+            >
+              {stoppingId === row.id ? (
+                <Loader2 size={14} className={styles.animateSpin} />
+              ) : (
+                <X size={14} />
+              )}
+            </button>
+          </span>
+        </Tooltip>
+      )}
     </div>
   );
 }
@@ -788,12 +934,31 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
           setConfirmModal({ isOpen: false, sopId: "", action: "activate" })
         }
         onConfirm={confirmToggleStatus}
-        title={`${confirmModal.action === "activate" ? "Activate" : "Deactivate"} SOP`}
-        message={`Are you sure you want to ${confirmModal.action} this SOP?`}
+        loading={isConfirmLoading}
+        title={`${
+          confirmModal.action === "delete"
+            ? "Remove"
+            : confirmModal.action === "activate"
+            ? "Activate"
+            : "Deactivate"
+        } SOP`}
+        message={`Are you sure you want to ${
+          confirmModal.action === "delete" ? "remove" : confirmModal.action
+        } this SOP?`}
         confirmText={
-          confirmModal.action === "activate" ? "Activate" : "Deactivate"
+          confirmModal.action === "delete"
+            ? "Remove"
+            : confirmModal.action === "activate"
+            ? "Activate"
+            : "Deactivate"
         }
-        type={confirmModal.action === "activate" ? "info" : "warning"}
+        type={
+          confirmModal.action === "delete"
+            ? "warning"
+            : confirmModal.action === "activate"
+            ? "info"
+            : "warning"
+        }
       />
 
       {toast && (

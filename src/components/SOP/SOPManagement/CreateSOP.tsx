@@ -371,7 +371,6 @@ useEffect(() => {
       // However, SOP type is shared. If backend returns snake_case keys in JSON response, we might need to map them to component state
       // provider_type from backend to providerType state
       setProviderType(sop.providerType || "new");
-      setProviderType(sop.providerType || "new");
       if (sop.clientId) {
         setSelectedClientId(sop.clientId);
         // Fetch client details for display
@@ -1122,34 +1121,42 @@ const handleAddGuideline = () => {
                   </div>
                 ) : (
                   <Table
+                    onRowClick={(row) => {
+                      if (isEditMode) return;
+                      if (selectedClientId !== row.id) {
+                        setProviderIds([]);
+                        setSelectedProvidersList([]);
+                      }
+                      setSelectedClientId(row.id);
+                      setSelectedClient(row);
+                      setProviderType("existing");
+                    }}
                     columns={[
                       {
                         key: 'select',
                         header: 'Select',
-                        render: (_, row) => (
-                          <div
-                            style={{
-                              width: '18px',
-                              height: '18px',
-                              borderRadius: '50%',
-                              border: selectedClientId === row.id ? '5px solid #3b82f6' : '1px solid #cbd5e1',
-                              cursor: isEditMode ? 'not-allowed' : 'pointer',
-                              opacity: isEditMode ? 0.5 : 1
-                            }}
-                            onClick={(e) => {
-                              if (isEditMode) return;
-                              e.stopPropagation(); // Prevent row click if any
-                              if (selectedClientId !== row.id) {
-                                setProviderIds([]);
-                                setSelectedProvidersList([]);
-                              }
-                              setSelectedClientId(row.id);
-                              setSelectedClient(row);
-                              setProviderType("existing");
-                            }}
-                            title={isEditMode ? "Cannot change client during edit" : "Select Client"}
-                          />
-                        ),
+                        render: (_, row) => {
+                          const isSelected = selectedClientId === row.id;
+                          return (
+                            <div
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                borderRadius: '50%',
+                                border: isSelected ? '2px solid #3b82f6' : '1px solid #cbd5e1',
+                                backgroundColor: isSelected ? '#3b82f6' : 'white',
+                                cursor: isEditMode ? 'not-allowed' : 'pointer',
+                                opacity: isEditMode ? 0.5 : 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              title={isEditMode ? "Cannot change client during edit" : "Select Client"}
+                            >
+                              {isSelected && <Check size={12} color="white" />}
+                            </div>
+                          );
+                        },
                         width: '60px'
                       },
                       {
@@ -1225,67 +1232,68 @@ const handleAddGuideline = () => {
                   </div>
                 ) : (
                   <Table
+                    onRowClick={(row) => {
+                      const isBlocked = blockedProviders.includes(row.id);
+                      if (isBlocked) return;
+
+                      setProviderIds(prev =>
+                        prev.includes(row.id)
+                          ? prev.filter(id => id !== row.id)
+                          : [...prev, row.id]
+                      );
+
+                      setSelectedProvidersList(prev => {
+                        const exists = prev.find(p => p.id === row.id);
+                        if (exists) return prev.filter(p => p.id !== row.id);
+                        return [...prev, row];
+                      });
+                    }}
                     columns={[
                       {
                         key: 'select',
                         header: 'Select',
                         width: '50px',
-                       render: (_: any, row: any) => {
-  const isBlocked = blockedProviders.includes(row.id);
-  const isSelected = providerIds.includes(row.id);
+                        render: (_: any, row: any) => {
+                          const isBlocked = blockedProviders.includes(row.id);
+                          const isSelected = providerIds.includes(row.id);
 
-  return (
-    <div
-      style={{
-        width: 18,
-        height: 18,
-        borderRadius: '50%',
-        border: isBlocked
-          ? '2px solid #ef4444'
-          : isSelected
-            ? '2px solid #3b82f6'
-            : '1px solid #cbd5e1',
-        backgroundColor: isBlocked
-          ? '#fee2e2'
-          : isSelected
-            ? '#3b82f6'
-            : 'white',
-        cursor: isBlocked ? 'not-allowed' : 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-      title={
-        isBlocked
-          ? "This provider already has an SOP"
-          : ""
-      }
-      onClick={() => {
-        if (isBlocked) return;
+                          return (
+                            <div
+                              style={{
+                                width: 18,
+                                height: 18,
+                                borderRadius: '50%',
+                                border: isBlocked
+                                  ? '2px solid #ef4444'
+                                  : isSelected
+                                    ? '2px solid #3b82f6'
+                                    : '1px solid #cbd5e1',
+                                backgroundColor: isBlocked
+                                  ? '#fee2e2'
+                                  : isSelected
+                                    ? '#3b82f6'
+                                    : 'white',
+                                cursor: isBlocked ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              title={
+                                isBlocked
+                                  ? "This provider already has an SOP"
+                                  : ""
+                              }
+                            >
+                              {isBlocked && (
+                                <X size={12} color="#ef4444" />
+                              )}
 
-        setProviderIds(prev =>
-          prev.includes(row.id)
-            ? prev.filter(id => id !== row.id)
-            : [...prev, row.id]
-        );
-
-        setSelectedProvidersList(prev => {
-          const exists = prev.find(p => p.id === row.id);
-          if (exists) return prev.filter(p => p.id !== row.id);
-          return [...prev, row];
-        });
-      }}
-    >
-      {isBlocked && (
-        <X size={12} color="#ef4444" />
-      )}
-
-      {!isBlocked && isSelected && (
-        <Check size={12} color="white" />
-      )}
-    </div>
-  );
-}
+                              {!isBlocked && isSelected && (
+                                <Check size={12} color="white" />
+                              )}
+                            </div>
+                          );
+                        }
                       },
                       { key: 'name', header: 'Provider Name' },
                       { key: 'npi', header: 'NPI', render: (v: any) => v || '-' },
@@ -1331,6 +1339,7 @@ const handleAddGuideline = () => {
                   {extractionMode === "EXTRACTING" ?(
                     <>
                       <button className={styles.saveButton} type="button" disabled>
+                        <Loader2 size={16} className={styles.animateSpin} style={{ marginRight: 8 }} />
                         Extracting...
                       </button>
                       <button
@@ -2242,9 +2251,7 @@ const handleAddGuideline = () => {
 
   {extractionMode === "EXTRACTING" && (
     <>
-      <button className={styles.saveButton} disabled>
-        Extracting...
-      </button>
+      
 
       <button
         className={styles.saveButton}
