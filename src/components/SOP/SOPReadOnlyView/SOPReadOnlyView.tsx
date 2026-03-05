@@ -22,6 +22,7 @@ interface SOPReadOnlyViewProps {
 const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({ sop, onClose }) => {
 const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     guidelines: true,
+    payerGuidelines: true,
     coding: true,
     cpt: true,
     icd: true
@@ -168,7 +169,31 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
                             )}
                         </div>
 
+<div className={styles.accordion}>
                         <div className={styles.accordionItem}>
+                            <div className={styles.accordionHeader} onClick={() => toggleSection("payerGuidelines")}>
+                                <span><Shield size={16} /> Payer Guidelines ({sop.payerGuidelines?.length || 0})</span>
+                                {expandedSections.payerGuidelines ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </div>
+                            {expandedSections.payerGuidelines && (
+                                <div className={styles.accordionContent}>
+                                    {sop.payerGuidelines?.length ? (
+                                        sop.payerGuidelines.map((g, i) => (
+                                            <div key={i} className={styles.guidelineItem}>
+                                                <span className={styles.guidelineCategory}>{g.payerName}</span>
+                                                <ul className={styles.ruleList}>
+                                                    {g.description && (
+                                                        <li className={styles.ruleItem}>{g.description}</li>
+                                                    )}
+                                                </ul>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className={styles.emptyMessage}>No payer guidelines available.</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                           <div className={styles.accordionItem}>
   <div
     className={styles.accordionHeader}

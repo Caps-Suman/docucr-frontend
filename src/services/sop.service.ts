@@ -37,6 +37,7 @@ const mapExampleToSOP = (data: any): SOP => ({
   },
 
   billingGuidelines: normalizeBillingGuidelines(data.billing_guidelines),
+  payerGuidelines: data.payer_guidelines || [],
   codingRulesCPT: data.coding_rules_cpt || [],
   codingRulesICD: data.coding_rules_icd || [],
   providers: data.providers || [],
@@ -185,10 +186,13 @@ checkSOPExistence: async (
 ): Promise<{ exists: boolean }> => {
 
   const response = await apiClient(
-    `${API_URL}/api/sops/check-client-sop/${clientId}`,
+    `${API_URL}/api/sops/check-client-sop`,
     {
       method: "POST",
-      body: JSON.stringify({ provider_ids: providerIds })
+      body: JSON.stringify({
+        client_id: clientId,
+        provider_ids: providerIds
+      })
     }
   );
 
@@ -214,11 +218,36 @@ checkProviders: async (
   return res.json();
 },
 
-  uploadAndExtractSOP: async (formData: FormData, signal?: AbortSignal) => {
+uploadAndExtractSOP: async (file: File, signal?: AbortSignal) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const token = localStorage.getItem("access_token");
+
+    const response = await fetch(
+      `${API_URL}/api/sops/ai/extract-sop`,
+      {
+        method: "POST",
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        signal,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    return response.json();
+  },
+
+  backgroundUploadAndExtractSOP: async (formData: FormData, signal?: AbortSignal) => {
   const token = localStorage.getItem("access_token");
 
   const response = await fetch(
-    `${API_URL}/api/sops/ai/extract-sop`,
+    `${API_URL}/api/sops/background/ai/extract-sop`,
     {
       method: "POST",
       body: formData,
@@ -231,6 +260,47 @@ checkProviders: async (
 
   if (!response.ok) {
     throw new Error(await response.text());
+  }
+
+  return response.json();
+},
+  extractSOPForeground : async (formData: FormData, signal?: AbortSignal) => {
+  const token = localStorage.getItem("access_token");
+
+  const response = await fetch(
+    `${API_URL}/api/sops/ai/extract-sop-foreground`,
+    {
+      method: "POST",
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      signal,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  return response.json();
+},
+createFromExtracted: async (payload: {
+  extracted_data: any;
+  provider_type: string;
+  client_id: string;
+  provider_ids: string[];
+}) => {
+  const response = await apiClient(
+    `${API_URL}/api/sops/background/ai/from-extracted`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to create SOP from extracted data");
   }
 
   return response.json();

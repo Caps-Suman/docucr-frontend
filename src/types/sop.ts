@@ -76,7 +76,7 @@ export interface BillingGuideline {
 
 export interface PayerGuidelines {
   id: string;
-  title: string;
+  payerName: string;
   description: string;
 }
 export interface InfusionNDCCode {

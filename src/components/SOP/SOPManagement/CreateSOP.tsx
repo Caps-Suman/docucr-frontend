@@ -28,6 +28,7 @@ import {
   SOP,
   ProviderInfo,
   BillingGuideline,
+  PayerGuidelines,
   CodingRule,
   CodingRuleCPT,
   CodingRuleICD,
@@ -110,16 +111,15 @@ const CreateSOP: React.FC = () => {
     title: "",
     description: "",
   });
-
   const [payerGuidelines, setPayerGuidelines] = useState<
-    { id?: string; payer_name: string; description: string }[]
+    PayerGuidelines[]
   >([]);
-
+  
   const [newPayerGuideline, setNewPayerGuideline] = useState({
-    payer_name: "",
+    payerName: "",
     description: "",
   });
-
+  const [extractedData, setExtractedData] = useState<any>(null);
   // Coding Rules - Unified
   const [codingType, setCodingType] = useState<"CPT" | "ICD">("CPT");
 
@@ -175,19 +175,23 @@ const CreateSOP: React.FC = () => {
     type: ToastType;
   } | null>(null);
   const [blockedProviders, setBlockedProviders] = useState<string[]>([]);
-
+  type ExtractionMode = 
+  | "IDLE"
+  | "EXTRACTING"
+  | "READY";
+  const [extractionMode, setExtractionMode] = useState<ExtractionMode>("IDLE");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const { can } = usePermission();
-  const canCreateSOP = can("SOPs", "CREATE");
-  const canUpdateSOP = can("SOPs", "UPDATE");
+  const [currentBackgroundSopId, setCurrentBackgroundSopId] = useState<string | null>(null);
   const handleResetClick = () => {
     setIsResetModalOpen(true);
   };
-  const isNavLocked = uploading || saving ;
+  const isNavLocked = saving || extractionMode === "EXTRACTING";
 
   const confirmReset = () => {
     setTitle("");
@@ -214,6 +218,7 @@ const CreateSOP: React.FC = () => {
     resetCpt();
     resetIcd();
     setNewGuideline({ title: "", description: "" });
+    setNewPayerGuideline({ payerName: "", description: "" });
     setErrors([]);
     setIsResetModalOpen(false);
   };
@@ -222,7 +227,20 @@ const CreateSOP: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  useEffect(() => {
+  if (
+    getSteps().find(s => s.number === currentStep)?.title === "Select Providers"
+    && selectedClientId
+  ) {
+    loadProvidersPaginated();
 
+    // ADD THIS
+    sopService
+      .checkProviders(selectedClientId, modalProviders.map(p => p.id))
+      .then(res => setBlockedProviders(res.blocked_provider_ids || []))
+      .catch(() => setBlockedProviders([]));
+  }
+}, [currentStep]);
   // --- Effects ---
   useEffect(() => {
     // Initial fetch if needed, but Step 2 handles client loading now
@@ -250,13 +268,25 @@ const CreateSOP: React.FC = () => {
   }, [providerSearchTerm]);
 
   // Load Clients when Step 1 is active (Client Selection)
-  useEffect(() => {
-    // If Step 1 is "Select Client", load clients
-    if (getSteps().find(s => s.number === currentStep)?.title === "Select Client") {
-      // Only trigger load if not already loaded (handled inside loadClientsPaginated now)
-      loadClientsPaginated();
-    }
-  }, [currentStep]); // Remove dependencies that shouldn't trigger a RE-FETCH from API
+useEffect(() => {
+  if (!selectedClientId) return;
+
+  if (
+    getSteps().find(s => s.number === currentStep)?.title !== "Select Providers"
+  ) return;
+
+  if (!modalProviders.length) return;
+
+  const ids = modalProviders.map(p => p.id);
+
+  sopService
+    .checkProviders(selectedClientId, ids, id) // pass sopId in edit mode
+    .then(res => {
+      setBlockedProviders(res.blocked_provider_ids || []);
+    })
+    .catch(() => setBlockedProviders([]));
+
+}, [modalProviders, selectedClientId, currentStep]);
 
   // Load Providers when Step 2 is active (Provider Selection) and client selected
   useEffect(() => {
@@ -277,36 +307,55 @@ const CreateSOP: React.FC = () => {
       }
     }
   }, [location.state]);
-useEffect(() => {
-  if (!selectedClientId) return;
+  useEffect(() => {
+  if (!currentBackgroundSopId) return;
 
-  const ids = providerIds;   // ✅ ONLY selected providers
+  const interval = setInterval(async () => {
+    try {
+      const sop = await sopService.getSOPById(currentBackgroundSopId);
 
-  if (!ids.length) {
-    setBlockedProviders([]);
-    return;
-  }
+      if (sop.status?.code === "ACTIVE") {
+        clearInterval(interval);
+        navigate("/sops");
+      }
 
-  // CREATE MODE
-  if (!isEditMode) {
-    sopService.checkProviders(selectedClientId, ids)
-      .then(res => setBlockedProviders(res.blocked_provider_ids || []))
-      .catch(() => setBlockedProviders([]));
-    return;
-  }
+    } catch (e) {
+      console.error(e);
+    }
+  }, 3000);
 
-  // EDIT MODE → only validate if providers changed
-  const hasChanged =
-    JSON.stringify([...ids].sort()) !==
-    JSON.stringify([...initialProviderIds].sort());
+  return () => clearInterval(interval);
+}, [currentBackgroundSopId]);
+// useEffect(() => {
+//   if (!selectedClientId) return;
 
-  if (!hasChanged) return;
+//   const ids = providerIds;   // ✅ ONLY selected providers
 
-  sopService.checkProviders(selectedClientId, ids, sopId)
-    .then(res => setBlockedProviders(res.blocked_provider_ids || []))
-    .catch(() => setBlockedProviders([]));
+//   if (!ids.length) {
+//     setBlockedProviders([]);
+//     return;
+//   }
 
-}, [providerIds, selectedClientId, sopId]);
+//   // CREATE MODE
+//   if (!isEditMode) {
+//     sopService.checkProviders(selectedClientId, ids)
+//       .then(res => setBlockedProviders(res.blocked_provider_ids || []))
+//       .catch(() => setBlockedProviders([]));
+//     return;
+//   }
+
+//   // EDIT MODE → only validate if providers changed
+//   const hasChanged =
+//     JSON.stringify([...ids].sort()) !==
+//     JSON.stringify([...initialProviderIds].sort());
+
+//   if (!hasChanged) return;
+
+//   sopService.checkProviders(selectedClientId, ids, sopId)
+//     .then(res => setBlockedProviders(res.blocked_provider_ids || []))
+//     .catch(() => setBlockedProviders([]));
+
+// }, [providerIds, selectedClientId, sopId]);
 
   const loadSOP = async (sopId: string) => {
     try {
@@ -362,7 +411,7 @@ useEffect(() => {
         setPayerGuidelines(
           sop.payerGuidelines.map((pg: any, i: number) => ({
             id: `pg_db_${i}`,
-            payer_name: pg.payer_name || "Unknown",
+            payerName: pg.payerName || "Unknown",
             description: pg.description || "",
           })),
         );
@@ -380,44 +429,109 @@ useEffect(() => {
   };
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
-  const handleSOPUpload = async (file: File) => {
+// const handleSOPBackgroundUpload = async (file: File) => {
+//   try {
+//     if (!selectedClientId) {
+//       alert("Please select a client before uploading.");
+//       return;
+//     }
+
+//     const controller = new AbortController();
+//     abortControllerRef.current = controller;
+
+//     setExtractionMode("FOREGROUND");
+
+//     const formData = new FormData();
+//     formData.append("file", file);
+//     formData.append("provider_type", providerType);
+//     formData.append("client_id", selectedClientId);
+//     providerIds.forEach(id => {
+//       formData.append("provider_ids", id);
+//     });
+
+//     const result = await sopService.backgroundUploadAndExtractSOP(
+//       formData,
+//       controller.signal
+//     );
+
+//     setCurrentBackgroundSopId(result.sop_id);
+
+//   } catch (err: any) {
+//     if (err.name === "CanceledError") {
+//       console.log("Upload cancelled");
+//     } else {
+//       console.error(err);
+//       alert("Failed to upload SOP");
+//     }
+//   } finally {
+//     abortControllerRef.current = null;
+//   }
+// };
+
+const handleForegroundExtraction = async (file: File) => {
+  const controller = new AbortController();
+  abortControllerRef.current = controller;
+
   try {
-    if (!selectedClientId) {
-      alert("Please select a client before uploading.");
-      return;
-    }
-
-    setUploading(true);
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+    setExtractionMode("EXTRACTING");
 
     const formData = new FormData();
     formData.append("file", file);
+
+    const result = await sopService.extractSOPForeground(
+      formData,
+      controller.signal
+    );
+
+    applyExtractedSOP(result.extracted_data);
+    setExtractedData(result.extracted_data);
+
+    // ✅ Only set READY if extraction actually succeeded
+    setExtractionMode("READY");
+
+  } catch (err: any) {
+
+    if (err.name === "AbortError") {
+      console.log("Extraction cancelled");
+      setExtractionMode("IDLE");   // ✅ IMPORTANT
+    } else {
+      console.error(err);
+      setExtractionMode("IDLE");   // ✅ Reset on error
+    }
+
+  } finally {
+    abortControllerRef.current = null;
+  }
+};
+const [backgroundLoading, setBackgroundLoading] = useState(false);
+
+const moveToBackground = async () => {
+  if (!uploadedFile) return;
+
+  try {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    setBackgroundLoading(true);
+
+    const formData = new FormData();
+    formData.append("file", uploadedFile);
     formData.append("provider_type", providerType);
     formData.append("client_id", selectedClientId);
     providerIds.forEach(id => {
       formData.append("provider_ids", id);
     });
 
-    await sopService.uploadAndExtractSOP(
-      formData,
-      controller.signal
-    );
+    const result = await sopService.backgroundUploadAndExtractSOP(formData);
 
-    // Immediately go back to listing
+    setCurrentBackgroundSopId(result.sop_id);
+
     navigate("/sops");
 
-  } catch (err: any) {
-    if (err.name === "AbortError") {
-      console.log("SOP extraction cancelled");
-    } else {
-      console.error(err);
-      alert("Failed to upload SOP");
-    }
-  } finally {
-    setUploading(false);
-    abortControllerRef.current = null;
+  } catch (err) {
+    console.error(err);
+    setBackgroundLoading(false);
   }
 };
 
@@ -482,7 +596,7 @@ useEffect(() => {
       setPayerGuidelines(
         data.payer_guidelines.map((pg: any, i: number) => ({
           id: `pg_ai_${i}`,
-          payer_name: pg?.payer_name || "Unknown",
+          payerName: pg?.payerName || "Unknown",
           description: pg?.description || "",
         })),
       );
@@ -554,7 +668,11 @@ useEffect(() => {
     if (allClients.length > 0 || isFetchingClients.current) return;
     await fetchAllClients();
   };
-
+  useEffect(() => {
+  if (currentStep === 1) {
+    loadClientsPaginated();
+  }
+}, [currentStep]);
   // Effect to handle client-side filtering/pagination when search/page changes
   useEffect(() => {
     // If we are using the bulk list (allClients has data)
@@ -601,113 +719,98 @@ useEffect(() => {
     return client?.type === 'Individual';
   };
 
-  const handleNextStep = async () => {
-    const steps = getSteps();
-    const isLastStep = currentStep === steps.length;
+const handleNextStep = () => {
+  const steps = getSteps();
 
-    // Current Step 1: Client Selection
-    if (currentStep === 1) {
-  if (!selectedClientId) {
-    setToast({
-      message: "Please select a client",
-      type: "warning",
-    });
-    return;
-  }
-
-  // Only check in CREATE mode
-  if (!isEditMode) {
-    try {
-      setLoading(true);
-
-      const res = await sopService.checkSOPExistence(selectedClientId, providerIds);
-
-      setLoading(false);
-
-      if (res.exists) {
-        setToast({
-          message: "This client already has an SOP.",
-          type: "warning",
-        });
-        return; // 🚨 STOP HERE
-      }
-    } catch (err) {
-      setLoading(false);
+  // STEP 1: Select Client
+  if (currentStep === 1) {
+    if (!selectedClientId) {
       setToast({
-        message: "Failed to validate SOP existence.",
-        type: "error",
+        message: "Please select a client",
+        type: "warning",
       });
       return;
     }
+
+    setCurrentStep(prev => prev + 1);
+    return;
   }
 
-  setCurrentStep(2);
-  return;
-}
-
-    // if (currentStep === 1) {
-    //   if (providerType === 'new') {
-    //     setCurrentStep(2);
-    //     return;
-    //   }
-
-    //   if (!selectedClientId) {
-    //     setToast({ message: "Client selection is required", type: "warning" });
-    //     return;
-    //   }
-
-    //   // Check if SOP already exists for this client
-    //   if (!isEditMode)
-    //     try {
-    //       setLoading(true);
-    //       const { exists } = await sopService.checkSOPExistence(selectedClientId, providerIds);
-    //       setLoading(false);
-
-    //       if (exists) {
-    //         setToast({
-    //           message: "You can't create sop for this client because already created",
-    //           type: "warning"
-    //         });
-    //         return;
-    //       }
-    //     } catch (error) {
-    //       console.error("Failed to check SOP existence", error);
-    //       setLoading(false);
-    //       // Optional: Decide if we block or allow on error. Safe default is to allow or show error.
-    //       // Let's show error and block to be safe.
-    //       setToast({ message: "Error validating client SOP status.", type: "error" });
-    //       return;
-    //     }
-
-
-    //   // Valid client selected & No existing SOP
-    //   const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
-
-    //   if (client && client.type !== 'Individual') {
-    //     setCurrentStep(2);
-    //   } else {
-    //     setCurrentStep(2);
-    //   }
-    // }
-    // Current Step 2: Provider Selection (Only if visible)
-    else if (currentStep === 2 && getSteps().find(s => s.number === 2)?.title === "Select Providers") {
-      if (providerIds.length === 0) {
-        setToast({ message: "Select atleast one provider", type: "warning" });
-        return;
-      }
-      setCurrentStep(3);
-    }
-    // Step 2 or 3: Basic Information
-    else if (getSteps().find(s => s.number === currentStep)?.title === "Basic Information") {
-      if (validateStep1()) {
-        setCurrentStep(currentStep + 1);
-      }
-    }
-    // Preview
-    else if (isLastStep) {
+  // STEP 2: Select Providers
+  if (
+    getSteps().find(s => s.number === currentStep)?.title === "Select Providers"
+  ) {
+    if (providerIds.length === 0) {
+      setToast({
+        message: "Select at least one provider",
+        type: "warning",
+      });
       return;
     }
-  };
+
+    setCurrentStep(prev => prev + 1);
+    return;
+  }
+
+  // STEP: Basic Information
+  if (
+    getSteps().find(s => s.number === currentStep)?.title ===
+    "Basic Information"
+  ) {
+    if (!validateStep1()) return;
+
+    setCurrentStep(prev => prev + 1);
+    return;
+  }
+};
+
+  // Only check in CREATE mode
+//   if (!isEditMode) {
+//     try {
+//       setLoading(true);
+
+//       // const res = await sopService.checkSOPExistence(selectedClientId, providerIds);
+
+//       setLoading(false);
+
+//       if (res.exists) {
+//         setToast({
+//           message: "This client already has an SOP.",
+//           type: "warning",
+//         });
+//         return; // 🚨 STOP HERE
+//       }
+//     } catch (err) {
+//       setLoading(false);
+//       setToast({
+//         message: "Failed to validate SOP existence.",
+//         type: "error",
+//       });
+//       return;
+//     }
+//   }
+
+//   setCurrentStep(2);
+//   return;
+// }
+//     else if (currentStep === 2 && getSteps().find(s => s.number === 2)?.title === "Select Providers") {
+//       if (providerIds.length === 0) {
+//         setToast({ message: "Select atleast one provider", type: "warning" });
+//         return;
+//       }
+//       setCurrentStep(3);
+//     }
+//     // Step 2 or 3: Basic Information
+//     else if (getSteps().find(s => s.number === currentStep)?.title === "Basic Information") {
+//       if (validateStep1()) {
+//         setCurrentStep(currentStep + 1);
+//       }
+//     }
+//     // Preview
+//     else if (isLastStep) {
+//       return;
+//     }
+//   };
 
   const handleBackStep = () => {
     if (currentStep > 1) {
@@ -734,33 +837,46 @@ useEffect(() => {
     return newErrors.length === 0;
   };
 
-  const getSteps = () => {
-    const steps = [
-      { number: 1, title: "Select Client", desc: "Choose a client" }
-    ];
+const getSteps = () => {
+  const steps = [
+    { number: 1, title: "Select Client", desc: "Choose a client" }
+  ];
 
-    // Step 2: Select Providers (Conditional)
-    const client = (allClients.length > 0 ? allClients : clients).find(c => c.id === selectedClientId);
-    let stepCount = 1;
+  const client = (allClients.length > 0 ? allClients : clients)
+    .find(c => c.id === selectedClientId);
 
-    // Logic: 
-    // If client is Organization AND has providers -> Show Provider Step
-    // Otherwise -> Skip Provider Step
+  let stepCount = 1;
 
-    if (client && client.type !== 'Individual' && (client.provider_count > 0)) {
-      stepCount++;
-      steps.push({ number: stepCount, title: "Select Providers", desc: "Link providers" });
-    }
-
-    // Step 3 (or 2): Basic Information
-    steps.push({ number: stepCount + 1, title: "Basic Information", desc: "SOP details & workflow" });
+  // Step 2: Select Providers (only if organization with providers)
+  if (client && client.type !== 'Individual' && client.provider_count > 0) {
     stepCount++;
+    steps.push({
+      number: stepCount,
+      title: "Select Providers",
+      desc: "Link providers"
+    });
+  }
 
-    // Step 4 (or 3): Preview & Save
-    steps.push({ number: stepCount + 1, title: "Preview & Save", desc: "Review details" });
+  // Basic Information step
+  stepCount++;
+  steps.push({
+    number: stepCount,
+    title: "Basic Information",
+    desc: "SOP details & workflow"
+  });
 
-    return steps;
-  };
+  // 🚫 DO NOT add Preview step in edit mode
+  if (!isEditMode) {
+    stepCount++;
+    steps.push({
+      number: stepCount,
+      title: "Preview & Save",
+      desc: "Review details"
+    });
+  }
+
+  return steps;
+};
 
   // const loadClients = async () => ... REMOVED
 
@@ -776,25 +892,24 @@ useEffect(() => {
     setEligibilityPortals(eligibilityPortals.filter((_, i) => i !== index));
   };
 
-  const handleAddGuideline = () => {
-    if (newGuideline.title.trim() && newGuideline.description.trim()) {
-      setBillingGuidelines([
-        ...billingGuidelines,
+const handleAddGuideline = () => {
+  if (newGuideline.title.trim() && newGuideline.description.trim()) {
+    const newEntry = {
+      id: `bg_${Date.now()}`,
+      category: newGuideline.title,
+      rules: [
         {
-          id: `bg_${Date.now()}`,
-          category: newGuideline.title,
-          rules: [
-            {
-              id: `rule_${Date.now()}`,
-              description: newGuideline.description,
-            },
-          ],
+          id: `rule_${Date.now()}`,
+          description: newGuideline.description,
         },
-      ]);
+      ],
+    };
 
-      setNewGuideline({ title: "", description: "" });
-    }
-  };
+    setBillingGuidelines(prev => [newEntry, ...prev]); // 🔥 prepend
+
+    setNewGuideline({ title: "", description: "" });
+  }
+};
 
   const handleRemoveGuideline = (id: string | undefined, index: number) => {
     setBillingGuidelines(
@@ -805,17 +920,17 @@ useEffect(() => {
   const handleAddCodingRule = () => {
     if (codingType === "CPT" && newCpt.cptCode.trim()) {
       setCodingRulesCPT(prev => [
-        ...prev,
-        { id: `cpt_${Date.now()}`, ...newCpt },
-      ]);
+  { id: `cpt_${Date.now()}`, ...newCpt },
+  ...prev
+]);
       resetCpt();
     }
 
     if (codingType === "ICD" && newIcd.icdCode.trim()) {
       setCodingRulesICD(prev => [
-        ...prev,
-        { id: `icd_${Date.now()}`, ...newIcd },
-      ]);
+  { id: `icd_${Date.now()}`, ...newIcd },
+  ...prev
+]);
       resetIcd();
     }
   };
@@ -884,12 +999,7 @@ useEffect(() => {
     const res = await sopService.checkProviders(selectedClientId, providerIds, id);
 
     if (res.blocked_provider_ids?.length) {
-      setToast({
-        message: "Some providers already have SOP",
-        type: "warning"
-      });
-      setSaving(false);
-
+      setToast({ message: "Some providers already have SOP", type: "warning" });
       return;
     }
 
@@ -956,70 +1066,11 @@ useEffect(() => {
           <button
             className={styles.resetButton}
             onClick={handleResetClick}
-            disabled={saving || uploading}
+            disabled={saving || extractionMode === "EXTRACTING"}
           >
             <RotateCcw size={16} />
             Reset
           </button>
-          {/* Header Actions mainly for Reset/Cancel. Main Save/Next is in footer now? 
-              The prompt says "Footer buttons: Back / Next". 
-              I will keep the "Upload" button here in the header? 
-              Upload is for filling Step 1. So it should probably be in Step 1 or Global.
-              Let's keep it in the header for now.
-          */}
-          {/* {uploading ? (
-            <>
-              <button className={styles.saveButton} type="button" disabled>
-                Extracting...
-              </button>
-              <button
-                className={styles.saveButton}
-                type="button"
-                onClick={handleCancelUpload}
-                style={{
-                  backgroundColor: "#ef4444",
-                  borderColor: "#ef4444",
-                  color: "white",
-                }}
-              >
-                <X size={16} />
-                Cancel
-              </button>
-            </>
-          ) : (
-            // <button
-            //   className={styles.saveButton}
-            //   type="button"
-            //   onClick={handleUploadClick}
-            //   disabled={currentStep !== 1} 
-            // >
-            //   <Upload size={16} />
-            //   Upload SOP 1
-            // </button>
-
-
-            <button
-              className={styles.saveButton}
-              type="button"
-              onClick={handleUploadClick}
-            >
-              <Upload size={16} />
-              Upload SOP
-            </button>
-          )} */}
-          {/* <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.docx,.png,.jpg,.jpeg"
-            style={{ display: "none" }}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                handleSOPUpload(file);
-                e.target.value = "";
-              }
-            }}
-          /> */}
         </div>
       </div>
 
@@ -1140,18 +1191,6 @@ useEffect(() => {
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  {/* <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      className={styles.resetButton}
-                      onClick={() => {
-                        setSelectedClientId("");
-                        setProviderType("new");
-                      }}
-                      style={{ fontSize: '12px', padding: '6px 12px' }}
-                    >
-                      Skip / New Provider
-                    </button>
-                  </div> */}
                   <CommonPagination
                     show={totalClients > 0}
                     pageCount={Math.ceil(totalClients / clientItemsPerPage)}
@@ -1191,52 +1230,62 @@ useEffect(() => {
                         key: 'select',
                         header: 'Select',
                         width: '50px',
-                        render: (_: any, row: any) => {
-                          const isBlocked = blockedProviders.includes(row.id);
+                       render: (_: any, row: any) => {
+  const isBlocked = blockedProviders.includes(row.id);
+  const isSelected = providerIds.includes(row.id);
 
-                          return (
-                            <div
-                              style={{
-                                width: 16,
-                                height: 16,
-                                borderRadius: 4,
-                                border: providerIds.includes(row.id)
-                                  ? 'none'
-                                  : '1px solid #cbd5e1',
-                                backgroundColor: isBlocked
-                                  ? '#e5e7eb'
-                                  : providerIds.includes(row.id)
-                                    ? '#3b82f6'
-                                    : 'white',
-                                cursor: isBlocked ? 'not-allowed' : 'pointer',
-                                opacity: isBlocked ? 0.5 : 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                              title={isBlocked ? "SOP already exists for this provider" : ""}
-                              onClick={() => {
-                                if (isBlocked) return;
+  return (
+    <div
+      style={{
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        border: isBlocked
+          ? '2px solid #ef4444'
+          : isSelected
+            ? '2px solid #3b82f6'
+            : '1px solid #cbd5e1',
+        backgroundColor: isBlocked
+          ? '#fee2e2'
+          : isSelected
+            ? '#3b82f6'
+            : 'white',
+        cursor: isBlocked ? 'not-allowed' : 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+      title={
+        isBlocked
+          ? "This provider already has an SOP"
+          : ""
+      }
+      onClick={() => {
+        if (isBlocked) return;
 
-                                setProviderIds(prev =>
-                                  prev.includes(row.id)
-                                    ? prev.filter(id => id !== row.id)
-                                    : [...prev, row.id]
-                                );
+        setProviderIds(prev =>
+          prev.includes(row.id)
+            ? prev.filter(id => id !== row.id)
+            : [...prev, row.id]
+        );
 
-                                setSelectedProvidersList(prev => {
-                                  const exists = prev.find(p => p.id === row.id);
-                                  if (exists) return prev.filter(p => p.id !== row.id);
-                                  return [...prev, row];
-                                });
-                              }}
-                            >
-                              {providerIds.includes(row.id) && (
-                                <Check size={12} color="white" />
-                              )}
-                            </div>
-                          );
-                        }
+        setSelectedProvidersList(prev => {
+          const exists = prev.find(p => p.id === row.id);
+          if (exists) return prev.filter(p => p.id !== row.id);
+          return [...prev, row];
+        });
+      }}
+    >
+      {isBlocked && (
+        <X size={12} color="#ef4444" />
+      )}
+
+      {!isBlocked && isSelected && (
+        <Check size={12} color="white" />
+      )}
+    </div>
+  );
+}
                       },
                       { key: 'name', header: 'Provider Name' },
                       { key: 'npi', header: 'NPI', render: (v: any) => v || '-' },
@@ -1279,7 +1328,7 @@ useEffect(() => {
 
               <div className={styles.stepContainer}>
                 <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-                  {uploading ? (
+                  {extractionMode === "EXTRACTING" ?(
                     <>
                       <button className={styles.saveButton} type="button" disabled>
                         Extracting...
@@ -1312,15 +1361,16 @@ useEffect(() => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.docx,.png,.jpg,.jpeg"
+                    accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg"
                     style={{ display: "none" }}
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleSOPUpload(file);
-                        e.target.value = "";
-                      }
-                    }}
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setUploadedFile(file);
+                      handleForegroundExtraction(file);
+                      e.target.value = "";
+                    }
+                  }}
                   />
                 </div>
                 {errors.length > 0 && (
@@ -1463,136 +1513,6 @@ useEffect(() => {
 
                   </div>
                 </div>
-
-                {/* Provider Info */}
-                {/* <div className={styles.section}>
-                  <div className={styles.sectionTitle}>Provider Information</div>
-
-                  {providerType === "existing" && (
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Selected Client</label>
-                      <div style={{ padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', color: '#64748b' }}>
-                        {selectedClientId
-                          ? (() => {
-                            const c = (allClients.length > 0 ? allClients : clients).find(cl => cl.id === selectedClientId);
-                            return c ? c.name : "Client Selected"; 
-                          })()
-                          : "No Client Selected (Using New Provider Mode)"
-                        }
-                      </div>
-                    </div>
-                  )}
-
-                  <div className={styles.formGrid}>
-                    <>
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                          Provider Name *
-                        </label>
-                        <input
-                          className={styles.input}
-                          value={providerInfo.providerName}
-                          onChange={(e) =>
-                            setProviderInfo({
-                              ...providerInfo,
-                              providerName: e.target.value,
-                            })
-                          }
-                          disabled={providerType === 'existing'} 
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>Billing Provider NPI *</label>
-                        <input
-                          className={styles.input}
-                          value={providerInfo.billingProviderNPI}
-                          onChange={(e) =>
-                            setProviderInfo({
-                              ...providerInfo,
-                              billingProviderNPI: e.target.value
-                                .replace(/\D/g, "")
-                                .slice(0, 10),
-                            })
-                          }
-                          placeholder="10-digit NPI"
-                          disabled={providerType === 'existing'}
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>Provider Tax ID</label>
-                        <input
-                          className={styles.input}
-                          value={providerInfo.providerTaxID}
-                          onChange={(e) =>
-                            setProviderInfo({
-                              ...providerInfo,
-                              providerTaxID: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>Practice Name</label>
-                        <input
-                          className={styles.input}
-                          value={providerInfo.practiceName}
-                          onChange={(e) =>
-                            setProviderInfo({
-                              ...providerInfo,
-                              practiceName: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>Software</label>
-                        <input
-                          className={styles.input}
-                          value={providerInfo.software}
-                          onChange={(e) =>
-                            setProviderInfo({
-                              ...providerInfo,
-                              software: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>Billing Address</label>
-                        <input
-                          className={styles.input}
-                          value={providerInfo.billingAddress}
-                          onChange={(e) =>
-                            setProviderInfo({
-                              ...providerInfo,
-                              billingAddress: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>Clearing house</label>
-                        <input
-                          className={styles.input}
-                          value={providerInfo.clearinghouse}
-                          onChange={(e) =>
-                            setProviderInfo({
-                              ...providerInfo,
-                              clearinghouse: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                    </>
-
-                  </div>
-                </div> */}
-
-                {/* Workflow */}
                 <div className={styles.section}>
                   <div className={styles.sectionTitle}>Workflow Process</div>
                   <div className={styles.formGrid}>
@@ -1737,14 +1657,14 @@ useEffect(() => {
 
                   <div className={styles.formGridWithButton}>
                     <div className={styles.formGroup}>
-                      <label className={styles.label}>Payer Name</label>
+                      <label className={styles.label}>Title</label>
                       <input
                         className={styles.input}
-                        value={newPayerGuideline.payer_name}
+                        value={newPayerGuideline.payerName}
                         onChange={(e) =>
                           setNewPayerGuideline({
                             ...newPayerGuideline,
-                            payer_name: e.target.value,
+                            payerName: e.target.value,
                           })
                         }
                         placeholder="e.g., Medicare, Aetna"
@@ -1772,9 +1692,12 @@ useEffect(() => {
                         type="button"
                         className={styles.saveButton}
                         onClick={() => {
-                          if (newPayerGuideline.payer_name && newPayerGuideline.description) {
-                            setPayerGuidelines([...payerGuidelines, { ...newPayerGuideline, id: `pg_temp_${Date.now()}` }]);
-                            setNewPayerGuideline({ payer_name: "", description: "" });
+                          if (newPayerGuideline.payerName && newPayerGuideline.description) {
+                            setPayerGuidelines(prev => [
+  { ...newPayerGuideline, id: `pg_temp_${Date.now()}` },
+  ...prev
+]);
+                            setNewPayerGuideline({ payerName: "", description: "" });
                           }
                         }}
                       >
@@ -1787,7 +1710,7 @@ useEffect(() => {
                     {payerGuidelines.map((pg, i) => (
                       <div key={pg.id || i} className={styles.cardItem}>
                         <div className={styles.cardContent}>
-                          <h4>{pg.payer_name}</h4>
+                          <h4>{pg.payerName}</h4>
                           <p>{pg.description}</p>
                         </div>
                         <button
@@ -2014,187 +1937,6 @@ useEffect(() => {
                       )}
                     </div>
                   )}
-
-                  {/* {codingRulesCPT.length > 0 && (
-  <>
-    <div style={{
-      fontWeight: 600,
-      marginTop: 16,
-      marginBottom: 8
-    }}>
-      CPT Codes
-    </div>
-                  <div className={styles.cardList}>
-                    {codingRulesCPT.map((r, i) => (
-                      <div key={i} className={styles.cardItem}>
-                        <div className={styles.cardContent} style={{ width: "100%" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              flexWrap: "wrap",
-                              gap: "8px",
-                              fontSize: "13px",
-                            }}
-                          >
-                            <span style={{ fontWeight: 600 }}>
-                              CPT: {r.cptCode}
-                            </span>
-                            {r.description && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Description: {r.description}
-                                </span>
-                              </>
-                            )}
-                            {r.ndcCode && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  NDC: {r.ndcCode}
-                                </span>
-                              </>
-                            )}
-                            {r.units && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Units: {r.units}
-                                </span>
-                              </>
-                            )}
-                            {r.chargePerUnit && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Charge/Unit: {r.chargePerUnit}
-                                </span>
-                              </>
-                            )}
-                            {r.modifier && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Modifier: {r.modifier}
-                                </span>
-                              </>
-                            )}
-                            {r.replacementCPT && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Replacement CPT: {r.replacementCPT}
-                                </span>
-                              </>
-                            )}
-
-                          </div>
-                        </div>
-                        <button
-                          className={styles.deleteButton}
-                          onClick={() => handleRemoveCpt(r.id || "")}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                     </div>
-      ))}
-    </div>
-  </>
-)} */}
-                  {/* {codingRulesICD.length > 0 && (
-  <>
-    <div style={{
-      fontWeight: 600,
-      marginTop: 20,
-      marginBottom: 8
-    }}>
-      ICD Codes
-    </div>
-                    {codingRulesICD.map((r, i) => (
-                      <div key={`icd_${i}`} className={styles.cardItem}>
-                        <div className={styles.cardContent} style={{ width: "100%" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              flexWrap: "wrap",
-                              gap: "8px",
-                              fontSize: "13px",
-                            }}
-                          >
-                            <span style={{ fontWeight: 600 }}>
-                              ICD: {r.icdCode}
-                            </span>
-                            {r.description && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Description: {r.description}
-                                </span>
-                              </>
-                            )}
-                            {r.ndcCode && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  NDC: {r.ndcCode}
-                                </span>
-                              </>
-                            )}
-                            {r.units && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Units: {r.units}
-                                </span>
-                              </>
-                            )}
-                            {r.chargePerUnit && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Charge/Unit: {r.chargePerUnit}
-                                </span>
-                              </>
-                            )}
-                            {r.modifier && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Modifier: {r.modifier}
-                                </span>
-                              </>
-                            )}
-                            {r.replacementCPT && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Replacement CPT: {r.replacementCPT}
-                                </span>
-                              </>
-                            )}
-                            {r.notes && (
-                              <>
-                                <span style={{ color: "#000" }}>|</span>
-                                <span style={{ color: "#6b7280" }}>
-                                  Notes: {r.notes}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                               <button
-            className={styles.deleteButton}
-            onClick={() => handleRemoveIcd(r.id || "")}
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      ))}
-    </div>
-  </>
-)} */}
                   {codingRulesICD.length > 0 && (
                     <div className={styles.guidelineItem} style={{ marginTop: 12 }}>
                       {/* HEADER */}
@@ -2415,7 +2157,7 @@ useEffect(() => {
                       </div>
                       {payerGuidelines.map((pg, i) => (
                         <div key={i} className={styles.previewSubItem}>
-                          <strong>{pg.payer_name}</strong>
+                          <strong>{pg.payerName}</strong>
                           <p>{pg.description}</p>
                         </div>
                       ))}
@@ -2496,47 +2238,57 @@ useEffect(() => {
           </div>
 
           {/* Footer */}
-          <div className={styles.footer}>
-            {currentStep == 1 && (
-  <button
-    className={styles.backButton}
-    onClick={() => navigate("/sops")}
-    disabled={isNavLocked}
-  >
-    Close
-  </button>
-)}
+<div className={styles.footer}>
 
+  {extractionMode === "EXTRACTING" && (
+    <>
+      <button className={styles.saveButton} disabled>
+        Extracting...
+      </button>
 
+      <button
+        className={styles.saveButton}
+        onClick={moveToBackground}
+        disabled={backgroundLoading}
+      >
+        {backgroundLoading ? "Starting..." : "Run in Background"}
+      </button>
+    </>
+  )}
 
-            {currentStep > 1 && (
-              <button
-                className={styles.backButton}
-                onClick={handleBackStep}
-                disabled={isNavLocked}
-              >
-                Back
-              </button>
-            )}
+  {extractionMode !== "EXTRACTING" && (
+    <>
+      {currentStep > 1 && (
+        <button
+          className={styles.backButton}
+          onClick={handleBackStep}
+          disabled={saving}
+        >
+          Back
+        </button>
+      )}
 
-            <button
-              className={styles.saveButton}
-              onClick={currentStep === getSteps().length ? handleSave : handleNextStep}
-              disabled={isNavLocked}
-            >
-              {currentStep === getSteps().length ? (
-                <>
-                  <Save size={16} />
-                  {/* {saving ? "Creating..." : "Create SOP"} */}
-                  {saving ? "Saving..." : isEditMode ? "Update SOP" : "Create New SOP"}
-                </>
-              ) : (
-                <>
-                  Next <ChevronRight size={16} />
-                </>
-              )}
-            </button>
-          </div>
+      <button
+        className={styles.saveButton}
+        onClick={
+          currentStep === getSteps().length
+            ? handleSave
+            : handleNextStep
+        }
+        disabled={saving}
+      >
+        {currentStep === getSteps().length
+          ? saving
+            ? "Saving..."
+            : isEditMode
+              ? "Update SOP"
+              : "Create SOP"
+          : "Next"}
+      </button>
+    </>
+  )}
+
+</div>
         </div>
       </div>
 

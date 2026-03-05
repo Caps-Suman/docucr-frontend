@@ -581,60 +581,80 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       key: "actions",
       header: "Actions",
       width: "150px",
-      render: (_: any, row: SOP) => {
+     render: (_: any, row: SOP) => {
   const isActive = row.statusId === activeStatusId;
   const isExtracting = row.status?.code === "EXTRACTING";
+
+  const disabledStyle = isExtracting
+    ? {
+        opacity: 0.5,
+        pointerEvents: "none" as const,
+        cursor: "not-allowed"
+      }
+    : {};
+
   return (
-    <div style={{ display: "flex", gap: "8px" }}>
+    <div
+      style={{
+        display: "flex",
+        gap: "8px",
+        ...(isExtracting ? { opacity: 0.6 } : {})
+      }}
+    >
       <Tooltip content="View SOP" preferredPosition="left">
-        <span style={{ display: 'inline-block' }}>
-        <button
-          disabled={isExtracting}
-          className={styles.viewButton}
-          onClick={() => handleViewSOP(row)}
-        >
-          <Eye size={14} />
-        </button>
+        <span style={{ display: "inline-block", ...disabledStyle }}>
+          <button
+            disabled={isExtracting}
+            className={styles.viewButton}
+            onClick={() => handleViewSOP(row)}
+          >
+            <Eye size={14} />
+          </button>
         </span>
       </Tooltip>
 
       <Tooltip content="Download PDF" preferredPosition="left">
-        <span style={{ display: 'inline-block' }}>
-        <button
-          disabled={isExtracting}
-          className={styles.downloadButton}
-          onClick={() => handleDownloadPDF(row)}
-        >
-          {downloadingId === row.id ? (
-            <Loader2 size={14} className={styles.animateSpin} />
-          ) : (
-            <Download size={14} />
-          )}
-        </button>
+        <span style={{ display: "inline-block", ...disabledStyle }}>
+          <button
+            disabled={isExtracting}
+            className={styles.downloadButton}
+            onClick={() => handleDownloadPDF(row)}
+          >
+            {downloadingId === row.id ? (
+              <Loader2 size={14} className={styles.animateSpin} />
+            ) : (
+              <Download size={14} />
+            )}
+          </button>
         </span>
       </Tooltip>
 
       <Tooltip content="Edit" preferredPosition="left">
-        <span style={{ display: 'inline-block' }}>
-        <button
-          disabled={isExtracting}
-          className={`${styles.editButton} }`}
-          onClick={() => navigate(`/sops/edit/${row.id}`)}
-        >
-          <Edit size={14} />
-        </button>
+        <span style={{ display: "inline-block", ...disabledStyle }}>
+          <button
+            disabled={isExtracting}
+            className={styles.editButton}
+            onClick={() => navigate(`/sops/edit/${row.id}`)}
+          >
+            <Edit size={14} />
+          </button>
         </span>
       </Tooltip>
 
-      <Tooltip content={isActive ? "Deactivate" : "Activate"} preferredPosition="left">
-        <span style={{ display: 'inline-block' }}>
-        <button
-          disabled={isExtracting}
-          className={`${styles.statusButton} ${isActive ? styles.active : styles.inactive}`}
-          onClick={() => handleToggleStatus(row.id, row.statusId)}
-        >
-          {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
-        </button>
+      <Tooltip
+        content={isActive ? "Deactivate" : "Activate"}
+        preferredPosition="left"
+      >
+        <span style={{ display: "inline-block", ...disabledStyle }}>
+          <button
+            disabled={isExtracting}
+            className={`${styles.statusButton} ${
+              isActive ? styles.active : styles.inactive
+            }`}
+            onClick={() => handleToggleStatus(row.id, row.statusId)}
+          >
+            {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+          </button>
         </span>
       </Tooltip>
     </div>

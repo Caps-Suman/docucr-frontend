@@ -1,4 +1,4 @@
-import { ProviderInfo, BillingGuideline, CodingRule } from "./sop";
+import { ProviderInfo, BillingGuideline, CodingRule, PayerGuidelines } from "./sop";
 
 export interface SOPForm {
   title: string;
@@ -13,5 +13,6 @@ export interface SOPForm {
   eligibilityPortals: string[];
 
   billingGuidelines: BillingGuideline[];
+  payerGuidelines: PayerGuidelines[];
   codingRules: CodingRule[];
 }
