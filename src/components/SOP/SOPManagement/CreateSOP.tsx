@@ -19,6 +19,7 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
+  AlertCircle,
 } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../../styles/selectStyles";
@@ -1062,6 +1063,7 @@ const handleAddGuideline = () => {
           </div>
         </div>
         <div className={styles.headerActions}>
+
           <button
             className={styles.resetButton}
             onClick={handleResetClick}
@@ -1335,70 +1337,40 @@ const handleAddGuideline = () => {
             {getSteps().find(s => s.number === currentStep)?.title === "Basic Information" && (
 
               <div className={styles.stepContainer}>
-                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-                  {extractionMode === "EXTRACTING" ?(
-                    <>
-                      <button className={styles.saveButton} type="button" disabled>
-                        <Loader2 size={16} className={styles.animateSpin} style={{ marginRight: 8 }} />
-                        Extracting...
-                      </button>
-                      <button
-                        className={styles.saveButton}
-                        type="button"
-                        onClick={handleCancelUpload}
-                        style={{
-                          backgroundColor: "#ef4444",
-                          borderColor: "#ef4444",
-                          color: "white",
-                          marginLeft: 8
-                        }}
-                      >
-                        <X size={16} />
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className={styles.saveButton}
-                      type="button"
-                      onClick={handleUploadClick}
-                    >
-                      <Upload size={16} />
-                      Upload SOP
-                    </button>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg"
-                    style={{ display: "none" }}
-                    onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setUploadedFile(file);
-                      handleForegroundExtraction(file);
-                      e.target.value = "";
-                    }
-                  }}
-                  />
+                <div style={{ display: "none" }}>
+                   {/* Elements moved to header */}
                 </div>
                 {errors.length > 0 && (
                   <div
-                    className={styles.section}
-                    style={{ borderColor: "#ef4444", backgroundColor: "#fef2f2" }}
+                    style={{
+                      border: "1px solid #f87171",
+                      backgroundColor: "#fef2f2",
+                      padding: "16px",
+                      borderRadius: "8px",
+                      marginBottom: "20px",
+                    }}
                   >
                     <div
-                      className={styles.sectionTitle}
-                      style={{ color: "#ef4444", marginBottom: "8px" }}
+                      style={{
+                        color: "#b91c1c",
+                        fontWeight: 600,
+                        fontSize: "14px",
+                        marginBottom: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px"
+                      }}
                     >
-                      Please fix the following errors:
+                      <AlertCircle size={16} />
+                      <span>Please fix the following errors:</span>
                     </div>
                     <ul
                       style={{
                         listStyle: "disc",
-                        paddingLeft: "20px",
+                        paddingLeft: "32px",
                         color: "#b91c1c",
                         margin: 0,
+                        fontSize: "13px",
                       }}
                     >
                       {errors.map((err, i) => (
@@ -2251,47 +2223,119 @@ const handleAddGuideline = () => {
 
   {extractionMode === "EXTRACTING" && (
     <>
-      
-
+      <div style={{ display: 'flex', gap: '8px', marginRight: 'auto' }}>
+        <button className={styles.saveButton} type="button" disabled>
+          <Loader2 size={16} className={styles.animateSpin} />
+          Extracting...
+        </button>
+        <button
+          className={styles.saveButton}
+          type="button"
+          onClick={handleCancelUpload}
+          style={{
+            backgroundColor: "#ef4444",
+            borderColor: "#ef4444",
+            color: "white"
+          }}
+        >
+          <X size={16} />
+          Cancel
+        </button>
+      </div>
       <button
         className={styles.saveButton}
         onClick={moveToBackground}
         disabled={backgroundLoading}
       >
-        {backgroundLoading ? "Starting..." : "Run in Background"}
+        {backgroundLoading ? (
+          <>
+            <Loader2 size={16} className={styles.animateSpin} />
+            Starting...
+          </>
+        ) : (
+          <>
+            <Activity size={16} />
+            Run in Background
+          </>
+        )}
       </button>
     </>
   )}
 
   {extractionMode !== "EXTRACTING" && (
     <>
-      {currentStep > 1 && (
+      {getSteps().find(s => s.number === currentStep)?.title === "Basic Information" && (
+        <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+          <button
+            className={styles.saveButton}
+            type="button"
+            onClick={handleUploadClick}
+          >
+            <Upload size={16} />
+            Upload SOP
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setUploadedFile(file);
+                handleForegroundExtraction(file);
+                e.target.value = "";
+              }
+            }}
+          />
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: '8px', marginLeft: getSteps().find(s => s.number === currentStep)?.title === "Basic Information" ? 'auto' : undefined }}>
+        {currentStep > 1 && (
+          <button
+            className={styles.backButton}
+            onClick={handleBackStep}
+            disabled={saving}
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+        )}
+
         <button
-          className={styles.backButton}
-          onClick={handleBackStep}
+          className={styles.saveButton}
+          onClick={
+            currentStep === getSteps().length
+              ? handleSave
+              : handleNextStep
+          }
           disabled={saving}
         >
-          Back
+          {currentStep === getSteps().length ? (
+            saving ? (
+              <>
+                <Loader2 size={16} className={styles.animateSpin} />
+                Saving...
+              </>
+            ) : isEditMode ? (
+              <>
+                <Save size={16} />
+                Update SOP
+              </>
+            ) : (
+              <>
+                <Save size={16} />
+                Create SOP
+              </>
+            )
+          ) : (
+            <>
+              Next
+              <ChevronRight size={16} />
+            </>
+          )}
         </button>
-      )}
-
-      <button
-        className={styles.saveButton}
-        onClick={
-          currentStep === getSteps().length
-            ? handleSave
-            : handleNextStep
-        }
-        disabled={saving}
-      >
-        {currentStep === getSteps().length
-          ? saving
-            ? "Saving..."
-            : isEditMode
-              ? "Update SOP"
-              : "Create SOP"
-          : "Next"}
-      </button>
+      </div>
     </>
   )}
 

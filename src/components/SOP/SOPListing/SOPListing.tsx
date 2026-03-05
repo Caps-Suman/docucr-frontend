@@ -560,25 +560,13 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       key: "title",
       header: "Title",
       width: "250px",
-      render: (_: string, row: SOP) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>
-            {row.title}
-          </div>
-        </div>
-      ),
+      render: (_: string, row: SOP) => row.title,
     },
     {
       key: "client_name",
       header: "Client",
       width: "200px",
-      render: (_: string, row: SOP) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>
-            {row.client_name}
-          </div>
-        </div>
-      ),
+      render: (_: string, row: SOP) => row.client_name || "-",
     },
     {
       key: "npi",
@@ -925,6 +913,7 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
         <SOPReadOnlyView
           sop={selectedSOP}
           onClose={() => setViewModalOpen(false)}
+          isLoading={loadingDetails}
         />
       )}
 

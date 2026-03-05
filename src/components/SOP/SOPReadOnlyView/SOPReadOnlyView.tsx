@@ -14,12 +14,15 @@ import {
 import { SOP } from "../../../types/sop";
 import styles from "./SOPReadOnlyView.module.css";
 
+import Loading from "../../Common/Loading";
+
 interface SOPReadOnlyViewProps {
     sop: SOP;
     onClose: () => void;
+    isLoading?: boolean;
 }
 
-const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({ sop, onClose }) => {
+const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({ sop, onClose, isLoading }) => {
 const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     guidelines: true,
     payerGuidelines: true,
@@ -51,11 +54,17 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
                 </div>
 
                 <div className={styles.modalBody}>
-                    <div className={styles.infoSection}>
-                        <h3><Info size={16} /> Overview</h3>
-                        <div className={styles.infoGrid}>
-                            <div className={styles.infoItem}>
-                                <strong>Client Name</strong>
+                    {isLoading ? (
+                        <div style={{ padding: '40px 0', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Loading message="Fetching SOP details..." />
+                        </div>
+                    ) : (
+                        <>
+                            <div className={styles.infoSection}>
+                                <h3><Info size={16} /> Overview</h3>
+                                <div className={styles.infoGrid}>
+                                    <div className={styles.infoItem}>
+                                        <strong>Client Name</strong>
                                 <span>{sop.client_name || "—"}</span>
                             </div>
                             <div className={styles.infoItem}>
@@ -356,6 +365,8 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
                             )}
                         </div>
                     </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

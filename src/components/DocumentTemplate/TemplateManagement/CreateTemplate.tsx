@@ -367,6 +367,7 @@ const CreateTemplate: React.FC<CreateTemplateProps> = () => {
                                 <h3>
                                     Field Definition
                                     <button
+                                        type="button"
                                         className={styles.infoButton}
                                         onClick={() => setShowHelp(!showHelp)}
                                         title={showHelp ? 'Hide help' : 'Show help'}
