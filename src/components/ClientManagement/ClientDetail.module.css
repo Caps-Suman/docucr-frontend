@@ -57,6 +57,26 @@
     border-color: #d1d5db;
 }
 
+.backButtonLarge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.backButtonLarge:hover {
+    background: #f3f4f6;
+    color: var(--text-main);
+    border-color: #d1d5db;
+}
+
 .title {
     font-size: 18px;
     font-weight: 700;
@@ -91,9 +111,9 @@
 }
 
 .primaryAction {
-    background-color: #111827;
-    color: white;
-    border: none;
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
     padding: 8px 16px;
     border-radius: 8px;
     font-size: 13px;
@@ -102,23 +122,25 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .primaryAction:hover {
-    background-color: #1f2937;
+    background: #83cee4;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(131, 206, 228, 0.2);
 }
 
 .primaryAction svg {
-    color: white !important;
-    stroke: white !important;
+    color: #011926;
+    stroke: #011926;
 }
 
 .secondaryAction {
-    background-color: white;
-    color: #374151;
-    border: 1px solid #e5e7eb;
+    background: #e2f3f9;
+    color: #011926;
+    border: 1px solid #83cee4;
     padding: 8px 16px;
     border-radius: 8px;
     font-size: 13px;
@@ -132,8 +154,14 @@
 }
 
 .secondaryAction:hover {
-    background-color: #f9fafb;
-    border-color: #d1d5db;
+    background: #83cee4;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(131, 206, 228, 0.2);
+}
+
+.secondaryAction svg {
+    color: #011926;
+    stroke: #011926;
 }
 
 .sopBadgeButton {
@@ -160,6 +188,12 @@
     grid-template-columns: 320px 1fr;
     gap: 20px;
     align-items: start;
+}
+
+.mainPanel {
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+    padding-right: 2px;
 }
 
 .card {
@@ -355,15 +389,33 @@
     padding: 2px 8px;
     border-radius: 4px;
     font-weight: 500;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.providerMiniItem:hover {
+    background: #e0f2fe;
+    border-color: #83cee4;
+    color: #0c4a6e;
 }
 
 .providerItem {
     padding: 16px;
     border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s;
 }
 
 .providerItem:hover {
     background: #fafafa;
+}
+
+@keyframes providerHighlight {
+    0%   { background: #e8f6fb; border-left: 3px solid #83cee4; }
+    60%  { background: #f0fafd; border-left: 3px solid #83cee4; }
+    100% { background: transparent; border-left: 3px solid transparent; }
+}
+
+.providerBlink {
+    animation: providerHighlight 2.8s ease-out forwards;
 }
 
 .providerHeader {

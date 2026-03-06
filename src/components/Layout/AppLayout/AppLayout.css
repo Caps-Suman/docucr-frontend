@@ -26,7 +26,7 @@
     height: 45px;
     background-color: white;
     border: 1px solid #e2e8f0;
-    border-radius: 14px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -275,7 +275,7 @@
     flex: 1;
     min-height: 0;
     background-color: white;
-    border-radius: 14px;
+    border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     overflow-y: auto;
 }

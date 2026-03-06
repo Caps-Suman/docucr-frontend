@@ -47,6 +47,8 @@ export type ProviderForm = {
   country: string;
   zip_code: string;
   location_temp_id: string;
+  specialty?: string;
+  specialty_code?: string;
 };
 
 const ClientModal: React.FC<ClientModalProps> = ({
@@ -64,6 +66,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
   const [type, setType] = useState("Individual");
   const [statusId, setStatusId] = useState<string | number>("");
   const [description, setDescription] = useState("");
+  const [specialty, setSpecialty] = useState("");
+  const [specialtyCode, setSpecialtyCode] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addressLine1, setAddressLine1] = useState("");
@@ -106,6 +110,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
       zip_code: "",
       country: "",
       location_temp_id: "",
+      specialty: "",
+      specialty_code: "",
     },
   ]);
 
@@ -125,6 +131,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
       setLastName(initialData.last_name || "");
       setNpi(initialData.npi || "");
       setDescription(initialData.description || "");
+      setSpecialty(initialData.specialty || "");
+      setSpecialtyCode(initialData.specialty_code || "");
       setStatusId(initialData.status_id || "");
 
       // Map backend type to frontend type
@@ -206,7 +214,9 @@ const ClientModal: React.FC<ClientModalProps> = ({
           state_name: (p as any).state_name || "",
           country: (p as any).country || "United States",
           zip_code: (p as any).zip_code || "",
-          location_temp_id: (p as any).location_id || "" // The link!
+          location_temp_id: (p as any).location_id || "", // The link!
+          specialty: p.specialty || "",
+          specialty_code: p.specialty_code || ""
         }));
         setProviders(mappedProviders);
       } else {
@@ -245,6 +255,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
       setStateName("");
       setZipCode("");
       setCountry("United States");
+      setSpecialty("");
+      setSpecialtyCode("");
       setPrimaryTempId(crypto.randomUUID());
 
       setProviders([
@@ -261,6 +273,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
           zip_code: "",
           country: "United States",
           location_temp_id: "",
+          specialty: "",
+          specialty_code: "",
         },
       ]);
     }
@@ -326,6 +340,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
     is_user: false,
     type: type === "Group" ? "NPI2" : "NPI1",
     description,
+    specialty,
+    specialty_code: specialtyCode,
   };
 
   // ---------- PRIMARY LOCATION ----------
@@ -945,6 +961,28 @@ const ClientModal: React.FC<ClientModalProps> = ({
     }
   };
 
+  const applySpecialtyFromNPI = (result: any, index?: number) => {
+    const taxonomy = result.taxonomies?.find((t: any) => t.primary === true) || result.taxonomies?.[0];
+    const sName = taxonomy?.desc || "";
+    const sCode = taxonomy?.code || "";
+
+    if (isProviderStep) {
+      setProviders((p) => {
+        const copy = [...p];
+        const idx = index ?? activeProviderIndex;
+        copy[idx] = {
+          ...copy[idx],
+          specialty: sName,
+          specialty_code: sCode,
+        };
+        return copy;
+      });
+    } else {
+      setSpecialty(sName);
+      setSpecialtyCode(sCode);
+    }
+  };
+
   const handleFetchNPIDetails = async (index?: number) => {
     const currentNpi = getCurrentNpi(index);
     if (!currentNpi || !/^\d{10}$/.test(currentNpi)) {
@@ -980,10 +1018,23 @@ const ClientModal: React.FC<ClientModalProps> = ({
         //   setType("Individual");
         // }
         if (result.enumeration_type === "NPI-1") {
+          // Validate type match (only for Step 1 client NPI — not for providers in Step 2)
+          if (index === undefined && type === "Group") {
+            setErrors({ npi: "This is an Individual (NPI-1) but you selected Organization. Please change the client type." });
+            setFetchingNpi(false);
+            return;
+          }
           applyNamesFromNPI(basic, index);
+          applySpecialtyFromNPI(result, index);
         } else if (result.enumeration_type === "NPI-2") {
+          // Validate type match
+          if (index === undefined && type === "Individual") {
+            setErrors({ npi: "This is an Organization (NPI-2) but you selected Individual. Please change the client type." });
+            setFetchingNpi(false);
+            return;
+          }
           if (step === 1) {
-            setType("Group");
+            applySpecialtyFromNPI(result, index);
             setBusinessName(
               basic.organization_name ||
               basic.authorized_official_organization_name ||
@@ -991,15 +1042,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
             );
           }
         } else {
-          const expectedType =
-            type === "Individual"
-              ? "NPI-1 (Individual)"
-              : "NPI-2 (Organization)";
-          const actualType =
-            result.enumeration_type === "NPI-1" ? "Individual" : "Organization";
-          setErrors({
-            npi: `Found ${actualType} but expected ${expectedType}`,
-          });
+          setErrors({ npi: "Unrecognized NPI type returned from registry." });
           setFetchingNpi(false);
           return;
         }
@@ -1324,89 +1367,103 @@ const ClientModal: React.FC<ClientModalProps> = ({
               />
             </div> */}
             {step === 1 && (
-              <div className={styles.formGroup}>
-                <label className={styles.label}>NPI *</label>
-                <div className={styles.npiInputWrapper}>
-                  <input
-                    className={`${styles.input} ${fetchingNpi ? styles.fetching : ''}`}
-                    value={npi}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, "");
-                      if (value.length > 10) return;
-                      setNpi(value);
-                    }}
-                    style={{ paddingRight: fetchingNpi ? '40px' : '12px' }}
-                  />
-                  {fetchingNpi && (
-                    <div className={styles.inputSpinnerWrapper}>
-                      <div className={styles.spinner} />
-                    </div>
-                  )}
-                  {/* <button
-                    type="button"
-                    className={styles.lookupButton}
-                    onClick={() => handleFetchNPIDetails()}
-                    disabled={fetchingNpi || npi.length !== 10}
-                    title="Lookup NPI details"
-                  > */}
-                  {/* {fetchingNpi ? (
-                      <div className={styles.spinner} />
-                    ) : (
-                      <Search size={18} />
+              <>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>NPI *</label>
+                  <div className={styles.npiInputWrapper}>
+                    <input
+                      className={`${styles.input} ${fetchingNpi ? styles.fetching : ''}`}
+                      value={npi}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+                        if (value.length > 10) return;
+                        setNpi(value);
+                      }}
+                      style={{ paddingRight: fetchingNpi ? '40px' : '12px' }}
+                    />
+                    {fetchingNpi && (
+                      <div className={styles.inputSpinnerWrapper}>
+                        <div className={styles.spinner} />
+                      </div>
                     )}
-                  </button> */}
+                  </div>
+                  {errors.npi && (
+                    <span className={styles.errorText}>{errors.npi}</span>
+                  )}
                 </div>
-                {errors.npi && (
-                  <span className={styles.errorText}>{errors.npi}</span>
-                )}
-              </div>
+
+                <div className={styles.formRowSplit} style={{ marginBottom: "10px" }}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Primary Specialty Code</label>
+                    <input
+                      className={styles.input}
+                      value={specialtyCode}
+                      onChange={(e) => setSpecialtyCode(e.target.value)}
+                      placeholder="Specialty Code"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Primary Specialty Name</label>
+                    <input
+                      className={styles.input}
+                      value={specialty}
+                      onChange={(e) => setSpecialty(e.target.value)}
+                      placeholder="Specialty Name"
+                    />
+                  </div>
+                </div>
+              </>
             )}
             {step === 1 && uiMode === "ORG" ? (
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Business Name *</label>
-                <input
-                  type="text"
-                  className={styles.input}
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="Enter business name"
-                  style={{
-                    borderColor: errors.businessName ? "#ef4444" : "#d1d5db",
-                  }}
-                />
-                {errors.businessName && (
-                  <span className={styles.errorText}>
-                    {errors.businessName}
-                  </span>
-                )}
-              </div>
+                <>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Business Name *</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder="Enter business name"
+                    style={{
+                      borderColor: errors.businessName ? "#ef4444" : "#d1d5db",
+                    }}
+                  />
+                  {errors.businessName && (
+                    <span className={styles.errorText}>
+                      {errors.businessName}
+                    </span>
+                  )}
+                </div>
+              </>
             ) : step === 1 ? (
-              <div className={styles.formRowThree}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>First Name *</label>
-                  <input
-                    className={styles.input}
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                  />
+              <>
+                <div className={styles.formRowThree}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>First Name *</label>
+                    <input
+                      className={styles.input}
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Middle Name</label>
+                    <input
+                      className={styles.input}
+                      value={middleName}
+                      onChange={(e) => setMiddleName(e.target.value)}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Last Name</label>
+                    <input
+                      className={styles.input}
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Middle Name</label>
-                  <input
-                    className={styles.input}
-                    value={middleName}
-                    onChange={(e) => setMiddleName(e.target.value)}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Last Name</label>
-                  <input
-                    className={styles.input}
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                  />
-                </div>
-              </div>
+              </>
             ) : (
               /* STEP 2: PROVIDERS LIST */
               <>
@@ -1519,6 +1576,41 @@ const ClientModal: React.FC<ClientModalProps> = ({
                           style={providerErrorsMap[index]?.last_name ? { borderColor: 'red' } : {}}
                         />
                         {providerErrorsMap[index]?.last_name && <span className={styles.errorText}>{providerErrorsMap[index].last_name}</span>}
+                      </div>
+                    </div>
+
+                    <div className={styles.formRowSplit} style={{ marginBottom: '15px' }}>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Primary Specialty Code</label>
+                        <input
+                          className={styles.input}
+                          value={p.specialty_code || ""}
+                          onFocus={() => setActiveProviderIndex(index)}
+                          onChange={(e) => {
+                            setProviders((prev) => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], specialty_code: e.target.value };
+                              return copy;
+                            });
+                          }}
+                          placeholder="Specialty Code"
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Primary Specialty Name</label>
+                        <input
+                          className={styles.input}
+                          value={p.specialty || ""}
+                          onFocus={() => setActiveProviderIndex(index)}
+                          onChange={(e) => {
+                            setProviders((prev) => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], specialty: e.target.value };
+                              return copy;
+                            });
+                          }}
+                          placeholder="Specialty Name"
+                        />
                       </div>
                     </div>
 

@@ -31,6 +31,8 @@ export interface Provider {
     country?: string;
     zip_code?: string;
     created_at?: string;
+    specialty?: string;
+    specialty_code?: string;
     description?: string;
 }
 
@@ -64,6 +66,8 @@ export interface Client {
     providers?: Provider[];
     organisation_name?: string;
     assigned_users?: string[];
+    specialty?: string;
+    specialty_code?: string;
 }
 
 

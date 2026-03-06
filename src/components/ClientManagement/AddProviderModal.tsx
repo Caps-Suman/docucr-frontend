@@ -28,6 +28,20 @@ interface AddProviderModalProps {
   provider?: Provider;
 }
 
+const statesMap: { [key: string]: string } = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
+  CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia",
+  HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
+  KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland",
+  MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi",
+  MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire",
+  NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina",
+  ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania",
+  RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee",
+  TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington",
+  WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+};
+
 const AddProviderModal: React.FC<AddProviderModalProps> = ({
   isOpen,
   onClose,
@@ -58,7 +72,8 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
     state_name: "",
     zip_code: "",
     country: "United States",
-    description: "",
+    specialty: "",
+    specialty_code: "",
   });
 
   React.useEffect(() => {
@@ -76,7 +91,8 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
         state_name: provider.state_name || "",
         zip_code: provider.zip_code || "",
         country: provider.country || "United States",
-        description: provider.description || "",
+        specialty: provider.specialty || "",
+        specialty_code: provider.specialty_code || "",
       });
     } else {
       setFormData({
@@ -92,7 +108,8 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
         state_name: "",
         zip_code: "",
         country: "United States",
-        description: "",
+        specialty: "",
+        specialty_code: "",
       });
     }
   }, [provider, isOpen]);
@@ -101,6 +118,19 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    
+    if (name === "state_code" && value.length === 2) {
+      const upperCode = value.toUpperCase();
+      if (statesMap[upperCode]) {
+        setFormData((prev) => ({ 
+          ...prev, 
+          state_code: upperCode, 
+          state_name: statesMap[upperCode] 
+        }));
+        return;
+      }
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (name === "npi") {
@@ -157,6 +187,17 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
         ? `${locationAddress.postal_code.slice(0, 5)}-${locationAddress.postal_code.slice(5)}`
         : locationAddress?.postal_code || "";
 
+    const sCode = locationAddress?.state || "";
+    let sName = "";
+    
+    if (statesMap[sCode]) {
+      sName = statesMap[sCode];
+    }
+
+    const primaryTaxonomy = result.taxonomies?.find((t: any) => t.primary) || result.taxonomies?.[0];
+    const specialtyName = primaryTaxonomy?.desc || "";
+    const specialtyCode = primaryTaxonomy?.code || "";
+
     setFormData((prev) => ({
       ...prev,
       first_name: basic.first_name || "",
@@ -165,10 +206,12 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
       address_line_1: locationAddress?.address_1 || "",
       address_line_2: locationAddress?.address_2 || "",
       city: locationAddress?.city || "",
-      state_code: locationAddress?.state || "",
-      state_name: locationAddress?.state || "",
+      state_code: sCode,
+      state_name: sName,
       zip_code: formattedZip,
-      country: locationAddress?.country_name || "United States"
+      country: locationAddress?.country_name || "United States",
+      specialty: specialtyName,
+      specialty_code: specialtyCode,
     }));
 
     setToast({
@@ -225,7 +268,8 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
         state_name: formData.state_name,
         zip_code: formData.zip_code,
         country: formData.country,
-        description: formData.description,
+        specialty: formData.specialty,
+        specialty_code: formData.specialty_code,
       };
 
       if (provider) {
@@ -300,7 +344,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
                 ) : (
                   <Search size={16} />
                 )}
-                Lookup
+                {/* Lookup */}
               </button>
             </div>
             {npiError && (
@@ -311,8 +355,32 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
               </p>
             )}
           </div>
+          <div className={styles.formRowSplit}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Primary Specialty Code</label>
+              <input
+                type="text"
+                name="specialty_code"
+                value={formData.specialty_code}
+                onChange={handleInputChange}
+                className={styles.input}
+                placeholder="Code"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Primary Specialty Name</label>
+              <input
+                type="text"
+                name="specialty"
+                value={formData.specialty}
+                onChange={handleInputChange}
+                className={styles.input}
+                placeholder="Specialty Name"
+              />
+            </div>
+          </div>
 
-          <div className={styles.formGrid}>
+          <div className={styles.formRowThree}>
             <div className={styles.formGroup}>
               <label className={styles.label}>First Name *</label>
               <input
@@ -336,7 +404,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
                 placeholder="Optional"
               />
             </div>
-            <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+            <div className={styles.formGroup}>
               <label className={styles.label}>Last Name *</label>
               <input
                 type="text"
@@ -381,7 +449,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
               required
             />
           </div>
-          <div className={styles.formGrid}>
+          <div className={styles.formRowSplit}>
             <div className={styles.formGroup}>
               <label className={styles.label}>State Code *</label>
               <input
@@ -405,28 +473,29 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
                 className={styles.input}
               />
             </div>
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>ZIP Code *</label>
-            <input
-              type="text"
-              name="zip_code"
-              value={formData.zip_code}
-              onChange={handleInputChange}
-              className={styles.input}
-              required
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Country *</label>
-            <input
-              type="text"
-              name="country"
-              value={formData.country}
-              onChange={handleInputChange}
-              className={styles.input}
-              required
-            />
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Country *</label>
+              <input
+                type="text"
+                name="country"
+                value={formData.country}
+                onChange={handleInputChange}
+                className={styles.input}
+                disabled
+                style={{ backgroundColor: '#f8fafc', cursor: 'not-allowed' }}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>ZIP Code *</label>
+              <input
+                type="text"
+                name="zip_code"
+                value={formData.zip_code}
+                onChange={handleInputChange}
+                className={styles.input}
+                required
+              />
+            </div>
           </div>
           <div className={styles.formGroup}>
             <label className={styles.label}>Select Office Location *</label>
