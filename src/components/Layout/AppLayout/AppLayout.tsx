@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit, Activity, LogOut, Building2 } from 'lucide-react';
+import { ChevronRight, User, Power, LayoutDashboard, Home, Moon, Sun, Shield, Edit2, FileText, Layout, BookOpen, Users, Settings, FileEdit, Activity, LogOut, Building2, Factory } from 'lucide-react';
 import authService from '../../../services/auth.service';
 import modulesService from '../../../services/modules.service';
 import apiClient, { API_BASE_URL } from '../../../utils/apiClient';
@@ -227,6 +227,7 @@ const AppLayout: React.FC = () => {
                         {!location.pathname.startsWith('/organisations') && user?.organisation_name && (
                             <>
                                 <div className={`organisation-name-pill ${!user?.is_superuser ? 'no-edit-btn' : ''}`}>
+                                    <Factory size={16} />
                                     <span>{user.organisation_name}</span>
                                     {user?.is_superuser && (
                                         <button

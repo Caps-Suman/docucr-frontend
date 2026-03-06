@@ -827,6 +827,7 @@ const ClientManagement: React.FC = () => {
               )}
             </button>
             <button className={styles.addBtn} onClick={handleAddNew}>
+              <Users size={14} style={{ marginRight: "6px" }} />
               Add Client
             </button>
             <button className={styles.addBtn} onClick={handleImport}>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, act } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key, Loader2, Search, Filter, X, ChevronDown, Building2 } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key, Loader2, Search, Filter, X, ChevronDown, Building2, UserPlus } from 'lucide-react';
 import Table from '../../Table/Table';
 import CommonPagination from '../../Common/CommonPagination';
 import Loading from '../../Common/Loading';
@@ -648,7 +648,7 @@ const UserManagement: React.FC = () => {
                 if (roles.length === 1) return roles[0].name;
                 return `${roles[0].name} +${roles.length - 1}`;
             },
-            width: '150px'
+            width: '160px'
         },
         {
             key: 'clients',
@@ -859,6 +859,7 @@ const UserManagement: React.FC = () => {
                             <div className={styles.filterGroup} style={{ flex: '0 0 auto', minWidth: 'auto', marginLeft: 'auto' }}>
                                 {(  currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
                                     <button className={styles.addBtn} onClick={handleAddNew} style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
+                                        <UserPlus size={14} style={{ marginRight: '6px' }} />
                                         Add User
                                     </button>
                                 )}
