@@ -205,23 +205,27 @@ useEffect(() => {
             diffs = (
                 <div className={styles.diffContainer}>
                     {displayChanges.map(([field, change]: [string, any], index) => (
-                        <div key={field} className={styles.diffLine}>
+                        <div key={field} className={isExpanded ? styles.diffLineExpanded : styles.diffLine}>
                             <span className={styles.diffField}>{field.replace(/_/g, ' ')}:</span>
-                            <span className={styles.diffFrom}>{String(change.from || 'None')}</span>
+                            <span className={isExpanded ? styles.diffFromExpanded : styles.diffFrom}>
+                                {String(change.from || 'None')}
+                            </span>
                             <span className={styles.diffArrow}>→</span>
-                            <span className={styles.diffTo}>{String(change.to || 'None')}</span>
-                            {!isExpanded && hasMore && index === 0 && (
+                            <span className={isExpanded ? styles.diffToExpanded : styles.diffTo}>
+                                {String(change.to || 'None')}
+                            </span>
+                            {!isExpanded && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); toggleExpand(log.id); }}
                                     className={styles.moreLink}
-                                    style={{ marginLeft: '6px' }}
+                                    style={{ marginLeft: '6px', flexShrink: 0 }}
                                 >
-                                    ...more (+{changesList.length - 1})
+                                    {hasMore ? `...more (+${changesList.length - 1})` : '...more'}
                                 </button>
                             )}
                         </div>
                     ))}
-                    {isExpanded && hasMore && (
+                    {isExpanded && (
                         <button
                             onClick={(e) => { e.stopPropagation(); toggleExpand(log.id); }}
                             className={styles.moreLink}
