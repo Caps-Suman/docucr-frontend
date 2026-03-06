@@ -946,7 +946,7 @@ const handleAddGuideline = () => {
 
   const handleRemoveGuideline = (id: string | undefined, index: number) => {
     setBillingGuidelines(
-      billingGuidelines.filter((g, i) => (id ? g.id !== id : i !== index)),
+      billingGuidelines.filter((_, i) => i !== index),
     );
   };
 
@@ -967,12 +967,12 @@ const handleAddGuideline = () => {
       resetIcd();
     }
   };
-  const handleRemoveCpt = (id: string) => {
-    setCodingRulesCPT(prev => prev.filter(r => r.id !== id));
+  const handleRemoveCpt = (index: number) => {
+    setCodingRulesCPT(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleRemoveIcd = (id: string) => {
-    setCodingRulesICD(prev => prev.filter(r => r.id !== id));
+  const handleRemoveIcd = (index: number) => {
+    setCodingRulesICD(prev => prev.filter((_, i) => i !== index));
   };
 
   const normalizeBillingGuidelines = (input: any[]): BillingGuideline[] => {
@@ -1955,7 +1955,7 @@ const handleAddGuideline = () => {
 
                                 <button
                                   className={styles.deleteButton}
-                                  onClick={() => handleRemoveCpt(r.id || "")}
+                                  onClick={() => handleRemoveCpt(i)}
                                 >
                                   <Trash2 size={16} />
                                 </button>
@@ -2004,7 +2004,7 @@ const handleAddGuideline = () => {
 
                                 <button
                                   className={styles.deleteButton}
-                                  onClick={() => handleRemoveIcd(r.id || "")}
+                                  onClick={() => handleRemoveIcd(i)}
                                 >
                                   <Trash2 size={16} />
                                 </button>
