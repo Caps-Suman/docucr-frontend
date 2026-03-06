@@ -76,7 +76,7 @@ export interface BillingGuideline {
 
 export interface PayerGuidelines {
   id: string;
-  payerName: string;
+  title: string;
   description: string;
 }
 export interface InfusionNDCCode {
@@ -123,12 +123,25 @@ export interface SOPStatus {
   description?: string;
 }
 
+export interface ExtractedData {
+  payer_guidelines?: {
+    title: string;
+    description: string;
+  }[];
+
+  billing_guidelines?: any[];
+  coding_rules_cpt?: any[];
+  coding_rules_icd?: any[];
+  workflow_process?: any;
+}
+
 export interface SOPDocument {
   id: string;
   name: string;
   category: string;
   s3_key: string;
   created_at: string;
+  extracted_data?: ExtractedData;
 }
 
 export interface SOP {

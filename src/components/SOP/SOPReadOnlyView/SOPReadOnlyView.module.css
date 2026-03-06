@@ -23,6 +23,22 @@
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
+.extractedModal {
+  width: 900px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.extractedContent {
+  overflow-y: auto;
+  padding: 16px;
+  max-height: 65vh;
+}
+
 .modalHeader {
     display: flex;
     justify-content: space-between;

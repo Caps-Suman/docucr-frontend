@@ -429,20 +429,6 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
             />
           </div>
           <div className={styles.formGroup}>
-            <label className={styles.label}>Description</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              className={styles.textarea}
-            />
-          </div>
-          <div className={styles.formGroup}>
             <label className={styles.label}>Select Office Location *</label>
             <CommonDropdown
               value={formData.location_id}

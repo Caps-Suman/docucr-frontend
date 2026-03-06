@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { SOP } from "../../../types/sop";
 import styles from "./SOPReadOnlyView.module.css";
-
 import Loading from "../../Common/Loading";
 
 interface SOPReadOnlyViewProps {
@@ -31,7 +30,7 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
     icd: true
 });
 
-
+const [extractedView, setExtractedView] = useState<any>(null);
     const toggleSection = (section: string) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
@@ -42,6 +41,44 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
         return "—";
     };
 
+const extractedDocs = sop.documents?.filter(d => d.extracted_data) || [];
+
+const extractedData = extractedDocs.reduce<Record<string, any[]>>((acc, doc) => {
+
+    const category = doc.category?.toLowerCase();
+    const data = (doc.extracted_data || {}) as Record<string, any>;
+
+    Object.entries(data).forEach(([key, value]) => {
+
+        // 🔴 only accept matching section
+        const allowed =
+            (category?.includes("payer") && key === "payer_guidelines") ||
+            (category?.includes("billing") && key === "billing_guidelines") ||
+            (category?.includes("coding") && (key === "coding_rules_cpt" || key === "coding_rules_icd")) ||
+            (category?.includes("workflow") && key === "workflow_process");
+
+        if (!allowed) return;
+
+        if (!acc[key]) acc[key] = [];
+
+        if (Array.isArray(value)) {
+            acc[key].push(...value);
+        } else if (value) {
+            acc[key].push(value);
+        }
+
+    });
+
+    return acc;
+
+}, {});
+
+const payerGuidelines =
+    sop.payerGuidelines?.length
+        ? sop.payerGuidelines
+        : extractedDocs.flatMap(d =>
+              d.extracted_data?.payer_guidelines || []
+          );
     return (
         <div className={styles.modalOverlay} onClick={onClose}>
             <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
@@ -182,15 +219,15 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
                         {/* ================= PAYER GUIDELINES ================= */}
                         <div className={styles.accordionItem}>
                             <div className={styles.accordionHeader} onClick={() => toggleSection("payerGuidelines")}>
-                                <span><Shield size={16} /> Payer Guidelines ({sop.payerGuidelines?.length || 0})</span>
+                                <span><Shield size={16} /> Payer Guidelines ({payerGuidelines.length})</span>
                                 {expandedSections.payerGuidelines ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                             </div>
                             {expandedSections.payerGuidelines && (
                                 <div className={styles.accordionContent}>
-                                    {sop.payerGuidelines?.length ? (
-                                        sop.payerGuidelines.map((g, i) => (
+{payerGuidelines.length ? (
+    payerGuidelines.map((g, i) => (
                                             <div key={i} className={styles.guidelineItem}>
-                                                <span className={styles.guidelineCategory}>{g.payerName}</span>
+                                                <span className={styles.guidelineCategory}>{g.title}</span>
                                                 <ul className={styles.ruleList}>
                                                     {g.description && (
                                                         <li className={styles.ruleItem}>{g.description}</li>
@@ -211,12 +248,28 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
                                 className={styles.accordionHeader}
                                 onClick={() => toggleSection("coding")}
                             >
-                                <span>
-                                    <Database size={16} /> Coding Rules (
-                                    {(sop.codingRulesCPT?.length || 0) +
-                                        (sop.codingRulesICD?.length || 0)}
-                                    )
-                                </span>
+                                <span style={{display:"flex",alignItems:"center",gap:"6px"}}>
+<Database size={16} /> Coding Rules (
+{(sop.codingRulesCPT?.length || 0) + (sop.codingRulesICD?.length || 0)}
+)
+
+{extractedDocs.length > 0 && (
+<button
+    onClick={(e)=>{
+        e.stopPropagation();
+        setExtractedView(extractedDocs.map(d=>d.extracted_data));
+    }}
+    style={{
+        background:"none",
+        border:"none",
+        cursor:"pointer",
+        display:"flex"
+    }}
+>
+    <Info size={14}/>
+</button>
+)}
+</span>
                                 {expandedSections.coding ? (
                                     <ChevronUp size={16} />
                                 ) : (
@@ -368,6 +421,85 @@ const [expandedSections, setExpandedSections] = useState<Record<string, boolean>
                         </>
                     )}
                 </div>
+                {extractedView && (
+<div className={styles.extractedOverlay}>
+    <div className={styles.extractedModal}>
+<h3>Extracted {Object.keys(extractedData).length} Categories</h3>
+<div className={styles.extractedContent}>
+
+{Object.entries(extractedData).map(([key, items]: any) => (
+
+<div key={key} className={styles.accordionItem}>
+
+<div className={styles.accordionHeader}>
+<span>
+{key.replace(/_/g," ").toUpperCase()} ({items.length})
+</span>
+</div>
+
+<div className={styles.accordionContent}>
+
+<ul className={styles.ruleList}>
+
+{items.map((item:any,i:number)=>(
+
+<li key={i} className={styles.ruleItem}>
+
+<div className={styles.codeLabel}>
+
+<strong>
+{item.cptCode || item.icdCode || item.category || "Item"}
+</strong>
+
+{item.description && <> — {item.description}</>}
+
+</div>
+
+<div className={styles.codeDetails}>
+
+{Object.entries(item).map(([k, v]: any) => {
+
+if (!v || ["cptCode","icdCode","description","category"].includes(k))
+return null;
+
+let displayValue = v;
+
+if (typeof v === "object") {
+    displayValue = v.description || JSON.stringify(v);
+}
+
+return (
+<span key={k} className={styles.detailTag}>
+{k}: {displayValue}
+</span>
+);
+
+})}
+
+</div>
+
+</li>
+
+))}
+
+</ul>
+
+</div>
+
+</div>
+
+))}
+
+</div>
+        <button
+            className={styles.modalClose}
+            onClick={()=>setExtractedView(null)}
+        >
+            Close
+        </button>
+    </div>
+</div>
+)}
             </div>
         </div>
     );

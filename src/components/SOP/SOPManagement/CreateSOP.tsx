@@ -129,7 +129,7 @@ const CreateSOP: React.FC = () => {
   >([]);
   
   const [newPayerGuideline, setNewPayerGuideline] = useState({
-    payerName: "",
+    title: "",
     description: "",
   });
   const [extractedData, setExtractedData] = useState<any>(null);
@@ -234,7 +234,7 @@ const CreateSOP: React.FC = () => {
     resetCpt();
     resetIcd();
     setNewGuideline({ title: "", description: "" });
-    setNewPayerGuideline({ payerName: "", description: "" });
+    setNewPayerGuideline({ title: "", description: "" });
     setErrors([]);
     setIsResetModalOpen(false);
   };
@@ -426,7 +426,7 @@ useEffect(() => {
         setPayerGuidelines(
           sop.payerGuidelines.map((pg: any, i: number) => ({
             id: `pg_db_${i}`,
-            payerName: pg.payerName || "Unknown",
+            title: pg.title || "Unknown",
             description: pg.description || "",
           })),
         );
@@ -526,6 +526,20 @@ const moveToBackground = async () => {
   if (!uploadedFile) return;
 
   try {
+
+    const res = await sopService.checkSOPExistence(
+      selectedClientId,
+      providerIds
+    );
+
+    if (res.exists) {
+      setToast({
+        message: "This client already has an SOP",
+        type: "warning"
+      });
+      return;
+    }
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -536,6 +550,7 @@ const moveToBackground = async () => {
     formData.append("file", uploadedFile);
     formData.append("provider_type", providerType);
     formData.append("client_id", selectedClientId);
+
     providerIds.forEach(id => {
       formData.append("provider_ids", id);
     });
@@ -752,7 +767,7 @@ const moveToBackground = async () => {
     return client?.type === 'Individual';
   };
 
-const handleNextStep = () => {
+const handleNextStep = async () => {
   const steps = getSteps();
 
   // STEP 1: Select Client
@@ -765,11 +780,41 @@ const handleNextStep = () => {
       return;
     }
 
+    // Only validate in CREATE mode
+    if (!isEditMode) {
+      try {
+        setLoading(true);
+
+        const res = await sopService.checkSOPExistence(
+          selectedClientId,
+          providerIds
+        );
+
+        setLoading(false);
+
+        if (res.exists) {
+          setToast({
+            message: "This client already has an SOP",
+            type: "warning",
+          });
+          return;
+        }
+
+      } catch (err) {
+        setLoading(false);
+        setToast({
+          message: "Failed to validate SOP existence",
+          type: "error",
+        });
+        return;
+      }
+    }
+
     setCurrentStep(prev => prev + 1);
     return;
   }
 
-  // STEP 2: Select Providers
+  // STEP 2: Providers
   if (
     getSteps().find(s => s.number === currentStep)?.title === "Select Providers"
   ) {
@@ -787,8 +832,7 @@ const handleNextStep = () => {
 
   // STEP: Basic Information
   if (
-    getSteps().find(s => s.number === currentStep)?.title ===
-    "Basic Information"
+    getSteps().find(s => s.number === currentStep)?.title === "Basic Information"
   ) {
     if (!validateStep1()) return;
 
@@ -1689,11 +1733,11 @@ const handleAddGuideline = () => {
                       <label className={styles.label}>Title</label>
                       <input
                         className={styles.input}
-                        value={newPayerGuideline.payerName}
+                        value={newPayerGuideline.title}
                         onChange={(e) =>
                           setNewPayerGuideline({
                             ...newPayerGuideline,
-                            payerName: e.target.value,
+                            title: e.target.value,
                           })
                         }
                         placeholder="e.g., Medicare, Aetna"
@@ -1721,12 +1765,12 @@ const handleAddGuideline = () => {
                         type="button"
                         className={styles.saveButton}
                         onClick={() => {
-                          if (newPayerGuideline.payerName && newPayerGuideline.description) {
+                          if (newPayerGuideline.title && newPayerGuideline.description) {
                             setPayerGuidelines(prev => [
   { ...newPayerGuideline, id: `pg_temp_${Date.now()}` },
   ...prev
 ]);
-                            setNewPayerGuideline({ payerName: "", description: "" });
+                            setNewPayerGuideline({ title: "", description: "" });
                           }
                         }}
                       >
@@ -1739,7 +1783,7 @@ const handleAddGuideline = () => {
                     {payerGuidelines.map((pg, i) => (
                       <div key={pg.id || i} className={styles.cardItem}>
                         <div className={styles.cardContent}>
-                          <h4>{pg.payerName}</h4>
+                          <h4>{pg.title}</h4>
                           <p>{pg.description}</p>
                         </div>
                         <button
@@ -2182,7 +2226,7 @@ const handleAddGuideline = () => {
                       </div>
                       {payerGuidelines.map((pg, i) => (
                         <div key={i} className={styles.previewSubItem}>
-                          <strong>{pg.payerName}</strong>
+                          <strong>{pg.title}</strong>
                           <p>{pg.description}</p>
                         </div>
                       ))}
