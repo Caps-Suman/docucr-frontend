@@ -10,7 +10,7 @@
 
 .modal {
     background: white;
-    border-radius: 14px;
+    border-radius: 12px;
     width: 540px;
     max-height: 80vh;
     display: flex;
