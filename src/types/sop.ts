@@ -142,6 +142,7 @@ export interface SOPDocument {
   s3_key: string;
   created_at: string;
   extracted_data?: ExtractedData;
+  document_url?: string
 }
 
 export interface SOP {
