@@ -65,7 +65,7 @@ export interface DocumentListItem {
   documentType?: string;
   medicalRecords?: string;
   uploadedAt: string;
-  totalPages?: number; // ✅ ADD
+  totalPages?: number; 
   status: DocStatus;
   isUploading?: boolean;
   progress?: number;
@@ -263,9 +263,6 @@ const DocumentList: React.FC = () => {
     if (tableContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } =
         tableContainerRef.current;
-      // Show shadow if the table is wider than the container
-      // AND we haven't scrolled all the way to the right yet.
-      // Use a 5px threshold for subpixel and zoom issues.
       const hasOverflow = scrollWidth > clientWidth;
       const atTheEnd = scrollLeft + clientWidth >= scrollWidth - 5;
       setIsScrolled(hasOverflow && !atTheEnd);
@@ -1184,39 +1181,73 @@ const DocumentList: React.FC = () => {
                   ),
                   render: (value: string, row: DocumentListItem) => {
                     const getStatusConfig = (status: string) => {
+                      const statusNames: Record<string, string> = {
+                        queued: "Queued",
+                        uploading: "Uploading",
+                        uploaded: "Uploaded",
+                        processing: "Processing",
+                        ai_queued: "AI Queued",
+                        analyzing: "Analyzing",
+                        completed: "Completed",
+                      };
+
+                      const getStepText = (status: string) => {
+                        const steps: Record<string, string> = {
+                          queued: "Step 1/7",
+                          uploading: "Step 2/7",
+                          uploaded: "Step 3/7",
+                          processing: "Step 4/7",
+                          ai_queued: "Step 5/7",
+                          analyzing: "Step 6/7",
+                          completed: "Step 7/7",
+                        };
+                        return steps[status] || status;
+                      };
+
+                      const getTooltip = (status: string) => {
+                        const step = getStepText(status);
+                        const name = statusNames[status];
+                        return name ? `${step} - ${name}` : status;
+                      };
+
                       switch (status) {
                         case "completed":
                           return {
                             class: "active",
                             icon: <CheckCircle size={12} />,
                             text: "Completed",
+                            tooltip: getTooltip("completed"),
                           };
                         case "queued":
                           return {
                             class: "inactive",
                             icon: <Clock size={12} />,
                             text: "Queued",
+                            tooltip: getTooltip("queued"),
                           };
                         case "uploading":
                           const progressText = row.progress
-                            ? `Uploading (${row.progress}%)`
-                            : "Uploading";
+                            ? `Step 2/7 (${row.progress}%)`
+                            : getStepText("uploading");
                           return {
                             class: "inactive",
                             icon: <UploadCloud size={12} />,
                             text: progressText,
+                            tooltip: getTooltip("uploading"),
                           };
                         case "uploaded":
                           return {
                             class: "active",
                             icon: <CheckCircle size={12} />,
-                            text: "Uploaded",
+                            text: getStepText("uploaded"),
+                            tooltip: getTooltip("uploaded"),
                           };
                         case "processing":
                           return {
                             class: "inactive",
                             icon: <Clock size={12} />,
-                            text: "Processing",
+                            text: getStepText("processing"),
+                            tooltip: getTooltip("processing"),
                           };
                         case "upload_failed":
                           return {
@@ -1232,14 +1263,22 @@ const DocumentList: React.FC = () => {
                                 Upload Failed
                               </span>
                             ),
+                            tooltip: row.errorMessage || "Upload failed",
                           };
                         case "ai_queued":
                           return {
                             class: "inactive",
                             icon: <Clock size={12} />,
-                            text: "AI Queued",
+                            text: getStepText("ai_queued"),
+                            tooltip: getTooltip("ai_queued"),
                           };
                         case "analyzing":
+                          const analyzingText = row.progress
+                            ? `Step 6/7 (${row.progress}%)`
+                            : getStepText("analyzing");
+                          const analyzingTooltip = row.errorMessage
+                            ? `${analyzingText} - ${row.errorMessage}`
+                            : getTooltip("analyzing");
                           return {
                             class: "processing",
                             icon: (
@@ -1248,7 +1287,8 @@ const DocumentList: React.FC = () => {
                                 className={styles.animateSpin}
                               />
                             ),
-                            text: row.errorMessage || "Analyzing...",
+                            text: analyzingText,
+                            tooltip: analyzingTooltip,
                           };
                         case "ai_failed":
                           return {
@@ -1303,17 +1343,19 @@ const DocumentList: React.FC = () => {
 
                     const config = getStatusConfig(value);
                     return (
-                      <span
-                        className={`status-badge ${config.class}`}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
-                      >
-                        {config.icon}
-                        {config.text}
-                      </span>
+                      <Tooltip content={config.tooltip || value}>
+                        <span
+                          className={`status-badge ${config.class}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          {config.icon}
+                          {config.text}
+                        </span>
+                      </Tooltip>
                     );
                   },
                 };

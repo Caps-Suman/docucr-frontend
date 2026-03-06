@@ -906,6 +906,10 @@
     border-radius: 20px;
     font-size: 10px;
     font-weight: 500;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 :global(.active) {
@@ -1077,16 +1081,12 @@
     border: 1px solid #c4c7c5;
     background: white;
     position: relative;
-    /* Hide scrollbars */
     scrollbar-width: none;
-    /* Firefox */
     -ms-overflow-style: none;
-    /* IE and Edge */
 }
 
 .tableContainer::-webkit-scrollbar {
     display: none;
-    /* Chrome, Safari and Opera */
 }
 
 .table {
@@ -1107,7 +1107,8 @@
 .table th,
 .table td {
     white-space: nowrap;
-    max-width: 200px;
+    min-width: 150px;
+    max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -1117,6 +1118,8 @@
 .table th:first-child,
 .table td:first-child {
     width: 30px;
+    min-width: 30px;
+    max-width: 30px;
     text-align: center;
 }
 
@@ -1132,7 +1135,7 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 1px solid #c4c7c5;
-    position: static;
+    position: relative;
 }
 
 .table tbody tr {
@@ -1142,8 +1145,6 @@
 
 .table tbody tr:hover {
     background: #f8fafc;
-    /* Removed z-index to avoid creating a new stacking context that could clip tooltips */
-    position: relative;
 }
 
 .table tbody tr:last-child {
@@ -1174,7 +1175,7 @@
 }
 
 .stickyStatus {
-    right: 225px;
+    right: 182px;
     width: 182px !important;
     border-left: 1px solid #c4c7c5 !important;
     position: sticky !important;
@@ -1186,15 +1187,12 @@
     top: 0;
     bottom: 0;
     left: -15px;
-    /* Wider shadow */
     width: 15px;
     background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.2));
-    /* More opaque */
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.3s ease;
     z-index: 1;
-    /* Ensure it's above potential content overlap */
 }
 
 .hasScrollShadow .stickyStatus::before {
@@ -1203,11 +1201,9 @@
 
 .stickyActions {
     right: 0;
-    width: 224px !important;
-    z-index: 20 !important;
-    /* Increased from 11 to 20 to be definitely above status and shadows */
+    width: 182px !important;
+    z-index: 11 !important;
     overflow: visible !important;
-    /* Ensure it doesn't clip children like tooltips */
 }
 
 :global(.dark) .stickyStatus::before {
@@ -1218,14 +1214,42 @@
     border-left: 1px solid #4b5563 !important;
 }
 
-/* Ensure header also has sticky background */
 .table thead th.stickyCol {
     z-index: 11 !important;
     background-color: #f8fafc !important;
+    position: sticky !important;
+    overflow: visible !important;
+}
+
+.table thead th.stickyStatus {
+    position: sticky !important;
+    overflow: visible !important;
+}
+
+.table thead th.stickyStatus::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -15px;
+    width: 15px;
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.2));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+}
+
+.hasScrollShadow .table thead th.stickyStatus::before {
+    opacity: 1;
 }
 
 :global(.dark) .table thead th.stickyCol {
     background-color: #374151 !important;
+}
+
+:global(.dark) .table thead th.stickyStatus::before {
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.6));
 }
 
 /* Truncation for cells */
