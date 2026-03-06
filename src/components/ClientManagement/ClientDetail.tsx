@@ -17,7 +17,8 @@ import {
     BookOpen,
     Plus,
     FileText,
-    Pencil
+    Pencil,
+    UserPlus
 } from "lucide-react";
 import clientService, { Client, Provider, ClientLocation } from "../../services/client.service";
 import sopService from "../../services/sop.service";
@@ -26,7 +27,7 @@ import SOPReadOnlyView from "../SOP/SOPReadOnlyView/SOPReadOnlyView";
 import AddProviderModal from "./AddProviderModal";
 import AddLocationModal from "./AddLocationModal";
 import styles from "./ClientDetail.module.css";
-import ClientModal from "../ClientManagement/ClientModal";
+import EditClientModal from "./EditClientModal";
 
 const ClientDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -105,7 +106,7 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                 <Info size={32} color="#ef4444" />
                 <p>{error || "Client not found"}</p>
                 <button
-                    className={styles.backButton}
+                    className={styles.backButtonLarge}
                     onClick={() => navigate("/clients")}
                 >
                     <ArrowLeft size={16} />
@@ -197,7 +198,7 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                         className={styles.secondaryAction}
                         onClick={() => setIsAddLocationModalOpen(true)}
                     >
-                        <Plus size={16} />
+                        <MapPin size={16} />
                         Add Location
                     </button>
                     )}
@@ -206,7 +207,7 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                         className={styles.primaryAction}
                         onClick={() => setIsAddProviderModalOpen(true)}
                     >
-                        <Plus size={16} />
+                        <UserPlus size={16} />
                         Add Provider
                     </button>
                     )}
@@ -408,6 +409,14 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                                                 </span>
                                             </div>
                                         )}
+                                        {provider.specialty && (
+                                            <div className={styles.providerSubInfo} style={{ marginTop: '4px' }}>
+                                                <Briefcase size={10} style={{ marginTop: '2px' }} />
+                                                <span>
+                                                    <strong>{provider.specialty}</strong> {provider.specialty_code ? `(${provider.specialty_code})` : ""}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             ) : (
@@ -458,14 +467,13 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                 />
             )}
             {isEditClientModalOpen && client && (
-  <ClientModal
-    isOpen={isEditClientModalOpen}
-    onClose={() => setIsEditClientModalOpen(false)}
-    onSubmit={handleClientUpdate}
-    initialData={client}
-    title="Edit Client"
-  />
-)}
+                <EditClientModal
+                    isOpen={isEditClientModalOpen}
+                    onClose={() => setIsEditClientModalOpen(false)}
+                    onSubmit={handleClientUpdate}
+                    initialData={client}
+                />
+            )}
         </div>
     );
 };

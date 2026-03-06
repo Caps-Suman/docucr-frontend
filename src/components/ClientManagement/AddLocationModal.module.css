@@ -66,6 +66,23 @@
     gap: 20px;
 }
 
+/* Form Styles */
+.form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.formContent {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 /* Form Groups */
 .formGroup {
     display: flex;
@@ -73,9 +90,9 @@
     gap: 8px;
 }
 
-.formGrid {
+.formRowSplit {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 2fr 2fr;
     gap: 16px;
 }
 
@@ -143,6 +160,15 @@
     flex-shrink: 0;
 }
 
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px;
+    border-top: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
 .cancelButton,
 .submitButton {
     padding: 10px 20px;
@@ -187,8 +213,8 @@
     background: #1f2937;
 }
 
-:global(.dark) .header,
-:global(.dark) .footer {
+:global(.dark) .footer,
+:global(.dark) .actions {
     border-color: #374151;
 }
 

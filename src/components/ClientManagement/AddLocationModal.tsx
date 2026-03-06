@@ -24,6 +24,7 @@ const AddLocationModal: React.FC<AddLocationModalProps> = ({ isOpen, onClose, cl
         address_line_2: '',
         city: '',
         state_code: '',
+        state_name: '',
         zip_code: '',
         country: 'United States',
         is_primary: false
@@ -36,6 +37,7 @@ const AddLocationModal: React.FC<AddLocationModalProps> = ({ isOpen, onClose, cl
                 address_line_2: location.address_line_2 || '',
                 city: location.city || '',
                 state_code: location.state_code || '',
+                state_name: location.state_name || '',
                 zip_code: location.zip_code || '',
                 country: location.country || 'United States',
                 is_primary: !!location.is_primary
@@ -46,6 +48,7 @@ const AddLocationModal: React.FC<AddLocationModalProps> = ({ isOpen, onClose, cl
                 address_line_2: '',
                 city: '',
                 state_code: '',
+                state_name: '',
                 zip_code: '',
                 country: 'United States',
                 is_primary: false
@@ -131,40 +134,9 @@ const AddLocationModal: React.FC<AddLocationModalProps> = ({ isOpen, onClose, cl
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className={styles.body}>
-                    <div className={styles.formGrid}>
+                <form onSubmit={handleSubmit} className={styles.form}>
+                    <div className={styles.formContent}>
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Zip Code *</label>
-                            <div style={{ position: 'relative' }}>
-                                <input
-                                    type="text"
-                                    name="zip_code"
-                                    value={formData.zip_code}
-                                    onChange={handleInputChange}
-                                    className={styles.input}
-                                    style={{ width: '100%' }}
-                                    placeholder="Enter Zip"
-                                    maxLength={5}
-                                    required
-                                />
-                                {isFetchingZip && (
-                                    <Loader2 size={16} className="animate-spin" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#83cee4' }} />
-                                )}
-                            </div>
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Country</label>
-                            <input
-                                type="text"
-                                name="country"
-                                value={formData.country}
-                                onChange={handleInputChange}
-                                className={styles.input}
-                                placeholder="Country"
-                                disabled
-                            />
-                        </div>
-                        <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                             <label className={styles.label}>Address Line 1 *</label>
                             <input
                                 type="text"
@@ -176,7 +148,7 @@ const AddLocationModal: React.FC<AddLocationModalProps> = ({ isOpen, onClose, cl
                                 required
                             />
                         </div>
-                        <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                        <div className={styles.formGroup}>
                             <label className={styles.label}>Address Line 2</label>
                             <input
                                 type="text"
@@ -199,50 +171,93 @@ const AddLocationModal: React.FC<AddLocationModalProps> = ({ isOpen, onClose, cl
                                 required
                             />
                         </div>
+                        <div className={styles.formRowSplit}>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>State Code</label>
+                                <input
+                                    type="text"
+                                    name="state_code"
+                                    value={formData.state_code}
+                                    onChange={handleInputChange}
+                                    className={styles.input}
+                                    maxLength={2}
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>State Name</label>
+                                <input
+                                    type="text"
+                                    name="state_name"
+                                    value={formData.state_name}
+                                    onChange={handleInputChange}
+                                    className={styles.input}
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Country *</label>
+                                <input
+                                    type="text"
+                                    name="country"
+                                    value={formData.country}
+                                    onChange={handleInputChange}
+                                    className={styles.input}
+                                    disabled
+                                    style={{ backgroundColor: '#f8fafc', cursor: 'not-allowed' }}
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>ZIP Code *</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="text"
+                                        name="zip_code"
+                                        value={formData.zip_code}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, "");
+                                            const formatted = val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 9)}` : val;
+                                            setFormData((prev) => ({ ...prev, zip_code: formatted }));
+                                        }}
+                                        className={styles.input}
+                                        style={{ width: '100%', paddingRight: isFetchingZip ? '30px' : '12px' }}
+                                        required
+                                    />
+                                    {isFetchingZip && (
+                                        <Loader2 size={16} className="animate-spin" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#83cee4' }} />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>State Code *</label>
-                            <input
-                                type="text"
-                                name="state_code"
-                                value={formData.state_code}
-                                onChange={handleInputChange}
-                                className={styles.input}
-                                placeholder="e.g. CA"
-                                maxLength={2}
-                                required
-                            />
+                            <label className={styles.checkboxGroup}>
+                                <input
+                                    type="checkbox"
+                                    name="is_primary"
+                                    checked={formData.is_primary}
+                                    onChange={handleInputChange}
+                                    className={styles.checkbox}
+                                />
+                                <div>
+                                    <span className={styles.label}>Set as Primary Location</span>
+                                    <p className={styles.subtitle}>This will be the default address for this client</p>
+                                </div>
+                            </label>
                         </div>
                     </div>
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.checkboxGroup}>
-                            <input
-                                type="checkbox"
-                                name="is_primary"
-                                checked={formData.is_primary}
-                                onChange={handleInputChange}
-                                className={styles.checkbox}
-                            />
-                            <div>
-                                <span className={styles.label}>Set as Primary Location</span>
-                                <p className={styles.subtitle}>This will be the default address for this client</p>
-                            </div>
-                        </label>
+                    <div className={styles.actions}>
+                        <button type="button" className={styles.cancelButton} onClick={onClose} disabled={isSubmitting}>
+                            Cancel
+                        </button>
+                        <button type="submit" className={styles.submitButton} disabled={isSubmitting || isFetchingZip}>
+                            {isSubmitting ? (
+                                <><Loader2 size={18} className="animate-spin" /> {location ? 'Updating...' : 'Adding...'}</>
+                            ) : (
+                                <>{location ? <Pencil size={18} /> : <MapPin size={18} />} {location ? 'Update Location' : 'Add Location'}</>
+                            )}
+                        </button>
                     </div>
                 </form>
-
-                <div className={styles.footer}>
-                    <button type="button" className={styles.cancelButton} onClick={onClose} disabled={isSubmitting}>
-                        Cancel
-                    </button>
-                    <button type="submit" onClick={handleSubmit} className={styles.submitButton} disabled={isSubmitting || isFetchingZip}>
-                        {isSubmitting ? (
-                            <><Loader2 size={18} className="animate-spin" /> {location ? 'Updating...' : 'Adding...'}</>
-                        ) : (
-                            <>{location ? <Pencil size={18} /> : <MapPin size={18} />} {location ? 'Update Location' : 'Add Location'}</>
-                        )}
-                    </button>
-                </div>
 
                 {toast && (
                     <Toast
