@@ -1227,8 +1227,8 @@ const DocumentList: React.FC = () => {
                           };
                         case "uploading":
                           const progressText = row.progress
-                            ? `Uploading (${row.progress}%)`
-                            : "Uploading";
+                            ? `Step 2/7 (${row.progress}%)`
+                            : getStepText("uploading");
                           return {
                             class: "inactive",
                             icon: <UploadCloud size={12} />,
@@ -1273,6 +1273,12 @@ const DocumentList: React.FC = () => {
                             tooltip: getTooltip("ai_queued"),
                           };
                         case "analyzing":
+                          const analyzingText = row.progress
+                            ? `Step 6/7 (${row.progress}%)`
+                            : getStepText("analyzing");
+                          const analyzingTooltip = row.errorMessage
+                            ? `${analyzingText} - ${row.errorMessage}`
+                            : getTooltip("analyzing");
                           return {
                             class: "processing",
                             icon: (
@@ -1281,8 +1287,8 @@ const DocumentList: React.FC = () => {
                                 className={styles.animateSpin}
                               />
                             ),
-                            text: row.errorMessage || getStepText("analyzing"),
-                            tooltip: row.errorMessage || getTooltip("analyzing"),
+                            text: analyzingText,
+                            tooltip: analyzingTooltip,
                           };
                         case "ai_failed":
                           return {
