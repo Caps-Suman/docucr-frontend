@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronUp,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../../styles/selectStyles";
@@ -33,6 +34,7 @@ import {
   CodingRule,
   CodingRuleCPT,
   CodingRuleICD,
+  SOPDocument,
 } from "../../../types/sop";
 import sopService from "../../../services/sop.service";
 import styles from "./CreateSOP.module.css";
@@ -43,6 +45,16 @@ import { Check, CheckCircle2, ChevronRight, Circle, Briefcase, Loader2, Search }
 import { debounce } from "../../../utils/debounce";
 import Toast, { ToastType } from "../../Common/Toast";
 import Loading from "../../Common/Loading";
+import ExtraDocumentsModal from "./ExtraDocumentsModal";
+
+const truncateFileName = (name: string = "", maxLength: number = 25) => {
+  if (name.length <= maxLength) return name;
+  const lastDot = name.lastIndexOf('.');
+  if (lastDot === -1) return name.substring(0, maxLength - 3) + "...";
+  const ext = name.substring(lastDot);
+  const base = name.substring(0, lastDot);
+  return base.substring(0, maxLength - ext.length - 3) + "..." + ext;
+};
 
 const CreateSOP: React.FC = () => {
   const navigate = useNavigate();
@@ -186,6 +198,9 @@ const CreateSOP: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [documents, setDocuments] = useState<SOPDocument[]>([]);
+  const [isDownloadingSource, setIsDownloadingSource] = useState(false);
+  const [isExtraDocsOpen, setIsExtraDocsOpen] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const { can } = usePermission();
   const [currentBackgroundSopId, setCurrentBackgroundSopId] = useState<string | null>(null);
@@ -419,6 +434,8 @@ useEffect(() => {
 
       if (sop.codingRulesCPT) setCodingRulesCPT(sop.codingRulesCPT);
       if (sop.codingRulesICD) setCodingRulesICD(sop.codingRulesICD);
+      
+      setDocuments(sop.documents || []);
 
     } catch (error) {
       console.error("Failed to load SOP:", error);
@@ -610,6 +627,22 @@ const moveToBackground = async () => {
       setCodingRulesICD(data.coding_rules_icd);
     }
   }
+
+  const handleDownloadSourceFile = async () => {
+    const sourceDoc = documents.find(doc => doc.category === "Source file");
+    if (!id || !sourceDoc) return;
+    try {
+      setIsDownloadingSource(true);
+      const filename = sourceDoc.name || sourceDoc.s3_key.split('/').pop() || 'source_file';
+      await sopService.downloadSourceFile(id, filename);
+      setToast({ message: "Source file downloaded successfully", type: "success" });
+    } catch (error) {
+      console.error("Failed to download source file:", error);
+      setToast({ message: "Failed to download source file", type: "error" });
+    } finally {
+      setIsDownloadingSource(false);
+    }
+  };
 
   useEffect(() => {
     if (providerType === "existing" && selectedClientId) {
@@ -1028,11 +1061,24 @@ const handleAddGuideline = () => {
     };
 
     try {
+      let savedSop;
       if (isEditMode && id) {
-        await sopService.updateSOP(id, payload);
+        savedSop = await sopService.updateSOP(id, payload);
       } else {
-        await sopService.createSOP(payload);
+        savedSop = await sopService.createSOP(payload);
       }
+
+      // If we have an uploaded file (foreground extraction), upload it now
+      if (uploadedFile && savedSop.id) {
+        try {
+          await sopService.uploadSOPDocument(savedSop.id, uploadedFile);
+        } catch (uploadError) {
+          console.error("Failed to upload source file after save:", uploadError);
+          setToast({ message: "SOP saved, but source file upload failed", type: "error" });
+          // We still navigate away as the SOP itself is saved
+        }
+      }
+
       navigate("/sops");
     } catch (error) {
       console.error("Failed to save SOP:", error);
@@ -1041,6 +1087,8 @@ const handleAddGuideline = () => {
       setSaving(false);
     }
   };
+
+  const sourceFile = uploadedFile || documents.find(doc => doc.category === "Source file");
 
   return (
     <div className={styles.container}>
@@ -2037,10 +2085,6 @@ const handleAddGuideline = () => {
                         <label>Category</label>
                         <span>{category}</span>
                       </div>
-                      <div className={styles.previewItem}>
-                        <label>Provider Type</label>
-                        <span>{providerType === 'new' ? 'New Provider' : 'Existing Client'}</span>
-                      </div>
                     </div>
                   </div>
 
@@ -2266,14 +2310,65 @@ const handleAddGuideline = () => {
     <>
       {getSteps().find(s => s.number === currentStep)?.title === "Basic Information" && (
         <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
-          <button
-            className={styles.saveButton}
-            type="button"
-            onClick={handleUploadClick}
-          >
-            <Upload size={16} />
-            Upload SOP
-          </button>
+          {!sourceFile ? (
+            <button
+              className={styles.saveButton}
+              type="button"
+              onClick={handleUploadClick}
+            >
+              <Upload size={16} />
+              Upload Source SOP
+            </button>
+          ) : (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              backgroundColor: '#f8fafc', 
+              padding: '6px 12px', 
+              borderRadius: '6px', 
+              border: '1px solid #e2e8f0' 
+            }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Source:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '13px' }}>
+                <FileText size={16} color="#0284c7" />
+                <span title={sourceFile.name}>
+                  {truncateFileName(sourceFile.name)}
+                </span>
+              </div>
+              {/* Divider */}
+              <span style={{ width: '1px', height: '18px', backgroundColor: '#e2e8f0', display: 'inline-block' }} />
+              {/* Edit (Change) icon */}
+              <button
+                type="button"
+                onClick={handleUploadClick}
+                title="Change file"
+                className={styles.iconButton}
+              >
+                <Edit2 size={15} />
+              </button>
+              {/* Download icon — only in edit mode with saved source */}
+              {isEditMode && documents.some(doc => doc.category === "Source file") && (
+                <>
+                  {/* Divider */}
+                  <span style={{ width: '1px', height: '18px', backgroundColor: '#e2e8f0', display: 'inline-block' }} />
+                  <button
+                    type="button"
+                    onClick={handleDownloadSourceFile}
+                    disabled={isDownloadingSource}
+                    title="Download Source"
+                    className={styles.iconButton}
+                  >
+                    {isDownloadingSource ? (
+                      <Loader2 size={16} className={styles.animateSpin} />
+                    ) : (
+                      <Download size={16} />
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           <input
             ref={fileInputRef}
             type="file"
@@ -2288,9 +2383,34 @@ const handleAddGuideline = () => {
               }
             }}
           />
+          {/* Extra Documents button — right of the source chip */}
+          {isEditMode && id && (() => {
+            const extraDocsCount = documents.filter(doc => doc.category !== "Source file").length;
+            return (
+              <button
+                type="button"
+                className={styles.backButton}
+                onClick={async () => {
+                  setIsExtraDocsOpen(true);
+                  // Refresh documents when opening modal
+                  try {
+                    const sop = await sopService.getSOPById(id);
+                    setDocuments(sop.documents || []);
+                  } catch (error) {
+                    console.error("Failed to refresh documents:", error);
+                  }
+                }}
+                title="Attach extra documents"
+                disabled={saving}
+              >
+                <FileText size={16} />
+                Extras {extraDocsCount > 0 && `(${extraDocsCount})`}
+              </button>
+            );
+          })()}
         </div>
       )}
-      <div style={{ display: 'flex', gap: '8px', marginLeft: getSteps().find(s => s.number === currentStep)?.title === "Basic Information" ? 'auto' : undefined }}>
+      <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
         {currentStep > 1 && (
           <button
             className={styles.backButton}
@@ -2357,6 +2477,35 @@ const handleAddGuideline = () => {
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+        />
+      )}
+      {/* Extra Documents Modal */}
+      {isEditMode && id && (
+        <ExtraDocumentsModal
+          sopId={id}
+          isOpen={isExtraDocsOpen}
+          onClose={() => setIsExtraDocsOpen(false)}
+          existingDocuments={documents.filter(doc => doc.category !== "Source file")}
+          onUploadsComplete={async () => {
+            setToast({ message: "Documents uploaded successfully", type: "success" });
+            // Refresh documents after upload
+            try {
+              const sop = await sopService.getSOPById(id);
+              setDocuments(sop.documents || []);
+            } catch (error) {
+              console.error("Failed to refresh documents:", error);
+            }
+          }}
+          onDocumentDeleted={async () => {
+            setToast({ message: "Document deleted successfully", type: "success" });
+            // Refresh documents after delete
+            try {
+              const sop = await sopService.getSOPById(id);
+              setDocuments(sop.documents || []);
+            } catch (error) {
+              console.error("Failed to refresh documents:", error);
+            }
+          }}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 import apiClient from '../utils/apiClient';
-import { BillingGuideline, CodingRule, CodingRuleCPT, CodingRuleICD, SOP, SOPFilters } from '../types/sop';
+import { BillingGuideline, CodingRule, CodingRuleCPT, CodingRuleICD, SOP, SOPDocument, SOPFilters } from '../types/sop';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -52,7 +52,8 @@ const mapExampleToSOP = (data: any): SOP => ({
   organisation_id: data.organisation_id,
   organisation_name: data.organisation_name,
   client_name: data.client_name,
-  client_npi: data.client_npi
+  client_npi: data.client_npi,
+  documents: data.documents || []
 });
 type RawSOP = Omit<
   SOP,
@@ -391,6 +392,48 @@ createFromExtracted: async (payload: {
       throw new Error(error.detail || "Failed to stop SOP extraction");
     }
     return response.json();
+  },
+  
+  downloadSourceFile: async (id: string, filename: string): Promise<void> => {
+    const response = await apiClient(`${API_URL}/api/sops/${id}/source-file`);
+    if (!response.ok) throw new Error('Failed to download source file');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+  
+  uploadSOPDocument: async (sopId: string, file: File, category: string = "Source file"): Promise<SOPDocument> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("category", category);
+
+    const token = localStorage.getItem("access_token");
+    const response = await fetch(`${API_URL}/api/sops/${sopId}/documents`, {
+      method: "POST",
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    return response.json();
+  },
+
+  deleteSOPDocument: async (sopId: string, documentId: string): Promise<void> => {
+    const response = await apiClient(`${API_URL}/api/sops/${sopId}/documents/${documentId}`, {
+      method: "DELETE"
+    });
+    if (!response.ok) throw new Error('Failed to delete document');
   }
 };
 

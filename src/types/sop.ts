@@ -108,37 +108,48 @@ export type SOPCategory =
 //     createdAt: Date;
 //     updatedAt: Date;
 // }
+export interface SOPProvider extends ProviderInfo {
+  id: string;
+  name: string;
+  first_name: string;
+  last_name: string;
+  npi: string;
+  type: string;
+}
+
 export interface SOPStatus {
   id: number;
   code: string;
   description?: string;
 }
 
+export interface SOPDocument {
+  id: string;
+  name: string;
+  category: string;
+  s3_key: string;
+  created_at: string;
+}
+
 export interface SOP {
   id: string;
   title: string;
-
-  // ✅ FIXED
-  category: string | { title?: string; description?: string } | null;
-
-  // ✅ ADD THESE (YOU WERE MISSING THEM)
-  providerType?: "new" | "existing";
-  clientId?: string | null;
-
-  providerInfo?: ProviderInfo;
-
-  workflowProcess?: {
-    description?: string;
-    eligibilityPortals?: string[];
-  };
-
-  billingGuidelines?: BillingGuideline[];
-  payerGuidelines?:PayerGuidelines[];
-  codingRulesCPT?: CodingRuleCPT[];
-  codingRulesICD?:CodingRuleICD[];
-  providers?: any[];
+  category: SOPCategory;
+  providerType: "new" | "existing";
+  clientId: string;
+  providerInfo: ProviderInfo;
+  workflowProcess: WorkflowProcess;
+  billingGuidelines: BillingGuideline[]; // Assuming GroupedBillingGuidelines is equivalent to BillingGuideline[] or needs to be defined
+  payerGuidelines: PayerGuidelines[]; // Assuming PayerGuideline is equivalent to PayerGuidelines or needs to be defined
+  codingRulesCPT: CodingRuleCPT[];
+  codingRulesICD: CodingRuleICD[];
+  providers?: SOPProvider[];
   statusId?: number;
-  status?: SOPStatus;   // ✅ ADD THIS
+  status?: {
+    id: number;
+    code: string;
+    description: string;
+  };
   createdAt?: string;
   updatedAt?: string;
   created_by?: string;
@@ -147,6 +158,7 @@ export interface SOP {
   organisation_name?: string;
   client_name?: string;
   client_npi?: string;
+  documents: SOPDocument[];
 }
 
 export interface SOPFilters {

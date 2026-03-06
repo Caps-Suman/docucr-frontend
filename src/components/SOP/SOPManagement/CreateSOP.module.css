@@ -44,8 +44,8 @@
 .resetButton {
     background-color: white;
     border: 1px solid #e5e7eb;
-    padding: 8px;
-    border-radius: 8px;
+    padding: 8px 16px;
+    border-radius: 6px;
     color: #6b7280;
     font-size: 13px;
     font-weight: 500;
@@ -69,7 +69,7 @@
     color: #011926;
     border: 1px solid #83cee4;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: 6px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -78,7 +78,7 @@
     justify-content: center;
     gap: 8px;
     transition: background-color 0.2s;
-    /* min-height: 38px; */
+    height: 36px;
 }
 
 .saveButton:hover {
@@ -314,7 +314,7 @@
     gap: 12px;
     border-radius: 12px;
     background: #d8f6f7;
-    margin: 0 16px 16px 16px;
+    margin: 16px 16px 16px 16px;
     border: 0.4px solid #83cee4;
 }
 
@@ -426,6 +426,29 @@
 .editIcon:hover {
     color: #3b82f6;
     background-color: #eff6ff;
+}
+
+.iconButton {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.iconButton:hover {
+    color: #0284c7;
+    background-color: #e0f2fe;
+}
+
+.iconButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .previewSubItem {
