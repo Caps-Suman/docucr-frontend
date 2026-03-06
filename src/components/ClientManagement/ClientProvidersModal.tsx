@@ -151,6 +151,7 @@ const ClientProvidersModal: React.FC<ClientProvidersModalProps> = ({ isOpen, onC
                                 setItemsPerPage(items);
                                 setCurrentPage(0);
                             }}
+                            renderInPlace={true}
                         />
                     </div>
                 </div>
