@@ -303,17 +303,35 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
     }
   }, [showFilters]);
 
-  useEffect(() => {
-  const hasExtracting = sops.some(s => s.status?.code === "EXTRACTING");
+//   useEffect(() => {
+//   const hasExtracting = sops.some(s => s.status?.code === "EXTRACTING");
 
-  if (!hasExtracting) return;
+//   if (!hasExtracting) return;
 
-  const interval = setInterval(() => {
-    loadSOPs(debouncedSearchTerm, statusFilter);
-  }, 5000);
+//   const interval = setInterval(() => {
+//     loadSOPs(debouncedSearchTerm, statusFilter);
+//   }, 5000);
 
-  return () => clearInterval(interval);
-}, [sops]);
+//   return () => clearInterval(interval);
+// }, [sops]);
+useEffect(() => {
+    const hasExtracting = sops.some(s => s.status?.code === "EXTRACTING");
+
+    // Also poll if any SOP has unprocessed extra documents
+    const hasDocsExtracting = sops.some(s =>
+      (s.documents ?? []).some(
+        (doc: any) => doc.category !== "Source file" && doc.processed === false
+      )
+    );
+
+    if (!hasExtracting && !hasDocsExtracting) return;
+
+    const interval = setInterval(() => {
+      loadSOPs(debouncedSearchTerm, statusFilter);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [sops]);
   const handleApplyFilters = () => {
     setActiveFilters(filters);
     setCurrentPage(0);
@@ -601,37 +619,64 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
       width: '150px',
       render: (_: any, row: SOP) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
     }] : []),
-    {
-  key: "status",
-  header: "Status",
-  width: "140px",
-  render: (_: any, row: SOP) => {
-    const code = row.status?.code;
+     {
+      key: "status",
+      header: "Status",
+      width: "160px",
+      render: (_: any, row: SOP) => {
+        const code = row.status?.code;
 
-    if (code === "EXTRACTING") {
-      return (
-        <span className={styles.extractingBadge}>
-          <Loader2 size={14} className={styles.animateSpin} />
-          Extracting...
-        </span>
-      );
-    }
+        // Check if any non-source-file document is still unprocessed
+        const hasExtractionInProgress = (row.documents ?? []).some(
+          (doc: any) => doc.category !== "Source file" && doc.processed === false
+        );
 
-    if (code === "ACTIVE") {
-      return <span className={styles.activeBadge}>Active</span>;
-    }
+        const statusBadge = (() => {
+          if (code === "EXTRACTING") {
+            return (
+              <span className={styles.extractingBadge}>
+                <Loader2 size={14} className={styles.animateSpin} />
+                Extracting...
+              </span>
+            );
+          }
+          if (code === "ACTIVE") {
+            return <span className={styles.activeBadge}>Active</span>;
+          }
+          if (code === "INACTIVE") {
+            return <span className={styles.inactiveBadge}>Inactive</span>;
+          }
+          if (code === "FAILED") {
+            return <span className={styles.failedBadge}>Failed</span>;
+          }
+          return <span>-</span>;
+        })();
 
-    if (code === "INACTIVE") {
-      return <span className={styles.inactiveBadge}>Inactive</span>;
-    }
-
-    if (code === "FAILED") {
-      return <span className={styles.failedBadge}>Failed</span>;
-    }
-
-    return "-";
-  },
-},
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            {statusBadge}
+            {hasExtractionInProgress && code !== "EXTRACTING" && (
+              <span style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                fontSize: "11px",
+                fontWeight: 600,
+                color: "#92400e",
+                background: "#fffbeb",
+                border: "1px solid #fde68a",
+                borderRadius: "10px",
+                padding: "2px 7px",
+                width: "fit-content",
+              }}>
+                <Loader2 size={10} className={styles.animateSpin} />
+                Docs extracting…
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
     {
       key: "actions",
       header: "Actions",

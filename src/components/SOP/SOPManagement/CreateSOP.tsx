@@ -200,8 +200,8 @@ const CreateSOP: React.FC = () => {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [documents, setDocuments] = useState<SOPDocument[]>([]);
   const [isDownloadingSource, setIsDownloadingSource] = useState(false);
-  const [isExtraDocsOpen, setIsExtraDocsOpen] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+const [isExtraDocsOpen, setIsExtraDocsOpen] = useState(false);
+const [isExtractingDocs, setIsExtractingDocs] = useState(false);  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const { can } = usePermission();
   const [currentBackgroundSopId, setCurrentBackgroundSopId] = useState<string | null>(null);
   const handleResetClick = () => {
@@ -2431,12 +2431,11 @@ const handleAddGuideline = () => {
           {isEditMode && id && (() => {
             const extraDocsCount = documents.filter(doc => doc.category !== "Source file").length;
             return (
-              <button
+             <button
                 type="button"
                 className={styles.backButton}
                 onClick={async () => {
                   setIsExtraDocsOpen(true);
-                  // Refresh documents when opening modal
                   try {
                     const sop = await sopService.getSOPById(id);
                     setDocuments(sop.documents || []);
@@ -2446,9 +2445,29 @@ const handleAddGuideline = () => {
                 }}
                 title="Attach extra documents"
                 disabled={saving}
+                style={{ position: "relative" }}
               >
                 <FileText size={16} />
                 Extras {extraDocsCount > 0 && `(${extraDocsCount})`}
+                {isExtractingDocs && (
+                  <span style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    marginLeft: "6px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    color: "#f59e0b",
+                    background: "#fffbeb",
+                    border: "1px solid #fde68a",
+                    borderRadius: "10px",
+                    padding: "1px 7px",
+                    verticalAlign: "middle",
+                  }}>
+                    <Loader2 size={10} className={styles.animateSpin} />
+                    Extracting…
+                  </span>
+                )}
               </button>
             );
           })()}
@@ -2530,6 +2549,7 @@ const handleAddGuideline = () => {
           isOpen={isExtraDocsOpen}
           onClose={() => setIsExtraDocsOpen(false)}
           existingDocuments={documents.filter(doc => doc.category !== "Source file")}
+          onExtractionStateChange={(extracting) => setIsExtractingDocs(extracting)}
           onUploadsComplete={async () => {
             setToast({ message: "Documents uploaded successfully", type: "success" });
             // Refresh documents after upload

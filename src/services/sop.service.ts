@@ -183,6 +183,19 @@ const sopService = {
       inactiveSOPs: data.inactive_sops
     };
   },
+
+processSOPDocuments: async (sopId: string): Promise<{ message: string; queued: number; document_ids?: string[] }> => {
+    const response = await apiClient(`${API_URL}/api/sops/${sopId}/documents/process`, {
+      method: "POST"
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to trigger document processing');
+    }
+
+    return response.json();
+  },
 checkSOPExistence: async (
   clientId: string,
   providerIds: string[]
