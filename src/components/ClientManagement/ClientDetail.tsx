@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
@@ -43,6 +43,36 @@ const ClientDetail: React.FC = () => {
     const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
     const [editingLocation, setEditingLocation] = useState<ClientLocation | null>(null);
     const [isEditClientModalOpen, setIsEditClientModalOpen] = useState(false);
+    const [highlightedProviderId, setHighlightedProviderId] = useState<string | null>(null);
+    const providerRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
+    const mainPanelRef = useRef<HTMLDivElement | null>(null);
+
+    const scrollToProvider = useCallback((providerId: string) => {
+        const el = providerRefs.current[providerId];
+        const panel = mainPanelRef.current;
+        if (el && panel) {
+            const panelTop = panel.getBoundingClientRect().top;
+            const elTop = el.getBoundingClientRect().top;
+            const offset = elTop - panelTop + panel.scrollTop - panel.clientHeight / 2 + el.clientHeight / 2;
+            panel.scrollTo({ top: offset, behavior: 'smooth' });
+            setHighlightedProviderId(providerId);
+            setTimeout(() => setHighlightedProviderId(null), 2800);
+        }
+    }, []);
+
+    // Lock .app-main scroll while on this page — scrolling is handled by inner panels
+    useEffect(() => {
+        const appMain = document.querySelector('.app-main') as HTMLElement | null;
+        if (appMain) {
+            appMain.style.overflow = 'hidden';
+        }
+        return () => {
+            if (appMain) {
+                appMain.style.overflow = '';
+            }
+        };
+    }, []);
+
     useEffect(() => {
         const fetchClientDetails = async () => {
             try {
@@ -304,7 +334,7 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                     )}
                 </div>
 
-                <div className={styles.mainPanel}>
+                <div className={styles.mainPanel} ref={mainPanelRef}>
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
                             <h3 className={styles.cardTitle}>
@@ -351,7 +381,13 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                                                     <span className={styles.labelSmall}>Stationed Providers:</span>
                                                     <div className={styles.providerMiniList}>
                                                         {locProviders.map(p => (
-                                                            <span key={p.id} className={styles.providerMiniItem}>
+                                                            <span
+                                                                key={p.id}
+                                                                className={styles.providerMiniItem}
+                                                                onClick={() => scrollToProvider(p.id)}
+                                                                style={{ cursor: 'pointer' }}
+                                                                title="Click to highlight provider"
+                                                            >
                                                                 {p.first_name} {p.last_name}
                                                             </span>
                                                         ))}
@@ -378,7 +414,11 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                         <div className={styles.providerList}>
                             {client.providers && client.providers.length > 0 ? (
                                 client.providers.map((provider) => (
-                                    <div key={provider.id} className={styles.providerItem}>
+                                    <div
+                                        key={provider.id}
+                                        ref={(el) => { providerRefs.current[provider.id] = el; }}
+                                        className={`${styles.providerItem} ${highlightedProviderId === provider.id ? styles.providerBlink : ''}`}
+                                    >
                                         <div className={styles.providerHeader}>
                                             <div>
                                                 <div className={styles.providerName}>
@@ -387,7 +427,7 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                                                 <div className={styles.npiText}>NPI #{provider.npi}</div>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span className={styles.typeBadge}>{provider.type || "Specialist"}</span>
+                                                <span className={styles.typeBadge}>{provider.specialty || "Specialist"}</span>
                                                 <button
                                                     className={styles.editItemButton}
                                                     onClick={() => {

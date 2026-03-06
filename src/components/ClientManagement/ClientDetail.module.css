@@ -190,6 +190,12 @@
     align-items: start;
 }
 
+.mainPanel {
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
 .card {
     background: white;
     border-radius: 12px;
@@ -383,15 +389,33 @@
     padding: 2px 8px;
     border-radius: 4px;
     font-weight: 500;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.providerMiniItem:hover {
+    background: #e0f2fe;
+    border-color: #83cee4;
+    color: #0c4a6e;
 }
 
 .providerItem {
     padding: 16px;
     border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s;
 }
 
 .providerItem:hover {
     background: #fafafa;
+}
+
+@keyframes providerHighlight {
+    0%   { background: #e8f6fb; border-left: 3px solid #83cee4; }
+    60%  { background: #f0fafd; border-left: 3px solid #83cee4; }
+    100% { background: transparent; border-left: 3px solid transparent; }
+}
+
+.providerBlink {
+    animation: providerHighlight 2.8s ease-out forwards;
 }
 
 .providerHeader {
