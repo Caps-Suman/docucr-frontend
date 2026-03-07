@@ -368,7 +368,7 @@ const Profile: React.FC = () => {
                                 {errors.last_name && <span className="error-text">{errors.last_name}</span>}
                             </div>
                             <div className="form-group">
-                                <label>Username</label>
+                                <label>Username/Alias</label>
                                 <input
                                     type="text"
                                     value={formData.username}
