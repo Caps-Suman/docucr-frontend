@@ -7,16 +7,10 @@ import sopService from "../../../services/sop.service";
 import { SOPDocument } from "../../../types/sop";
 
 const SOP_CATEGORIES = [
-  "Basic Information",
-  "Workflow Process",
-  "Posting Charges Rules",
-  "Eligibility Verification Portals",
   "Billing Guidelines",
   "Payer Guidelines",
-  "Coding Guidelines",
   "CPT Coding Rules",
   "ICD Coding Rules",
-  "General",
 ];
 
 interface QueuedFile {

@@ -127,7 +127,7 @@ const CreateSOP: React.FC = () => {
   const [payerGuidelines, setPayerGuidelines] = useState<
     PayerGuidelines[]
   >([]);
-  
+
   const [newPayerGuideline, setNewPayerGuideline] = useState({
     title: "",
     description: "",
@@ -188,10 +188,10 @@ const CreateSOP: React.FC = () => {
     type: ToastType;
   } | null>(null);
   const [blockedProviders, setBlockedProviders] = useState<string[]>([]);
-  type ExtractionMode = 
-  | "IDLE"
-  | "EXTRACTING"
-  | "READY";
+  type ExtractionMode =
+    | "IDLE"
+    | "EXTRACTING"
+    | "READY";
   const [extractionMode, setExtractionMode] = useState<ExtractionMode>("IDLE");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -200,8 +200,8 @@ const CreateSOP: React.FC = () => {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [documents, setDocuments] = useState<SOPDocument[]>([]);
   const [isDownloadingSource, setIsDownloadingSource] = useState(false);
-const [isExtraDocsOpen, setIsExtraDocsOpen] = useState(false);
-const [isExtractingDocs, setIsExtractingDocs] = useState(false);  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isExtraDocsOpen, setIsExtraDocsOpen] = useState(false);
+  const [isExtractingDocs, setIsExtractingDocs] = useState(false); const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const { can } = usePermission();
   const [currentBackgroundSopId, setCurrentBackgroundSopId] = useState<string | null>(null);
   const handleResetClick = () => {
@@ -244,19 +244,19 @@ const [isExtractingDocs, setIsExtractingDocs] = useState(false);  const fileInpu
   };
 
   useEffect(() => {
-  if (
-    getSteps().find(s => s.number === currentStep)?.title === "Select Providers"
-    && selectedClientId
-  ) {
-    loadProvidersPaginated();
+    if (
+      getSteps().find(s => s.number === currentStep)?.title === "Select Providers"
+      && selectedClientId
+    ) {
+      loadProvidersPaginated();
 
-    // ADD THIS
-    sopService
-      .checkProviders(selectedClientId, modalProviders.map(p => p.id))
-      .then(res => setBlockedProviders(res.blocked_provider_ids || []))
-      .catch(() => setBlockedProviders([]));
-  }
-}, [currentStep]);
+      // ADD THIS
+      sopService
+        .checkProviders(selectedClientId, modalProviders.map(p => p.id))
+        .then(res => setBlockedProviders(res.blocked_provider_ids || []))
+        .catch(() => setBlockedProviders([]));
+    }
+  }, [currentStep]);
   // --- Effects ---
   useEffect(() => {
     // Initial fetch if needed, but Step 2 handles client loading now
@@ -284,25 +284,25 @@ const [isExtractingDocs, setIsExtractingDocs] = useState(false);  const fileInpu
   }, [providerSearchTerm]);
 
   // Load Clients when Step 1 is active (Client Selection)
-useEffect(() => {
-  if (!selectedClientId) return;
+  useEffect(() => {
+    if (!selectedClientId) return;
 
-  if (
-    getSteps().find(s => s.number === currentStep)?.title !== "Select Providers"
-  ) return;
+    if (
+      getSteps().find(s => s.number === currentStep)?.title !== "Select Providers"
+    ) return;
 
-  if (!modalProviders.length) return;
+    if (!modalProviders.length) return;
 
-  const ids = modalProviders.map(p => p.id);
+    const ids = modalProviders.map(p => p.id);
 
-  sopService
-    .checkProviders(selectedClientId, ids, id) // pass sopId in edit mode
-    .then(res => {
-      setBlockedProviders(res.blocked_provider_ids || []);
-    })
-    .catch(() => setBlockedProviders([]));
+    sopService
+      .checkProviders(selectedClientId, ids, id) // pass sopId in edit mode
+      .then(res => {
+        setBlockedProviders(res.blocked_provider_ids || []);
+      })
+      .catch(() => setBlockedProviders([]));
 
-}, [modalProviders, selectedClientId, currentStep]);
+  }, [modalProviders, selectedClientId, currentStep]);
 
   // Load Providers when Step 2 is active (Provider Selection) and client selected
   useEffect(() => {
@@ -324,54 +324,54 @@ useEffect(() => {
     }
   }, [location.state]);
   useEffect(() => {
-  if (!currentBackgroundSopId) return;
+    if (!currentBackgroundSopId) return;
 
-  const interval = setInterval(async () => {
-    try {
-      const sop = await sopService.getSOPById(currentBackgroundSopId);
+    const interval = setInterval(async () => {
+      try {
+        const sop = await sopService.getSOPById(currentBackgroundSopId);
 
-      if (sop.status?.code === "ACTIVE") {
-        clearInterval(interval);
-        navigate("/sops");
+        if (sop.status?.code === "ACTIVE") {
+          clearInterval(interval);
+          navigate("/sops");
+        }
+
+      } catch (e) {
+        console.error(e);
       }
+    }, 3000);
 
-    } catch (e) {
-      console.error(e);
-    }
-  }, 3000);
+    return () => clearInterval(interval);
+  }, [currentBackgroundSopId]);
+  // useEffect(() => {
+  //   if (!selectedClientId) return;
 
-  return () => clearInterval(interval);
-}, [currentBackgroundSopId]);
-// useEffect(() => {
-//   if (!selectedClientId) return;
+  //   const ids = providerIds;   // ✅ ONLY selected providers
 
-//   const ids = providerIds;   // ✅ ONLY selected providers
+  //   if (!ids.length) {
+  //     setBlockedProviders([]);
+  //     return;
+  //   }
 
-//   if (!ids.length) {
-//     setBlockedProviders([]);
-//     return;
-//   }
+  //   // CREATE MODE
+  //   if (!isEditMode) {
+  //     sopService.checkProviders(selectedClientId, ids)
+  //       .then(res => setBlockedProviders(res.blocked_provider_ids || []))
+  //       .catch(() => setBlockedProviders([]));
+  //     return;
+  //   }
 
-//   // CREATE MODE
-//   if (!isEditMode) {
-//     sopService.checkProviders(selectedClientId, ids)
-//       .then(res => setBlockedProviders(res.blocked_provider_ids || []))
-//       .catch(() => setBlockedProviders([]));
-//     return;
-//   }
+  //   // EDIT MODE → only validate if providers changed
+  //   const hasChanged =
+  //     JSON.stringify([...ids].sort()) !==
+  //     JSON.stringify([...initialProviderIds].sort());
 
-//   // EDIT MODE → only validate if providers changed
-//   const hasChanged =
-//     JSON.stringify([...ids].sort()) !==
-//     JSON.stringify([...initialProviderIds].sort());
+  //   if (!hasChanged) return;
 
-//   if (!hasChanged) return;
+  //   sopService.checkProviders(selectedClientId, ids, sopId)
+  //     .then(res => setBlockedProviders(res.blocked_provider_ids || []))
+  //     .catch(() => setBlockedProviders([]));
 
-//   sopService.checkProviders(selectedClientId, ids, sopId)
-//     .then(res => setBlockedProviders(res.blocked_provider_ids || []))
-//     .catch(() => setBlockedProviders([]));
-
-// }, [providerIds, selectedClientId, sopId]);
+  // }, [providerIds, selectedClientId, sopId]);
 
   const loadSOP = async (sopId: string) => {
     try {
@@ -434,7 +434,7 @@ useEffect(() => {
 
       if (sop.codingRulesCPT) setCodingRulesCPT(sop.codingRulesCPT);
       if (sop.codingRulesICD) setCodingRulesICD(sop.codingRulesICD);
-      
+
       setDocuments(sop.documents || []);
 
     } catch (error) {
@@ -446,126 +446,126 @@ useEffect(() => {
   };
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
-// const handleSOPBackgroundUpload = async (file: File) => {
-//   try {
-//     if (!selectedClientId) {
-//       alert("Please select a client before uploading.");
-//       return;
-//     }
+  // const handleSOPBackgroundUpload = async (file: File) => {
+  //   try {
+  //     if (!selectedClientId) {
+  //       alert("Please select a client before uploading.");
+  //       return;
+  //     }
 
-//     const controller = new AbortController();
-//     abortControllerRef.current = controller;
+  //     const controller = new AbortController();
+  //     abortControllerRef.current = controller;
 
-//     setExtractionMode("FOREGROUND");
+  //     setExtractionMode("FOREGROUND");
 
-//     const formData = new FormData();
-//     formData.append("file", file);
-//     formData.append("provider_type", providerType);
-//     formData.append("client_id", selectedClientId);
-//     providerIds.forEach(id => {
-//       formData.append("provider_ids", id);
-//     });
+  //     const formData = new FormData();
+  //     formData.append("file", file);
+  //     formData.append("provider_type", providerType);
+  //     formData.append("client_id", selectedClientId);
+  //     providerIds.forEach(id => {
+  //       formData.append("provider_ids", id);
+  //     });
 
-//     const result = await sopService.backgroundUploadAndExtractSOP(
-//       formData,
-//       controller.signal
-//     );
+  //     const result = await sopService.backgroundUploadAndExtractSOP(
+  //       formData,
+  //       controller.signal
+  //     );
 
-//     setCurrentBackgroundSopId(result.sop_id);
+  //     setCurrentBackgroundSopId(result.sop_id);
 
-//   } catch (err: any) {
-//     if (err.name === "CanceledError") {
-//       console.log("Upload cancelled");
-//     } else {
-//       console.error(err);
-//       alert("Failed to upload SOP");
-//     }
-//   } finally {
-//     abortControllerRef.current = null;
-//   }
-// };
+  //   } catch (err: any) {
+  //     if (err.name === "CanceledError") {
+  //       console.log("Upload cancelled");
+  //     } else {
+  //       console.error(err);
+  //       alert("Failed to upload SOP");
+  //     }
+  //   } finally {
+  //     abortControllerRef.current = null;
+  //   }
+  // };
 
-const handleForegroundExtraction = async (file: File) => {
-  const controller = new AbortController();
-  abortControllerRef.current = controller;
+  const handleForegroundExtraction = async (file: File) => {
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
-  try {
-    setExtractionMode("EXTRACTING");
+    try {
+      setExtractionMode("EXTRACTING");
 
-    const formData = new FormData();
-    formData.append("file", file);
+      const formData = new FormData();
+      formData.append("file", file);
 
-    const result = await sopService.extractSOPForeground(
-      formData,
-      controller.signal
-    );
+      const result = await sopService.extractSOPForeground(
+        formData,
+        controller.signal
+      );
 
-    applyExtractedSOP(result.extracted_data);
-    setExtractedData(result.extracted_data);
+      applyExtractedSOP(result.extracted_data);
+      setExtractedData(result.extracted_data);
 
-    // ✅ Only set READY if extraction actually succeeded
-    setExtractionMode("READY");
+      // ✅ Only set READY if extraction actually succeeded
+      setExtractionMode("READY");
 
-  } catch (err: any) {
+    } catch (err: any) {
 
-    if (err.name === "AbortError") {
-      console.log("Extraction cancelled");
-      setExtractionMode("IDLE");   // ✅ IMPORTANT
-    } else {
-      console.error(err);
-      setExtractionMode("IDLE");   // ✅ Reset on error
+      if (err.name === "AbortError") {
+        console.log("Extraction cancelled");
+        setExtractionMode("IDLE");   // ✅ IMPORTANT
+      } else {
+        console.error(err);
+        setExtractionMode("IDLE");   // ✅ Reset on error
+      }
+
+    } finally {
+      abortControllerRef.current = null;
     }
+  };
+  const [backgroundLoading, setBackgroundLoading] = useState(false);
 
-  } finally {
-    abortControllerRef.current = null;
-  }
-};
-const [backgroundLoading, setBackgroundLoading] = useState(false);
+  const moveToBackground = async () => {
+    if (!uploadedFile) return;
 
-const moveToBackground = async () => {
-  if (!uploadedFile) return;
+    try {
 
-  try {
+      const res = await sopService.checkSOPExistence(
+        selectedClientId,
+        providerIds
+      );
 
-    const res = await sopService.checkSOPExistence(
-      selectedClientId,
-      providerIds
-    );
+      if (res.exists) {
+        setToast({
+          message: "This client already has an SOP",
+          type: "warning"
+        });
+        return;
+      }
 
-    if (res.exists) {
-      setToast({
-        message: "This client already has an SOP",
-        type: "warning"
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      setBackgroundLoading(true);
+
+      const formData = new FormData();
+      formData.append("file", uploadedFile);
+      formData.append("provider_type", providerType);
+      formData.append("client_id", selectedClientId);
+
+      providerIds.forEach(id => {
+        formData.append("provider_ids", id);
       });
-      return;
+
+      const result = await sopService.backgroundUploadAndExtractSOP(formData);
+
+      setCurrentBackgroundSopId(result.sop_id);
+
+      navigate("/sops");
+
+    } catch (err) {
+      console.error(err);
+      setBackgroundLoading(false);
     }
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    setBackgroundLoading(true);
-
-    const formData = new FormData();
-    formData.append("file", uploadedFile);
-    formData.append("provider_type", providerType);
-    formData.append("client_id", selectedClientId);
-
-    providerIds.forEach(id => {
-      formData.append("provider_ids", id);
-    });
-
-    const result = await sopService.backgroundUploadAndExtractSOP(formData);
-
-    setCurrentBackgroundSopId(result.sop_id);
-
-    navigate("/sops");
-
-  } catch (err) {
-    console.error(err);
-    setBackgroundLoading(false);
-  }
-};
+  };
 
   const handleCancelUpload = () => {
     if (abortControllerRef.current) {
@@ -717,10 +717,10 @@ const moveToBackground = async () => {
     await fetchAllClients();
   };
   useEffect(() => {
-  if (currentStep === 1) {
-    loadClientsPaginated();
-  }
-}, [currentStep]);
+    if (currentStep === 1) {
+      loadClientsPaginated();
+    }
+  }, [currentStep]);
   // Effect to handle client-side filtering/pagination when search/page changes
   useEffect(() => {
     // If we are using the bulk list (allClients has data)
@@ -767,127 +767,127 @@ const moveToBackground = async () => {
     return client?.type === 'Individual';
   };
 
-const handleNextStep = async () => {
-  const steps = getSteps();
+  const handleNextStep = async () => {
+    const steps = getSteps();
 
-  // STEP 1: Select Client
-  if (currentStep === 1) {
-    if (!selectedClientId) {
-      setToast({
-        message: "Please select a client",
-        type: "warning",
-      });
-      return;
-    }
-
-    // Only validate in CREATE mode
-    if (!isEditMode) {
-      try {
-        setLoading(true);
-
-        const res = await sopService.checkSOPExistence(
-          selectedClientId,
-          providerIds
-        );
-
-        setLoading(false);
-
-        if (res.exists) {
-          setToast({
-            message: "This client already has an SOP",
-            type: "warning",
-          });
-          return;
-        }
-
-      } catch (err) {
-        setLoading(false);
+    // STEP 1: Select Client
+    if (currentStep === 1) {
+      if (!selectedClientId) {
         setToast({
-          message: "Failed to validate SOP existence",
-          type: "error",
+          message: "Please select a client",
+          type: "warning",
         });
         return;
       }
-    }
 
-    setCurrentStep(prev => prev + 1);
-    return;
-  }
+      // Only validate in CREATE mode
+      if (!isEditMode) {
+        try {
+          setLoading(true);
 
-  // STEP 2: Providers
-  if (
-    getSteps().find(s => s.number === currentStep)?.title === "Select Providers"
-  ) {
-    if (providerIds.length === 0) {
-      setToast({
-        message: "Select at least one provider",
-        type: "warning",
-      });
+          const res = await sopService.checkSOPExistence(
+            selectedClientId,
+            providerIds
+          );
+
+          setLoading(false);
+
+          if (res.exists) {
+            setToast({
+              message: "This client already has an SOP",
+              type: "warning",
+            });
+            return;
+          }
+
+        } catch (err) {
+          setLoading(false);
+          setToast({
+            message: "Failed to validate SOP existence",
+            type: "error",
+          });
+          return;
+        }
+      }
+
+      setCurrentStep(prev => prev + 1);
       return;
     }
 
-    setCurrentStep(prev => prev + 1);
-    return;
-  }
+    // STEP 2: Providers
+    if (
+      getSteps().find(s => s.number === currentStep)?.title === "Select Providers"
+    ) {
+      if (providerIds.length === 0) {
+        setToast({
+          message: "Select at least one provider",
+          type: "warning",
+        });
+        return;
+      }
 
-  // STEP: Basic Information
-  if (
-    getSteps().find(s => s.number === currentStep)?.title === "Basic Information"
-  ) {
-    if (!validateStep1()) return;
+      setCurrentStep(prev => prev + 1);
+      return;
+    }
 
-    setCurrentStep(prev => prev + 1);
-    return;
-  }
-};
+    // STEP: Basic Information
+    if (
+      getSteps().find(s => s.number === currentStep)?.title === "Basic Information"
+    ) {
+      if (!validateStep1()) return;
+
+      setCurrentStep(prev => prev + 1);
+      return;
+    }
+  };
 
   // Only check in CREATE mode
-//   if (!isEditMode) {
-//     try {
-//       setLoading(true);
+  //   if (!isEditMode) {
+  //     try {
+  //       setLoading(true);
 
-//       // const res = await sopService.checkSOPExistence(selectedClientId, providerIds);
+  //       // const res = await sopService.checkSOPExistence(selectedClientId, providerIds);
 
-//       setLoading(false);
+  //       setLoading(false);
 
-//       if (res.exists) {
-//         setToast({
-//           message: "This client already has an SOP.",
-//           type: "warning",
-//         });
-//         return; // 🚨 STOP HERE
-//       }
-//     } catch (err) {
-//       setLoading(false);
-//       setToast({
-//         message: "Failed to validate SOP existence.",
-//         type: "error",
-//       });
-//       return;
-//     }
-//   }
+  //       if (res.exists) {
+  //         setToast({
+  //           message: "This client already has an SOP.",
+  //           type: "warning",
+  //         });
+  //         return; // 🚨 STOP HERE
+  //       }
+  //     } catch (err) {
+  //       setLoading(false);
+  //       setToast({
+  //         message: "Failed to validate SOP existence.",
+  //         type: "error",
+  //       });
+  //       return;
+  //     }
+  //   }
 
-//   setCurrentStep(2);
-//   return;
-// }
-//     else if (currentStep === 2 && getSteps().find(s => s.number === 2)?.title === "Select Providers") {
-//       if (providerIds.length === 0) {
-//         setToast({ message: "Select atleast one provider", type: "warning" });
-//         return;
-//       }
-//       setCurrentStep(3);
-//     }
-//     // Step 2 or 3: Basic Information
-//     else if (getSteps().find(s => s.number === currentStep)?.title === "Basic Information") {
-//       if (validateStep1()) {
-//         setCurrentStep(currentStep + 1);
-//       }
-//     }
-//     // Preview
-//     else if (isLastStep) {
-//       return;
-//     }
-//   };
+  //   setCurrentStep(2);
+  //   return;
+  // }
+  //     else if (currentStep === 2 && getSteps().find(s => s.number === 2)?.title === "Select Providers") {
+  //       if (providerIds.length === 0) {
+  //         setToast({ message: "Select atleast one provider", type: "warning" });
+  //         return;
+  //       }
+  //       setCurrentStep(3);
+  //     }
+  //     // Step 2 or 3: Basic Information
+  //     else if (getSteps().find(s => s.number === currentStep)?.title === "Basic Information") {
+  //       if (validateStep1()) {
+  //         setCurrentStep(currentStep + 1);
+  //       }
+  //     }
+  //     // Preview
+  //     else if (isLastStep) {
+  //       return;
+  //     }
+  //   };
 
   const handleBackStep = () => {
     if (currentStep > 1) {
@@ -914,46 +914,46 @@ const handleNextStep = async () => {
     return newErrors.length === 0;
   };
 
-const getSteps = () => {
-  const steps = [
-    { number: 1, title: "Select Client", desc: "Choose a client" }
-  ];
+  const getSteps = () => {
+    const steps = [
+      { number: 1, title: "Select Client", desc: "Choose a client" }
+    ];
 
-  const client = (allClients.length > 0 ? allClients : clients)
-    .find(c => c.id === selectedClientId);
+    const client = (allClients.length > 0 ? allClients : clients)
+      .find(c => c.id === selectedClientId);
 
-  let stepCount = 1;
+    let stepCount = 1;
 
-  // Step 2: Select Providers (only if organization with providers)
-  if (client && client.type !== 'Individual' && client.provider_count > 0) {
+    // Step 2: Select Providers (only if organization with providers)
+    if (client && client.type !== 'Individual' && client.provider_count > 0) {
+      stepCount++;
+      steps.push({
+        number: stepCount,
+        title: "Select Providers",
+        desc: "Link providers"
+      });
+    }
+
+    // Basic Information step
     stepCount++;
     steps.push({
       number: stepCount,
-      title: "Select Providers",
-      desc: "Link providers"
+      title: "Basic Information",
+      desc: "SOP details & workflow"
     });
-  }
 
-  // Basic Information step
-  stepCount++;
-  steps.push({
-    number: stepCount,
-    title: "Basic Information",
-    desc: "SOP details & workflow"
-  });
+    // 🚫 DO NOT add Preview step in edit mode
+    if (!isEditMode) {
+      stepCount++;
+      steps.push({
+        number: stepCount,
+        title: "Preview & Save",
+        desc: "Review details"
+      });
+    }
 
-  // 🚫 DO NOT add Preview step in edit mode
-  if (!isEditMode) {
-    stepCount++;
-    steps.push({
-      number: stepCount,
-      title: "Preview & Save",
-      desc: "Review details"
-    });
-  }
-
-  return steps;
-};
+    return steps;
+  };
 
   // const loadClients = async () => ... REMOVED
 
@@ -969,24 +969,24 @@ const getSteps = () => {
     setEligibilityPortals(eligibilityPortals.filter((_, i) => i !== index));
   };
 
-const handleAddGuideline = () => {
-  if (newGuideline.title.trim() && newGuideline.description.trim()) {
-    const newEntry = {
-      id: `bg_${Date.now()}`,
-      category: newGuideline.title,
-      rules: [
-        {
-          id: `rule_${Date.now()}`,
-          description: newGuideline.description,
-        },
-      ],
-    };
+  const handleAddGuideline = () => {
+    if (newGuideline.title.trim() && newGuideline.description.trim()) {
+      const newEntry = {
+        id: `bg_${Date.now()}`,
+        category: newGuideline.title,
+        rules: [
+          {
+            id: `rule_${Date.now()}`,
+            description: newGuideline.description,
+          },
+        ],
+      };
 
-    setBillingGuidelines(prev => [newEntry, ...prev]); // 🔥 prepend
+      setBillingGuidelines(prev => [newEntry, ...prev]); // 🔥 prepend
 
-    setNewGuideline({ title: "", description: "" });
-  }
-};
+      setNewGuideline({ title: "", description: "" });
+    }
+  };
 
   const handleRemoveGuideline = (id: string | undefined, index: number) => {
     setBillingGuidelines(
@@ -997,17 +997,17 @@ const handleAddGuideline = () => {
   const handleAddCodingRule = () => {
     if (codingType === "CPT" && newCpt.cptCode.trim()) {
       setCodingRulesCPT(prev => [
-  { id: `cpt_${Date.now()}`, ...newCpt },
-  ...prev
-]);
+        { id: `cpt_${Date.now()}`, ...newCpt },
+        ...prev
+      ]);
       resetCpt();
     }
 
     if (codingType === "ICD" && newIcd.icdCode.trim()) {
       setCodingRulesICD(prev => [
-  { id: `icd_${Date.now()}`, ...newIcd },
-  ...prev
-]);
+        { id: `icd_${Date.now()}`, ...newIcd },
+        ...prev
+      ]);
       resetIcd();
     }
   };
@@ -1430,7 +1430,7 @@ const handleAddGuideline = () => {
 
               <div className={styles.stepContainer}>
                 <div style={{ display: "none" }}>
-                   {/* Elements moved to header */}
+                  {/* Elements moved to header */}
                 </div>
                 {errors.length > 0 && (
                   <div
@@ -1767,9 +1767,9 @@ const handleAddGuideline = () => {
                         onClick={() => {
                           if (newPayerGuideline.title && newPayerGuideline.description) {
                             setPayerGuidelines(prev => [
-  { ...newPayerGuideline, id: `pg_temp_${Date.now()}` },
-  ...prev
-]);
+                              { ...newPayerGuideline, id: `pg_temp_${Date.now()}` },
+                              ...prev
+                            ]);
                             setNewPayerGuideline({ title: "", description: "" });
                           }
                         }}
@@ -2307,222 +2307,222 @@ const handleAddGuideline = () => {
           </div>
 
           {/* Footer */}
-<div className={styles.footer}>
+          <div className={styles.footer}>
 
-  {extractionMode === "EXTRACTING" && (
-    <>
-      <div style={{ display: 'flex', gap: '8px', marginRight: 'auto' }}>
-        <button className={styles.saveButton} type="button" disabled>
-          <Loader2 size={16} className={styles.animateSpin} />
-          Extracting...
-        </button>
-        <button
-          className={styles.saveButton}
-          type="button"
-          onClick={handleCancelUpload}
-          style={{
-            backgroundColor: "#ef4444",
-            borderColor: "#ef4444",
-            color: "white"
-          }}
-        >
-          <X size={16} />
-          Cancel
-        </button>
-      </div>
-      <button
-        className={styles.saveButton}
-        onClick={moveToBackground}
-        disabled={backgroundLoading}
-      >
-        {backgroundLoading ? (
-          <>
-            <Loader2 size={16} className={styles.animateSpin} />
-            Starting...
-          </>
-        ) : (
-          <>
-            <Activity size={16} />
-            Run in Background
-          </>
-        )}
-      </button>
-    </>
-  )}
-
-  {extractionMode !== "EXTRACTING" && (
-    <>
-      {getSteps().find(s => s.number === currentStep)?.title === "Basic Information" && (
-        <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
-          {!sourceFile ? (
-            <button
-              className={styles.saveButton}
-              type="button"
-              onClick={handleUploadClick}
-            >
-              <Upload size={16} />
-              Upload Source SOP
-            </button>
-          ) : (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              backgroundColor: '#f8fafc', 
-              padding: '6px 12px', 
-              borderRadius: '6px', 
-              border: '1px solid #e2e8f0' 
-            }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Source:</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '13px' }}>
-                <FileText size={16} color="#0284c7" />
-                <span title={sourceFile.name}>
-                  {truncateFileName(sourceFile.name)}
-                </span>
-              </div>
-              {/* Divider */}
-              <span style={{ width: '1px', height: '18px', backgroundColor: '#e2e8f0', display: 'inline-block' }} />
-              {/* Edit (Change) icon */}
-              <button
-                type="button"
-                onClick={handleUploadClick}
-                title="Change file"
-                className={styles.iconButton}
-              >
-                <Edit2 size={15} />
-              </button>
-              {/* Download icon — only in edit mode with saved source */}
-              {isEditMode && documents.some(doc => doc.category === "Source file") && (
-                <>
-                  {/* Divider */}
-                  <span style={{ width: '1px', height: '18px', backgroundColor: '#e2e8f0', display: 'inline-block' }} />
+            {extractionMode === "EXTRACTING" && (
+              <>
+                <div style={{ display: 'flex', gap: '8px', marginRight: 'auto' }}>
+                  <button className={styles.saveButton} type="button" disabled>
+                    <Loader2 size={16} className={styles.animateSpin} />
+                    Extracting...
+                  </button>
                   <button
+                    className={styles.saveButton}
                     type="button"
-                    onClick={handleDownloadSourceFile}
-                    disabled={isDownloadingSource}
-                    title="Download Source"
-                    className={styles.iconButton}
+                    onClick={handleCancelUpload}
+                    style={{
+                      backgroundColor: "#ef4444",
+                      borderColor: "#ef4444",
+                      color: "white"
+                    }}
                   >
-                    {isDownloadingSource ? (
+                    <X size={16} />
+                    Cancel
+                  </button>
+                </div>
+                <button
+                  className={styles.saveButton}
+                  onClick={moveToBackground}
+                  disabled={backgroundLoading}
+                >
+                  {backgroundLoading ? (
+                    <>
                       <Loader2 size={16} className={styles.animateSpin} />
+                      Starting...
+                    </>
+                  ) : (
+                    <>
+                      <Activity size={16} />
+                      Run in Background
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+
+            {extractionMode !== "EXTRACTING" && (
+              <>
+                {getSteps().find(s => s.number === currentStep)?.title === "Basic Information" && (
+                  <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+                    {!sourceFile ? (
+                      <button
+                        className={styles.saveButton}
+                        type="button"
+                        onClick={handleUploadClick}
+                      >
+                        <Upload size={16} />
+                        Upload Source SOP
+                      </button>
                     ) : (
-                      <Download size={16} />
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        backgroundColor: '#f8fafc',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Source:</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '13px' }}>
+                          <FileText size={16} color="#0284c7" />
+                          <span title={sourceFile.name}>
+                            {truncateFileName(sourceFile.name)}
+                          </span>
+                        </div>
+                        {/* Divider */}
+                        <span style={{ width: '1px', height: '18px', backgroundColor: '#e2e8f0', display: 'inline-block' }} />
+                        {/* Edit (Change) icon */}
+                        <button
+                          type="button"
+                          onClick={handleUploadClick}
+                          title="Change file"
+                          className={styles.iconButton}
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        {/* Download icon — only in edit mode with saved source */}
+                        {isEditMode && documents.some(doc => doc.category === "Source file") && (
+                          <>
+                            {/* Divider */}
+                            <span style={{ width: '1px', height: '18px', backgroundColor: '#e2e8f0', display: 'inline-block' }} />
+                            <button
+                              type="button"
+                              onClick={handleDownloadSourceFile}
+                              disabled={isDownloadingSource}
+                              title="Download Source"
+                              className={styles.iconButton}
+                            >
+                              {isDownloadingSource ? (
+                                <Loader2 size={16} className={styles.animateSpin} />
+                              ) : (
+                                <Download size={16} />
+                              )}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setUploadedFile(file);
+                          handleForegroundExtraction(file);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                    {/* Extra Documents button — right of the source chip */}
+                    {isEditMode && id && (() => {
+                      const extraDocsCount = documents.filter(doc => doc.category !== "Source file").length;
+                      return (
+                        <button
+                          type="button"
+                          className={styles.backButton}
+                          onClick={async () => {
+                            setIsExtraDocsOpen(true);
+                            try {
+                              const sop = await sopService.getSOPById(id);
+                              setDocuments(sop.documents || []);
+                            } catch (error) {
+                              console.error("Failed to refresh documents:", error);
+                            }
+                          }}
+                          title="Attach extra documents"
+                          disabled={saving}
+                          style={{ position: "relative" }}
+                        >
+                          <FileText size={16} />
+                          Extras {extraDocsCount > 0 && `(${extraDocsCount})`}
+                          {isExtractingDocs && (
+                            <span style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              marginLeft: "6px",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              color: "#f59e0b",
+                              background: "#fffbeb",
+                              border: "1px solid #fde68a",
+                              borderRadius: "10px",
+                              padding: "1px 7px",
+                              verticalAlign: "middle",
+                            }}>
+                              <Loader2 size={10} className={styles.animateSpin} />
+                              Extracting…
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+                  {currentStep > 1 && (
+                    <button
+                      className={styles.backButton}
+                      onClick={handleBackStep}
+                      disabled={saving}
+                    >
+                      <ArrowLeft size={16} />
+                      Back
+                    </button>
+                  )}
+
+                  <button
+                    className={styles.saveButton}
+                    onClick={
+                      currentStep === getSteps().length
+                        ? handleSave
+                        : handleNextStep
+                    }
+                    disabled={saving}
+                  >
+                    {currentStep === getSteps().length ? (
+                      saving ? (
+                        <>
+                          <Loader2 size={16} className={styles.animateSpin} />
+                          Saving...
+                        </>
+                      ) : isEditMode ? (
+                        <>
+                          <Save size={16} />
+                          Update SOP
+                        </>
+                      ) : (
+                        <>
+                          <Save size={16} />
+                          Create SOP
+                        </>
+                      )
+                    ) : (
+                      <>
+                        Next
+                        <ChevronRight size={16} />
+                      </>
                     )}
                   </button>
-                </>
-              )}
-            </div>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.docx,.xlsx,.xls,.png,.jpg,.jpeg"
-            style={{ display: "none" }}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                setUploadedFile(file);
-                handleForegroundExtraction(file);
-                e.target.value = "";
-              }
-            }}
-          />
-          {/* Extra Documents button — right of the source chip */}
-          {isEditMode && id && (() => {
-            const extraDocsCount = documents.filter(doc => doc.category !== "Source file").length;
-            return (
-             <button
-                type="button"
-                className={styles.backButton}
-                onClick={async () => {
-                  setIsExtraDocsOpen(true);
-                  try {
-                    const sop = await sopService.getSOPById(id);
-                    setDocuments(sop.documents || []);
-                  } catch (error) {
-                    console.error("Failed to refresh documents:", error);
-                  }
-                }}
-                title="Attach extra documents"
-                disabled={saving}
-                style={{ position: "relative" }}
-              >
-                <FileText size={16} />
-                Extras {extraDocsCount > 0 && `(${extraDocsCount})`}
-                {isExtractingDocs && (
-                  <span style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    marginLeft: "6px",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    color: "#f59e0b",
-                    background: "#fffbeb",
-                    border: "1px solid #fde68a",
-                    borderRadius: "10px",
-                    padding: "1px 7px",
-                    verticalAlign: "middle",
-                  }}>
-                    <Loader2 size={10} className={styles.animateSpin} />
-                    Extracting…
-                  </span>
-                )}
-              </button>
-            );
-          })()}
-        </div>
-      )}
-      <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
-        {currentStep > 1 && (
-          <button
-            className={styles.backButton}
-            onClick={handleBackStep}
-            disabled={saving}
-          >
-            <ArrowLeft size={16} />
-            Back
-          </button>
-        )}
+                </div>
+              </>
+            )}
 
-        <button
-          className={styles.saveButton}
-          onClick={
-            currentStep === getSteps().length
-              ? handleSave
-              : handleNextStep
-          }
-          disabled={saving}
-        >
-          {currentStep === getSteps().length ? (
-            saving ? (
-              <>
-                <Loader2 size={16} className={styles.animateSpin} />
-                Saving...
-              </>
-            ) : isEditMode ? (
-              <>
-                <Save size={16} />
-                Update SOP
-              </>
-            ) : (
-              <>
-                <Save size={16} />
-                Create SOP
-              </>
-            )
-          ) : (
-            <>
-              Next
-              <ChevronRight size={16} />
-            </>
-          )}
-        </button>
-      </div>
-    </>
-  )}
-
-</div>
+          </div>
         </div>
       </div>
 
