@@ -373,31 +373,33 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
                     borderColor: errors.businessName ? "#ef4444" : "#d1d5db",
                   }}
                 />
-                {errors.businessName && (
-                  <span className={styles.errorText}>
-                    {errors.businessName}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className={styles.formRowThree}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>First Name *</label>
-                  <input
-                    className={styles.input}
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    style={{ borderColor: errors.firstName ? "#ef4444" : undefined }}
-                  />
-                  {errors.firstName && <span className={styles.errorText}>{errors.firstName}</span>}
+                  {errors.businessName && (
+                    <span className={styles.errorText}>
+                      {errors.businessName}
+                    </span>
+                  )}
                 </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Middle Name</label>
-                  <input
-                    className={styles.input}
-                    value={middleName}
-                    onChange={(e) => setMiddleName(e.target.value)}
-                  />
+              ) : (
+                <>
+                  <div className={styles.formRowSplit}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>First Name *</label>
+                    <input
+                      className={styles.input}
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      style={{ borderColor: errors.firstName ? "#ef4444" : undefined }}
+                    />
+                    {errors.firstName && <span className={styles.errorText}>{errors.firstName}</span>}
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Middle Name</label>
+                    <input
+                      className={styles.input}
+                      value={middleName}
+                      onChange={(e) => setMiddleName(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>Last Name</label>
@@ -407,7 +409,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
                     onChange={(e) => setLastName(e.target.value)}
                   />
                 </div>
-              </div>
+              </>
             )}
 
             <div className={styles.formGroup}>
@@ -469,6 +471,9 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
                   onChange={(e) => setStateName(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className={styles.formRowSplit}>
               <div className={styles.formGroup}>
                 <label className={styles.label}>Country *</label>
                 <input

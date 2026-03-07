@@ -38,6 +38,7 @@ export type ProviderForm = {
   middle_name?: string;
   last_name: string;
   npi: string;
+  ptan_id?: string;
 
   address_line_1: string;
   address_line_2?: string;
@@ -102,6 +103,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
       middle_name: "",
       last_name: "",
       npi: "",
+      ptan_id: "",
       address_line_1: "",
       address_line_2: "",
       city: "",
@@ -216,7 +218,8 @@ const ClientModal: React.FC<ClientModalProps> = ({
           zip_code: (p as any).zip_code || "",
           location_temp_id: (p as any).location_id || "", // The link!
           specialty: p.specialty || "",
-          specialty_code: p.specialty_code || ""
+          specialty_code: p.specialty_code || "",
+          ptan_id: (p as any).ptan_id || ""
         }));
         setProviders(mappedProviders);
       } else {
@@ -810,7 +813,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
         setProviders([{
           first_name: "", middle_name: "", last_name: "", npi: "",
           address_line_1: "", address_line_2: "", city: "", state_code: "",
-          state_name: "", zip_code: "", country: "United States", location_temp_id: ""
+          state_name: "", zip_code: "", country: "United States", location_temp_id: "", ptan_id: ""
         }]);
       }
 
@@ -835,7 +838,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
       setProviders([{
         first_name: "", middle_name: "", last_name: "", npi: "",
         address_line_1: "", address_line_2: "", city: "", state_code: "",
-        state_name: "", zip_code: "", country: "United States", location_temp_id: ""
+        state_name: "", zip_code: "", country: "United States", location_temp_id: "", ptan_id: ""
       }]);
       setIsProviderOrg(false);
     }
@@ -1437,7 +1440,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
               </>
             ) : step === 1 ? (
               <>
-                <div className={styles.formRowThree}>
+                <div className={styles.formRowSplit}>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>First Name *</label>
                     <input
@@ -1454,14 +1457,14 @@ const ClientModal: React.FC<ClientModalProps> = ({
                       onChange={(e) => setMiddleName(e.target.value)}
                     />
                   </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Last Name</label>
-                    <input
-                      className={styles.input}
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                    />
-                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Last Name</label>
+                  <input
+                    className={styles.input}
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
                 </div>
               </>
             ) : (
@@ -1527,7 +1530,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
                     </div>
 
                     {/* Name Row */}
-                    <div className={styles.formRowThree}>
+                    <div className={styles.formRowSplit}>
                       <div className={styles.formGroup}>
                         <label className={styles.label}>First Name *</label>
                         <input
@@ -1560,6 +1563,9 @@ const ClientModal: React.FC<ClientModalProps> = ({
                           }}
                         />
                       </div>
+                    </div>
+
+                    <div className={styles.formRowSplit}>
                       <div className={styles.formGroup}>
                         <label className={styles.label}>Last Name *</label>
                         <input
@@ -1576,6 +1582,22 @@ const ClientModal: React.FC<ClientModalProps> = ({
                           style={providerErrorsMap[index]?.last_name ? { borderColor: 'red' } : {}}
                         />
                         {providerErrorsMap[index]?.last_name && <span className={styles.errorText}>{providerErrorsMap[index].last_name}</span>}
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>PTAN Number</label>
+                        <input
+                          className={styles.input}
+                          value={p.ptan_id || ""}
+                          onFocus={() => setActiveProviderIndex(index)}
+                          onChange={(e) => {
+                            setProviders((prev) => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], ptan_id: e.target.value };
+                              return copy;
+                            });
+                          }}
+                          placeholder="Enter Medicare PTAN"
+                        />
                       </div>
                     </div>
 
@@ -1657,37 +1679,55 @@ const ClientModal: React.FC<ClientModalProps> = ({
                       {providerErrorsMap[index]?.city && <span className={styles.errorText}>{providerErrorsMap[index].city}</span>}
                     </div>
                     <div className={styles.formRowSplit}>
-                      <input className={styles.input} placeholder="State Code" maxLength={2} value={p.state_code}
-                        onFocus={() => setActiveProviderIndex(index)}
-                        onChange={(e) => {
-                          setProviders(prev => {
-                            const copy = [...prev];
-                            copy[index] = { ...copy[index], state_code: e.target.value.toUpperCase() };
-                            return copy;
-                          });
-                        }}
-                      />
-                      <input className={styles.input} placeholder="State Name" value={p.state_name || ""}
-                        onFocus={() => setActiveProviderIndex(index)}
-                        onChange={(e) => {
-                          setProviders(prev => {
-                            const copy = [...prev];
-                            copy[index] = { ...copy[index], state_name: e.target.value };
-                            return copy;
-                          });
-                        }}
-                      />
-                      <Select
-                        value={{ value: p.country, label: p.country || "United States" }}
-                        onChange={(opt) => {
-                          setProviders(prev => {
-                            const copy = [...prev];
-                            copy[index] = { ...copy[index], country: opt?.value || "United States" };
-                            return copy;
-                          });
-                        }}
-                      />
                       <div className={styles.formGroup}>
+                        <label className={styles.label}>State Code</label>
+                        <input className={styles.input} placeholder="State Code" maxLength={2} value={p.state_code}
+                          onFocus={() => setActiveProviderIndex(index)}
+                          onChange={(e) => {
+                            setProviders(prev => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], state_code: e.target.value.toUpperCase() };
+                              return copy;
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>State Name</label>
+                        <input className={styles.input} placeholder="State Name" value={p.state_name || ""}
+                          onFocus={() => setActiveProviderIndex(index)}
+                          onChange={(e) => {
+                            setProviders(prev => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], state_name: e.target.value };
+                              return copy;
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.formRowSplit}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Country *</label>
+                  <Select 
+                    value={{ value: p.country, label: p.country || "United States" }}
+                    styles={getCustomSelectStyles()}
+                    onChange={(opt) => {
+                      setProviders(prev => {
+                        const copy = [...prev];
+                        copy[index] = { ...copy[index], country: opt?.value || "United States" };
+                        return copy;
+                      });
+                    }}
+                    options={[
+                      { value: "United States", label: "United States" },
+                    ]}
+                    menuPortalTarget={document.body}
+                  />
+                </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>ZIP Code *</label>
                         <input className={styles.input} placeholder="ZIP Code" value={p.zip_code}
                           onFocus={() => setActiveProviderIndex(index)}
                           onChange={(e) => {
@@ -1746,10 +1786,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
                           }))
                         ]}
                         menuPortalTarget={document.body}
-                        styles={{
-                          menuPortal: base => ({ ...base, zIndex: 10000 }),
-                          control: base => providerErrorsMap[index]?.location_temp_id ? { ...base, borderColor: 'red' } : base
-                        }}
+                        styles={getCustomSelectStyles(providerErrorsMap[index]?.location_temp_id ? 'red' : undefined)}
                       />
                       {providerErrorsMap[index]?.location_temp_id && <span className={styles.errorText}>{providerErrorsMap[index].location_temp_id}</span>}
                     </div>
@@ -1775,6 +1812,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
                         zip_code: "",
                         country: "United States",
                         location_temp_id: primaryTempId,
+                        ptan_id: "",
                       },
                     ]);
                     setActiveProviderIndex(providers.length);
@@ -1820,7 +1858,15 @@ const ClientModal: React.FC<ClientModalProps> = ({
                   </div>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Country *</label>
-                    <Select value={{ value: country, label: country }} onChange={(s) => setCountry(s?.value || "United States")} />
+                    <Select 
+                      value={{ value: country, label: country }} 
+                      onChange={(s) => setCountry(s?.value || "United States")} 
+                      styles={getCustomSelectStyles()}
+                      options={[
+                        { value: "United States", label: "United States" },
+                      ]}
+                      menuPortalTarget={document.body}
+                    />
                   </div>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>ZIP Code *</label>

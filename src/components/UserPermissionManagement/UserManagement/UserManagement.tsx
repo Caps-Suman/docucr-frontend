@@ -612,7 +612,7 @@ const UserManagement: React.FC = () => {
             width: '200px'
         },
         { key: 'email', header: 'Email', width: '220px' },
-        { key: 'username', header: 'Username/Alias', width: '150px' },
+        { key: 'username', header: 'Alias / Username', width: '150px' },
         {
             key: 'phone',
             header: 'Phone',

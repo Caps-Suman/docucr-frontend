@@ -384,21 +384,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
               />
             </div>
           </div>
-          <div className={styles.formGroup}>
-    <label className={styles.label}>PTAN Number (Medicare ID)</label>
-    <div className={styles.inputGroup}>
-        <input
-            type="text"
-            name="ptan_id"
-            value={formData.ptan_id}
-            onChange={handleInputChange}
-            className={styles.input}
-            placeholder="Enter Medicare PTAN"
-            style={{ paddingLeft: '35px' }}
-        />
-    </div>
-</div>
-          <div className={styles.formRowThree}>
+          <div className={styles.formRowSplit}>
             <div className={styles.formGroup}>
               <label className={styles.label}>First Name *</label>
               <input
@@ -422,6 +408,9 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
                 placeholder="Optional"
               />
             </div>
+          </div>
+
+          <div className={styles.formRowSplit}>
             <div className={styles.formGroup}>
               <label className={styles.label}>Last Name *</label>
               <input
@@ -433,6 +422,20 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
                 placeholder="Last Name"
                 required
               />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>PTAN Number</label>
+              <div className={styles.inputGroup}>
+                <input
+                  type="text"
+                  name="ptan_id"
+                  value={formData.ptan_id}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  placeholder="Enter Medicare PTAN"
+                  style={{ width: '100%' }}
+                />
+              </div>
             </div>
           </div>
           <div className={styles.formGroup}>
@@ -491,6 +494,9 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
                 className={styles.input}
               />
             </div>
+          </div>
+
+          <div className={styles.formRowSplit}>
             <div className={styles.formGroup}>
               <label className={styles.label}>Country *</label>
               <input
@@ -499,8 +505,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
                 value={formData.country}
                 onChange={handleInputChange}
                 className={styles.input}
-                disabled
-                style={{ backgroundColor: '#f8fafc', cursor: 'not-allowed' }}
+                required
               />
             </div>
             <div className={styles.formGroup}>

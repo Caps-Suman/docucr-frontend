@@ -99,18 +99,18 @@ const ClientDetail: React.FC = () => {
 
         fetchClientDetails();
     }, [id]);
-const handleClientUpdate = async (data: any): Promise<Client> => {
-  if (!client) {
-    throw new Error("Client not loaded");
-  }
+    const handleClientUpdate = async (data: any): Promise<Client> => {
+        if (!client) {
+            throw new Error("Client not loaded");
+        }
 
-  const updated = await clientService.updateClient(client.id, data);
+        const updated = await clientService.updateClient(client.id, data);
 
-  setClient(updated);
-  setIsEditClientModalOpen(false);   // 🔥 CLOSE MODAL
+        setClient(updated);
+        setIsEditClientModalOpen(false);   // 🔥 CLOSE MODAL
 
-  return updated;
-};
+        return updated;
+    };
     const refreshClient = async () => {
         try {
             if (!id) return;
@@ -217,29 +217,29 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                         </button>
                     )}
                     <button
-                    className={styles.primaryAction}
-                    onClick={() => setIsEditClientModalOpen(true)}
+                        className={styles.primaryAction}
+                        onClick={() => setIsEditClientModalOpen(true)}
                     >
-                    <Pencil size={16} />
-                    Edit Client
+                        <Pencil size={16} />
+                        Edit Client
                     </button>
                     {client.type !== "NPI1" && client.type !== "Individual" && (
-                    <button
-                        className={styles.secondaryAction}
-                        onClick={() => setIsAddLocationModalOpen(true)}
-                    >
-                        <MapPin size={16} />
-                        Add Location
-                    </button>
+                        <button
+                            className={styles.secondaryAction}
+                            onClick={() => setIsAddLocationModalOpen(true)}
+                        >
+                            <MapPin size={16} />
+                            Add Location
+                        </button>
                     )}
                     {client.type !== "NPI1" && client.type !== "Individual" && (
-                    <button
-                        className={styles.primaryAction}
-                        onClick={() => setIsAddProviderModalOpen(true)}
-                    >
-                        <UserPlus size={16} />
-                        Add Provider
-                    </button>
+                        <button
+                            className={styles.primaryAction}
+                            onClick={() => setIsAddProviderModalOpen(true)}
+                        >
+                            <UserPlus size={16} />
+                            Add Provider
+                        </button>
                     )}
                 </div>
             </div>
@@ -426,13 +426,13 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                                                 </div>
                                                 <div className={styles.npiText}>NPI #{provider.npi}</div>
                                                 {provider.ptan_id && (
-  <div className={styles.providerSubInfo}>
-    <Hash size={10} style={{ marginTop: '2px' }} />
-    <span>
-      <strong>PTAN:</strong> {provider.ptan_id}
-    </span>
-  </div>
-)}
+                                                    <div className={styles.providerSubInfo}>
+                                                        <Hash size={10} style={{ marginTop: '2px' }} />
+                                                        <span>
+                                                            <strong>PTAN:</strong> {provider.ptan_id}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <span className={styles.typeBadge}>{provider.specialty || "Specialist"}</span>

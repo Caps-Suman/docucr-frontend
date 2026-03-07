@@ -1,5 +1,5 @@
 // Common styles for react-select dropdowns with dark mode support
-export const getCustomSelectStyles = () => {
+export const getCustomSelectStyles = (borderColor?: string) => {
     const isDark = document.documentElement.classList.contains('dark');
     
     return {
@@ -8,10 +8,10 @@ export const getCustomSelectStyles = () => {
             fontSize: '14px',
             minHeight: '38px',
             backgroundColor: isDark ? '#1a1e23' : 'white',
-            borderColor: isDark ? '#374151' : '#d1d5db',
+            borderColor: borderColor || (isDark ? '#374151' : '#d1d5db'),
             color: isDark ? '#f9fafb' : '#1e293b',
             '&:hover': {
-                borderColor: isDark ? '#4b5563' : '#011926'
+                borderColor: borderColor || (isDark ? '#4b5563' : '#011926')
             }
         }),
         option: (base: any, state: any) => ({
@@ -60,7 +60,12 @@ export const getCustomSelectStyles = () => {
             border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
             boxShadow: isDark 
                 ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
-                : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                : '0 4px 12px rgba(0, 0, 0, 0.1)',
+            zIndex: 99999
+        }),
+        menuPortal: (base: any) => ({
+            ...base,
+            zIndex: 99999
         })
     };
 };
