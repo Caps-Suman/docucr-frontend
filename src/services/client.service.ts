@@ -33,6 +33,7 @@ export interface Provider {
     created_at?: string;
     specialty?: string;
     specialty_code?: string;
+    ptan_id?: string;
     description?: string;
 }
 
@@ -167,6 +168,9 @@ const clientService = {
             state_code: string;
             zip_code: string;
             country?: string;
+            specialty?: string;
+            specialty_code?: string;
+            ptan_id?: string;
         }[]
     ): Promise<void> => {
         const response = await apiClient(
@@ -196,6 +200,9 @@ const clientService = {
             state_code: string;
             zip_code: string;
             country?: string;
+            specialty?: string;
+            specialty_code?: string;
+            ptan_id?: string;   
         }
     ): Promise<void> => {
         const response = await apiClient(

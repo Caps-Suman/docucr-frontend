@@ -223,7 +223,7 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                     <Pencil size={16} />
                     Edit Client
                     </button>
-                    {client.type !== "NPI1" && (
+                    {client.type !== "NPI1" && client.type !== "Individual" && (
                     <button
                         className={styles.secondaryAction}
                         onClick={() => setIsAddLocationModalOpen(true)}
@@ -232,7 +232,7 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                         Add Location
                     </button>
                     )}
-                    {client.type !== "NPI1" && (
+                    {client.type !== "NPI1" && client.type !== "Individual" && (
                     <button
                         className={styles.primaryAction}
                         onClick={() => setIsAddProviderModalOpen(true)}
@@ -425,6 +425,14 @@ const handleClientUpdate = async (data: any): Promise<Client> => {
                                                     {provider.first_name} {provider.middle_name ? `${provider.middle_name} ` : ""}{provider.last_name}
                                                 </div>
                                                 <div className={styles.npiText}>NPI #{provider.npi}</div>
+                                                {provider.ptan_id && (
+  <div className={styles.providerSubInfo}>
+    <Hash size={10} style={{ marginTop: '2px' }} />
+    <span>
+      <strong>PTAN:</strong> {provider.ptan_id}
+    </span>
+  </div>
+)}
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <span className={styles.typeBadge}>{provider.specialty || "Specialist"}</span>

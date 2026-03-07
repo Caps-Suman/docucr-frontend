@@ -74,6 +74,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
     country: "United States",
     specialty: "",
     specialty_code: "",
+    ptan_id: "",
   });
 
   React.useEffect(() => {
@@ -93,6 +94,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
         country: provider.country || "United States",
         specialty: provider.specialty || "",
         specialty_code: provider.specialty_code || "",
+        ptan_id: provider.ptan_id || "",
       });
     } else {
       setFormData({
@@ -110,6 +112,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
         country: "United States",
         specialty: "",
         specialty_code: "",
+        ptan_id: "",
       });
     }
   }, [provider, isOpen]);
@@ -212,6 +215,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
       country: locationAddress?.country_name || "United States",
       specialty: specialtyName,
       specialty_code: specialtyCode,
+      ptan_id:prev.ptan_id,
     }));
 
     setToast({
@@ -270,6 +274,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
         country: formData.country,
         specialty: formData.specialty,
         specialty_code: formData.specialty_code,
+        ptan_id: formData.ptan_id,
       };
 
       if (provider) {
@@ -379,7 +384,20 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
               />
             </div>
           </div>
-
+          <div className={styles.formGroup}>
+    <label className={styles.label}>PTAN Number (Medicare ID)</label>
+    <div className={styles.inputGroup}>
+        <input
+            type="text"
+            name="ptan_id"
+            value={formData.ptan_id}
+            onChange={handleInputChange}
+            className={styles.input}
+            placeholder="Enter Medicare PTAN"
+            style={{ paddingLeft: '35px' }}
+        />
+    </div>
+</div>
           <div className={styles.formRowThree}>
             <div className={styles.formGroup}>
               <label className={styles.label}>First Name *</label>

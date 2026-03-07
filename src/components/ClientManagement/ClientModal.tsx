@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Search, Trash2, Plus } from "lucide-react";
+import { X, Search, Trash2, Plus, Hash } from "lucide-react";
 import Select from "react-select";
 import { getCustomSelectStyles } from "../../styles/selectStyles";
 import { Client } from "../../services/client.service";
