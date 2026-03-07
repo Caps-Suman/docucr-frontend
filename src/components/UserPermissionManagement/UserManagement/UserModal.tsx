@@ -563,13 +563,13 @@ const UserModal: React.FC<UserModalProps> = ({
                     )}
                   </div>
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Username *</label>
+                    <label className={styles.label}>Username/Alias *</label>
                     <input
                       type="text"
                       className={styles.input}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter username"
+                      placeholder="Enter username/alias"
                       maxLength={50}
                       style={{
                         borderColor: errors.username ? "#ef4444" : "#d1d5db",

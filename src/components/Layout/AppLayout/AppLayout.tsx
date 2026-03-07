@@ -273,9 +273,12 @@ const AppLayout: React.FC = () => {
                         )}
                         <div className="user-details" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
                             <div className="user-avatar" style={user?.profile_image_url ? { backgroundImage: `url("${user.profile_image_url}")`, backgroundSize: '130%', backgroundPosition: 'center' } : {}}>
-                                {!user?.profile_image_url && (user?.first_name ? user.first_name.charAt(0).toUpperCase() : <User size={16} />)}
-                            </div>
-                            <span>{user?.first_name || user?.email || 'User'}</span>
+{!user?.profile_image_url && (
+    (user?.username || user?.first_name) 
+    ? (user?.username || user?.first_name).charAt(0).toUpperCase() 
+    : <User size={16} />
+)}                            </div>
+                            <span>{user?.username || user?.first_name || user?.email || 'User'}</span>
                         </div>
                         <div className="h-divider" />
                         <div className="logout-container" ref={logoutRef}>
