@@ -29,9 +29,9 @@ const ActivityLogPage: React.FC = () => {
     const [debouncedUserNameFilter, setDebouncedUserNameFilter] = useState<string>('');
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
-    const [entityTypes, setEntityTypes] = useState<{label:string,value:string}[]>([
-  { label: 'All Entities', value: '' }
-]);
+    const [entityTypes, setEntityTypes] = useState<{ label: string, value: string }[]>([
+        { label: 'All Entities', value: '' }
+    ]);
 
     // Pre-defined Actions and Entity Types
     const actions = [
@@ -58,21 +58,21 @@ const ActivityLogPage: React.FC = () => {
     //     { label: 'Config', value: 'document_list_config' }
     // ];
     const fetchEntityTypes = async () => {
-  try {
-const data = await activityLogService.getEntityTypes();
+        try {
+            const data = await activityLogService.getEntityTypes();
 
-setEntityTypes([
-  { label: "All Entities", value: "" },
-  ...data
-]);
+            setEntityTypes([
+                { label: "All Entities", value: "" },
+                ...data
+            ]);
 
-  } catch (e) {
-    console.error("Failed to load entity types", e);
-  }
-};
-useEffect(() => {
-  fetchEntityTypes();
-}, []);
+        } catch (e) {
+            console.error("Failed to load entity types", e);
+        }
+    };
+    useEffect(() => {
+        fetchEntityTypes();
+    }, []);
 
     const fetchLogs = async () => {
         setLoading(true);
@@ -258,38 +258,38 @@ useEffect(() => {
             render: (value: string) => new Date(value).toLocaleString(),
             width: '150px'
         },
-    {
-  key: 'name',
-  header: 'User',
-  render: (_: any, row: ActivityLog) => (
-    <div className={styles.userCell}>
-      <User size={16} color="var(--color-gray-400)" />
-      <span title={row.email || row.user_id}>
-        {row.name || 'System'}
-      </span>
-    </div>
-  ),
-  width: '180px'
-},
+        {
+            key: 'name',
+            header: 'User',
+            render: (_: any, row: ActivityLog) => (
+                <div className={styles.userCell}>
+                    <User size={16} color="var(--color-gray-400)" />
+                    <span title={row.email || row.user_id}>
+                        {row.name || 'System'}
+                    </span>
+                </div>
+            ),
+            width: '180px'
+        },
         {
             key: 'action',
             header: 'Action',
             render: (value: string) => (
                 <span className={`${styles.badge} ${getBadgeClass(value)}`}>
-                    {value ? value.replace(/_/g, ' ') : ''}
+                    {value ? value.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}
                 </span>
             ),
-            width: '140px'
+            width: '100px'
         },
         {
             key: 'entity_type',
             header: 'Entity',
             render: (value: string) => (
                 <div className={styles.entityCell}>
-                    <span className={styles.entityType}>{value ? value.replace(/_/g, ' ') : ''}</span>
+                    <span className={styles.entityType}>{value ? value.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}</span>
                 </div>
             ),
-            width: '120px'
+            width: '160px'
         },
         {
             key: 'details',
