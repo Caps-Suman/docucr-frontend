@@ -653,7 +653,7 @@ useEffect(() => {
         })();
 
         return (
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", gap: "4px" }}>
             {statusBadge}
             {hasExtractionInProgress && code !== "EXTRACTING" && (
               <span style={{

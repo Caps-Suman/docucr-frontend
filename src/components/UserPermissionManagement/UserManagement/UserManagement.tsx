@@ -35,7 +35,7 @@ type StatCard = {
 
 const UserManagement: React.FC = () => {
     const currentUser = authService.getUser();
-    console.log("Current User in UserManagement:", currentUser);
+    // console.log("Current User in UserManagement:", currentUser);
     const [currentPage, setCurrentPage] = useState(0);
     // const [itemsPerPage, setItemsPerPage] = useState(25);
     const [itemsPerPage, setItemsPerPage] = useState(10);

@@ -112,58 +112,40 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
     (sop.billingGuidelines?.length || 0) +
     extractedBillingByDoc.reduce((sum, d) => sum + d.guidelines.length, 0);
 
-  // ── Reusable source badge ──────────────────────────────────────────────────
-  const DocSourceBadge = ({ name, url }: { name: string; url?: string }) => (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "6px",
-        margin: "14px 0 8px 0",
-        padding: "5px 10px",
-        background: "#eff6ff",
-        border: "1px solid #bfdbfe",
-        borderRadius: "20px",
-      }}
-    >
-      <FileText size={11} style={{ color: "#3b82f6", flexShrink: 0 }} />
-      <span
-        style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          color: "#1d4ed8",
-          whiteSpace: "nowrap",
-        }}
-      >
-        Extracted from: {name}
-      </span>
-      {url && (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "3px",
-            fontSize: "11px",
-            color: "#2563eb",
-            textDecoration: "none",
-            padding: "2px 7px",
-            background: "white",
-            borderRadius: "12px",
-            border: "1px solid #93c5fd",
-            fontWeight: 600,
-            transition: "background 0.15s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#dbeafe")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
-        >
-          <ExternalLink size={10} />
-          View
-        </a>
-      )}
+  // ── Reusable extracted content box ─────────────────────────────────────────
+  const ExtractedContentBox = ({
+    name,
+    url,
+    children,
+  }: {
+    name: string;
+    url?: string;
+    children: React.ReactNode;
+  }) => (
+    <div className={styles.extractedCard}>
+      <div className={styles.extractedCardHeader}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <FileText size={14} style={{ color: "#3b82f6" }} />
+          <span
+            style={{ fontSize: "12px", fontWeight: 600, color: "#1d4ed8" }}
+          >
+            Extracted from: {name}
+          </span>
+        </div>
+        {url && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className={styles.extractedCardLink}
+          >
+            <ExternalLink size={12} />
+            View Document
+          </a>
+        )}
+      </div>
+      <div className={styles.extractedCardBody}>{children}</div>
     </div>
   );
 
@@ -366,11 +348,11 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
 
                       {/* Extracted from documents */}
                       {extractedBillingByDoc.map((docEntry, di) => (
-                        <div key={`ext-billing-${di}`}>
-                          <DocSourceBadge
-                            name={docEntry.name}
-                            url={docEntry.url}
-                          />
+                        <ExtractedContentBox
+                          key={`ext-billing-${di}`}
+                          name={docEntry.name}
+                          url={docEntry.url}
+                        >
                           {docEntry.guidelines.map((g: any, i: number) => (
                             <div key={i} className={styles.guidelineItem}>
                               <span className={styles.guidelineCategory}>
@@ -385,7 +367,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                               </ul>
                             </div>
                           ))}
-                        </div>
+                        </ExtractedContentBox>
                       ))}
 
                       {totalBilling === 0 && (
@@ -434,11 +416,11 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
 
                       {/* Extracted from documents */}
                       {extractedPayerByDoc.map((docEntry, di) => (
-                        <div key={`ext-payer-${di}`}>
-                          <DocSourceBadge
-                            name={docEntry.name}
-                            url={docEntry.url}
-                          />
+                        <ExtractedContentBox
+                          key={`ext-payer-${di}`}
+                          name={docEntry.name}
+                          url={docEntry.url}
+                        >
                           {docEntry.guidelines.map((g: any, i: number) => (
                             <div key={i} className={styles.guidelineItem}>
                               <span className={styles.guidelineCategory}>
@@ -453,7 +435,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                               </ul>
                             </div>
                           ))}
-                        </div>
+                        </ExtractedContentBox>
                       ))}
 
                       {totalPayer === 0 && (
@@ -552,11 +534,11 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
 
                             {/* Extracted CPT from documents */}
                             {extractedCPTByDoc.map((docEntry, di) => (
-                              <div key={`ext-cpt-${di}`}>
-                                <DocSourceBadge
-                                  name={docEntry.name}
-                                  url={docEntry.url}
-                                />
+                              <ExtractedContentBox
+                                key={`ext-cpt-${di}`}
+                                name={docEntry.name}
+                                url={docEntry.url}
+                              >
                                 <ul className={styles.ruleList}>
                                   {docEntry.rules.map((r: any, i: number) => (
                                     <li
@@ -597,7 +579,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                                     </li>
                                   ))}
                                 </ul>
-                              </div>
+                              </ExtractedContentBox>
                             ))}
 
                             {totalCPT === 0 && (
@@ -676,11 +658,11 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
 
                             {/* Extracted ICD from documents */}
                             {extractedICDByDoc.map((docEntry, di) => (
-                              <div key={`ext-icd-${di}`}>
-                                <DocSourceBadge
-                                  name={docEntry.name}
-                                  url={docEntry.url}
-                                />
+                              <ExtractedContentBox
+                                key={`ext-icd-${di}`}
+                                name={docEntry.name}
+                                url={docEntry.url}
+                              >
                                 <ul className={styles.ruleList}>
                                   {docEntry.rules.map((r: any, i: number) => (
                                     <li
@@ -728,7 +710,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                                     </li>
                                   ))}
                                 </ul>
-                              </div>
+                              </ExtractedContentBox>
                             ))}
 
                             {totalICD === 0 && (
