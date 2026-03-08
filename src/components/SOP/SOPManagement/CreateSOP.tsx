@@ -201,7 +201,9 @@ const CreateSOP: React.FC = () => {
   const [documents, setDocuments] = useState<SOPDocument[]>([]);
   const [isDownloadingSource, setIsDownloadingSource] = useState(false);
   const [isExtraDocsOpen, setIsExtraDocsOpen] = useState(false);
-  const [isExtractingDocs, setIsExtractingDocs] = useState(false); const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isExtractingDocs, setIsExtractingDocs] = useState(false);
+  const [mergedDocIds, setMergedDocIds] = useState<Set<string>>(new Set());
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const { can } = usePermission();
   const [currentBackgroundSopId, setCurrentBackgroundSopId] = useState<string | null>(null);
   const handleResetClick = () => {
@@ -479,6 +481,12 @@ const CreateSOP: React.FC = () => {
       setCodingRulesICD(loadedCodingRulesICD);
       setDocuments(sop.documents || []);
 
+      // Track which documents have already been merged into state
+      const processedIds = (sop.documents || [])
+        .filter((d: any) => d.processed)
+        .map((d: any) => d.id);
+      setMergedDocIds(new Set(processedIds));
+
     } catch (error) {
       console.error("Failed to load SOP:", error);
       // Handle error (e.g., redirect or show notification)
@@ -547,6 +555,9 @@ const CreateSOP: React.FC = () => {
 
       // Only set READY if extraction actually succeeded
       setExtractionMode("READY");
+      setTimeout(() => {
+        setExtractionMode(prev => prev === "READY" ? "IDLE" : prev);
+      }, 10000);
 
     } catch (err: any) {
 
@@ -677,7 +688,14 @@ const CreateSOP: React.FC = () => {
           rules: bg.rules?.map(r => ({ ...r, source: sourceName }))
         }));
         
-        const merged = [...prev];
+        let merged = [...prev];
+
+        // Replace existing rules from the SAME source to avoid duplication
+        merged = merged.map(group => ({
+          ...group,
+          rules: (group.rules || []).filter(r => r.source !== sourceName)
+        })).filter(group => group.rules.length > 0 || newGroups.some(ng => ng.category.toLowerCase() === group.category.toLowerCase()));
+
         newGroups.forEach(newG => {
           const existing = merged.find(g => g.category.toLowerCase() === newG.category.toLowerCase());
           if (existing) {
@@ -691,29 +709,38 @@ const CreateSOP: React.FC = () => {
     }
 
     if (Array.isArray(data.payer_guidelines)) {
-      setPayerGuidelines(prev => [
-        ...prev,
-        ...data.payer_guidelines.map((pg: any, i: number) => ({
-          id: `pg_ai_${Date.now()}_${i}`,
-          title: pg?.payerName || pg?.title || "Unknown",
-          description: pg?.description || "",
-          source: sourceName
-        }))
-      ]);
+      setPayerGuidelines(prev => {
+        const filtered = prev.filter(pg => pg.source !== sourceName);
+        return [
+          ...filtered,
+          ...data.payer_guidelines.map((pg: any, i: number) => ({
+            id: `pg_ai_${Date.now()}_${i}`,
+            title: pg?.payerName || pg?.title || "Unknown",
+            description: pg?.description || "",
+            source: sourceName
+          }))
+        ];
+      });
     }
     // ---- CODING RULES ----
     if (Array.isArray(data.coding_rules_cpt)) {
-      setCodingRulesCPT(prev => [
-        ...prev,
-        ...data.coding_rules_cpt.map((c: any) => ({...c, source: sourceName}))
-      ]);
+      setCodingRulesCPT(prev => {
+        const filtered = prev.filter(r => r.source !== sourceName);
+        return [
+          ...filtered,
+          ...data.coding_rules_cpt.map((c: any) => ({...c, source: sourceName}))
+        ];
+      });
     }
 
     if (Array.isArray(data.coding_rules_icd)) {
-      setCodingRulesICD(prev => [
-        ...prev,
-        ...data.coding_rules_icd.map((c: any) => ({...c, source: sourceName}))
-      ]);
+      setCodingRulesICD(prev => {
+        const filtered = prev.filter(r => r.source !== sourceName);
+        return [
+          ...filtered,
+          ...data.coding_rules_icd.map((c: any) => ({...c, source: sourceName}))
+        ];
+      });
     }
   }
 
@@ -2726,10 +2753,17 @@ const CreateSOP: React.FC = () => {
                       }}>
                         <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Source:</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569', fontSize: '13px' }}>
-                          <FileText size={16} color="#0284c7" />
+                          {extractionMode === "READY" ? (
+                            <CheckCircle2 size={16} color="#22c55e" />
+                          ) : (
+                            <FileText size={16} color="#0284c7" />
+                          )}
                           <span title={sourceFile.name}>
                             {truncateFileName(sourceFile.name)}
                           </span>
+                          {extractionMode === "READY" && (
+                            <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600, marginLeft: '4px' }}>Done</span>
+                          )}
                         </div>
                         {/* Divider */}
                         <span style={{ width: '1px', height: '18px', backgroundColor: '#e2e8f0', display: 'inline-block' }} />
@@ -2903,10 +2937,37 @@ const CreateSOP: React.FC = () => {
           onExtractionStateChange={(extracting) => setIsExtractingDocs(extracting)}
           onUploadsComplete={async () => {
             setToast({ message: "Documents uploaded successfully", type: "success" });
-            // Refresh documents after upload
+            // Refresh documents and merge newly processed ones
             try {
               const sop = await sopService.getSOPById(id);
+              
+              // 1. Identify newly processed documents
+              const newlyProcessed = (sop.documents || []).filter(
+                (doc: any) => doc.processed && !mergedDocIds.has(doc.id)
+              );
+
+              // 2. Incrementally merge each new doc into state
+              newlyProcessed.forEach((doc: any) => {
+                const sourceName = doc.name;
+                // Reconstruct data structure expected by applyExtractedSOP
+                const extractedData = {
+                  billing_guidelines: doc.billing_guidelines,
+                  payer_guidelines: doc.payer_guidelines,
+                  coding_rules_cpt: doc.coding_rules_cpt,
+                  coding_rules_icd: doc.coding_rules_icd,
+                };
+                applyExtractedSOP(extractedData, sourceName);
+              });
+
+              // 3. Update documents and tracking set
               setDocuments(sop.documents || []);
+              if (newlyProcessed.length > 0) {
+                setMergedDocIds(prev => {
+                  const next = new Set(prev);
+                  newlyProcessed.forEach(d => next.add(d.id));
+                  return next;
+                });
+              }
             } catch (error) {
               console.error("Failed to refresh documents:", error);
             }

@@ -56,10 +56,12 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
   const [uploading, setUploading] = useState(false);
   const [validationTriggered, setValidationTriggered] = useState(false);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isAddingMore, setIsAddingMore] = useState(false);
 
   // Extraction tracking
   const [extractionDocs, setExtractionDocs] = useState<DocExtractionState[]>([]);
+  const [recentlyDoneIds, setRecentlyDoneIds] = useState<Set<string>>(new Set());
   const [isPolling, setIsPolling] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollStartRef  = useRef<number>(0);
@@ -80,6 +82,7 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
       setValidationTriggered(false);
       setUploading(false);
       setExtractionDocs([]);
+      setRecentlyDoneIds(new Set());
       setIsPolling(false);
       stopPolling();
     }
@@ -113,8 +116,6 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
         const sop = await sopService.getSOPById(sopId);
         const freshDocs: SOPDocument[] = sop.documents || [];
 
-        let allDone = true;
-
         setExtractionDocs(prev => {
           const next = prev.map(d => {
             if (d.status === "done" || d.status === "failed") return d;
@@ -123,16 +124,29 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
             if (!match) return d; // not found yet, keep waiting
 
             if (match.processed) {
-              return { ...d, status: "done" as const };
+               // Newly finished (ince it wasn't done before)
+               setRecentlyDoneIds(prevIds => {
+                 const n = new Set(prevIds);
+                 n.add(d.docId);
+                 return n;
+               });
+               setTimeout(() => {
+                 setRecentlyDoneIds(prevIds => {
+                   const n = new Set(prevIds);
+                   n.delete(d.docId);
+                   return n;
+                 });
+               }, 10000);
+
+              return { ...d, status: "done" as "done" };
             } else {
-              allDone = false;
-              return { ...d, status: "extracting" as const };
+              return { ...d, status: "extracting" as "extracting" };
             }
           });
 
           // Check if any are still pending/extracting
           const stillRunning = next.some(
-            d => d.status === "pending" || d.status === "extracting"
+            doc => doc.status === "pending" || doc.status === "extracting"
           );
 
           if (!stillRunning) {
@@ -164,116 +178,89 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
       error: null,
     }));
     setQueue((prev) => [...prev, ...newItems]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    e.target.value = "";
+  };
+
+  const removeQueuedFile = (id: string) => {
+    setQueue((prev) => prev.filter((f) => f.id !== id));
   };
 
   const updateCategory = (id: string, category: string) => {
-    setQueue(prev => prev.map(item => item.id === id ? { ...item, category } : item));
+    setQueue((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, category } : f))
+    );
   };
 
-  const removeItem = (id: string) => {
-    setQueue(prev => prev.filter(item => item.id !== id));
-  };
+  // ── Upload logic ───────────────────────────────────────────────────────────
+  const startUploadProcess = async () => {
+    if (queue.length === 0) return;
 
-  // ── Main upload handler ────────────────────────────────────────────────────
-  const handleUploadAll = async () => {
-    if (!sopId || queue.length === 0) return;
-
-    const missing = queue.filter(f => !f.uploaded && !f.category);
+    // Check if any file is missing a category
+    const missing = queue.filter(f => !f.category);
     if (missing.length > 0) {
       setValidationTriggered(true);
       return;
     }
-    setValidationTriggered(false);
+
     setUploading(true);
+    setValidationTriggered(false);
+    
+    // Track new document IDs for polling
+    const uploadedIds: string[] = [];
+    const extractionTargets: DocExtractionState[] = [];
 
-    // ── Step 1: Upload files sequentially ────────────────────────────────────
-    const updated = [...queue];
-    // Collect the DB document ids returned by the upload API
-    const uploadedDocIds: Array<{ queueId: string; docId: string; name: string }> = [];
-
-    for (let i = 0; i < updated.length; i++) {
-      if (updated[i].uploaded) continue;
-
-      updated[i] = { ...updated[i], uploading: true, error: null };
-      setQueue([...updated]);
-
+    for (const item of queue) {
+      setQueue(prev => prev.map(f => f.id === item.id ? { ...f, uploading: true } : f));
+      
       try {
-        // sopService.uploadSOPDocument should return the created SOPDocument
-        const createdDoc = await sopService.uploadSOPDocument(
-          sopId,
-          updated[i].file,
-          updated[i].category
-        );
+        const result = await sopService.uploadSOPDocument(sopId, item.file, item.category);
+        
+        setQueue(prev => prev.map(f => f.id === item.id ? { ...f, uploading: false, uploaded: true } : f));
+        uploadedIds.push(result.id);
+        
+        extractionTargets.push({
+          docId: result.id,
+          name: item.file.name,
+          status: "pending"
+        });
 
-        updated[i] = { ...updated[i], uploading: false, uploaded: true };
-
-        if (createdDoc?.id) {
-          uploadedDocIds.push({
-            queueId: updated[i].id,
-            docId: createdDoc.id,
-            name: updated[i].file.name,
-          });
-        }
-      } catch {
-        updated[i] = { ...updated[i], uploading: false, error: "Upload failed" };
+      } catch (err: any) {
+        console.error("Upload failed", err);
+        setQueue(prev => prev.map(f => f.id === item.id ? { ...f, uploading: false, error: "Failed" } : f));
       }
-
-      setQueue([...updated]);
     }
 
     setUploading(false);
-
-    const allUploaded = updated.every(f => f.uploaded);
-    if (!allUploaded || uploadedDocIds.length === 0) return;
-
-    // ── Step 2: Fire-and-forget background extraction (no await on extraction) ─
-    // Set extraction docs to pending immediately so UI shows them
-    const extractionEntries: DocExtractionState[] = uploadedDocIds.map(({ docId, name }) => ({
-      docId,
-      name,
-      status: "pending",
-    }));
-    setExtractionDocs(extractionEntries);
-
-    // Tell the backend to start background extraction — returns 202 immediately
-    try {
-      await sopService.processSOPDocuments(sopId);
-      // Mark all as "extracting" (background job accepted)
-      setExtractionDocs(prev => prev.map(d => ({ ...d, status: "extracting" })));
-    } catch (e) {
-      console.error("Failed to queue extraction:", e);
-      setExtractionDocs(prev => prev.map(d => ({ ...d, status: "failed" })));
-      return;
+    
+    if (uploadedIds.length > 0) {
+      // Start background extraction for these
+      try {
+        await sopService.processSOPDocuments(sopId);
+        setExtractionDocs(prev => [...prev, ...extractionTargets]);
+        startPolling(uploadedIds);
+        onExtractionStateChange?.(true);
+      } catch (e) {
+        console.error("Failed to start processing", e);
+      }
     }
-
-    // ── Step 3: Poll until all extracted ─────────────────────────────────────
-    onExtractionStateChange?.(true);
-    startPolling(uploadedDocIds.map(d => d.docId));
-
-    // Clear the upload queue — extracted docs show in extraction panel below
-    setQueue([]);
-    setIsAddingMore(false);
   };
 
   const handleDeleteDocument = async (docId: string) => {
-    if (!sopId) return;
+    setDeletingDocId(docId);
+    setConfirmDeleteId(null);
     try {
-      setDeletingDocId(docId);
       await sopService.deleteSOPDocument(sopId, docId);
-      if (onDocumentDeleted) onDocumentDeleted();
-    } catch (error) {
-      console.error("Failed to delete document:", error);
+      onDocumentDeleted?.();
+      onUploadsComplete();
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete document");
     } finally {
       setDeletingDocId(null);
     }
   };
 
-  const getFileIcon = (file: File) => {
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    return <FileText size={16} color={ext === "pdf" ? "#ef4444" : "#0284c7"} />;
-  };
-
+  // ── Helper UI ─────────────────────────────────────────────────────────────
   const truncate = (name: string, max = 30) => {
     if (name.length <= max) return name;
     const ext = name.lastIndexOf(".");
@@ -290,6 +277,7 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
     if (status === "extracting") return <Loader2 size={14} className={styles.spin} style={{ color: "#f59e0b" }} />;
     if (status === "done")      return <CheckCircle2 size={14} style={{ color: "#22c55e" }} />;
     if (status === "failed")    return <X size={14} style={{ color: "#ef4444" }} />;
+    return null;
   };
 
   const extractionStatusLabel = (status: DocExtractionState["status"]) => {
@@ -297,6 +285,13 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
     if (status === "extracting") return <span style={{ fontSize: "11px", color: "#f59e0b", fontWeight: 600 }}>Extracting…</span>;
     if (status === "done")       return <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: 600 }}>Done</span>;
     if (status === "failed")     return <span style={{ fontSize: "11px", color: "#ef4444", fontWeight: 600 }}>Failed</span>;
+    return null;
+  };
+
+  const getFileIcon = (file: File) => {
+    if (file.type.includes("pdf")) return <FileText size={16} color="#ef4444" />;
+    if (file.type.includes("image")) return <Sparkles size={16} color="#3b82f6" />;
+    return <FileText size={16} color="#94a3b8" />;
   };
 
   return (
@@ -319,15 +314,9 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
 
         {/* ── Background extraction banner ── */}
         {isPolling && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: "10px",
-            padding: "10px 16px",
-            background: "#fffbeb", borderBottom: "1px solid #fde68a",
-            fontSize: "13px", color: "#92400e", fontWeight: 500
-          }}>
-            <Sparkles size={15} style={{ color: "#f59e0b", flexShrink: 0 }} />
-            Extracting data in the background — you can close this modal anytime.
-            <Loader2 size={14} className={styles.spin} style={{ marginLeft: "auto", color: "#f59e0b" }} />
+          <div className={styles.extractionBanner}>
+            <Sparkles size={14} className={styles.sparkleIcon} />
+            <span>AI is extracting data in the background...</span>
           </div>
         )}
 
@@ -357,48 +346,87 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
           <div className={styles.fileList}>
 
             {/* Existing (already-uploaded) documents */}
-            {!isAddingMore && existingDocuments.map(doc => (
-              <div key={doc.id} className={`${styles.fileRow} ${styles.fileRowDone}`}>
-                <div className={styles.fileInfo}>
-                  <span className={styles.checkIcon}>✓</span>
-                  <span className={styles.fileName} title={doc.name}>{truncate(doc.name)}</span>
+            {!isAddingMore && existingDocuments.map(doc => {
+              const extractingDoc = extractionDocs.find(ed => ed.docId === doc.id);
+              // Hide from existing list if it's currently being extracted (unless it just finished)
+              if (extractingDoc && extractingDoc.status !== "done") return null;
+              
+              const isRecent = recentlyDoneIds.has(doc.id);
+              return (
+                <div key={doc.id} className={`${styles.fileRow} ${isRecent ? styles.fileRowDone : ""}`}>
+                  <div className={styles.fileInfo}>
+                    {isRecent ? (
+                      <CheckCircle2 size={14} style={{ color: "#22c55e" }} />
+                    ) : (
+                      <FileText size={14} style={{ color: "#94a3b8" }} />
+                    )}
+                    <span className={styles.fileName} title={doc.name}>{truncate(doc.name)}</span>
+                    {isRecent && (
+                      <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: 600 }}>Done</span>
+                    )}
+                  </div>
+                  <div className={styles.fileActions}>
+                    <span className={styles.uploadedBadge}>{doc.category}</span>
+                    <div className={styles.deleteActions}>
+                      {confirmDeleteId === doc.id ? (
+                        <div className={styles.confirmWrapper}>
+                          <button
+                            type="button"
+                            className={styles.confirmBtn}
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            title="Confirm delete"
+                          >
+                            <CheckCircle2 size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.cancelDeleteBtn}
+                            onClick={() => setConfirmDeleteId(null)}
+                            title="Cancel"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.removeBtn}
+                          onClick={() => setConfirmDeleteId(doc.id)}
+                          disabled={deletingDocId === doc.id || isBusy}
+                          title="Delete document"
+                        >
+                          {deletingDocId === doc.id
+                            ? <Loader2 size={14} className={styles.spin} />
+                            : <Trash2 size={14} />
+                          }
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className={styles.fileActions}>
-                  <span className={styles.uploadedBadge}>{doc.category}</span>
-                  <button
-                    type="button"
-                    className={styles.removeBtn}
-                    onClick={() => handleDeleteDocument(doc.id)}
-                    disabled={deletingDocId === doc.id || isBusy}
-                    title="Delete document"
-                  >
-                    {deletingDocId === doc.id
-                      ? <Loader2 size={14} className={styles.spin} />
-                      : <Trash2 size={14} />
-                    }
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Extraction status rows (shown after upload, while polling) */}
-            {extractionDocs.map(d => (
-              <div
-                key={d.docId}
-                className={`${styles.fileRow} ${d.status === "done" ? styles.fileRowDone : ""} ${d.status === "failed" ? styles.fileRowError : ""}`}
-              >
-                <div className={styles.fileInfo}>
-                  {extractionStatusIcon(d.status)}
-                  <span className={styles.fileName} title={d.name}>{truncate(d.name)}</span>
-                  {extractionStatusLabel(d.status)}
+            {extractionDocs.filter(d => d.status !== "done").map(d => {
+              return (
+                <div
+                  key={d.docId}
+                  className={`${styles.fileRow} ${d.status === "failed" ? styles.fileRowError : ""}`}
+                >
+                  <div className={styles.fileInfo}>
+                    {extractionStatusIcon(d.status)}
+                    <span className={styles.fileName} title={d.name}>{truncate(d.name)}</span>
+                    {extractionStatusLabel(d.status)}
+                  </div>
+                  <div className={styles.fileActions}>
+                    <span className={styles.uploadedBadge} style={{ background: "#f0fdf4", color: "#166534" }}>
+                      Uploaded ✓
+                    </span>
+                  </div>
                 </div>
-                <div className={styles.fileActions}>
-                  <span className={styles.uploadedBadge} style={{ background: "#f0fdf4", color: "#166534" }}>
-                    Uploaded ✓
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Queue (pending upload) items */}
             {queue.map(item => (
@@ -450,9 +478,13 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
                       </div>
                     );
                   })()}
-                  {item.uploaded && <span className={styles.uploadedBadge}>{item.category}</span>}
-                  {!item.uploading && !item.uploaded && (
-                    <button type="button" className={styles.removeBtn} onClick={() => removeItem(item.id)} disabled={isBusy}>
+                  {!item.uploaded && !item.uploading && (
+                    <button
+                      type="button"
+                      className={styles.removeBtn}
+                      onClick={() => removeQueuedFile(item.id)}
+                      title="Remove from queue"
+                    >
                       <Trash2 size={14} />
                     </button>
                   )}
@@ -464,59 +496,53 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
 
         {/* ── Footer ── */}
         <div className={styles.footer}>
-          {validationTriggered && uncategorisedCount > 0 && (
-            <span className={styles.errorMessage}>
-              {uncategorisedCount} file{uncategorisedCount > 1 ? "s" : ""} need a category
-            </span>
-          )}
+          <div className={styles.footerLeft}>
+            {(existingDocuments.length > 0 && !isAddingMore) ? (
+              <button
+                className={styles.addMoreBtn}
+                onClick={() => setIsAddingMore(true)}
+                disabled={isBusy}
+              >
+                <FilePlus size={16} />
+                Attach More
+              </button>
+            ) : null}
+          </div>
 
           <div className={styles.footerButtons}>
-            {existingDocuments.length > 0 && !isAddingMore ? (
-              <>
-                <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={uploading}>
-                  {isPolling ? "Close (extracting in background…)" : "Close"}
-                </button>
-                <button
-                  type="button"
-                  className={styles.uploadBtn}
-                  onClick={() => setIsAddingMore(true)}
-                  disabled={uploading}
-                >
-                  <FilePlus size={15} style={{ marginRight: "6px" }} /> Add More
-                </button>
-              </>
+            {isAddingMore && (
+              <button
+                className={styles.cancelBtn}
+                onClick={() => { setQueue([]); setIsAddingMore(false); }}
+                disabled={isBusy}
+              >
+                Cancel
+              </button>
+            )}
+            
+            {!isAddingMore && existingDocuments.length > 0 ? (
+                 <button className={styles.doneBtn} onClick={onClose} disabled={isBusy} type="button">
+                    Close
+                 </button>
             ) : (
-              <>
                 <button
-                  type="button"
-                  className={styles.cancelBtn}
-                  onClick={() => {
-                    if (existingDocuments.length > 0) {
-                      setIsAddingMore(false);
-                      setQueue([]);
-                      setValidationTriggered(false);
-                    } else {
-                      onClose();
-                    }
-                  }}
-                  disabled={uploading}
-                >
-                  {isPolling ? "Close (extracting in background…)" : "Cancel"}
-                </button>
-
-                <button
-                  type="button"
-                  className={styles.uploadBtn}
-                  onClick={handleUploadAll}
-                  disabled={pendingCount === 0 || isBusy}
-                >
-                  {uploading ? (
-                    <><Loader2 size={15} className={styles.spin} /> Uploading…</>
-                  ) : (
-                    <><Upload size={15} /> Upload{pendingCount > 0 ? ` (${pendingCount})` : ""}</>
-                  )}
-                </button>
-              </>
+                className={styles.uploadBtn}
+                disabled={queue.length === 0 || isBusy}
+                onClick={startUploadProcess}
+                type="button"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 size={16} className={styles.spin} />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload size={16} />
+                    Upload {queue.length > 0 ? `(${queue.length})` : ""}
+                  </>
+                )}
+              </button>
             )}
           </div>
         </div>
