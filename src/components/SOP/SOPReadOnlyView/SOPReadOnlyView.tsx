@@ -48,13 +48,13 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
   };
 
   // ── Collect extracted data grouped by document, per data type ──────────────
-  const extractedDocs = sop.documents?.filter((d) => d.extracted_data) || [];
+  const extractedDocs = sop.documents?.filter((d) => d.processed) || [];
 
   const extractedCPTByDoc = extractedDocs
     .map((doc) => ({
       name: doc.name,
       url: doc.document_url,
-      rules: (doc.extracted_data?.coding_rules_cpt || []).filter(
+      rules: (doc.coding_rules_cpt || []).filter(
         (r: any) => r.cptCode || r.description,
       ),
     }))
@@ -64,7 +64,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
     .map((doc) => ({
       name: doc.name,
       url: doc.document_url,
-      rules: (doc.extracted_data?.coding_rules_icd || []).filter(
+      rules: (doc.coding_rules_icd || []).filter(
         (r: any) => r.icdCode || r.description,
       ),
     }))
@@ -74,7 +74,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
     .map((doc) => ({
       name: doc.name,
       url: doc.document_url,
-      guidelines: (doc.extracted_data?.payer_guidelines || []).filter(
+      guidelines: (doc.payer_guidelines || []).filter(
         (g: any) => g.title || g.description,
       ),
     }))
@@ -84,7 +84,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
     .map((doc) => ({
       name: doc.name,
       url: doc.document_url,
-      guidelines: (doc.extracted_data?.billing_guidelines || []).filter(
+      guidelines: (doc.billing_guidelines || []).filter(
         (g: any) => g.category || g.rules?.length,
       ),
     }))
@@ -126,10 +126,8 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
       <div className={styles.extractedCardHeader}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <FileText size={14} style={{ color: "#3b82f6" }} />
-          <span
-            style={{ fontSize: "12px", fontWeight: 600, color: "#1d4ed8" }}
-          >
-            Extracted from: {name}
+          <span style={{ fontSize: "12px", fontWeight: 600, color: "#1d4ed8" }}>
+            {name === "Manual Entry" ? name : `Extracted from: ${name}`}
           </span>
         </div>
         {url && (
@@ -141,7 +139,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
             className={styles.extractedCardLink}
           >
             <ExternalLink size={12} />
-            View Document
+            View
           </a>
         )}
       </div>
@@ -317,9 +315,10 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                     className={styles.accordionHeader}
                     onClick={() => toggleSection("guidelines")}
                   >
-                    <span>
-                      <Shield size={16} /> Billing Guidelines ({totalBilling})
-                    </span>
+                    <div className={styles.accordionHeaderTitle}>
+                      <Shield size={16} />
+                      <span>Billing Guidelines ({totalBilling})</span>
+                    </div>
                     {expandedSections.guidelines ? (
                       <ChevronUp size={16} />
                     ) : (
@@ -328,41 +327,31 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                   </div>
                   {expandedSections.guidelines && (
                     <div className={styles.accordionContent}>
-                      {/* Base */}
-                      {sop.billingGuidelines?.length
-                        ? sop.billingGuidelines.map((g, i) => (
-                            <div key={i} className={styles.guidelineItem}>
-                              <span className={styles.guidelineCategory}>
-                                {g.category}
-                              </span>
+                      {/* Manual Entry */}
+                      {sop.billingGuidelines?.length ? (
+                        <ExtractedContentBox name="Manual Entry">
+                          {sop.billingGuidelines.map((g, i) => (
+                            <div key={i} >
+                              <span className={styles.guidelineCategory}>{g.category}</span>
                               <ul className={styles.ruleList}>
                                 {g.rules.map((r, j) => (
-                                  <li key={j} className={styles.ruleItem}>
-                                    {r.description}
-                                  </li>
+                                  <li key={j} className={styles.ruleItem}>{r.description}</li>
                                 ))}
                               </ul>
                             </div>
-                          ))
-                        : null}
+                          ))}
+                        </ExtractedContentBox>
+                      ) : null}
 
                       {/* Extracted from documents */}
                       {extractedBillingByDoc.map((docEntry, di) => (
-                        <ExtractedContentBox
-                          key={`ext-billing-${di}`}
-                          name={docEntry.name}
-                          url={docEntry.url}
-                        >
+                        <ExtractedContentBox key={`ext-billing-${di}`} name={docEntry.name} url={docEntry.url}>
                           {docEntry.guidelines.map((g: any, i: number) => (
-                            <div key={i} className={styles.guidelineItem}>
-                              <span className={styles.guidelineCategory}>
-                                {g.category}
-                              </span>
+                            <div key={i} >
+                              <span className={styles.guidelineCategory}>{g.category}</span>
                               <ul className={styles.ruleList}>
                                 {g.rules?.map((r: any, j: number) => (
-                                  <li key={j} className={styles.ruleItem}>
-                                    {r.description}
-                                  </li>
+                                  <li key={j} className={styles.ruleItem}>{r.description}</li>
                                 ))}
                               </ul>
                             </div>
@@ -371,9 +360,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                       ))}
 
                       {totalBilling === 0 && (
-                        <div className={styles.emptyMessage}>
-                          No billing guidelines available.
-                        </div>
+                        <div className={styles.emptyMessage}>No billing guidelines available.</div>
                       )}
                     </div>
                   )}
@@ -385,9 +372,10 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                     className={styles.accordionHeader}
                     onClick={() => toggleSection("payerGuidelines")}
                   >
-                    <span>
-                      <Shield size={16} /> Payer Guidelines ({totalPayer})
-                    </span>
+                    <div className={styles.accordionHeaderTitle}>
+                      <Shield size={16} />
+                      <span>Payer Guidelines ({totalPayer})</span>
+                    </div>
                     {expandedSections.payerGuidelines ? (
                       <ChevronUp size={16} />
                     ) : (
@@ -396,52 +384,40 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                   </div>
                   {expandedSections.payerGuidelines && (
                     <div className={styles.accordionContent}>
-                      {/* Base */}
-                      {payerGuidelines.length
-                        ? payerGuidelines.map((g, i) => (
-                            <div key={i} className={styles.guidelineItem}>
-                              <span className={styles.guidelineCategory}>
-                                {g.title}
-                              </span>
-                              <ul className={styles.ruleList}>
-                                {g.description && (
-                                  <li className={styles.ruleItem}>
-                                    {g.description}
-                                  </li>
-                                )}
-                              </ul>
+                      {/* Manual Entry */}
+                      {payerGuidelines.length > 0 ? (
+                        <ExtractedContentBox name="Manual Entry">
+                          {payerGuidelines.map((g, i) => (
+                            <div key={i} >
+                              <span className={styles.guidelineCategory}>{g.title}</span>
+                              {g.description && (
+                                <ul className={styles.ruleList}>
+                                  <li className={styles.ruleItem}>{g.description}</li>
+                                </ul>
+                              )}
                             </div>
-                          ))
-                        : null}
+                          ))}
+                        </ExtractedContentBox>
+                      ) : null}
 
                       {/* Extracted from documents */}
                       {extractedPayerByDoc.map((docEntry, di) => (
-                        <ExtractedContentBox
-                          key={`ext-payer-${di}`}
-                          name={docEntry.name}
-                          url={docEntry.url}
-                        >
+                        <ExtractedContentBox key={`ext-payer-${di}`} name={docEntry.name} url={docEntry.url}>
                           {docEntry.guidelines.map((g: any, i: number) => (
-                            <div key={i} className={styles.guidelineItem}>
-                              <span className={styles.guidelineCategory}>
-                                {g.title}
-                              </span>
-                              <ul className={styles.ruleList}>
-                                {g.description && (
-                                  <li className={styles.ruleItem}>
-                                    {g.description}
-                                  </li>
-                                )}
-                              </ul>
+                            <div key={i} >
+                              <span className={styles.guidelineCategory}>{g.title}</span>
+                              {g.description && (
+                                <ul className={styles.ruleList}>
+                                  <li className={styles.ruleItem}>{g.description}</li>
+                                </ul>
+                              )}
                             </div>
                           ))}
                         </ExtractedContentBox>
                       ))}
 
                       {totalPayer === 0 && (
-                        <div className={styles.emptyMessage}>
-                          No payer guidelines available.
-                        </div>
+                        <div className={styles.emptyMessage}>No payer guidelines available.</div>
                       )}
                     </div>
                   )}
@@ -453,16 +429,10 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                     className={styles.accordionHeader}
                     onClick={() => toggleSection("coding")}
                   >
-                    <span
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <Database size={16} /> Coding Rules ({totalCPT + totalICD}
-                      )
-                    </span>
+                    <div className={styles.accordionHeaderTitle}>
+                      <Database size={16} />
+                      <span>Coding Rules ({totalCPT + totalICD})</span>
+                    </div>
                     {expandedSections.coding ? (
                       <ChevronUp size={16} />
                     ) : (
@@ -488,93 +458,43 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
 
                         {expandedSections.cpt && (
                           <div className={styles.accordionContent}>
-                            {/* Base CPT */}
+                            {/* Manual Entry */}
                             {sop.codingRulesCPT?.length ? (
-                              <ul className={styles.ruleList}>
-                                {sop.codingRulesCPT.map((r, i) => (
-                                  <li
-                                    key={`cpt_${i}`}
-                                    className={styles.ruleItem}
-                                  >
-                                    <div className={styles.codeLabel}>
-                                      <strong>{r.cptCode}</strong> —{" "}
-                                      {r.description}
-                                    </div>
-                                    <div className={styles.codeDetails}>
-                                      {r.ndcCode && (
-                                        <span className={styles.detailTag}>
-                                          NDC: {r.ndcCode}
-                                        </span>
-                                      )}
-                                      {r.units && (
-                                        <span className={styles.detailTag}>
-                                          Units: {r.units}
-                                        </span>
-                                      )}
-                                      {r.chargePerUnit && (
-                                        <span className={styles.detailTag}>
-                                          Charge: {r.chargePerUnit}
-                                        </span>
-                                      )}
-                                      {r.modifier && (
-                                        <span className={styles.detailTag}>
-                                          Modifier: {r.modifier}
-                                        </span>
-                                      )}
-                                      {r.replacementCPT && (
-                                        <span className={styles.detailTag}>
-                                          Replace: {r.replacementCPT}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : null}
-
-                            {/* Extracted CPT from documents */}
-                            {extractedCPTByDoc.map((docEntry, di) => (
-                              <ExtractedContentBox
-                                key={`ext-cpt-${di}`}
-                                name={docEntry.name}
-                                url={docEntry.url}
-                              >
+                              <ExtractedContentBox name="Manual Entry">
                                 <ul className={styles.ruleList}>
-                                  {docEntry.rules.map((r: any, i: number) => (
-                                    <li
-                                      key={`ext-cpt-rule-${i}`}
-                                      className={styles.ruleItem}
-                                    >
+                                  {sop.codingRulesCPT.map((r, i) => (
+                                    <li key={`cpt_${i}`} className={styles.ruleItem}>
                                       <div className={styles.codeLabel}>
-                                        <strong>{r.cptCode}</strong> —{" "}
-                                        {r.description}
+                                        <strong>{r.cptCode}</strong> — {r.description}
                                       </div>
                                       <div className={styles.codeDetails}>
-                                        {r.ndcCode && (
-                                          <span className={styles.detailTag}>
-                                            NDC: {r.ndcCode}
-                                          </span>
-                                        )}
-                                        {r.units && (
-                                          <span className={styles.detailTag}>
-                                            Units: {r.units}
-                                          </span>
-                                        )}
-                                        {r.chargePerUnit && (
-                                          <span className={styles.detailTag}>
-                                            Charge: {r.chargePerUnit}
-                                          </span>
-                                        )}
-                                        {r.modifier && (
-                                          <span className={styles.detailTag}>
-                                            Modifier: {r.modifier}
-                                          </span>
-                                        )}
-                                        {r.replacementCPT && (
-                                          <span className={styles.detailTag}>
-                                            Replace: {r.replacementCPT}
-                                          </span>
-                                        )}
+                                        {r.ndcCode && <span className={styles.detailTag}>NDC: {r.ndcCode}</span>}
+                                        {r.units && <span className={styles.detailTag}>Units: {r.units}</span>}
+                                        {r.chargePerUnit && <span className={styles.detailTag}>Charge: {r.chargePerUnit}</span>}
+                                        {r.modifier && <span className={styles.detailTag}>Modifier: {r.modifier}</span>}
+                                        {r.replacementCPT && <span className={styles.detailTag}>Replace: {r.replacementCPT}</span>}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </ExtractedContentBox>
+                            ) : null}
+
+                            {/* Extracted from documents */}
+                            {extractedCPTByDoc.map((docEntry, di) => (
+                              <ExtractedContentBox key={`ext-cpt-${di}`} name={docEntry.name} url={docEntry.url}>
+                                <ul className={styles.ruleList}>
+                                  {docEntry.rules.map((r: any, i: number) => (
+                                    <li key={`ext-cpt-rule-${i}`} className={styles.ruleItem}>
+                                      <div className={styles.codeLabel}>
+                                        <strong>{r.cptCode}</strong> — {r.description}
+                                      </div>
+                                      <div className={styles.codeDetails}>
+                                        {r.ndcCode && <span className={styles.detailTag}>NDC: {r.ndcCode}</span>}
+                                        {r.units && <span className={styles.detailTag}>Units: {r.units}</span>}
+                                        {r.chargePerUnit && <span className={styles.detailTag}>Charge: {r.chargePerUnit}</span>}
+                                        {r.modifier && <span className={styles.detailTag}>Modifier: {r.modifier}</span>}
+                                        {r.replacementCPT && <span className={styles.detailTag}>Replace: {r.replacementCPT}</span>}
                                       </div>
                                     </li>
                                   ))}
@@ -582,11 +502,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                               </ExtractedContentBox>
                             ))}
 
-                            {totalCPT === 0 && (
-                              <div className={styles.emptyMessage}>
-                                No CPT rules.
-                              </div>
-                            )}
+                            {totalCPT === 0 && <div className={styles.emptyMessage}>No CPT rules.</div>}
                           </div>
                         )}
                       </div>
@@ -607,105 +523,47 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
 
                         {expandedSections.icd && (
                           <div className={styles.accordionContent}>
-                            {/* Base ICD */}
+                            {/* Manual Entry */}
                             {sop.codingRulesICD?.length ? (
-                              <ul className={styles.ruleList}>
-                                {sop.codingRulesICD.map((r, i) => (
-                                  <li
-                                    key={`icd_${i}`}
-                                    className={styles.ruleItem}
-                                  >
-                                    <div className={styles.codeLabel}>
-                                      <strong>{r.icdCode}</strong>
-                                      {r.description && <> — {r.description}</>}
-                                    </div>
-                                    <div className={styles.codeDetails}>
-                                      {r.ndcCode && (
-                                        <span className={styles.detailTag}>
-                                          NDC: {r.ndcCode}
-                                        </span>
-                                      )}
-                                      {r.units && (
-                                        <span className={styles.detailTag}>
-                                          Units: {r.units}
-                                        </span>
-                                      )}
-                                      {r.chargePerUnit && (
-                                        <span className={styles.detailTag}>
-                                          Charge: {r.chargePerUnit}
-                                        </span>
-                                      )}
-                                      {r.modifier && (
-                                        <span className={styles.detailTag}>
-                                          Modifier: {r.modifier}
-                                        </span>
-                                      )}
-                                      {r.replacementCPT && (
-                                        <span className={styles.detailTag}>
-                                          Replace: {r.replacementCPT}
-                                        </span>
-                                      )}
-                                      {r.notes && (
-                                        <span className={styles.detailTag}>
-                                          Notes: {r.notes}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : null}
-
-                            {/* Extracted ICD from documents */}
-                            {extractedICDByDoc.map((docEntry, di) => (
-                              <ExtractedContentBox
-                                key={`ext-icd-${di}`}
-                                name={docEntry.name}
-                                url={docEntry.url}
-                              >
+                              <ExtractedContentBox name="Manual Entry">
                                 <ul className={styles.ruleList}>
-                                  {docEntry.rules.map((r: any, i: number) => (
-                                    <li
-                                      key={`ext-icd-rule-${i}`}
-                                      className={styles.ruleItem}
-                                    >
+                                  {sop.codingRulesICD.map((r, i) => (
+                                    <li key={`icd_${i}`} className={styles.ruleItem}>
                                       <div className={styles.codeLabel}>
                                         <strong>{r.icdCode}</strong>
-                                        {r.description && (
-                                          <> — {r.description}</>
-                                        )}
+                                        {r.description && <> — {r.description}</>}
                                       </div>
                                       <div className={styles.codeDetails}>
-                                        {r.ndcCode && (
-                                          <span className={styles.detailTag}>
-                                            NDC: {r.ndcCode}
-                                          </span>
-                                        )}
-                                        {r.units && (
-                                          <span className={styles.detailTag}>
-                                            Units: {r.units}
-                                          </span>
-                                        )}
-                                        {r.chargePerUnit && (
-                                          <span className={styles.detailTag}>
-                                            Charge: {r.chargePerUnit}
-                                          </span>
-                                        )}
-                                        {r.modifier && (
-                                          <span className={styles.detailTag}>
-                                            Modifier: {r.modifier}
-                                          </span>
-                                        )}
-                                        {r.replacementCPT && (
-                                          <span className={styles.detailTag}>
-                                            Replace: {r.replacementCPT}
-                                          </span>
-                                        )}
-                                        {r.notes && (
-                                          <span className={styles.detailTag}>
-                                            Notes: {r.notes}
-                                          </span>
-                                        )}
+                                        {r.ndcCode && <span className={styles.detailTag}>NDC: {r.ndcCode}</span>}
+                                        {r.units && <span className={styles.detailTag}>Units: {r.units}</span>}
+                                        {r.chargePerUnit && <span className={styles.detailTag}>Charge: {r.chargePerUnit}</span>}
+                                        {r.modifier && <span className={styles.detailTag}>Modifier: {r.modifier}</span>}
+                                        {r.replacementCPT && <span className={styles.detailTag}>Replace: {r.replacementCPT}</span>}
+                                        {r.notes && <span className={styles.detailTag}>Notes: {r.notes}</span>}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </ExtractedContentBox>
+                            ) : null}
+
+                            {/* Extracted from documents */}
+                            {extractedICDByDoc.map((docEntry, di) => (
+                              <ExtractedContentBox key={`ext-icd-${di}`} name={docEntry.name} url={docEntry.url}>
+                                <ul className={styles.ruleList}>
+                                  {docEntry.rules.map((r: any, i: number) => (
+                                    <li key={`ext-icd-rule-${i}`} className={styles.ruleItem}>
+                                      <div className={styles.codeLabel}>
+                                        <strong>{r.icdCode}</strong>
+                                        {r.description && <> — {r.description}</>}
+                                      </div>
+                                      <div className={styles.codeDetails}>
+                                        {r.ndcCode && <span className={styles.detailTag}>NDC: {r.ndcCode}</span>}
+                                        {r.units && <span className={styles.detailTag}>Units: {r.units}</span>}
+                                        {r.chargePerUnit && <span className={styles.detailTag}>Charge: {r.chargePerUnit}</span>}
+                                        {r.modifier && <span className={styles.detailTag}>Modifier: {r.modifier}</span>}
+                                        {r.replacementCPT && <span className={styles.detailTag}>Replace: {r.replacementCPT}</span>}
+                                        {r.notes && <span className={styles.detailTag}>Notes: {r.notes}</span>}
                                       </div>
                                     </li>
                                   ))}
@@ -713,11 +571,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                               </ExtractedContentBox>
                             ))}
 
-                            {totalICD === 0 && (
-                              <div className={styles.emptyMessage}>
-                                No ICD rules.
-                              </div>
-                            )}
+                            {totalICD === 0 && <div className={styles.emptyMessage}>No ICD rules.</div>}
                           </div>
                         )}
                       </div>

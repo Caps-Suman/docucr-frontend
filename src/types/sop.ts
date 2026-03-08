@@ -42,6 +42,7 @@ export type CodingRuleCPT = {
   chargePerUnit?: string;
   modifier?: string;
   replacementCPT?: string;
+  source?: string;
 };
 
 export type CodingRuleICD = {
@@ -54,6 +55,7 @@ export type CodingRuleICD = {
   chargePerUnit?: string;
   modifier?: string;
   replacementCPT?: string;
+  source?: string;
 };
 
 
@@ -66,6 +68,7 @@ export interface XrayCodeMapping {
 export interface BillingRule {
   id?: string;
   description: string;
+  source?: string;
 }
 
 export interface BillingGuideline {
@@ -78,6 +81,7 @@ export interface PayerGuidelines {
   id: string;
   title: string;
   description: string;
+  source?: string;
 }
 export interface InfusionNDCCode {
     id: string;
@@ -123,17 +127,6 @@ export interface SOPStatus {
   description?: string;
 }
 
-export interface ExtractedData {
-  payer_guidelines?: {
-    title: string;
-    description: string;
-  }[];
-
-  billing_guidelines?: any[];
-  coding_rules_cpt?: any[];
-  coding_rules_icd?: any[];
-  workflow_process?: any;
-}
 
 export interface SOPDocument {
   id: string;
@@ -141,7 +134,10 @@ export interface SOPDocument {
   category: string;
   s3_key: string;
   created_at: string;
-  extracted_data?: ExtractedData;
+  billing_guidelines?: BillingGuideline[];
+  payer_guidelines?: PayerGuidelines[];
+  coding_rules_cpt?: CodingRuleCPT[];
+  coding_rules_icd?: CodingRuleICD[];
   document_url?: string;
   processed?: boolean;
 }

@@ -13,6 +13,7 @@ type RawBillingGuideline =
       rules?: {
         id?: string;
         description?: string;
+        source?: string;
       }[];
 
       // 🔁 Legacy / AI schema
@@ -87,6 +88,7 @@ billingGuidelines: (raw.billingGuidelines ?? []).map((g, i): BillingGuideline =>
       rules: g.rules.map((r, j) => ({
         id: r.id ?? `rule_${i}_${j}`,
         description: r.description ?? '',
+        source: r.source,
       })),
     };
   }
@@ -141,7 +143,8 @@ const normalizeBillingGuidelines = (input: any[]): BillingGuideline[] => {
     rules: Array.isArray(g.rules)
       ? g.rules.map((r: any, j: number) => ({
           id: r.id || `rule_${i}_${j}`,
-          description: r.description || ""
+          description: r.description || "",
+          source: r.source
         }))
       : []
   }));
@@ -421,10 +424,14 @@ createFromExtracted: async (payload: {
     document.body.removeChild(a);
   },
   
-  uploadSOPDocument: async (sopId: string, file: File, category: string = "Source file"): Promise<SOPDocument> => {
+  uploadSOPDocument: async (sopId: string, file: File, category: string = "Source file", extractedData?: any): Promise<SOPDocument> => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("category", category);
+    
+    if (extractedData) {
+      formData.append("extracted_data", JSON.stringify(extractedData));
+    }
 
     const token = localStorage.getItem("access_token");
     const response = await fetch(`${API_URL}/api/sops/${sopId}/documents`, {

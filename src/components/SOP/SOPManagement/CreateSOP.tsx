@@ -419,22 +419,64 @@ const CreateSOP: React.FC = () => {
         setWorkflowDescription(sop.workflowProcess.description || "");
         setEligibilityPortals(sop.workflowProcess.eligibilityPortals || []);
       }
-      if (sop.billingGuidelines) {
-        setBillingGuidelines(normalizeBillingGuidelines(sop.billingGuidelines));
-      }
-      if (sop.payerGuidelines) {
-        setPayerGuidelines(
-          sop.payerGuidelines.map((pg: any, i: number) => ({
-            id: `pg_db_${i}`,
-            title: pg.title || "Unknown",
-            description: pg.description || "",
-          })),
-        );
+
+      let loadedBillingGuidelines: any[] = sop.billingGuidelines ? normalizeBillingGuidelines(sop.billingGuidelines) : [];
+      let loadedPayerGuidelines: any[] = sop.payerGuidelines ? sop.payerGuidelines.map((pg: any, i: number) => ({
+        id: `pg_db_${i}`,
+        title: pg.payerName || pg.title || "Unknown",
+        description: pg.description || "",
+        source: pg.source || "Manual"
+      })) : [];
+      let loadedCodingRulesCPT: any[] = sop.codingRulesCPT ? sop.codingRulesCPT.map((r: any) => ({ ...r, source: r.source || 'Manual' })) : [];
+      let loadedCodingRulesICD: any[] = sop.codingRulesICD ? sop.codingRulesICD.map((r: any) => ({ ...r, source: r.source || 'Manual' })) : [];
+
+      if (sop.documents) {
+        sop.documents.forEach((doc: any, docIdx: number) => {
+          if (doc.processed) {
+            const sourceName = doc.category === "Source file" ? "source_file" : doc.name;
+
+            if (doc.billing_guidelines) {
+              const normalizedDocBg = normalizeBillingGuidelines(doc.billing_guidelines).map(bg => ({
+                ...bg,
+                rules: bg.rules?.map(r => ({ ...r, source: sourceName }))
+              }));
+              
+              // Simple aggregation strategy for billing guidelines
+              normalizedDocBg.forEach(docBg => {
+                const existing = loadedBillingGuidelines.find(g => g.category.toLowerCase() === docBg.category.toLowerCase());
+                if (existing) {
+                  existing.rules = [...(existing.rules || []), ...(docBg.rules || [])];
+                } else {
+                  loadedBillingGuidelines.push(docBg);
+                }
+              });
+            }
+
+            if (doc.payer_guidelines) {
+              doc.payer_guidelines.forEach((pg: any, i: number) => {
+                loadedPayerGuidelines.push({
+                   id: `pg_ext_${docIdx}_${i}`,
+                   title: pg.payerName || pg.title || "Unknown",
+                   description: pg.description || "",
+                   source: sourceName
+                });
+              });
+            }
+
+            if (doc.coding_rules_cpt) {
+                loadedCodingRulesCPT.push(...doc.coding_rules_cpt.map((c: any) => ({...c, source: sourceName})));
+            }
+            if (doc.coding_rules_icd) {
+                loadedCodingRulesICD.push(...doc.coding_rules_icd.map((c: any) => ({...c, source: sourceName})));
+            }
+          }
+        });
       }
 
-      if (sop.codingRulesCPT) setCodingRulesCPT(sop.codingRulesCPT);
-      if (sop.codingRulesICD) setCodingRulesICD(sop.codingRulesICD);
-
+      setBillingGuidelines(loadedBillingGuidelines);
+      setPayerGuidelines(loadedPayerGuidelines);
+      setCodingRulesCPT(loadedCodingRulesCPT);
+      setCodingRulesICD(loadedCodingRulesICD);
       setDocuments(sop.documents || []);
 
     } catch (error) {
@@ -500,20 +542,20 @@ const CreateSOP: React.FC = () => {
         controller.signal
       );
 
-      applyExtractedSOP(result.extracted_data);
+      applyExtractedSOP(result.extracted_data, "source_file");
       setExtractedData(result.extracted_data);
 
-      // ✅ Only set READY if extraction actually succeeded
+      // Only set READY if extraction actually succeeded
       setExtractionMode("READY");
 
     } catch (err: any) {
 
       if (err.name === "AbortError") {
         console.log("Extraction cancelled");
-        setExtractionMode("IDLE");   // ✅ IMPORTANT
+        setExtractionMode("IDLE");   // IMPORTANT
       } else {
         console.error(err);
-        setExtractionMode("IDLE");   // ✅ Reset on error
+        setExtractionMode("IDLE");   // Reset on error
       }
 
     } finally {
@@ -573,7 +615,7 @@ const CreateSOP: React.FC = () => {
     }
   };
 
-  const applyExtractedSOP = (data: any) => {
+  const applyExtractedSOP = (data: any, sourceName: string = 'AI Extracted') => {
     if (!data || typeof data !== "object") {
       console.error("Invalid extracted SOP payload", data);
       return;
@@ -589,8 +631,8 @@ const CreateSOP: React.FC = () => {
     }
 
     // ---- PROVIDER ----
-    if (data.provider_information) {
-      setProviderType("new");
+    if (data.provider_information && (providerType === "new" || !isEditMode)) {
+      if (!isEditMode) setProviderType("new");
       setProviderInfo((prev) => ({
         ...prev,
         providerName: data.provider_information.billing_provider_name || "",
@@ -605,41 +647,73 @@ const CreateSOP: React.FC = () => {
       }));
     }
 
-    // ---- WORKFLOW (THIS IS THE PART YOU BROKE) ----
+    // ---- WORKFLOW ----
     if (data.workflow_process) {
-      setWorkflowDescription(data.workflow_process.description ?? "");
-      setPostingCharges(data.workflow_process.posting_charges_rules ?? "");
+      if (data.workflow_process.description) {
+        setWorkflowDescription(prev => (prev && prev !== "Test" && !prev.includes(data.workflow_process.description)) 
+          ? `${prev}\n\n${data.workflow_process.description}` 
+          : data.workflow_process.description);
+      }
+      
+      if (data.workflow_process.posting_charges_rules) {
+        setPostingCharges(prev => (prev && !prev.includes(data.workflow_process.posting_charges_rules))
+          ? `${prev}\n\n${data.workflow_process.posting_charges_rules}`
+          : data.workflow_process.posting_charges_rules);
+      }
 
-
-      setEligibilityPortals(
-        Array.isArray(data.workflow_process.eligibility_verification_portals)
+      setEligibilityPortals(prev => {
+        const newPortals = Array.isArray(data.workflow_process.eligibility_verification_portals)
           ? data.workflow_process.eligibility_verification_portals
-          : [],
-      );
+          : [];
+        return Array.from(new Set([...prev, ...newPortals]));
+      });
     }
 
     // ---- BILLING GUIDELINES ----
     if (Array.isArray(data.billing_guidelines)) {
-      setBillingGuidelines(
-        normalizeBillingGuidelines(data.billing_guidelines)
-      );
+      setBillingGuidelines(prev => {
+        const newGroups = normalizeBillingGuidelines(data.billing_guidelines).map(bg => ({
+          ...bg,
+          rules: bg.rules?.map(r => ({ ...r, source: sourceName }))
+        }));
+        
+        const merged = [...prev];
+        newGroups.forEach(newG => {
+          const existing = merged.find(g => g.category.toLowerCase() === newG.category.toLowerCase());
+          if (existing) {
+            existing.rules = [...(existing.rules || []), ...(newG.rules || [])];
+          } else {
+            merged.push(newG);
+          }
+        });
+        return merged;
+      });
     }
+
     if (Array.isArray(data.payer_guidelines)) {
-      setPayerGuidelines(
-        data.payer_guidelines.map((pg: any, i: number) => ({
-          id: `pg_ai_${i}`,
-          payerName: pg?.payerName || "Unknown",
+      setPayerGuidelines(prev => [
+        ...prev,
+        ...data.payer_guidelines.map((pg: any, i: number) => ({
+          id: `pg_ai_${Date.now()}_${i}`,
+          title: pg?.payerName || pg?.title || "Unknown",
           description: pg?.description || "",
-        })),
-      );
+          source: sourceName
+        }))
+      ]);
     }
     // ---- CODING RULES ----
     if (Array.isArray(data.coding_rules_cpt)) {
-      setCodingRulesCPT(data.coding_rules_cpt);
+      setCodingRulesCPT(prev => [
+        ...prev,
+        ...data.coding_rules_cpt.map((c: any) => ({...c, source: sourceName}))
+      ]);
     }
 
     if (Array.isArray(data.coding_rules_icd)) {
-      setCodingRulesICD(data.coding_rules_icd);
+      setCodingRulesICD(prev => [
+        ...prev,
+        ...data.coding_rules_icd.map((c: any) => ({...c, source: sourceName}))
+      ]);
     }
   }
 
@@ -978,6 +1052,7 @@ const CreateSOP: React.FC = () => {
           {
             id: `rule_${Date.now()}`,
             description: newGuideline.description,
+            source: 'Manual',
           },
         ],
       };
@@ -997,7 +1072,7 @@ const CreateSOP: React.FC = () => {
   const handleAddCodingRule = () => {
     if (codingType === "CPT" && newCpt.cptCode.trim()) {
       setCodingRulesCPT(prev => [
-        { id: `cpt_${Date.now()}`, ...newCpt },
+        { id: `cpt_${Date.now()}`, ...newCpt, source: 'Manual' },
         ...prev
       ]);
       resetCpt();
@@ -1005,7 +1080,7 @@ const CreateSOP: React.FC = () => {
 
     if (codingType === "ICD" && newIcd.icdCode.trim()) {
       setCodingRulesICD(prev => [
-        { id: `icd_${Date.now()}`, ...newIcd },
+        { id: `icd_${Date.now()}`, ...newIcd, source: 'Manual' },
         ...prev
       ]);
       resetIcd();
@@ -1029,6 +1104,7 @@ const CreateSOP: React.FC = () => {
           rules: g.rules.map((r: any, j: number) => ({
             id: r.id || `rule_${i}_${j}`,
             description: r.description || "",
+            source: r.source || "Manual"
           })),
         };
       }
@@ -1042,6 +1118,7 @@ const CreateSOP: React.FC = () => {
             {
               id: `rule_${i}_0`,
               description: g.description || "",
+              source: g.source || "Manual"
             },
           ],
         };
@@ -1059,15 +1136,17 @@ const CreateSOP: React.FC = () => {
   const handleSave = async () => {
     if (saving) return; // Guard against multiple triggers
 
-    // Validate Basic Info (Step 1)
+    // Validate Basic Info (Section that contains Title, Category, Workflow)
     if (!validateStep1()) {
-      setCurrentStep(1);
+      const basicInfoStep = getSteps().find(s => s.title === "Basic Information")?.number || 1;
+      setCurrentStep(basicInfoStep);
       return;
     }
 
-    // Validate Client Selection (Step 2)
+    // Validate Client Selection
     if (providerType === "existing" && !selectedClientId) {
-      setCurrentStep(2);
+      const selectClientStep = getSteps().find(s => s.title === "Select Client")?.number || 1;
+      setCurrentStep(selectClientStep);
       setErrors(["Please select a client to proceed."]);
       return;
     }
@@ -1079,6 +1158,32 @@ const CreateSOP: React.FC = () => {
       setToast({ message: "Some providers already have SOP", type: "warning" });
       return;
     }
+
+    // Send all guidelines (manual + extracted) to the backend
+    // The backend will now split and sync them between SOP table and SOPDocument table
+    const allBillingGuidelines = billingGuidelines.map(bg => ({
+      category: bg.category,
+      rules: (bg.rules ?? []).map(r => ({
+        description: r.description,
+        source: r.source || 'Manual'
+      }))
+    })).filter(bg => (bg.rules || []).length > 0);
+
+    const allPayerGuidelines = payerGuidelines.map(pg => ({
+      payerName: pg.title,
+      description: pg.description,
+      source: pg.source || 'Manual'
+    }));
+
+    const allCodingRulesCPT = codingRulesCPT.map(r => ({
+      ...r,
+      source: r.source || 'Manual'
+    }));
+
+    const allCodingRulesICD = codingRulesICD.map(r => ({
+      ...r,
+      source: r.source || 'Manual'
+    }));
 
     const payload = {
       title,
@@ -1092,15 +1197,10 @@ const CreateSOP: React.FC = () => {
         posting_charges_rules: postingCharges,
         eligibility_verification_portals: eligibilityPortals,
       },
-      billing_guidelines: billingGuidelines.map(bg => ({
-        category: bg.category,
-        rules: (bg.rules ?? []).map(r => ({
-          description: r.description
-        }))
-      })),
-      payer_guidelines: payerGuidelines, // 🔥 THIS WAS MISSING
-      coding_rules_cpt: codingRulesCPT,
-      coding_rules_icd: codingRulesICD,
+      billing_guidelines: allBillingGuidelines,
+      payer_guidelines: allPayerGuidelines,
+      coding_rules_cpt: allCodingRulesCPT,
+      coding_rules_icd: allCodingRulesICD,
       provider_ids: providerIds,
     };
 
@@ -1115,7 +1215,7 @@ const CreateSOP: React.FC = () => {
       // If we have an uploaded file (foreground extraction), upload it now
       if (uploadedFile && savedSop.id) {
         try {
-          await sopService.uploadSOPDocument(savedSop.id, uploadedFile);
+          await sopService.uploadSOPDocument(savedSop.id, uploadedFile, "Source file", extractedData);
         } catch (uploadError) {
           console.error("Failed to upload source file after save:", uploadError);
           setToast({ message: "SOP saved, but source file upload failed", type: "error" });
@@ -1698,30 +1798,97 @@ const CreateSOP: React.FC = () => {
                   </div>
 
                   <div className={styles.guidelineGrid}>
-                    {billingGuidelines.map((g, i) => (
-                      <div key={i} className={styles.guidelineItem}>
-                        <div className={styles.guidelineHeader}>
-                          <h4><Stethoscope size={16} /> {g.category}</h4>
-                          <button
-                            className={styles.deleteButton}
-                            onClick={() => handleRemoveGuideline(g.id, i)}
-                            title="Remove Category"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                        <div className={styles.guidelineBody}>
-                          <div className={styles.guidelinePoints}>
-                            {(g.rules ?? []).map((r, j) => (
-                              <div key={j} className={styles.guidelinePoint}>
-                                <CheckCircle2 size={14} className={styles.pointIcon} />
-                                <span>{r.description}</span>
+                    {(() => {
+                      const manualBilling = billingGuidelines.map(bg => ({
+                        ...bg,
+                        rules: (bg.rules ?? []).filter(r => r.source === 'Manual')
+                      })).filter(bg => bg.rules.length > 0);
+
+                      const extractedBilling = billingGuidelines.map(bg => ({
+                        ...bg,
+                        rules: (bg.rules ?? []).filter(r => r.source && r.source !== 'Manual')
+                      })).filter(bg => bg.rules.length > 0);
+
+                      return (
+                        <>
+                          {manualBilling.length > 0 && (
+                            <div className={`${styles.sourceGroup} ${styles.manualSourceGroup}`}>
+                              <div className={styles.sourceGroupHeader}>
+                                <FileText size={14} style={{ color: '#3b82f6' }} />
+                                <span className={styles.manualSourceTitle}>Manual Entry</span>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                              {manualBilling.map((g, i) => (
+                                <div key={i} className={styles.guidelineItem} style={{ marginBottom: '12px' }}>
+                                  <div className={styles.guidelineHeader}>
+                                    <h4><Stethoscope size={16} /> {g.category}</h4>
+                                    <button
+                                      className={styles.deleteButton}
+                                      onClick={() => handleRemoveGuideline(g.id, i)}
+                                      title="Remove Category"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                  <div className={styles.guidelineBody}>
+                                    <div className={styles.guidelinePoints}>
+                                      {g.rules.map((r, j) => (
+                                        <div key={j} className={styles.guidelinePoint}>
+                                          <CheckCircle2 size={14} className={styles.pointIcon} style={{ marginTop: '3px' }} />
+                                          <span>{r.description}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {extractedBilling.length > 0 && (
+                            <div className={`${styles.sourceGroup} ${styles.extractedSourceGroup}`}>
+                              <div className={styles.sourceGroupHeader}>
+                                <FileText size={14} style={{ color: '#0284c7' }} />
+                                <span className={styles.extractedSourceTitle}>Extracted from Documents</span>
+                              </div>
+                              {extractedBilling.map((g, i) => {
+                                const uniqueSources = Array.from(new Set(g.rules.map(r => r.source).filter(Boolean)));
+                                return (
+                                  <div key={i} className={styles.guidelineItem} style={{ marginBottom: i === extractedBilling.length - 1 ? '0' : '12px' }}>
+                                    <div className={styles.guidelineHeader}>
+                                      <h4><Stethoscope size={16} /> {g.category}</h4>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        {uniqueSources.length > 0 && (
+                                          <span className={styles.sourceBadgeExtracted}>
+                                            {uniqueSources.map(src => src === 'source_file' ? `Source file: ${uploadedFile?.name || documents.find(d => d.category === 'Source file')?.name || 'Unknown'}` : src).join(', ')}
+                                          </span>
+                                        )}
+                                        <button
+                                          className={styles.deleteButton}
+                                          onClick={() => handleRemoveGuideline(g.id, i)}
+                                          title="Remove Category"
+                                        >
+                                          <Trash2 size={16} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className={styles.guidelineBody}>
+                                      <div className={styles.guidelinePoints}>
+                                        {g.rules.map((r, j) => (
+                                          <div key={j} className={styles.guidelinePoint}>
+                                            <CheckCircle2 size={14} className={styles.pointIcon} style={{ marginTop: '3px' }} />
+                                            <span>{r.description}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
                 {/* Payer Guidelines */}
@@ -1767,7 +1934,7 @@ const CreateSOP: React.FC = () => {
                         onClick={() => {
                           if (newPayerGuideline.title && newPayerGuideline.description) {
                             setPayerGuidelines(prev => [
-                              { ...newPayerGuideline, id: `pg_temp_${Date.now()}` },
+                              { ...newPayerGuideline, id: `pg_temp_${Date.now()}`, source: 'Manual' },
                               ...prev
                             ]);
                             setNewPayerGuideline({ title: "", description: "" });
@@ -1780,20 +1947,65 @@ const CreateSOP: React.FC = () => {
                   </div>
 
                   <div className={styles.cardList}>
-                    {payerGuidelines.map((pg, i) => (
-                      <div key={pg.id || i} className={styles.cardItem}>
-                        <div className={styles.cardContent}>
-                          <h4>{pg.title}</h4>
-                          <p>{pg.description}</p>
-                        </div>
-                        <button
-                          className={styles.deleteButton}
-                          onClick={() => setPayerGuidelines(prev => prev.filter((_, idx) => idx !== i))}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
+                    {(() => {
+                      const manualPayer = payerGuidelines.filter(pg => pg.source === 'Manual');
+                      const extractedPayer = payerGuidelines.filter(pg => pg.source && pg.source !== 'Manual');
+
+                      return (
+                        <>
+                          {manualPayer.length > 0 && (
+                            <div className={`${styles.sourceGroup} ${styles.manualSourceGroup}`}>
+                              <div className={styles.sourceGroupHeader}>
+                                <FileText size={14} style={{ color: '#3b82f6' }} />
+                                <span className={styles.manualSourceTitle}>Manual Entry</span>
+                              </div>
+                              {manualPayer.map((pg, i) => (
+                                <div key={pg.id || i} className={styles.cardItem}>
+                                  <div className={styles.cardContent}>
+                                    <h4>{pg.title}</h4>
+                                    <p>{pg.description}</p>
+                                  </div>
+                                  <button
+                                    className={styles.deleteButton}
+                                    onClick={() => setPayerGuidelines(prev => prev.filter((_, idx) => idx !== payerGuidelines.indexOf(pg)))}
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {extractedPayer.length > 0 && (
+                            <div className={`${styles.sourceGroup} ${styles.extractedSourceGroup}`}>
+                              <div className={styles.sourceGroupHeader}>
+                                <FileText size={14} style={{ color: '#0284c7' }} />
+                                <span className={styles.extractedSourceTitle}>Extracted from Documents</span>
+                              </div>
+                              {extractedPayer.map((pg, i) => (
+                                <div key={pg.id || i} className={styles.cardItem}>
+                                  <div className={styles.cardContent}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                      <h4>{pg.title}</h4>
+                                      <span className={styles.sourceBadgeExtracted}>
+                                        {pg.source === 'source_file' ? `Source file: ${uploadedFile?.name || documents.find(d => d.category === 'Source file')?.name || 'Unknown'}` : pg.source}
+                                      </span>
+                                    </div>
+                                    <p>{pg.description}</p>
+                                  </div>
+                                  <button
+                                    className={styles.deleteButton}
+                                    onClick={() => setPayerGuidelines(prev => prev.filter((_, idx) => idx !== payerGuidelines.indexOf(pg)))}
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -1951,61 +2163,144 @@ const CreateSOP: React.FC = () => {
                       {/* BODY */}
                       {expandCpt && (
                         <div className={styles.guidelineBody}>
-                          <div className={styles.cardList}>
-                            {codingRulesCPT.map((r, i) => (
-                              <div key={i} className={styles.cardItem}>
-                                <div className={styles.cardContent} style={{ width: "100%" }}>
-                                  <div className={styles.codeBadge}>CPT: {r.cptCode}</div>
+                          {(() => {
+                            const manualCPT = codingRulesCPT.filter(r => r.source === 'Manual');
+                            const extractedCPT = codingRulesCPT.filter(r => r.source && r.source !== 'Manual');
+                            const groupedBySource = extractedCPT.reduce((acc, r) => {
+                              const src = r.source || 'Unknown';
+                              if (!acc[src]) acc[src] = [];
+                              acc[src].push(r);
+                              return acc;
+                            }, {} as Record<string, typeof extractedCPT>);
 
-                                  <div className={styles.metaGrid}>
-                                    {r.ndcCode && (
-                                      <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>NDC Code</span>
-                                        <span className={styles.metaValue}>{r.ndcCode}</span>
-                                      </div>
-                                    )}
-                                    {r.units && (
-                                      <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>Units</span>
-                                        <span className={styles.metaValue}>{r.units}</span>
-                                      </div>
-                                    )}
-                                    {r.chargePerUnit && (
-                                      <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>Charge/Unit</span>
-                                        <span className={styles.metaValue}>${r.chargePerUnit}</span>
-                                      </div>
-                                    )}
-                                    {r.modifier && (
-                                      <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>Modifier</span>
-                                        <span className={styles.metaValue}>{r.modifier}</span>
-                                      </div>
-                                    )}
-                                    {r.replacementCPT && (
-                                      <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>Replace CPT</span>
-                                        <span className={styles.metaValue}>{r.replacementCPT}</span>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {r.description && (
-                                    <div className={styles.codeDescription}>
-                                      {r.description}
+                            return (
+                              <>
+                                {manualCPT.length > 0 && (
+                                  <div className={`${styles.sourceGroup} ${styles.manualSourceGroup}`}>
+                                    <div className={styles.sourceGroupHeader}>
+                                      <FileText size={14} style={{ color: '#3b82f6' }} />
+                                      <span className={styles.manualSourceTitle}>Manual Entry</span>
                                     </div>
-                                  )}
-                                </div>
+                                    <div className={styles.cardList}>
+                                      {manualCPT.map((r, i) => (
+                                        <div key={i} className={styles.cardItem}>
+                                          <div className={styles.cardContent} style={{ width: "100%" }}>
+                                            <div className={styles.codeBadge}>CPT: {r.cptCode}</div>
+                                            <div className={styles.metaGrid}>
+                                              {r.ndcCode && (
+                                                <div className={styles.metaItem}>
+                                                  <span className={styles.metaLabel}>NDC Code</span>
+                                                  <span className={styles.metaValue}>{r.ndcCode}</span>
+                                                </div>
+                                              )}
+                                              {r.units && (
+                                                <div className={styles.metaItem}>
+                                                  <span className={styles.metaLabel}>Units</span>
+                                                  <span className={styles.metaValue}>{r.units}</span>
+                                                </div>
+                                              )}
+                                              {r.chargePerUnit && (
+                                                <div className={styles.metaItem}>
+                                                  <span className={styles.metaLabel}>Charge/Unit</span>
+                                                  <span className={styles.metaValue}>${r.chargePerUnit}</span>
+                                                </div>
+                                              )}
+                                              {r.modifier && (
+                                                <div className={styles.metaItem}>
+                                                  <span className={styles.metaLabel}>Modifier</span>
+                                                  <span className={styles.metaValue}>{r.modifier}</span>
+                                                </div>
+                                              )}
+                                              {r.replacementCPT && (
+                                                <div className={styles.metaItem}>
+                                                  <span className={styles.metaLabel}>Replace CPT</span>
+                                                  <span className={styles.metaValue}>{r.replacementCPT}</span>
+                                                </div>
+                                              )}
+                                            </div>
+                                            {r.description && (
+                                              <div className={styles.codeDescription}>
+                                                {r.description}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <button
+                                            className={styles.deleteButton}
+                                            onClick={() => handleRemoveCpt(codingRulesCPT.indexOf(r))}
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
 
-                                <button
-                                  className={styles.deleteButton}
-                                  onClick={() => handleRemoveCpt(i)}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
+                                {Object.entries(groupedBySource).map(([source, rules]) => (
+                                  <div key={source} className={`${styles.sourceGroup} ${styles.extractedSourceGroup}`}>
+                                    <div className={styles.sourceGroupHeader}>
+                                      <FileText size={14} style={{ color: '#0284c7' }} />
+                                      <span className={styles.extractedSourceTitle}>
+                                        {source === 'source_file' ? `Source file: ${uploadedFile?.name || documents.find(d => d.category === 'Source file')?.name || 'Unknown'}` : source}
+                                      </span>
+                                    </div>
+                                    <div className={styles.cardList}>
+                                      {rules.map((r, i) => (
+                                        <div key={i} className={styles.cardItem}>
+                                          <div className={styles.cardContent} style={{ width: "100%" }}>
+                                            <div className={styles.codeBadge}>CPT: {r.cptCode}</div>
+                                            <div className={styles.metaGrid}>
+                                              {r.ndcCode && (
+                                                <div className={styles.metaItem}>
+                                                  <span className={styles.metaLabel}>NDC Code</span>
+                                                  <span className={styles.metaValue}>{r.ndcCode}</span>
+                                                </div>
+                                              )}
+                                              {r.units && (
+                                                <div className={styles.metaItem}>
+                                                  <span className={styles.metaLabel}>Units</span>
+                                                  <span className={styles.metaValue}>{r.units}</span>
+                                                </div>
+                                              )}
+                                              {r.chargePerUnit && (
+                                                <div className={styles.metaItem}>
+                                                  <span className={styles.metaLabel}>Charge/Unit</span>
+                                                  <span className={styles.metaValue}>${r.chargePerUnit}</span>
+                                                </div>
+                                              )}
+                                              {r.modifier && (
+                                                <div className={styles.metaItem}>
+                                                  <span className={styles.metaLabel}>Modifier</span>
+                                                  <span className={styles.metaValue}>{r.modifier}</span>
+                                                </div>
+                                              )}
+                                              {r.replacementCPT && (
+                                                <div className={styles.metaItem}>
+                                                  <span className={styles.metaLabel}>Replace CPT</span>
+                                                  <span className={styles.metaValue}>{r.replacementCPT}</span>
+                                                </div>
+                                              )}
+                                            </div>
+                                            {r.description && (
+                                              <div className={styles.codeDescription}>
+                                                {r.description}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <button
+                                            className={styles.deleteButton}
+                                            onClick={() => handleRemoveCpt(codingRulesCPT.indexOf(r))}
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
@@ -2027,34 +2322,90 @@ const CreateSOP: React.FC = () => {
                       {/* BODY */}
                       {expandIcd && (
                         <div className={styles.guidelineBody}>
-                          <div className={styles.cardList}>
-                            {codingRulesICD.map((r, i) => (
-                              <div key={i} className={styles.cardItem}>
-                                <div className={styles.cardContent} style={{ width: "100%" }}>
-                                  <div className={styles.codeBadge}>ICD: {r.icdCode}</div>
+                          {(() => {
+                            const manualICD = codingRulesICD.filter(r => r.source === 'Manual');
+                            const extractedICD = codingRulesICD.filter(r => r.source && r.source !== 'Manual');
+                            const groupedBySource = extractedICD.reduce((acc, r) => {
+                              const src = r.source || 'Unknown';
+                              if (!acc[src]) acc[src] = [];
+                              acc[src].push(r);
+                              return acc;
+                            }, {} as Record<string, typeof extractedICD>);
 
-                                  {r.description && (
-                                    <div className={styles.codeDescription}>
-                                      {r.description}
+                            return (
+                              <>
+                                {manualICD.length > 0 && (
+                                  <div className={`${styles.sourceGroup} ${styles.manualSourceGroup}`}>
+                                    <div className={styles.sourceGroupHeader}>
+                                      <FileText size={14} style={{ color: '#3b82f6' }} />
+                                      <span className={styles.manualSourceTitle}>Manual Entry</span>
                                     </div>
-                                  )}
-
-                                  {r.notes && (
-                                    <div className={styles.mutedText} style={{ fontSize: '12px', borderLeft: '1px solid #e2e8f0', paddingLeft: '12px' }}>
-                                      <strong>Notes:</strong> {r.notes}
+                                    <div className={styles.cardList}>
+                                      {manualICD.map((r, i) => (
+                                        <div key={i} className={styles.cardItem}>
+                                          <div className={styles.cardContent} style={{ width: "100%" }}>
+                                            <div className={styles.codeBadge}>ICD: {r.icdCode}</div>
+                                            {r.description && (
+                                              <div className={styles.codeDescription}>
+                                                {r.description}
+                                              </div>
+                                            )}
+                                            {r.notes && (
+                                              <div className={styles.mutedText} style={{ fontSize: '12px', borderLeft: '1px solid #e2e8f0', paddingLeft: '12px' }}>
+                                                <strong>Notes:</strong> {r.notes}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <button
+                                            className={styles.deleteButton}
+                                            onClick={() => handleRemoveIcd(codingRulesICD.indexOf(r))}
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
+                                      ))}
                                     </div>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
 
-                                <button
-                                  className={styles.deleteButton}
-                                  onClick={() => handleRemoveIcd(i)}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
+                                {Object.entries(groupedBySource).map(([source, rules]) => (
+                                  <div key={source} className={`${styles.sourceGroup} ${styles.extractedSourceGroup}`}>
+                                    <div className={styles.sourceGroupHeader}>
+                                      <FileText size={14} style={{ color: '#0284c7' }} />
+                                      <span className={styles.extractedSourceTitle}>
+                                        {source === 'source_file' ? `Source file: ${uploadedFile?.name || documents.find(d => d.category === 'Source file')?.name || 'Unknown'}` : source}
+                                      </span>
+                                    </div>
+                                    <div className={styles.cardList}>
+                                      {rules.map((r, i) => (
+                                        <div key={i} className={styles.cardItem}>
+                                          <div className={styles.cardContent} style={{ width: "100%" }}>
+                                            <div className={styles.codeBadge}>ICD: {r.icdCode}</div>
+                                            {r.description && (
+                                              <div className={styles.codeDescription}>
+                                                {r.description}
+                                              </div>
+                                            )}
+                                            {r.notes && (
+                                              <div className={styles.mutedText} style={{ fontSize: '12px', borderLeft: '1px solid #e2e8f0', paddingLeft: '12px' }}>
+                                                <strong>Notes:</strong> {r.notes}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <button
+                                            className={styles.deleteButton}
+                                            onClick={() => handleRemoveIcd(codingRulesICD.indexOf(r))}
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
