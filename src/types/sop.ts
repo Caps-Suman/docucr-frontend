@@ -81,6 +81,12 @@ export interface PayerGuidelines {
   id: string;
   title: string;
   description: string;
+  payerId?: string;
+  eraStatus?: string;
+  ediStatus?: string;
+  tfl?: string;
+  networkStatus?: string;
+  mailingAddress?: string;
   source?: string;
 }
 export interface InfusionNDCCode {

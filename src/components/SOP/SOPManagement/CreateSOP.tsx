@@ -131,6 +131,12 @@ const CreateSOP: React.FC = () => {
   const [newPayerGuideline, setNewPayerGuideline] = useState({
     title: "",
     description: "",
+    payerId: "",
+    eraStatus: "",
+    ediStatus: "",
+    tfl: "",
+    networkStatus: "",
+    mailingAddress: "",
   });
   const [extractedData, setExtractedData] = useState<any>(null);
   // Coding Rules - Unified
@@ -236,7 +242,16 @@ const CreateSOP: React.FC = () => {
     resetCpt();
     resetIcd();
     setNewGuideline({ title: "", description: "" });
-    setNewPayerGuideline({ title: "", description: "" });
+    setNewPayerGuideline({
+      title: "",
+      description: "",
+      payerId: "",
+      eraStatus: "",
+      ediStatus: "",
+      tfl: "",
+      networkStatus: "",
+      mailingAddress: "",
+    });
     setErrors([]);
     setIsResetModalOpen(false);
   };
@@ -427,6 +442,12 @@ const CreateSOP: React.FC = () => {
         id: `pg_db_${i}`,
         title: pg.payerName || pg.title || "Unknown",
         description: pg.description || "",
+        payerId: pg.payerId || "",
+        eraStatus: pg.eraStatus || "",
+        ediStatus: pg.ediStatus || "",
+        tfl: pg.tfl || "",
+        networkStatus: pg.networkStatus || "",
+        mailingAddress: pg.mailingAddress || "",
         source: pg.source || "Manual"
       })) : [];
       let loadedCodingRulesCPT: any[] = sop.codingRulesCPT ? sop.codingRulesCPT.map((r: any) => ({ ...r, source: r.source || 'Manual' })) : [];
@@ -460,6 +481,12 @@ const CreateSOP: React.FC = () => {
                    id: `pg_ext_${docIdx}_${i}`,
                    title: pg.payerName || pg.title || "Unknown",
                    description: pg.description || "",
+                   payerId: pg.payerId || "",
+                   eraStatus: pg.eraStatus || "",
+                   ediStatus: pg.ediStatus || "",
+                   tfl: pg.tfl || "",
+                   networkStatus: pg.networkStatus || "",
+                   mailingAddress: pg.mailingAddress || "",
                    source: sourceName
                 });
               });
@@ -717,6 +744,12 @@ const CreateSOP: React.FC = () => {
             id: `pg_ai_${Date.now()}_${i}`,
             title: pg?.payerName || pg?.title || "Unknown",
             description: pg?.description || "",
+            payerId: pg?.payerId || "",
+            eraStatus: pg?.eraStatus || "",
+            ediStatus: pg?.ediStatus || "",
+            tfl: pg?.tfl || "",
+            networkStatus: pg?.networkStatus || "",
+            mailingAddress: pg?.mailingAddress || "",
             source: sourceName
           }))
         ];
@@ -1196,11 +1229,19 @@ const CreateSOP: React.FC = () => {
       }))
     })).filter(bg => (bg.rules || []).length > 0);
 
-    const allPayerGuidelines = payerGuidelines.map(pg => ({
-      payerName: pg.title,
-      description: pg.description,
-      source: pg.source || 'Manual'
-    }));
+    const allPayerGuidelines = payerGuidelines
+      .filter(pg => pg.title && pg.title.trim())
+      .map(pg => ({
+        payerName: pg.title,
+        description: pg.description || "",
+        payerId: pg.payerId || "",
+        eraStatus: pg.eraStatus || "",
+        ediStatus: pg.ediStatus || "",
+        tfl: pg.tfl || "",
+        networkStatus: pg.networkStatus || "",
+        mailingAddress: pg.mailingAddress || "",
+        source: pg.source || 'Manual'
+      }));
 
     const allCodingRulesCPT = codingRulesCPT.map(r => ({
       ...r,
@@ -1818,7 +1859,7 @@ const CreateSOP: React.FC = () => {
                           className={styles.saveButton}
                           onClick={handleAddGuideline}
                         >
-                          <Plus size={16} /> Add
+                          <Plus size={16} />
                         </button>
                       </div>
                     </div>
@@ -1922,7 +1963,7 @@ const CreateSOP: React.FC = () => {
                 <div className={styles.section}>
                   <div className={styles.sectionTitle}>Payer Guidelines</div>
 
-                  <div className={styles.formGridWithButton}>
+                  <div className={styles.payerFormContainer}>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Title</label>
                       <input
@@ -1939,6 +1980,96 @@ const CreateSOP: React.FC = () => {
                     </div>
 
                     <div className={styles.formGroup}>
+                      <label className={styles.label}>Payer ID</label>
+                      <input
+                        className={styles.input}
+                        value={newPayerGuideline.payerId}
+                        onChange={(e) =>
+                          setNewPayerGuideline({
+                            ...newPayerGuideline,
+                            payerId: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., 60054"
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>ERA Status</label>
+                      <input
+                        className={styles.input}
+                        value={newPayerGuideline.eraStatus}
+                        onChange={(e) =>
+                          setNewPayerGuideline({
+                            ...newPayerGuideline,
+                            eraStatus: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., Completed"
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>EDI Status</label>
+                      <input
+                        className={styles.input}
+                        value={newPayerGuideline.ediStatus}
+                        onChange={(e) =>
+                          setNewPayerGuideline({
+                            ...newPayerGuideline,
+                            ediStatus: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., Form Submitted"
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>TFL</label>
+                      <input
+                        className={styles.input}
+                        value={newPayerGuideline.tfl}
+                        onChange={(e) =>
+                          setNewPayerGuideline({
+                            ...newPayerGuideline,
+                            tfl: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., 120 days"
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Network Status</label>
+                      <input
+                        className={styles.input}
+                        value={newPayerGuideline.networkStatus}
+                        onChange={(e) =>
+                          setNewPayerGuideline({
+                            ...newPayerGuideline,
+                            networkStatus: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., INN, OON"
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Mailing Address</label>
+                      <input
+                        className={styles.input}
+                        value={newPayerGuideline.mailingAddress}
+                        onChange={(e) =>
+                          setNewPayerGuideline({
+                            ...newPayerGuideline,
+                            mailingAddress: e.target.value,
+                          })
+                        }
+                        placeholder="Claims mailing address..."
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
                       <label className={styles.label}>Description</label>
                       <input
                         className={styles.input}
@@ -1949,22 +2080,30 @@ const CreateSOP: React.FC = () => {
                             description: e.target.value,
                           })
                         }
-                        placeholder="Enter guideline..."
+                        placeholder="Enter guideline description..."
                       />
                     </div>
 
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>&nbsp;</label>
+                    <div className={styles.actionArea}>
                       <button
                         type="button"
-                        className={styles.saveButton}
+                        className={styles.addBtn}
                         onClick={() => {
-                          if (newPayerGuideline.title && newPayerGuideline.description) {
+                          if (newPayerGuideline.title) {
                             setPayerGuidelines(prev => [
                               { ...newPayerGuideline, id: `pg_temp_${Date.now()}`, source: 'Manual' },
                               ...prev
                             ]);
-                            setNewPayerGuideline({ title: "", description: "" });
+                            setNewPayerGuideline({
+                              title: "",
+                              description: "",
+                              payerId: "",
+                              eraStatus: "",
+                              ediStatus: "",
+                              tfl: "",
+                              networkStatus: "",
+                              mailingAddress: "",
+                            });
                           }
                         }}
                       >
@@ -1978,6 +2117,21 @@ const CreateSOP: React.FC = () => {
                       const manualPayer = payerGuidelines.filter(pg => pg.source === 'Manual');
                       const extractedPayer = payerGuidelines.filter(pg => pg.source && pg.source !== 'Manual');
 
+                      // Group extracted by source
+                      const groupedExtracted = extractedPayer.reduce((acc, pg) => {
+                        const src = pg.source || 'Unknown Source';
+                        if (!acc[src]) acc[src] = [];
+                        acc[src].push(pg);
+                        return acc;
+                      }, {} as Record<string, typeof extractedPayer>);
+
+                      // Sort each group by payer title
+                      Object.values(groupedExtracted).forEach(docs => {
+                        docs.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+                      });
+                      
+                      manualPayer.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
                       return (
                         <>
                           {manualPayer.length > 0 && (
@@ -1990,8 +2144,54 @@ const CreateSOP: React.FC = () => {
                                 {manualPayer.map((pg, i) => (
                                   <div key={pg.id || i} className={styles.cardItem}>
                                     <div className={styles.cardContent}>
-                                      <h4>{pg.title}</h4>
-                                      <p>{pg.description}</p>
+                                      <div className={styles.codingMetaGrid}>
+                                        <div className={styles.metaItem}>
+                                          <span className={styles.metaLabel}>Payer Name:</span>
+                                          <span className={styles.metaValue}>{pg.title}</span>
+                                        </div>
+                                        {pg.description && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Description:</span>
+                                            <span className={styles.metaValue}>{pg.description}</span>
+                                          </div>
+                                        )}
+                                        {pg.payerId && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Payer ID:</span>
+                                            <span className={styles.metaValue}>{pg.payerId}</span>
+                                          </div>
+                                        )}
+                                        {pg.eraStatus && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>ERA Status:</span>
+                                            <span className={styles.metaValue}>{pg.eraStatus}</span>
+                                          </div>
+                                        )}
+                                        {pg.ediStatus && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>EDI Status:</span>
+                                            <span className={styles.metaValue}>{pg.ediStatus}</span>
+                                          </div>
+                                        )}
+                                        {pg.tfl && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>TFL:</span>
+                                            <span className={styles.metaValue}>{pg.tfl}</span>
+                                          </div>
+                                        )}
+                                        {pg.networkStatus && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Network:</span>
+                                            <span className={styles.metaValue}>{pg.networkStatus}</span>
+                                          </div>
+                                        )}
+                                        {pg.mailingAddress && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Mailing Address:</span>
+                                            <span className={styles.metaValue}>{pg.mailingAddress}</span>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                     <button
                                       className={styles.deleteButton}
@@ -2005,23 +2205,66 @@ const CreateSOP: React.FC = () => {
                             </div>
                           )}
 
-                          {extractedPayer.length > 0 && (
-                            <div className={`${styles.sourceGroup} ${styles.extractedSourceGroup}`}>
+                          {Object.entries(groupedExtracted).map(([source, docs], groupIdx) => (
+                            <div key={groupIdx} className={`${styles.sourceGroup} ${styles.extractedSourceGroup}`}>
                               <div className={styles.sourceGroupHeader}>
                                 <FileText size={14} style={{ color: '#0284c7' }} />
-                                <span className={styles.extractedSourceTitle}>Extracted from Documents</span>
+                                <span className={styles.extractedSourceTitle}>
+                                  {source === 'source_file' ? `Source file: ${uploadedFile?.name || documents.find(d => d.category === 'Source file')?.name || 'Main Document'}` : source}
+                                </span>
                               </div>
                               <div className={styles.cardList}>
-                                {extractedPayer.map((pg, i) => (
+                                {docs.map((pg, i) => (
                                   <div key={pg.id || i} className={styles.cardItem}>
                                     <div className={styles.cardContent}>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <h4>{pg.title}</h4>
-                                        <span className={styles.sourceBadgeExtracted}>
-                                          {pg.source === 'source_file' ? `Source file: ${uploadedFile?.name || documents.find(d => d.category === 'Source file')?.name || 'Unknown'}` : pg.source}
-                                        </span>
+                                      <div className={styles.codingMetaGrid}>
+                                        <div className={styles.metaItem}>
+                                          <span className={styles.metaLabel}>Payer Name:</span>
+                                          <span className={styles.metaValue}>{pg.title}</span>
+                                        </div>
+                                        {pg.description && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Description:</span>
+                                            <span className={styles.metaValue}>{pg.description}</span>
+                                          </div>
+                                        )}
+                                        {pg.payerId && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Payer ID:</span>
+                                            <span className={styles.metaValue}>{pg.payerId}</span>
+                                          </div>
+                                        )}
+                                        {pg.eraStatus && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>ERA Status:</span>
+                                            <span className={styles.metaValue}>{pg.eraStatus}</span>
+                                          </div>
+                                        )}
+                                        {pg.ediStatus && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>EDI Status:</span>
+                                            <span className={styles.metaValue}>{pg.ediStatus}</span>
+                                          </div>
+                                        )}
+                                        {pg.tfl && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>TFL:</span>
+                                            <span className={styles.metaValue}>{pg.tfl}</span>
+                                          </div>
+                                        )}
+                                        {pg.networkStatus && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Network:</span>
+                                            <span className={styles.metaValue}>{pg.networkStatus}</span>
+                                          </div>
+                                        )}
+                                        {pg.mailingAddress && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Mailing Address:</span>
+                                            <span className={styles.metaValue}>{pg.mailingAddress}</span>
+                                          </div>
+                                        )}
                                       </div>
-                                      <p>{pg.description}</p>
                                     </div>
                                     <button
                                       className={styles.deleteButton}
@@ -2033,7 +2276,7 @@ const CreateSOP: React.FC = () => {
                                 ))}
                               </div>
                             </div>
-                          )}
+                          ))}
                         </>
                       );
                     })()}
@@ -2215,36 +2458,36 @@ const CreateSOP: React.FC = () => {
                                     <div className={styles.cardList}>
                                       {manualCPT.map((r, i) => (
                                         <div key={i} className={styles.cardItem}>
-                                          <div className={styles.cardContent} style={{ width: "100%" }}>
+                                          <div className={styles.cardContent}>
                                             <div className={styles.codeBadge}>CPT: {r.cptCode}</div>
-                                            <div className={styles.metaGrid}>
+                                            <div className={styles.codingMetaGrid}>
                                               {r.ndcCode && (
                                                 <div className={styles.metaItem}>
-                                                  <span className={styles.metaLabel}>NDC Code</span>
+                                                  <span className={styles.metaLabel}>NDC Code:</span>
                                                   <span className={styles.metaValue}>{r.ndcCode}</span>
                                                 </div>
                                               )}
                                               {r.units && (
                                                 <div className={styles.metaItem}>
-                                                  <span className={styles.metaLabel}>Units</span>
+                                                  <span className={styles.metaLabel}>Units:</span>
                                                   <span className={styles.metaValue}>{r.units}</span>
                                                 </div>
                                               )}
-                                              {r.chargePerUnit && (
-                                                <div className={styles.metaItem}>
-                                                  <span className={styles.metaLabel}>Charge/Unit</span>
-                                                  <span className={styles.metaValue}>${r.chargePerUnit}</span>
-                                                </div>
-                                              )}
+                                               {r.chargePerUnit && (
+                                                 <div className={styles.metaItem}>
+                                                   <span className={styles.metaLabel}>Charge/Unit:</span>
+                                                   <span className={styles.metaValue}>{r.chargePerUnit.toString().startsWith('$') ? r.chargePerUnit : `$${r.chargePerUnit}`}</span>
+                                                 </div>
+                                               )}
                                               {r.modifier && (
                                                 <div className={styles.metaItem}>
-                                                  <span className={styles.metaLabel}>Modifier</span>
+                                                  <span className={styles.metaLabel}>Modifier:</span>
                                                   <span className={styles.metaValue}>{r.modifier}</span>
                                                 </div>
                                               )}
                                               {r.replacementCPT && (
                                                 <div className={styles.metaItem}>
-                                                  <span className={styles.metaLabel}>Replace CPT</span>
+                                                  <span className={styles.metaLabel}>Replace CPT:</span>
                                                   <span className={styles.metaValue}>{r.replacementCPT}</span>
                                                 </div>
                                               )}
@@ -2278,36 +2521,36 @@ const CreateSOP: React.FC = () => {
                                     <div className={styles.cardList}>
                                       {rules.map((r, i) => (
                                         <div key={i} className={styles.cardItem}>
-                                          <div className={styles.cardContent} style={{ width: "100%" }}>
+                                          <div className={styles.cardContent}>
                                             <div className={styles.codeBadge}>CPT: {r.cptCode}</div>
-                                            <div className={styles.metaGrid}>
+                                            <div className={styles.codingMetaGrid}>
                                               {r.ndcCode && (
                                                 <div className={styles.metaItem}>
-                                                  <span className={styles.metaLabel}>NDC Code</span>
+                                                  <span className={styles.metaLabel}>NDC Code:</span>
                                                   <span className={styles.metaValue}>{r.ndcCode}</span>
                                                 </div>
                                               )}
                                               {r.units && (
                                                 <div className={styles.metaItem}>
-                                                  <span className={styles.metaLabel}>Units</span>
+                                                  <span className={styles.metaLabel}>Units:</span>
                                                   <span className={styles.metaValue}>{r.units}</span>
                                                 </div>
                                               )}
-                                              {r.chargePerUnit && (
-                                                <div className={styles.metaItem}>
-                                                  <span className={styles.metaLabel}>Charge/Unit</span>
-                                                  <span className={styles.metaValue}>${r.chargePerUnit}</span>
-                                                </div>
-                                              )}
+                                               {r.chargePerUnit && (
+                                                 <div className={styles.metaItem}>
+                                                   <span className={styles.metaLabel}>Charge/Unit:</span>
+                                                   <span className={styles.metaValue}>{r.chargePerUnit.toString().startsWith('$') ? r.chargePerUnit : `$${r.chargePerUnit}`}</span>
+                                                 </div>
+                                               )}
                                               {r.modifier && (
                                                 <div className={styles.metaItem}>
-                                                  <span className={styles.metaLabel}>Modifier</span>
+                                                  <span className={styles.metaLabel}>Modifier:</span>
                                                   <span className={styles.metaValue}>{r.modifier}</span>
                                                 </div>
                                               )}
                                               {r.replacementCPT && (
                                                 <div className={styles.metaItem}>
-                                                  <span className={styles.metaLabel}>Replace CPT</span>
+                                                  <span className={styles.metaLabel}>Replace CPT:</span>
                                                   <span className={styles.metaValue}>{r.replacementCPT}</span>
                                                 </div>
                                               )}
@@ -2374,7 +2617,7 @@ const CreateSOP: React.FC = () => {
                                     <div className={styles.cardList}>
                                       {manualICD.map((r, i) => (
                                         <div key={i} className={styles.cardItem}>
-                                          <div className={styles.cardContent} style={{ width: "100%" }}>
+                                          <div className={styles.cardContent}>
                                             <div className={styles.codeBadge}>ICD: {r.icdCode}</div>
                                             {r.description && (
                                               <div className={styles.codeDescription}>
@@ -2410,7 +2653,7 @@ const CreateSOP: React.FC = () => {
                                     <div className={styles.cardList}>
                                       {rules.map((r, i) => (
                                         <div key={i} className={styles.cardItem}>
-                                          <div className={styles.cardContent} style={{ width: "100%" }}>
+                                          <div className={styles.cardContent}>
                                             <div className={styles.codeBadge}>ICD: {r.icdCode}</div>
                                             {r.description && (
                                               <div className={styles.codeDescription}>
@@ -2633,17 +2876,35 @@ const CreateSOP: React.FC = () => {
                               <div key={i} className={styles.previewCard}>
                                 <div className={styles.cardContent}>
                                   <div className={styles.codeBadge}>CPT: {rule.cptCode}</div>
-                                  <div className={styles.metaGrid}>
+                                  <div className={styles.codingMetaGrid}>
                                     {rule.ndcCode && (
                                       <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>NDC</span>
+                                        <span className={styles.metaLabel}>NDC Code:</span>
                                         <span className={styles.metaValue}>{rule.ndcCode}</span>
                                       </div>
                                     )}
                                     {rule.units && (
                                       <div className={styles.metaItem}>
-                                        <span className={styles.metaLabel}>Units</span>
+                                        <span className={styles.metaLabel}>Units:</span>
                                         <span className={styles.metaValue}>{rule.units}</span>
+                                      </div>
+                                    )}
+                                    {rule.chargePerUnit && (
+                                      <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Charge/Unit:</span>
+                                        <span className={styles.metaValue}>${rule.chargePerUnit}</span>
+                                      </div>
+                                    )}
+                                    {rule.modifier && (
+                                      <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Modifier:</span>
+                                        <span className={styles.metaValue}>{rule.modifier}</span>
+                                      </div>
+                                    )}
+                                    {rule.replacementCPT && (
+                                      <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Replace CPT:</span>
+                                        <span className={styles.metaValue}>{rule.replacementCPT}</span>
                                       </div>
                                     )}
                                   </div>
@@ -2976,8 +3237,26 @@ const CreateSOP: React.FC = () => {
               console.error("Failed to refresh documents:", error);
             }
           }}
-          onDocumentDeleted={async () => {
+          onDocumentDeleted={async (docId, sourceName) => {
             setToast({ message: "Document deleted successfully", type: "success" });
+            
+            // Remove any data that was extracted from this source
+            setBillingGuidelines(prev => prev.map(bg => ({
+              ...bg,
+              rules: bg.rules?.filter(r => r.source !== sourceName)
+            })).filter(bg => bg.rules && bg.rules.length > 0));
+
+            setPayerGuidelines(prev => prev.filter(pg => pg.source !== sourceName));
+            setCodingRulesCPT(prev => prev.filter(r => r.source !== sourceName));
+            setCodingRulesICD(prev => prev.filter(r => r.source !== sourceName));
+
+            // Remove from merged tracker
+            setMergedDocIds(prev => {
+              const next = new Set(prev);
+              next.delete(docId);
+              return next;
+            });
+
             // Refresh documents after delete
             try {
               const sop = await sopService.getSOPById(id);

@@ -35,7 +35,7 @@ interface ExtraDocumentsModalProps {
   onClose: () => void;
   onUploadsComplete: () => void;
   existingDocuments?: SOPDocument[];
-  onDocumentDeleted?: () => void;
+  onDocumentDeleted?: (docId: string, sourceName: string) => void;
   onExtractionStateChange?: (isExtracting: boolean) => void;
 }
 
@@ -86,8 +86,14 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
       setIsPolling(false);
       stopPolling();
     }
-    return () => stopPolling();
-  }, [isOpen, stopPolling]);
+    return () => {
+      stopPolling();
+      // Ensure parent state is reset if we unmount during polling
+      if (isPolling) {
+        onExtractionStateChange?.(false);
+      }
+    };
+  }, [isOpen, stopPolling, isPolling, onExtractionStateChange]);
 
   if (!isOpen) return null;
 
@@ -105,7 +111,7 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
         onExtractionStateChange?.(false);
         setExtractionDocs(prev =>
           prev.map(d =>
-            d.status === "extracting" ? { ...d, status: "failed" } : d
+            d.status === "extracting" || d.status === "pending" ? { ...d, status: "failed" } : d
           )
         );
         return;
@@ -116,46 +122,66 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
         const sop = await sopService.getSOPById(sopId);
         const freshDocs: SOPDocument[] = sop.documents || [];
 
+        let anyFinished = false;
+        let stillRunning = false;
+        const finishedIds: string[] = [];
+
+        // 1. Calculate the next state first (purely)
         setExtractionDocs(prev => {
           const next = prev.map(d => {
             if (d.status === "done" || d.status === "failed") return d;
 
             const match = freshDocs.find(fd => fd.id === d.docId);
-            if (!match) return d; // not found yet, keep waiting
+            if (!match) {
+              stillRunning = true;
+              return d;
+            }
 
             if (match.processed) {
-               // Newly finished (ince it wasn't done before)
-               setRecentlyDoneIds(prevIds => {
-                 const n = new Set(prevIds);
-                 n.add(d.docId);
-                 return n;
-               });
-               setTimeout(() => {
-                 setRecentlyDoneIds(prevIds => {
-                   const n = new Set(prevIds);
-                   n.delete(d.docId);
-                   return n;
-                 });
-               }, 10000);
-
+              anyFinished = true;
+              finishedIds.push(d.docId);
               return { ...d, status: "done" as "done" };
             } else {
+              stillRunning = true;
               return { ...d, status: "extracting" as "extracting" };
             }
           });
+          
+          // We'll use local variables set during the map to decide on side effects
+          // BUT we can't rely on them perfectly if we don't finish the map.
+          // Let's re-verify stillRunning on the 'next' array.
+          const isStillBusy = next.some(d => d.status === "pending" || d.status === "extracting");
+          
+          // 2. Schedule side effects AFTER the state update (not during)
+          setTimeout(() => {
+            // Handle highlights
+            if (finishedIds.length > 0) {
+              setRecentlyDoneIds(prevIds => {
+                const n = new Set(prevIds);
+                finishedIds.forEach(id => n.add(id));
+                return n;
+              });
+              
+              setTimeout(() => {
+                setRecentlyDoneIds(prevIds => {
+                  const n = new Set(prevIds);
+                  finishedIds.forEach(id => n.delete(id));
+                  return n;
+                });
+              }, 10000);
+            }
 
-          // Check if any are still pending/extracting
-          const stillRunning = next.some(
-            doc => doc.status === "pending" || doc.status === "extracting"
-          );
-
-          if (!stillRunning) {
-            stopPolling();
-            setIsPolling(false);
-            onExtractionStateChange?.(false);
-            // Notify parent — refresh SOP data
-            onUploadsComplete();
-          }
+            // Handle completion
+            if (!isStillBusy) {
+              stopPolling();
+              setIsPolling(false);
+              onExtractionStateChange?.(false);
+              onUploadsComplete();
+            } else if (anyFinished) {
+              // Notify parent about the some that finished
+              onUploadsComplete();
+            }
+          }, 0);
 
           return next;
         });
@@ -237,7 +263,10 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
       try {
         await sopService.processSOPDocuments(sopId);
         setExtractionDocs(prev => [...prev, ...extractionTargets]);
+        setQueue([]); // Clear queue once handed off to extraction status tracking
+        onUploadsComplete(); // Refresh parent immediately to show new docs (even if pending)
         startPolling(uploadedIds);
+        setIsAddingMore(false);
         onExtractionStateChange?.(true);
       } catch (e) {
         console.error("Failed to start processing", e);
@@ -249,8 +278,11 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
     setDeletingDocId(docId);
     setConfirmDeleteId(null);
     try {
+      const docToDelete = existingDocuments.find(d => d.id === docId);
+      const sourceName = docToDelete?.category === "Source file" ? "source_file" : (docToDelete?.name || "");
+      
       await sopService.deleteSOPDocument(sopId, docId);
-      onDocumentDeleted?.();
+      onDocumentDeleted?.(docId, sourceName);
       onUploadsComplete();
     } catch (e) {
       console.error(e);
@@ -320,8 +352,8 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
           </div>
         )}
 
-        {/* ── Drop zone (hidden when viewing existing docs) ── */}
-        {!(existingDocuments.length > 0 && !isAddingMore) && (
+        {/* ── Drop zone (shown only when queue is empty or explicitly adding) ── */}
+        {(isAddingMore || existingDocuments.length === 0) && queue.length === 0 && (
           <div
             className={styles.dropZone}
             onClick={() => !isBusy && fileInputRef.current?.click()}
@@ -346,7 +378,7 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
           <div className={styles.fileList}>
 
             {/* Existing (already-uploaded) documents */}
-            {!isAddingMore && existingDocuments.map(doc => {
+            {existingDocuments.map(doc => {
               const extractingDoc = extractionDocs.find(ed => ed.docId === doc.id);
               // Hide from existing list if it's currently being extracted (unless it just finished)
               if (extractingDoc && extractingDoc.status !== "done") return null;
@@ -407,8 +439,8 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
               );
             })}
 
-            {/* Extraction status rows (shown after upload, while polling) */}
-            {extractionDocs.filter(d => d.status !== "done").map(d => {
+            {/* Extraction Progress */}
+            {extractionDocs.filter(d => d.status !== "done" || !existingDocuments.some(ed => ed.id === d.docId)).map(d => {
               return (
                 <div
                   key={d.docId}

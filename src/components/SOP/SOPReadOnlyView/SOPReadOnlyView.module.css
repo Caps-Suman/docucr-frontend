@@ -473,3 +473,46 @@
 :global(.dark) .extractedCardLink:hover {
     background: #1e3a8a;
 }
+
+.payerGuidelineItem {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+.payerGuidelineItem:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.guidelineDescription {
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 12px 0;
+}
+
+.mailingAddress {
+    font-size: 12px;
+    margin-top: 12px;
+    color: #64748b;
+    padding: 10px 14px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #f1f5f9;
+}
+
+:global(.dark) .payerGuidelineItem {
+    border-bottom-color: #374151;
+}
+
+:global(.dark) .guidelineDescription {
+    color: #d1d5db;
+}
+
+:global(.dark) .mailingAddress {
+    background: #1f2937;
+    border-color: #374151;
+    color: #9ca3af;
+}

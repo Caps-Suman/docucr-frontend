@@ -388,12 +388,21 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                       {payerGuidelines.length > 0 ? (
                         <ExtractedContentBox name="Manual Entry">
                           {payerGuidelines.map((g, i) => (
-                            <div key={i} >
+                            <div key={i} className={styles.payerGuidelineItem}>
                               <span className={styles.guidelineCategory}>{g.title}</span>
                               {g.description && (
-                                <ul className={styles.ruleList}>
-                                  <li className={styles.ruleItem}>{g.description}</li>
-                                </ul>
+                                <p className={styles.guidelineDescription}>{g.description}</p>
+                              )}
+                              <div className={styles.codeDetails} style={{ marginTop: '8px' }}>
+                                {g.payerId && <span className={styles.detailTag}>Payer ID: {g.payerId}</span>}
+                                {g.eraStatus && <span className={styles.detailTag}>ERA: {g.eraStatus}</span>}
+                                {g.tfl && <span className={styles.detailTag}>TFL: {g.tfl}</span>}
+                                {g.networkStatus && <span className={styles.detailTag}>Network: {g.networkStatus}</span>}
+                              </div>
+                              {g.mailingAddress && (
+                                <div className={styles.mailingAddress}>
+                                  <strong>Address:</strong> {g.mailingAddress}
+                                </div>
                               )}
                             </div>
                           ))}
@@ -404,12 +413,21 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                       {extractedPayerByDoc.map((docEntry, di) => (
                         <ExtractedContentBox key={`ext-payer-${di}`} name={docEntry.name} url={docEntry.url}>
                           {docEntry.guidelines.map((g: any, i: number) => (
-                            <div key={i} >
+                            <div key={i} className={styles.payerGuidelineItem}>
                               <span className={styles.guidelineCategory}>{g.title}</span>
                               {g.description && (
-                                <ul className={styles.ruleList}>
-                                  <li className={styles.ruleItem}>{g.description}</li>
-                                </ul>
+                                <p className={styles.guidelineDescription}>{g.description}</p>
+                              )}
+                              <div className={styles.codeDetails} style={{ marginTop: '8px' }}>
+                                {g.payerId && <span className={styles.detailTag}>Payer ID: {g.payerId}</span>}
+                                {g.eraStatus && <span className={styles.detailTag}>ERA: {g.eraStatus}</span>}
+                                {g.tfl && <span className={styles.detailTag}>TFL: {g.tfl}</span>}
+                                {g.networkStatus && <span className={styles.detailTag}>Network: {g.networkStatus}</span>}
+                              </div>
+                              {g.mailingAddress && (
+                                <div className={styles.mailingAddress}>
+                                  <strong>Address:</strong> {g.mailingAddress}
+                                </div>
                               )}
                             </div>
                           ))}
