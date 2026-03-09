@@ -189,10 +189,10 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                     <strong>Category</strong>
                     <span>{getCategoryLabel(sop.category)}</span>
                   </div>
-                  <div className={styles.infoItem}>
+                  {/* <div className={styles.infoItem}>
                     <strong>Billing Provider</strong>
                     <span>{sop.providerInfo?.billingProviderName || "—"}</span>
-                  </div>
+                  </div> */}
                   <div className={styles.infoItem}>
                     <strong>NPI Number</strong>
                     <span>

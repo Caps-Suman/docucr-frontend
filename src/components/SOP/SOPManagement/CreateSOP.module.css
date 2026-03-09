@@ -931,6 +931,21 @@
     width: 100%;
 }
 
+.cardContent h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    flex-shrink: 0;
+}
+
+.cardContent p {
+    margin: 0;
+    font-size: 13px;
+    color: #475569;
+    flex: 1;
+}
+
 /* --- Standardized Source Groups (Manual vs Extracted) --- */
 .sourceGroup {
     padding: 12px;

@@ -1002,14 +1002,14 @@ const CreateSOP: React.FC = () => {
     if (!category.trim()) newErrors.push("Category is required");
     if (!workflowDescription.trim()) newErrors.push("Workflow Description is required");
 
-    if (providerType === "new") {
-      if (!providerInfo.providerName.trim()) newErrors.push("Provider Name is required");
-      if (!providerInfo.billingProviderNPI.trim()) {
-        newErrors.push("Billing Provider NPI is required");
-      } else if (!/^\d{10}$/.test(providerInfo.billingProviderNPI)) {
-        newErrors.push("Billing Provider NPI must be exactly 10 digits");
-      }
-    }
+    // if (providerType === "new") {
+    //   if (!providerInfo.providerName.trim()) newErrors.push("Provider Name is required");
+    //   if (!providerInfo.billingProviderNPI.trim()) {
+    //     newErrors.push("Billing Provider NPI is required");
+    //   } else if (!/^\d{10}$/.test(providerInfo.billingProviderNPI)) {
+    //     newErrors.push("Billing Provider NPI must be exactly 10 digits");
+    //   }
+    // }
 
     setErrors(newErrors);
     return newErrors.length === 0;
@@ -1818,7 +1818,7 @@ const CreateSOP: React.FC = () => {
                           className={styles.saveButton}
                           onClick={handleAddGuideline}
                         >
-                          <Plus size={16} /> Add Guideline
+                          <Plus size={16} /> Add
                         </button>
                       </div>
                     </div>
@@ -1986,20 +1986,22 @@ const CreateSOP: React.FC = () => {
                                 <FileText size={14} style={{ color: '#3b82f6' }} />
                                 <span className={styles.manualSourceTitle}>Manual Entry</span>
                               </div>
-                              {manualPayer.map((pg, i) => (
-                                <div key={pg.id || i} className={styles.cardItem}>
-                                  <div className={styles.cardContent}>
-                                    <h4>{pg.title}</h4>
-                                    <p>{pg.description}</p>
+                              <div className={styles.cardList}>
+                                {manualPayer.map((pg, i) => (
+                                  <div key={pg.id || i} className={styles.cardItem}>
+                                    <div className={styles.cardContent}>
+                                      <h4>{pg.title}</h4>
+                                      <p>{pg.description}</p>
+                                    </div>
+                                    <button
+                                      className={styles.deleteButton}
+                                      onClick={() => setPayerGuidelines(prev => prev.filter((_, idx) => idx !== payerGuidelines.indexOf(pg)))}
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
                                   </div>
-                                  <button
-                                    className={styles.deleteButton}
-                                    onClick={() => setPayerGuidelines(prev => prev.filter((_, idx) => idx !== payerGuidelines.indexOf(pg)))}
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
                           )}
 
@@ -2009,25 +2011,27 @@ const CreateSOP: React.FC = () => {
                                 <FileText size={14} style={{ color: '#0284c7' }} />
                                 <span className={styles.extractedSourceTitle}>Extracted from Documents</span>
                               </div>
-                              {extractedPayer.map((pg, i) => (
-                                <div key={pg.id || i} className={styles.cardItem}>
-                                  <div className={styles.cardContent}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                      <h4>{pg.title}</h4>
-                                      <span className={styles.sourceBadgeExtracted}>
-                                        {pg.source === 'source_file' ? `Source file: ${uploadedFile?.name || documents.find(d => d.category === 'Source file')?.name || 'Unknown'}` : pg.source}
-                                      </span>
+                              <div className={styles.cardList}>
+                                {extractedPayer.map((pg, i) => (
+                                  <div key={pg.id || i} className={styles.cardItem}>
+                                    <div className={styles.cardContent}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <h4>{pg.title}</h4>
+                                        <span className={styles.sourceBadgeExtracted}>
+                                          {pg.source === 'source_file' ? `Source file: ${uploadedFile?.name || documents.find(d => d.category === 'Source file')?.name || 'Unknown'}` : pg.source}
+                                        </span>
+                                      </div>
+                                      <p>{pg.description}</p>
                                     </div>
-                                    <p>{pg.description}</p>
+                                    <button
+                                      className={styles.deleteButton}
+                                      onClick={() => setPayerGuidelines(prev => prev.filter((_, idx) => idx !== payerGuidelines.indexOf(pg)))}
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
                                   </div>
-                                  <button
-                                    className={styles.deleteButton}
-                                    onClick={() => setPayerGuidelines(prev => prev.filter((_, idx) => idx !== payerGuidelines.indexOf(pg)))}
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
                           )}
                         </>
