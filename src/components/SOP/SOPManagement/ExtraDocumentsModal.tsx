@@ -35,7 +35,7 @@ interface ExtraDocumentsModalProps {
   sopId: string;
   isOpen: boolean;
   onClose: () => void;
-  onUploadsComplete: () => void;
+  onUploadsComplete: (silent?: boolean) => void;
   existingDocuments?: SOPDocument[];
   onDocumentDeleted?: (docId: string, sourceName: string) => void;
   onExtractionStateChange?: (isExtracting: boolean) => void;
@@ -106,7 +106,8 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
       }
       onExtractionStateChange?.(false);
     };
-  }, []); // Empty dependency array means this only runs on mount/unmount
+  }, [onExtractionStateChange]);
+
 
   // ── Polling helpers ────────────────────────────────────────────────────────
   const startPolling = useCallback((pendingIds: string[]) => {
@@ -137,6 +138,7 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
 
         setExtractionDocs(prev => {
           console.log('[ExtraDocsModal] extractionDocs:', prev);
+          let anyNewlyDone = false;
           const next = prev.map(d => {
             if (d.status === "done" || d.status === "failed") return d;
             const match = freshDocs.find(fd => 
@@ -147,10 +149,17 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
             if (!match) return d;
             if (match.processed) {
               console.log(`Doc ${d.docId} DONE`);
+              anyNewlyDone = true;
               return { ...d, status: "done" as const };
             }
             return { ...d, status: "extracting" as const };
           });
+
+          if (anyNewlyDone) {
+            console.log('[ExtraDocsModal] Incremental refresh triggered');
+            // Silent refresh to update parent data without showing a toast
+            onUploadsComplete(true);
+          }
 
           const isStillBusy = next.some(d => d.status === "pending" || d.status === "extracting");
           console.log('isStillBusy:', isStillBusy, 'next:', next);
@@ -161,7 +170,8 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
               stopPolling();
               setIsPolling(false);
               onExtractionStateChange?.(false);
-              onUploadsComplete();
+              // Final non-silent refresh to show the final toast
+              onUploadsComplete(false);
             }, 0);
           }
           return next;
@@ -426,32 +436,39 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
 
             {/* Existing (already-uploaded) documents & their extraction status */}
             {existingDocuments.map((doc, idx) => {
-              const extractingDoc = extractionDocs.find(ed => String(ed.docId) === String(doc.id));
-              const isRecent      = recentlyDoneIds.has(doc.id);
-              // Important: Pick up 'extracting' if either the poll state says so OR the doc isn't processed yet
-              const activeStatus = (extractingDoc && (extractingDoc.status === "extracting" || extractingDoc.status === "pending" || extractingDoc.status === "failed"))
-                ? extractingDoc.status 
-                : (!doc.processed ? "extracting" : null);
-              
-              const showDoneBadge = isRecent || (extractingDoc?.status === "done" && doc.processed);
-              
-              return (
-                <div key={`existing-${doc.id || idx}`} className={`${styles.fileRow} ${showDoneBadge ? styles.fileRowDone : ""} ${activeStatus === 'failed' ? styles.fileRowError : ""}`}>
-                  <div className={styles.fileInfo}>
-                    {activeStatus ? extractionStatusIcon(activeStatus) : showDoneBadge ? (
-                      <CheckCircle2 size={14} style={{ color: "#22c55e" }} />
-                    ) : (
-                      <FileText size={14} style={{ color: "#94a3b8" }} />
-                    )}
-                    <span className={styles.fileName} title={doc.name}>{truncate(doc.name)}</span>
-                    {activeStatus ? extractionStatusLabel(activeStatus) : showDoneBadge && (
-                      <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: 600 }}>Done</span>
-                    )}
-                  </div>
-                  <div className={styles.fileActions}>
-                    <span className={styles.uploadedBadge}>{doc.category}</span>
-                    
-                    {!activeStatus ? (
+            const extractingDoc = extractionDocs.find(ed => String(ed.docId) === String(doc.id));
+            const isRecent      = recentlyDoneIds.has(doc.id);
+            
+            // Visual Fix: Prioritize extractionDocs status over doc.processed
+            // This prevents "flickering" back to extracting if the parent prop is stale
+            let activeStatus: DocExtractionState["status"] | null = null;
+            if (extractingDoc) {
+              if (extractingDoc.status === "pending" || extractingDoc.status === "extracting" || extractingDoc.status === "failed") {
+                activeStatus = extractingDoc.status;
+              }
+            } else if (!doc.processed) {
+              activeStatus = "extracting";
+            }
+            
+            const showDoneBadge = isRecent || (extractingDoc?.status === "done") || (doc.processed && !activeStatus);
+            
+            return (
+              <div key={`existing-${doc.id || idx}`} className={`${styles.fileRow} ${showDoneBadge ? styles.fileRowDone : ""} ${activeStatus === 'failed' ? styles.fileRowError : ""}`}>
+                <div className={styles.fileInfo}>
+                  {activeStatus ? extractionStatusIcon(activeStatus) : showDoneBadge ? (
+                    <CheckCircle2 size={14} style={{ color: "#22c55e" }} />
+                  ) : (
+                    <FileText size={14} style={{ color: "#94a3b8" }} />
+                  )}
+                  <span className={styles.fileName} title={doc.name}>{truncate(doc.name)}</span>
+                  {activeStatus ? extractionStatusLabel(activeStatus) : showDoneBadge && (
+                    <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: 600 }}>Done</span>
+                  )}
+                </div>
+                <div className={styles.fileActions}>
+                  <span className={styles.uploadedBadge}>{doc.category}</span>
+                  
+                  {!activeStatus ? (
                       <div className={styles.deleteActions}>
                         {confirmDeleteId === doc.id ? (
                           <div className={styles.confirmWrapper}>
@@ -488,8 +505,8 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
                         )}
                       </div>
                     ) : (
-                      <span className={styles.uploadedBadge} style={{ background: "#f0fdf4", color: "#166534", border: "1px solid #bcf0da" }}>
-                           Uploaded ✓
+                      <span className={styles.uploadedBadge} style={{ background: "#f8fafc", color: "#64748b", border: "1px solid #e2e8f0" }}>
+                           Extracting...
                       </span>
                     )}
                   </div>
@@ -512,8 +529,8 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
                     {extractionStatusLabel(d.status)}
                   </div>
                   <div className={styles.fileActions}>
-                    <span className={styles.uploadedBadge} style={{ background: "#f0fdf4", color: "#166534", border: "1px solid #bcf0da" }}>
-                      Uploaded ✓
+                    <span className={styles.uploadedBadge} style={{ background: "#f8fafc", color: "#64748b", border: "1px solid #e2e8f0" }}>
+                      Extracting...
                     </span>
                   </div>
                 </div>

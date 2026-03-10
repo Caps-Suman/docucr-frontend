@@ -383,9 +383,11 @@ const CreateSOP: React.FC = () => {
   const extraDocumentsFiltered = useMemo(() => documents.filter(doc => doc.category !== "Source file"), [documents]);
   const onExtractionStateChangeStable = useCallback((extracting: boolean) => setIsExtractingDocs(extracting), []);
   
-  const onUploadsCompleteStable = useCallback(async () => {
+  const refreshSOPDocuments = useCallback(async (silent = false) => {
     if (!id) return;
-    setToast({ message: "Documents uploaded successfully", type: "success" });
+    if (!silent) {
+      setToast({ message: "Documents updated successfully", type: "success" });
+    }
     // Refresh documents and merge newly processed ones
     try {
       const sop = await sopService.getSOPById(id);
@@ -443,14 +445,9 @@ const CreateSOP: React.FC = () => {
       return next;
     });
 
-    // Refresh documents after delete
-    try {
-      const sop = await sopService.getSOPById(id);
-      setDocuments(sop.documents || []);
-    } catch (error) {
-      console.error("Failed to refresh documents:", error);
-    }
-  }, [id]);
+    // Refresh documents after delete (silently, because we already showed the delete toast)
+    await refreshSOPDocuments(true);
+  }, [id, refreshSOPDocuments]);
   const isNavLocked = saving || extractionMode === "EXTRACTING";
 
   const confirmReset = () => {
@@ -2042,22 +2039,8 @@ const CreateSOP: React.FC = () => {
                   <div className={styles.sectionTitle}>Payer Guidelines</div>
 
                   <div className={styles.payerFormContainer}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Title</label>
-                      <input
-                        className={styles.input}
-                        value={newPayerGuideline.title}
-                        onChange={(e) =>
-                          setNewPayerGuideline({
-                            ...newPayerGuideline,
-                            title: e.target.value,
-                          })
-                        }
-                        placeholder="e.g., Medicare, Aetna"
-                      />
-                    </div>
 
-                    <div className={styles.formGroup}>
+                  <div className={styles.formGroup}>
                       <label className={styles.label}>Payer ID</label>
                       <input
                         className={styles.input}
@@ -2069,6 +2052,21 @@ const CreateSOP: React.FC = () => {
                           })
                         }
                         placeholder="e.g., 60054"
+                      />
+                    </div>
+                    
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Name / Title</label>
+                      <input
+                        className={styles.input}
+                        value={newPayerGuideline.title}
+                        onChange={(e) =>
+                          setNewPayerGuideline({
+                            ...newPayerGuideline,
+                            title: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., Medicare, Aetna"
                       />
                     </div>
 
@@ -3277,7 +3275,7 @@ const CreateSOP: React.FC = () => {
           onClose={handleExtraDocsClose}
           existingDocuments={extraDocumentsFiltered}
           onExtractionStateChange={onExtractionStateChangeStable}
-          onUploadsComplete={onUploadsCompleteStable}
+          onUploadsComplete={refreshSOPDocuments}
           onDocumentDeleted={onDocumentDeletedStable}
         />
       )}
