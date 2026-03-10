@@ -4,7 +4,7 @@ import Select from "react-select";
 import { getCustomSelectStyles } from "../../../styles/selectStyles";
 import styles from "./ExtraDocumentsModal.module.css";
 import sopService from "../../../services/sop.service";
-import { SOPDocument } from "../../../types/sop";
+import { SOP, SOPDocument } from "../../../types/sop";
 
 const SOP_CATEGORIES = [
   "Billing Guidelines",
@@ -12,6 +12,8 @@ const SOP_CATEGORIES = [
   "CPT Coding Rules",
   "ICD Coding Rules",
 ];
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 interface QueuedFile {
   id: string;
@@ -68,129 +70,153 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
 
   // ── stopPolling must be defined before the useEffect that calls it ─────────
   const stopPolling = useCallback(() => {
+    console.log('[ExtraDocsModal] stopPolling called, timer exists:', !!pollTimerRef.current);
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
     }
   }, []);
 
-  // ── Reset on open ──────────────────────────────────────────────────────────
+  // ── Reset on open/close ───────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
+      // Reset only when opening
       setIsAddingMore(false);
       setQueue([]);
       setValidationTriggered(false);
       setUploading(false);
-      setExtractionDocs([]);
-      setRecentlyDoneIds(new Set());
-      setIsPolling(false);
-      stopPolling();
-    }
-    return () => {
-      stopPolling();
-      // Ensure parent state is reset if we unmount during polling
-      if (isPolling) {
-        onExtractionStateChange?.(false);
+      // We DON'T reset extractionDocs or isPolling here if we want them to persist
+      // while the modal is closed but the parent page is still active.
+      // However, usually we want a fresh start if nothing was already polling.
+      if (!isPolling) {
+        setExtractionDocs([]);
+        setRecentlyDoneIds(new Set());
       }
-    };
-  }, [isOpen, stopPolling, isPolling, onExtractionStateChange]);
+    }
+  }, [isOpen]); // Only trigger when isOpen changes
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    return () => {
+      // We ONLY stop polling on unmount. 
+      // Individual poll cycles manage their own stop logic.
+      if (pollTimerRef.current) {
+        console.log('[ExtraDocsModal] Unmounting - stopping polling');
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+      onExtractionStateChange?.(false);
+    };
+  }, []); // Empty dependency array means this only runs on mount/unmount
 
   // ── Polling helpers ────────────────────────────────────────────────────────
-
-  const startPolling = (pendingIds: string[]) => {
+  const startPolling = useCallback((pendingIds: string[]) => {
+    stopPolling();
     setIsPolling(true);
+    onExtractionStateChange?.(true);
     pollStartRef.current = Date.now();
 
-    pollTimerRef.current = setInterval(async () => {
-      // Safety timeout
+    const pollOnce = async () => {
+      console.log('[ExtraDocsModal] Poll tick');
       if (Date.now() - pollStartRef.current > POLL_TIMEOUT_MS) {
+        console.log('[ExtraDocsModal] Timeout');
         stopPolling();
         setIsPolling(false);
         onExtractionStateChange?.(false);
-        setExtractionDocs(prev =>
-          prev.map(d =>
-            d.status === "extracting" || d.status === "pending" ? { ...d, status: "failed" } : d
-          )
-        );
         return;
       }
 
       try {
-        // Re-fetch SOP to check document.processed flags
-        const sop = await sopService.getSOPById(sopId);
+        const response = await fetch(`${API_URL}/api/sops/${sopId}?t=${Date.now()}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
+        if (!response.ok) return;
+        
+        const sop: SOP = await response.json();
         const freshDocs: SOPDocument[] = sop.documents || [];
+        console.log('[ExtraDocsModal] freshDocs:', freshDocs.map(d => ({ id: d.id, name: d.name, processed: d.processed })));
 
-        let anyFinished = false;
-        let stillRunning = false;
-        const finishedIds: string[] = [];
-
-        // 1. Calculate the next state first (purely)
         setExtractionDocs(prev => {
+          console.log('[ExtraDocsModal] extractionDocs:', prev);
           const next = prev.map(d => {
             if (d.status === "done" || d.status === "failed") return d;
-
-            const match = freshDocs.find(fd => fd.id === d.docId);
-            if (!match) {
-              stillRunning = true;
-              return d;
-            }
-
+            const match = freshDocs.find(fd => 
+              (fd.id && d.docId && String(fd.id).toLowerCase() === String(d.docId).toLowerCase()) ||
+              (fd.name === d.name)
+            );
+            console.log(`Match ${d.docId}:`, match ? { id: match.id, processed: match.processed } : 'NO MATCH');
+            if (!match) return d;
             if (match.processed) {
-              anyFinished = true;
-              finishedIds.push(d.docId);
-              return { ...d, status: "done" as "done" };
-            } else {
-              stillRunning = true;
-              return { ...d, status: "extracting" as "extracting" };
+              console.log(`Doc ${d.docId} DONE`);
+              return { ...d, status: "done" as const };
             }
+            return { ...d, status: "extracting" as const };
           });
-          
-          // We'll use local variables set during the map to decide on side effects
-          // BUT we can't rely on them perfectly if we don't finish the map.
-          // Let's re-verify stillRunning on the 'next' array.
-          const isStillBusy = next.some(d => d.status === "pending" || d.status === "extracting");
-          
-          // 2. Schedule side effects AFTER the state update (not during)
-          setTimeout(() => {
-            // Handle highlights
-            if (finishedIds.length > 0) {
-              setRecentlyDoneIds(prevIds => {
-                const n = new Set(prevIds);
-                finishedIds.forEach(id => n.add(id));
-                return n;
-              });
-              
-              setTimeout(() => {
-                setRecentlyDoneIds(prevIds => {
-                  const n = new Set(prevIds);
-                  finishedIds.forEach(id => n.delete(id));
-                  return n;
-                });
-              }, 10000);
-            }
 
-            // Handle completion
-            if (!isStillBusy) {
+          const isStillBusy = next.some(d => d.status === "pending" || d.status === "extracting");
+          console.log('isStillBusy:', isStillBusy, 'next:', next);
+
+          if (!isStillBusy) {
+            console.log('[ExtraDocsModal] STOPPING - calling stopPolling');
+            setTimeout(() => {
               stopPolling();
               setIsPolling(false);
               onExtractionStateChange?.(false);
               onUploadsComplete();
-            } else if (anyFinished) {
-              // Notify parent about the some that finished
-              onUploadsComplete();
-            }
-          }, 0);
-
+            }, 0);
+          }
           return next;
         });
-
       } catch (e) {
-        console.error("Poll error:", e);
+        console.error('[ExtraDocsModal] Poll error:', e);
       }
-    }, POLL_INTERVAL_MS);
-  };
+    };
+
+    pollOnce();
+    pollTimerRef.current = setInterval(pollOnce, POLL_INTERVAL_MS);
+    console.log('[ExtraDocsModal] Started polling:', pendingIds);
+  }, [sopId, stopPolling, onExtractionStateChange, onUploadsComplete]);
+
+  // Sync isPolling state with parent callback
+  useEffect(() => {
+    onExtractionStateChange?.(isPolling);
+  }, [isPolling, onExtractionStateChange]);
+
+  // ── Auto-start polling for existing unprocessed docs ───────────────────────
+  const hasAutoStartedRef = useRef(false);
+
+  useEffect(() => {
+    // Only auto-start on mount/open
+    if (isOpen && !isPolling && existingDocuments.length > 0 && !hasAutoStartedRef.current) {
+      const unprocessed = existingDocuments.filter(d => !d.processed);
+      if (unprocessed.length > 0) {
+        hasAutoStartedRef.current = true;
+        setExtractionDocs(prev => {
+          const next = [...prev];
+          unprocessed.forEach(d => {
+            const exists = next.some(existing => 
+              String(existing.docId) === String(d.id) || existing.name === d.name
+            );
+            if (!exists) {
+              next.push({
+                docId: d.id,
+                name: d.name,
+                status: "extracting"
+              });
+            }
+          });
+          return next;
+        });
+        startPolling(unprocessed.map(d => String(d.id)));
+      }
+    }
+    
+    // Reset the ref when modal is closed so it can auto-start again next time it opens
+    if (!isOpen) {
+      hasAutoStartedRef.current = false;
+    }
+  }, [isOpen, existingDocuments, isPolling, startPolling]);
+
+  if (!isOpen) return null;
 
   // ── File selection ─────────────────────────────────────────────────────────
   const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -235,21 +261,26 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
     const uploadedIds: string[] = [];
     const extractionTargets: DocExtractionState[] = [];
 
-    for (const item of queue) {
-      setQueue(prev => prev.map(f => f.id === item.id ? { ...f, uploading: true } : f));
+    const selected = queue; // Use 'queue' as 'selected' for now, assuming all are selected for upload
+
+    for (const item of selected) {
+      if (item.uploaded || item.uploading) continue;
+      
+      setQueue(prev => prev.map(f => f.id === item.id ? { ...f, uploading: true, error: null } : f));
       
       try {
-        const result = await sopService.uploadSOPDocument(sopId, item.file, item.category);
+        const uploadedDoc = await sopService.uploadSOPDocument(sopId, item.file, item.category);
+        console.log('[ExtraDocsModal] Uploaded doc response:', uploadedDoc);
+        uploadedIds.push(uploadedDoc.id);
         
-        setQueue(prev => prev.map(f => f.id === item.id ? { ...f, uploading: false, uploaded: true } : f));
-        uploadedIds.push(result.id);
-        
+        // Use the real docId instead of item.id
         extractionTargets.push({
-          docId: result.id,
-          name: item.file.name,
+          docId: uploadedDoc.id,
+          name: uploadedDoc.name || item.file.name, // Fallback if server doesn't return name
           status: "pending"
         });
 
+        setQueue(prev => prev.map(f => f.id === item.id ? { ...f, uploading: false, uploaded: true } : f));
       } catch (err: any) {
         console.error("Upload failed", err);
         setQueue(prev => prev.map(f => f.id === item.id ? { ...f, uploading: false, error: "Failed" } : f));
@@ -259,17 +290,32 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
     setUploading(false);
     
     if (uploadedIds.length > 0) {
-      // Start background extraction for these
       try {
+        console.log('[ExtraDocsModal] Triggering extraction for uploaded docs:', uploadedIds);
         await sopService.processSOPDocuments(sopId);
-        setExtractionDocs(prev => [...prev, ...extractionTargets]);
-        setQueue([]); // Clear queue once handed off to extraction status tracking
-        onUploadsComplete(); // Refresh parent immediately to show new docs (even if pending)
-        startPolling(uploadedIds);
-        setIsAddingMore(false);
-        onExtractionStateChange?.(true);
-      } catch (e) {
-        console.error("Failed to start processing", e);
+        
+        // Set extraction docs BEFORE starting poll
+        setExtractionDocs(prev => {
+          const next = [...prev];
+          extractionTargets.forEach(target => {
+            const exists = next.some(existing => 
+              String(existing.docId) === String(target.docId) || existing.name === target.name
+            );
+            if (!exists) {
+              console.log('[ExtraDocsModal] Adding to extractionDocs:', target);
+              next.push(target);
+            }
+          });
+          return next;
+        });
+        
+        setQueue([]);
+        onUploadsComplete();
+        
+        // Start polling AFTER extraction docs are set
+        setTimeout(() => startPolling(uploadedIds), 0);
+      } catch (err) {
+        console.error('[ExtraDocsModal] Failed to trigger extraction', err);
       }
     }
   };
@@ -294,6 +340,7 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
 
   // ── Helper UI ─────────────────────────────────────────────────────────────
   const truncate = (name: string, max = 30) => {
+    if (!name) return "";
     if (name.length <= max) return name;
     const ext = name.lastIndexOf(".");
     const extension = ext > -1 ? name.substring(ext) : "";
@@ -377,73 +424,86 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
         {(queue.length > 0 || (existingDocuments.length > 0 && !isAddingMore) || extractionDocs.length > 0) && (
           <div className={styles.fileList}>
 
-            {/* Existing (already-uploaded) documents */}
-            {existingDocuments.map(doc => {
-              const extractingDoc = extractionDocs.find(ed => ed.docId === doc.id);
-              // Hide from existing list if it's currently being extracted (unless it just finished)
-              if (extractingDoc && extractingDoc.status !== "done") return null;
+            {/* Existing (already-uploaded) documents & their extraction status */}
+            {existingDocuments.map((doc, idx) => {
+              const extractingDoc = extractionDocs.find(ed => String(ed.docId) === String(doc.id));
+              const isRecent      = recentlyDoneIds.has(doc.id);
+              // Important: Pick up 'extracting' if either the poll state says so OR the doc isn't processed yet
+              const activeStatus = (extractingDoc && (extractingDoc.status === "extracting" || extractingDoc.status === "pending" || extractingDoc.status === "failed"))
+                ? extractingDoc.status 
+                : (!doc.processed ? "extracting" : null);
               
-              const isRecent = recentlyDoneIds.has(doc.id);
+              const showDoneBadge = isRecent || (extractingDoc?.status === "done" && doc.processed);
+              
               return (
-                <div key={doc.id} className={`${styles.fileRow} ${isRecent ? styles.fileRowDone : ""}`}>
+                <div key={`existing-${doc.id || idx}`} className={`${styles.fileRow} ${showDoneBadge ? styles.fileRowDone : ""} ${activeStatus === 'failed' ? styles.fileRowError : ""}`}>
                   <div className={styles.fileInfo}>
-                    {isRecent ? (
+                    {activeStatus ? extractionStatusIcon(activeStatus) : showDoneBadge ? (
                       <CheckCircle2 size={14} style={{ color: "#22c55e" }} />
                     ) : (
                       <FileText size={14} style={{ color: "#94a3b8" }} />
                     )}
                     <span className={styles.fileName} title={doc.name}>{truncate(doc.name)}</span>
-                    {isRecent && (
+                    {activeStatus ? extractionStatusLabel(activeStatus) : showDoneBadge && (
                       <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: 600 }}>Done</span>
                     )}
                   </div>
                   <div className={styles.fileActions}>
                     <span className={styles.uploadedBadge}>{doc.category}</span>
-                    <div className={styles.deleteActions}>
-                      {confirmDeleteId === doc.id ? (
-                        <div className={styles.confirmWrapper}>
+                    
+                    {!activeStatus ? (
+                      <div className={styles.deleteActions}>
+                        {confirmDeleteId === doc.id ? (
+                          <div className={styles.confirmWrapper}>
+                            <button
+                              type="button"
+                              className={styles.confirmBtn}
+                              onClick={() => handleDeleteDocument(doc.id)}
+                              title="Confirm delete"
+                            >
+                              <CheckCircle2 size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.cancelDeleteBtn}
+                              onClick={() => setConfirmDeleteId(null)}
+                              title="Cancel"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             type="button"
-                            className={styles.confirmBtn}
-                            onClick={() => handleDeleteDocument(doc.id)}
-                            title="Confirm delete"
+                            className={styles.removeBtn}
+                            onClick={() => setConfirmDeleteId(doc.id)}
+                            disabled={deletingDocId === doc.id || isBusy}
+                            title="Delete document"
                           >
-                            <CheckCircle2 size={16} />
+                            {deletingDocId === doc.id
+                              ? <Loader2 size={14} className={styles.spin} />
+                              : <Trash2 size={14} />
+                            }
                           </button>
-                          <button
-                            type="button"
-                            className={styles.cancelDeleteBtn}
-                            onClick={() => setConfirmDeleteId(null)}
-                            title="Cancel"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          className={styles.removeBtn}
-                          onClick={() => setConfirmDeleteId(doc.id)}
-                          disabled={deletingDocId === doc.id || isBusy}
-                          title="Delete document"
-                        >
-                          {deletingDocId === doc.id
-                            ? <Loader2 size={14} className={styles.spin} />
-                            : <Trash2 size={14} />
-                          }
-                        </button>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className={styles.uploadedBadge} style={{ background: "#f0fdf4", color: "#166534", border: "1px solid #bcf0da" }}>
+                           Uploaded ✓
+                      </span>
+                    )}
                   </div>
                 </div>
               );
             })}
 
-            {/* Extraction Progress */}
-            {extractionDocs.filter(d => d.status !== "done" || !existingDocuments.some(ed => ed.id === d.docId)).map(d => {
+            {/* Extraction Progress for documents strictly NOT yet in the DB listing */}
+            {extractionDocs.filter(d => 
+              !existingDocuments.some(ed => String(ed.id) === String(d.docId) || ed.name === d.name)
+            ).map((d, idx) => {
               return (
                 <div
-                  key={d.docId}
+                  key={`extracting-${d.docId || idx}`}
                   className={`${styles.fileRow} ${d.status === "failed" ? styles.fileRowError : ""}`}
                 >
                   <div className={styles.fileInfo}>
@@ -452,7 +512,7 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
                     {extractionStatusLabel(d.status)}
                   </div>
                   <div className={styles.fileActions}>
-                    <span className={styles.uploadedBadge} style={{ background: "#f0fdf4", color: "#166534" }}>
+                    <span className={styles.uploadedBadge} style={{ background: "#f0fdf4", color: "#166534", border: "1px solid #bcf0da" }}>
                       Uploaded ✓
                     </span>
                   </div>
@@ -461,18 +521,19 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
             })}
 
             {/* Queue (pending upload) items */}
-            {queue.map(item => (
+            {queue.map((item, idx) => (
               <div
-                key={item.id}
+                key={`queued-${item.id || idx}`}
                 className={`${styles.fileRow} ${item.uploaded ? styles.fileRowDone : ""} ${item.error ? styles.fileRowError : ""} ${validationTriggered && !item.uploaded && !item.category ? styles.fileRowMissing : ""}`}
               >
                 <div className={styles.fileInfo}>
-                  {item.uploading
-                    ? <Loader2 size={16} className={styles.spin} />
-                    : item.uploaded
-                      ? <span className={styles.checkIcon}>✓</span>
-                      : getFileIcon(item.file)
-                  }
+                  {item.uploading ? (
+                    <Loader2 size={16} className={styles.spin} />
+                  ) : item.uploaded ? (
+                    <span className={styles.checkIcon}>✓</span>
+                  ) : (
+                    getFileIcon(item.file)
+                  )}
                   <span className={styles.fileName} title={item.file.name}>
                     {truncate(item.file.name)}
                   </span>

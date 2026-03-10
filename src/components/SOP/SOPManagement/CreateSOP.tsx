@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Plus,
@@ -55,6 +55,45 @@ const truncateFileName = (name: string = "", maxLength: number = 25) => {
   const base = name.substring(0, lastDot);
   return base.substring(0, maxLength - ext.length - 3) + "..." + ext;
 };
+
+const normalizeBillingGuidelines = (input: any[]): BillingGuideline[] => {
+    return input.map((g, i) => {
+      // Already correct shape
+      if (g?.category && Array.isArray(g.rules)) {
+        return {
+          id: g.id || `bg_norm_${i}`,
+          category: g.category,
+          rules: g.rules.map((r: any, j: number) => ({
+            id: r.id || `rule_${i}_${j}`,
+            description: r.description || "",
+            source: r.source || "Manual"
+          })),
+        };
+      }
+
+      // Old AI / legacy shape
+      if (g?.title || g?.description) {
+        return {
+          id: g.id || `bg_norm_${i}`,
+          category: g.title || `Guideline ${i + 1}`,
+          rules: [
+            {
+              id: `rule_${i}_0`,
+              description: g.description || "",
+              source: g.source || "Manual"
+            },
+          ],
+        };
+      }
+
+      // Fallback
+      return {
+        id: `bg_norm_${i}`,
+        category: `Guideline ${i + 1}`,
+        rules: [],
+      };
+    });
+  };
 
 const CreateSOP: React.FC = () => {
   const navigate = useNavigate();
@@ -212,9 +251,206 @@ const CreateSOP: React.FC = () => {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const { can } = usePermission();
   const [currentBackgroundSopId, setCurrentBackgroundSopId] = useState<string | null>(null);
+
+  const applyExtractedSOP = useCallback((data: any, sourceName: string = 'AI Extracted') => {
+    if (!data || typeof data !== "object") {
+      console.error("Invalid extracted SOP payload", data);
+      return;
+    }
+
+    // ---- BASIC ----
+    if (data.basic_information?.sop_title) {
+      setTitle(data.basic_information.sop_title);
+    }
+
+    if (data.basic_information?.category) {
+      setCategory(data.basic_information.category);
+    }
+
+    // ---- PROVIDER ----
+    if (data.provider_information && (providerType === "new" || !isEditMode)) {
+      if (!isEditMode) setProviderType("new");
+      setProviderInfo((prev) => ({
+        ...prev,
+        providerName: data.provider_information.billing_provider_name || "",
+        billingProviderName:
+          data.provider_information.billing_provider_name || "",
+        billingProviderNPI:
+          data.provider_information.billing_provider_npi || "",
+        providerTaxID: data.provider_information.provider_tax_id || "",
+        billingAddress: data.provider_information.billing_address || "",
+        software: data.provider_information.software || "",
+        clearinghouse: data.provider_information.clearinghouse || "",
+      }));
+    }
+
+    // ---- WORKFLOW ----
+    if (data.workflow_process) {
+      if (data.workflow_process.description) {
+        setWorkflowDescription(prev => (prev && prev !== "Test" && !prev.includes(data.workflow_process.description)) 
+          ? `${prev}\n\n${data.workflow_process.description}` 
+          : data.workflow_process.description);
+      }
+      
+      if (data.workflow_process.posting_charges_rules) {
+        setPostingCharges(prev => (prev && !prev.includes(data.workflow_process.posting_charges_rules))
+          ? `${prev}\n\n${data.workflow_process.posting_charges_rules}`
+          : data.workflow_process.posting_charges_rules);
+      }
+
+      setEligibilityPortals(prev => {
+        const newPortals = Array.isArray(data.workflow_process.eligibility_verification_portals)
+          ? data.workflow_process.eligibility_verification_portals
+          : [];
+        return Array.from(new Set([...prev, ...newPortals]));
+      });
+    }
+
+    // ---- BILLING GUIDELINES ----
+    if (Array.isArray(data.billing_guidelines)) {
+      setBillingGuidelines(prev => {
+        const newGroups = normalizeBillingGuidelines(data.billing_guidelines).map(bg => ({
+          ...bg,
+          rules: bg.rules?.map(r => ({ ...r, source: sourceName }))
+        }));
+        
+        let merged = [...prev];
+
+        // Replace existing rules from the SAME source to avoid duplication
+        merged = merged.map(group => ({
+          ...group,
+          rules: (group.rules || []).filter(r => r.source !== sourceName)
+        })).filter(group => group.rules.length > 0 || newGroups.some(ng => ng.category.toLowerCase() === group.category.toLowerCase()));
+
+        newGroups.forEach(newG => {
+          const existing = merged.find(g => g.category.toLowerCase() === newG.category.toLowerCase());
+          if (existing) {
+            existing.rules = [...(existing.rules || []), ...(newG.rules || [])];
+          } else {
+            merged.push(newG);
+          }
+        });
+        return merged;
+      });
+    }
+
+    if (Array.isArray(data.payer_guidelines)) {
+      setPayerGuidelines(prev => {
+        const filtered = prev.filter(pg => pg.source !== sourceName);
+        return [
+          ...filtered,
+          ...data.payer_guidelines.map((pg: any, i: number) => ({
+            id: `pg_ai_${Date.now()}_${i}`,
+            title: pg?.payerName || pg?.title || "Unknown",
+            description: pg?.description || "",
+            payerId: pg?.payerId || "",
+            eraStatus: pg?.eraStatus || "",
+            ediStatus: pg?.ediStatus || "",
+            tfl: pg?.tfl || "",
+            networkStatus: pg?.networkStatus || "",
+            mailingAddress: pg?.mailingAddress || "",
+            source: sourceName
+          }))
+        ];
+      });
+    }
+    // ---- CODING RULES ----
+    if (Array.isArray(data.coding_rules_cpt)) {
+      setCodingRulesCPT(prev => {
+        const filtered = prev.filter(r => r.source !== sourceName);
+        return [
+          ...filtered,
+          ...data.coding_rules_cpt.map((c: any) => ({...c, source: sourceName}))
+        ];
+      });
+    }
+
+    if (Array.isArray(data.coding_rules_icd)) {
+      setCodingRulesICD(prev => {
+        const filtered = prev.filter(r => r.source !== sourceName);
+        return [
+          ...filtered,
+          ...data.coding_rules_icd.map((c: any) => ({...c, source: sourceName}))
+        ];
+      });
+    }
+  }, [providerType, isEditMode]);
   const handleResetClick = () => {
     setIsResetModalOpen(true);
   };
+
+  const handleExtraDocsClose = useCallback(() => setIsExtraDocsOpen(false), []);
+  const extraDocumentsFiltered = useMemo(() => documents.filter(doc => doc.category !== "Source file"), [documents]);
+  const onExtractionStateChangeStable = useCallback((extracting: boolean) => setIsExtractingDocs(extracting), []);
+  
+  const onUploadsCompleteStable = useCallback(async () => {
+    if (!id) return;
+    setToast({ message: "Documents uploaded successfully", type: "success" });
+    // Refresh documents and merge newly processed ones
+    try {
+      const sop = await sopService.getSOPById(id);
+      
+      // 1. Identify newly processed documents
+      const newlyProcessed = (sop.documents || []).filter(
+        (doc: any) => doc.processed && !mergedDocIds.has(doc.id)
+      );
+
+      // 2. Incrementally merge each new doc into state
+      newlyProcessed.forEach((doc: any) => {
+        const sourceName = doc.name;
+        // Reconstruct data structure expected by applyExtractedSOP
+        const extractedData = {
+          billing_guidelines: doc.billing_guidelines,
+          payer_guidelines: doc.payer_guidelines,
+          coding_rules_cpt: doc.coding_rules_cpt,
+          coding_rules_icd: doc.coding_rules_icd,
+        };
+        applyExtractedSOP(extractedData, sourceName);
+      });
+
+      // 3. Update documents and tracking set
+      setDocuments(sop.documents || []);
+      if (newlyProcessed.length > 0) {
+        setMergedDocIds(prev => {
+          const next = new Set(prev);
+          newlyProcessed.forEach(d => next.add(d.id));
+          return next;
+        });
+      }
+    } catch (error) {
+      console.error("Failed to refresh documents:", error);
+    }
+  }, [id, mergedDocIds, applyExtractedSOP]);
+
+  const onDocumentDeletedStable = useCallback(async (docId: string, sourceName: string) => {
+    if (!id) return;
+    setToast({ message: "Document deleted successfully", type: "success" });
+    
+    // Remove any data that was extracted from this source
+    setBillingGuidelines(prev => prev.map(bg => ({
+      ...bg,
+      rules: bg.rules?.filter(r => r.source !== sourceName)
+    })).filter(bg => bg.rules && bg.rules.length > 0));
+
+    setPayerGuidelines(prev => prev.filter(pg => pg.source !== sourceName));
+    setCodingRulesCPT(prev => prev.filter(r => r.source !== sourceName));
+    setCodingRulesICD(prev => prev.filter(r => r.source !== sourceName));
+
+    // Remove from merged tracker
+    setMergedDocIds(prev => {
+      const next = new Set(prev);
+      next.delete(docId);
+      return next;
+    });
+
+    // Refresh documents after delete
+    try {
+      const sop = await sopService.getSOPById(id);
+      setDocuments(sop.documents || []);
+    } catch (error) {
+      console.error("Failed to refresh documents:", error);
+    }
+  }, [id]);
   const isNavLocked = saving || extractionMode === "EXTRACTING";
 
   const confirmReset = () => {
@@ -653,129 +889,7 @@ const CreateSOP: React.FC = () => {
     }
   };
 
-  const applyExtractedSOP = (data: any, sourceName: string = 'AI Extracted') => {
-    if (!data || typeof data !== "object") {
-      console.error("Invalid extracted SOP payload", data);
-      return;
-    }
 
-    // ---- BASIC ----
-    if (data.basic_information?.sop_title) {
-      setTitle(data.basic_information.sop_title);
-    }
-
-    if (data.basic_information?.category) {
-      setCategory(data.basic_information.category);
-    }
-
-    // ---- PROVIDER ----
-    if (data.provider_information && (providerType === "new" || !isEditMode)) {
-      if (!isEditMode) setProviderType("new");
-      setProviderInfo((prev) => ({
-        ...prev,
-        providerName: data.provider_information.billing_provider_name || "",
-        billingProviderName:
-          data.provider_information.billing_provider_name || "",
-        billingProviderNPI:
-          data.provider_information.billing_provider_npi || "",
-        providerTaxID: data.provider_information.provider_tax_id || "",
-        billingAddress: data.provider_information.billing_address || "",
-        software: data.provider_information.software || "",
-        clearinghouse: data.provider_information.clearinghouse || "",
-      }));
-    }
-
-    // ---- WORKFLOW ----
-    if (data.workflow_process) {
-      if (data.workflow_process.description) {
-        setWorkflowDescription(prev => (prev && prev !== "Test" && !prev.includes(data.workflow_process.description)) 
-          ? `${prev}\n\n${data.workflow_process.description}` 
-          : data.workflow_process.description);
-      }
-      
-      if (data.workflow_process.posting_charges_rules) {
-        setPostingCharges(prev => (prev && !prev.includes(data.workflow_process.posting_charges_rules))
-          ? `${prev}\n\n${data.workflow_process.posting_charges_rules}`
-          : data.workflow_process.posting_charges_rules);
-      }
-
-      setEligibilityPortals(prev => {
-        const newPortals = Array.isArray(data.workflow_process.eligibility_verification_portals)
-          ? data.workflow_process.eligibility_verification_portals
-          : [];
-        return Array.from(new Set([...prev, ...newPortals]));
-      });
-    }
-
-    // ---- BILLING GUIDELINES ----
-    if (Array.isArray(data.billing_guidelines)) {
-      setBillingGuidelines(prev => {
-        const newGroups = normalizeBillingGuidelines(data.billing_guidelines).map(bg => ({
-          ...bg,
-          rules: bg.rules?.map(r => ({ ...r, source: sourceName }))
-        }));
-        
-        let merged = [...prev];
-
-        // Replace existing rules from the SAME source to avoid duplication
-        merged = merged.map(group => ({
-          ...group,
-          rules: (group.rules || []).filter(r => r.source !== sourceName)
-        })).filter(group => group.rules.length > 0 || newGroups.some(ng => ng.category.toLowerCase() === group.category.toLowerCase()));
-
-        newGroups.forEach(newG => {
-          const existing = merged.find(g => g.category.toLowerCase() === newG.category.toLowerCase());
-          if (existing) {
-            existing.rules = [...(existing.rules || []), ...(newG.rules || [])];
-          } else {
-            merged.push(newG);
-          }
-        });
-        return merged;
-      });
-    }
-
-    if (Array.isArray(data.payer_guidelines)) {
-      setPayerGuidelines(prev => {
-        const filtered = prev.filter(pg => pg.source !== sourceName);
-        return [
-          ...filtered,
-          ...data.payer_guidelines.map((pg: any, i: number) => ({
-            id: `pg_ai_${Date.now()}_${i}`,
-            title: pg?.payerName || pg?.title || "Unknown",
-            description: pg?.description || "",
-            payerId: pg?.payerId || "",
-            eraStatus: pg?.eraStatus || "",
-            ediStatus: pg?.ediStatus || "",
-            tfl: pg?.tfl || "",
-            networkStatus: pg?.networkStatus || "",
-            mailingAddress: pg?.mailingAddress || "",
-            source: sourceName
-          }))
-        ];
-      });
-    }
-    // ---- CODING RULES ----
-    if (Array.isArray(data.coding_rules_cpt)) {
-      setCodingRulesCPT(prev => {
-        const filtered = prev.filter(r => r.source !== sourceName);
-        return [
-          ...filtered,
-          ...data.coding_rules_cpt.map((c: any) => ({...c, source: sourceName}))
-        ];
-      });
-    }
-
-    if (Array.isArray(data.coding_rules_icd)) {
-      setCodingRulesICD(prev => {
-        const filtered = prev.filter(r => r.source !== sourceName);
-        return [
-          ...filtered,
-          ...data.coding_rules_icd.map((c: any) => ({...c, source: sourceName}))
-        ];
-      });
-    }
-  }
 
   const handleDownloadSourceFile = async () => {
     const sourceDoc = documents.find(doc => doc.category === "Source file");
@@ -1154,44 +1268,7 @@ const CreateSOP: React.FC = () => {
     setCodingRulesICD(prev => prev.filter((_, i) => i !== index));
   };
 
-  const normalizeBillingGuidelines = (input: any[]): BillingGuideline[] => {
-    return input.map((g, i) => {
-      // Already correct shape
-      if (g?.category && Array.isArray(g.rules)) {
-        return {
-          id: g.id || `bg_norm_${i}`,
-          category: g.category,
-          rules: g.rules.map((r: any, j: number) => ({
-            id: r.id || `rule_${i}_${j}`,
-            description: r.description || "",
-            source: r.source || "Manual"
-          })),
-        };
-      }
 
-      // Old AI / legacy shape
-      if (g?.title || g?.description) {
-        return {
-          id: g.id || `bg_norm_${i}`,
-          category: g.title || `Guideline ${i + 1}`,
-          rules: [
-            {
-              id: `rule_${i}_0`,
-              description: g.description || "",
-              source: g.source || "Manual"
-            },
-          ],
-        };
-      }
-
-      // Fallback
-      return {
-        id: `bg_norm_${i}`,
-        category: `Guideline ${i + 1}`,
-        rules: [],
-      };
-    });
-  };
 
   const handleSave = async () => {
     if (saving) return; // Guard against multiple triggers
@@ -3099,25 +3176,24 @@ const CreateSOP: React.FC = () => {
                         >
                           <FileText size={16} />
                           Extras {extraDocsCount > 0 && `(${extraDocsCount})`}
-                          {isExtractingDocs && (
+                          {isExtractingDocs ? (
                             <span style={{
                               display: "inline-flex",
                               alignItems: "center",
                               gap: "4px",
-                              marginLeft: "6px",
-                              fontSize: "11px",
-                              fontWeight: 600,
-                              color: "#f59e0b",
+                              marginLeft: "8px",
+                              padding: "2px 8px",
                               background: "#fffbeb",
                               border: "1px solid #fde68a",
-                              borderRadius: "10px",
-                              padding: "1px 7px",
-                              verticalAlign: "middle",
+                              borderRadius: "12px",
+                              color: "#d97706",
+                              fontSize: "11px",
+                              fontWeight: 600
                             }}>
-                              <Loader2 size={10} className={styles.animateSpin} />
+                              <Loader2 size={12} className={styles.animateSpin} />
                               Extracting…
                             </span>
-                          )}
+                          ) : null}
                         </button>
                       );
                     })()}
@@ -3197,74 +3273,11 @@ const CreateSOP: React.FC = () => {
         <ExtraDocumentsModal
           sopId={id}
           isOpen={isExtraDocsOpen}
-          onClose={() => setIsExtraDocsOpen(false)}
-          existingDocuments={documents.filter(doc => doc.category !== "Source file")}
-          onExtractionStateChange={(extracting) => setIsExtractingDocs(extracting)}
-          onUploadsComplete={async () => {
-            setToast({ message: "Documents uploaded successfully", type: "success" });
-            // Refresh documents and merge newly processed ones
-            try {
-              const sop = await sopService.getSOPById(id);
-              
-              // 1. Identify newly processed documents
-              const newlyProcessed = (sop.documents || []).filter(
-                (doc: any) => doc.processed && !mergedDocIds.has(doc.id)
-              );
-
-              // 2. Incrementally merge each new doc into state
-              newlyProcessed.forEach((doc: any) => {
-                const sourceName = doc.name;
-                // Reconstruct data structure expected by applyExtractedSOP
-                const extractedData = {
-                  billing_guidelines: doc.billing_guidelines,
-                  payer_guidelines: doc.payer_guidelines,
-                  coding_rules_cpt: doc.coding_rules_cpt,
-                  coding_rules_icd: doc.coding_rules_icd,
-                };
-                applyExtractedSOP(extractedData, sourceName);
-              });
-
-              // 3. Update documents and tracking set
-              setDocuments(sop.documents || []);
-              if (newlyProcessed.length > 0) {
-                setMergedDocIds(prev => {
-                  const next = new Set(prev);
-                  newlyProcessed.forEach(d => next.add(d.id));
-                  return next;
-                });
-              }
-            } catch (error) {
-              console.error("Failed to refresh documents:", error);
-            }
-          }}
-          onDocumentDeleted={async (docId, sourceName) => {
-            setToast({ message: "Document deleted successfully", type: "success" });
-            
-            // Remove any data that was extracted from this source
-            setBillingGuidelines(prev => prev.map(bg => ({
-              ...bg,
-              rules: bg.rules?.filter(r => r.source !== sourceName)
-            })).filter(bg => bg.rules && bg.rules.length > 0));
-
-            setPayerGuidelines(prev => prev.filter(pg => pg.source !== sourceName));
-            setCodingRulesCPT(prev => prev.filter(r => r.source !== sourceName));
-            setCodingRulesICD(prev => prev.filter(r => r.source !== sourceName));
-
-            // Remove from merged tracker
-            setMergedDocIds(prev => {
-              const next = new Set(prev);
-              next.delete(docId);
-              return next;
-            });
-
-            // Refresh documents after delete
-            try {
-              const sop = await sopService.getSOPById(id);
-              setDocuments(sop.documents || []);
-            } catch (error) {
-              console.error("Failed to refresh documents:", error);
-            }
-          }}
+          onClose={handleExtraDocsClose}
+          existingDocuments={extraDocumentsFiltered}
+          onExtractionStateChange={onExtractionStateChangeStable}
+          onUploadsComplete={onUploadsCompleteStable}
+          onDocumentDeleted={onDocumentDeletedStable}
         />
       )}
     </div>
