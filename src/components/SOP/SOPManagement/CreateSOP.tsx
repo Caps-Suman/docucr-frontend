@@ -592,36 +592,6 @@ const CreateSOP: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [currentBackgroundSopId]);
-  // useEffect(() => {
-  //   if (!selectedClientId) return;
-
-  //   const ids = providerIds;   // ✅ ONLY selected providers
-
-  //   if (!ids.length) {
-  //     setBlockedProviders([]);
-  //     return;
-  //   }
-
-  //   // CREATE MODE
-  //   if (!isEditMode) {
-  //     sopService.checkProviders(selectedClientId, ids)
-  //       .then(res => setBlockedProviders(res.blocked_provider_ids || []))
-  //       .catch(() => setBlockedProviders([]));
-  //     return;
-  //   }
-
-  //   // EDIT MODE → only validate if providers changed
-  //   const hasChanged =
-  //     JSON.stringify([...ids].sort()) !==
-  //     JSON.stringify([...initialProviderIds].sort());
-
-  //   if (!hasChanged) return;
-
-  //   sopService.checkProviders(selectedClientId, ids, sopId)
-  //     .then(res => setBlockedProviders(res.blocked_provider_ids || []))
-  //     .catch(() => setBlockedProviders([]));
-
-  // }, [providerIds, selectedClientId, sopId]);
 
   const loadSOP = async (sopId: string) => {
     try {
@@ -749,51 +719,11 @@ const CreateSOP: React.FC = () => {
 
     } catch (error) {
       console.error("Failed to load SOP:", error);
-      // Handle error (e.g., redirect or show notification)
     } finally {
       setLoading(false);
     }
   };
   const abortControllerRef = React.useRef<AbortController | null>(null);
-
-  // const handleSOPBackgroundUpload = async (file: File) => {
-  //   try {
-  //     if (!selectedClientId) {
-  //       alert("Please select a client before uploading.");
-  //       return;
-  //     }
-
-  //     const controller = new AbortController();
-  //     abortControllerRef.current = controller;
-
-  //     setExtractionMode("FOREGROUND");
-
-  //     const formData = new FormData();
-  //     formData.append("file", file);
-  //     formData.append("provider_type", providerType);
-  //     formData.append("client_id", selectedClientId);
-  //     providerIds.forEach(id => {
-  //       formData.append("provider_ids", id);
-  //     });
-
-  //     const result = await sopService.backgroundUploadAndExtractSOP(
-  //       formData,
-  //       controller.signal
-  //     );
-
-  //     setCurrentBackgroundSopId(result.sop_id);
-
-  //   } catch (err: any) {
-  //     if (err.name === "CanceledError") {
-  //       console.log("Upload cancelled");
-  //     } else {
-  //       console.error(err);
-  //       alert("Failed to upload SOP");
-  //     }
-  //   } finally {
-  //     abortControllerRef.current = null;
-  //   }
-  // };
 
   const handleForegroundExtraction = async (file: File) => {
     const controller = new AbortController();
@@ -813,7 +743,6 @@ const CreateSOP: React.FC = () => {
       applyExtractedSOP(result.extracted_data, "source_file");
       setExtractedData(result.extracted_data);
 
-      // Only set READY if extraction actually succeeded
       setExtractionMode("READY");
       setTimeout(() => {
         setExtractionMode(prev => prev === "READY" ? "IDLE" : prev);
@@ -838,22 +767,7 @@ const CreateSOP: React.FC = () => {
   const moveToBackground = async () => {
     if (!uploadedFile) return;
 
-    // try {
-
-      // const res = await sopService.checkSOPExistence(
-      //   selectedClientId,
-      //   providerIds
-      // );
-
-      // if (res.exists) {
-      //   setToast({
-      //     message: "This client already has an SOP",
-      //     type: "warning"
-      //   });
-      //   return;
-      // }
-
-      if (abortControllerRef.current) {
+    if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       abortControllerRef.current = new AbortController();
@@ -1087,54 +1001,6 @@ const CreateSOP: React.FC = () => {
     }
   };
 
-  // Only check in CREATE mode
-  //   if (!isEditMode) {
-  //     try {
-  //       setLoading(true);
-
-  //       // const res = await sopService.checkSOPExistence(selectedClientId, providerIds);
-
-  //       setLoading(false);
-
-  //       if (res.exists) {
-  //         setToast({
-  //           message: "This client already has an SOP.",
-  //           type: "warning",
-  //         });
-  //         return; // 🚨 STOP HERE
-  //       }
-  //     } catch (err) {
-  //       setLoading(false);
-  //       setToast({
-  //         message: "Failed to validate SOP existence.",
-  //         type: "error",
-  //       });
-  //       return;
-  //     }
-  //   }
-
-  //   setCurrentStep(2);
-  //   return;
-  // }
-  //     else if (currentStep === 2 && getSteps().find(s => s.number === 2)?.title === "Select Providers") {
-  //       if (providerIds.length === 0) {
-  //         setToast({ message: "Select atleast one provider", type: "warning" });
-  //         return;
-  //       }
-  //       setCurrentStep(3);
-  //     }
-  //     // Step 2 or 3: Basic Information
-  //     else if (getSteps().find(s => s.number === currentStep)?.title === "Basic Information") {
-  //       if (validateStep1()) {
-  //         setCurrentStep(currentStep + 1);
-  //       }
-  //     }
-  //     // Preview
-  //     else if (isLastStep) {
-  //       return;
-  //     }
-  //   };
-
   const handleBackStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
@@ -1146,15 +1012,6 @@ const CreateSOP: React.FC = () => {
     if (!title.trim()) newErrors.push("SOP Title is required");
     if (!category.trim()) newErrors.push("Category is required");
     if (!workflowDescription.trim()) newErrors.push("Workflow Description is required");
-
-    // if (providerType === "new") {
-    //   if (!providerInfo.providerName.trim()) newErrors.push("Provider Name is required");
-    //   if (!providerInfo.billingProviderNPI.trim()) {
-    //     newErrors.push("Billing Provider NPI is required");
-    //   } else if (!/^\d{10}$/.test(providerInfo.billingProviderNPI)) {
-    //     newErrors.push("Billing Provider NPI must be exactly 10 digits");
-    //   }
-    // }
 
     setErrors(newErrors);
     return newErrors.length === 0;
@@ -1200,8 +1057,6 @@ const CreateSOP: React.FC = () => {
 
     return steps;
   };
-
-  // const loadClients = async () => ... REMOVED
 
   // --- Handlers ---
   const handleAddPortal = () => {
@@ -1392,9 +1247,6 @@ const CreateSOP: React.FC = () => {
           </button>
           <div className={styles.titleSection}>
             <h1 style={{ marginTop: "5px" }}>{isEditMode ? "Edit SOP" : "Create New SOP"}</h1>
-            {/* <p>
-              Step {currentStep}: {getSteps().find(s => s.number === currentStep)?.title}
-            </p> */}
           </div>
         </div>
         <div className={styles.headerActions}>
