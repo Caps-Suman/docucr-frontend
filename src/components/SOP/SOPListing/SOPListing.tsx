@@ -212,24 +212,24 @@ const SOPListing: React.FC = () => {
         createdBy: activeFilters.createdBy?.length > 0 ? activeFilters.createdBy.join(',') : undefined,
         clientId: activeFilters.clientId?.length > 0 ? activeFilters.clientId.join(',') : undefined,
       });
-     setSops(
-  data.sops.map((sop: any) => ({
-    ...sop,
-    statusId: sop.statusId ?? sop.status_id,
-    providerInfo: sop.providerInfo ?? sop.provider_info ?? {},
-    updatedAt: sop.updatedAt ?? sop.updated_at ?? null,
-    category:
-      typeof sop.category === "string"
-        ? sop.category
-        : (sop.category?.title ?? "—"),
-  }))
-);
+      setSops(
+        data.sops.map((sop: any) => ({
+          ...sop,
+          statusId: sop.statusId ?? sop.status_id,
+          providerInfo: sop.providerInfo ?? sop.provider_info ?? {},
+          updatedAt: sop.updatedAt ?? sop.updated_at ?? null,
+          category:
+            typeof sop.category === "string"
+              ? sop.category
+              : (sop.category?.title ?? "—"),
+        }))
+      );
 
-console.log("SOPS FROM API →", data.sops);
-console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
-  ...sop,
-  statusId: sop.statusId ?? sop.status_id,
-})));
+      // console.log("SOPS FROM API →", data.sops);
+      // console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
+      //   ...sop,
+      //   statusId: sop.statusId ?? sop.status_id,
+      // })));
       setTotalSOPs(data.total);
     } catch (error) {
       console.error("Failed to load SOPs:", error);
@@ -303,18 +303,18 @@ console.log("SOPS AFTER NORMALIZE →", data.sops.map((sop: any) => ({
     }
   }, [showFilters]);
 
-//   useEffect(() => {
-//   const hasExtracting = sops.some(s => s.status?.code === "EXTRACTING");
+  //   useEffect(() => {
+  //   const hasExtracting = sops.some(s => s.status?.code === "EXTRACTING");
 
-//   if (!hasExtracting) return;
+  //   if (!hasExtracting) return;
 
-//   const interval = setInterval(() => {
-//     loadSOPs(debouncedSearchTerm, statusFilter);
-//   }, 5000);
+  //   const interval = setInterval(() => {
+  //     loadSOPs(debouncedSearchTerm, statusFilter);
+  //   }, 5000);
 
-//   return () => clearInterval(interval);
-// }, [sops]);
-useEffect(() => {
+  //   return () => clearInterval(interval);
+  // }, [sops]);
+  useEffect(() => {
     const hasExtracting = sops.some(s => s.status?.code === "EXTRACTING");
 
     // Also poll if any SOP has unprocessed extra documents
@@ -460,9 +460,9 @@ useEffect(() => {
       loadSOPs(debouncedSearchTerm, statusFilter);
     } catch (error: any) {
       console.error("Failed to reanalyse SOP:", error);
-      setToast({ 
-        message: error.response?.data?.detail || "Failed to start reanalysis", 
-        type: "error" 
+      setToast({
+        message: error.response?.data?.detail || "Failed to start reanalysis",
+        type: "error"
       });
     } finally {
       setReanalysingId(null);
@@ -479,9 +479,9 @@ useEffect(() => {
       loadSOPs(debouncedSearchTerm, statusFilter);
     } catch (error: any) {
       console.error("Failed to stop SOP:", error);
-      setToast({ 
-        message: error.response?.data?.detail || "Failed to stop extraction", 
-        type: "error" 
+      setToast({
+        message: error.response?.data?.detail || "Failed to stop extraction",
+        type: "error"
       });
     } finally {
       setStoppingId(null);
@@ -619,7 +619,7 @@ useEffect(() => {
       width: '150px',
       render: (_: any, row: SOP) => row.organisation_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
     }] : []),
-     {
+    {
       key: "status",
       header: "Status",
       width: "160px",
@@ -682,163 +682,162 @@ useEffect(() => {
       header: "Actions",
       width: hasFailedSOPs ? "210px" : "180px",
       render: (_: any, row: SOP) => {
-  const isActive = row.statusId === activeStatusId;
-  const isExtracting = row.status?.code === "EXTRACTING";
+        const isActive = row.statusId === activeStatusId;
+        const isExtracting = row.status?.code === "EXTRACTING";
 
-  const disabledStyle = isExtracting
-    ? {
-        opacity: 0.5,
-        pointerEvents: "none" as const,
-        cursor: "not-allowed"
-      }
-    : {};
+        const disabledStyle = isExtracting
+          ? {
+            opacity: 0.5,
+            pointerEvents: "none" as const,
+            cursor: "not-allowed"
+          }
+          : {};
 
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: "10px",
-        alignItems: "center"
-      }}
-    >
-      <Tooltip content="View SOP" preferredPosition="left">
-        <span style={{ display: "inline-block", ...disabledStyle }}>
-          <button
-            disabled={isExtracting}
-            className={styles.viewButton}
-            onClick={() => handleViewSOP(row)}
+        return (
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              alignItems: "center"
+            }}
           >
-            <Eye size={14} />
-          </button>
-        </span>
-      </Tooltip>
+            <Tooltip content="View SOP" preferredPosition="left">
+              <span style={{ display: "inline-block", ...disabledStyle }}>
+                <button
+                  disabled={isExtracting}
+                  className={styles.viewButton}
+                  onClick={() => handleViewSOP(row)}
+                >
+                  <Eye size={14} />
+                </button>
+              </span>
+            </Tooltip>
 
-      <Tooltip content="Download PDF" preferredPosition="left">
-        <span style={{ display: "inline-block", ...disabledStyle }}>
-          <button
-            disabled={isExtracting}
-            className={styles.downloadButton}
-            onClick={() => handleDownloadPDF(row)}
-          >
-            {downloadingId === row.id ? (
-              <Loader2 size={14} className={styles.animateSpin} />
-            ) : (
-              <Download size={14} />
-            )}
-          </button>
-        </span>
-      </Tooltip>
+            <Tooltip content="Download PDF" preferredPosition="left">
+              <span style={{ display: "inline-block", ...disabledStyle }}>
+                <button
+                  disabled={isExtracting}
+                  className={styles.downloadButton}
+                  onClick={() => handleDownloadPDF(row)}
+                >
+                  {downloadingId === row.id ? (
+                    <Loader2 size={14} className={styles.animateSpin} />
+                  ) : (
+                    <Download size={14} />
+                  )}
+                </button>
+              </span>
+            </Tooltip>
 
-      <Tooltip content="Edit" preferredPosition="left">
-        <span style={{ display: "inline-block", ...disabledStyle }}>
-          <button
-            disabled={isExtracting}
-            className={styles.editButton}
-            onClick={() => navigate(`/sops/edit/${row.id}`)}
-          >
-            <Edit size={14} />
-          </button>
-        </span>
-      </Tooltip>
+            <Tooltip content="Edit" preferredPosition="left">
+              <span style={{ display: "inline-block", ...disabledStyle }}>
+                <button
+                  disabled={isExtracting}
+                  className={styles.editButton}
+                  onClick={() => navigate(`/sops/edit/${row.id}`)}
+                >
+                  <Edit size={14} />
+                </button>
+              </span>
+            </Tooltip>
 
-      <Tooltip
-        content={isActive ? "Deactivate" : "Activate"}
-        preferredPosition="left"
-      >
-        <span style={{ display: "inline-block", ...disabledStyle }}>
-          <button
-            disabled={isExtracting}
-            className={`${styles.statusButton} ${
-              isActive ? styles.active : styles.inactive
-            }`}
-            onClick={() => handleToggleStatus(row.id, row.statusId)}
-          >
-            {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
-          </button>
-        </span>
-      </Tooltip>
-
-      {(row.status?.code === "FAILED" || row.status?.code === "AI_FAILED") && (
-        <>
-          <Tooltip content="Reanalyse" preferredPosition="left">
-            <span style={{ display: "inline-block" }}>
-              <button
-                className={styles.reanalyseButton}
-                onClick={() => handleReanalyse(row)}
-                disabled={reanalysingId === row.id}
-              >
-                {reanalysingId === row.id ? (
-                  <Loader2 size={14} className={styles.animateSpin} />
-                ) : (
-                  <RotateCcw size={14} />
-                )}
-              </button>
-            </span>
-          </Tooltip>
-
-          <Tooltip content="Remove" preferredPosition="left">
-            <span style={{ display: "inline-block" }}>
-              <button
-                className={styles.deleteButton}
-                onClick={() =>
-                  setConfirmModal({
-                    isOpen: true,
-                    sopId: row.id,
-                    action: "delete",
-                  })
-                }
-                style={{
-                  backgroundColor: "#fff7ed",
-                  color: "#ea580c",
-                  border: "1px solid #ffedd5",
-                  padding: "6px",
-                  borderRadius: "6px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  marginLeft: "4px"
-                }}
-              >
-                <Trash2 size={14} />
-              </button>
-            </span>
-          </Tooltip>
-        </>
-      )}
-
-      {row.status?.code === "EXTRACTING" && (
-        <Tooltip content="Stop Extracting" preferredPosition="left">
-          <span style={{ display: "inline-block" }}>
-            <button
-              className={styles.stopButton}
-              onClick={() => handleStop(row)}
-              disabled={stoppingId === row.id}
-              style={{
-                backgroundColor: "#fef2f2",
-                color: "#ef4444",
-                border: "1px solid #fee2e2",
-                padding: "6px",
-                borderRadius: "6px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "all 0.2s"
-              }}
+            <Tooltip
+              content={isActive ? "Deactivate" : "Activate"}
+              preferredPosition="left"
             >
-              {stoppingId === row.id ? (
-                <Loader2 size={14} className={styles.animateSpin} />
-              ) : (
-                <X size={14} />
-              )}
-            </button>
-          </span>
-        </Tooltip>
-      )}
-    </div>
-  );
-}
+              <span style={{ display: "inline-block", ...disabledStyle }}>
+                <button
+                  disabled={isExtracting}
+                  className={`${styles.statusButton} ${isActive ? styles.active : styles.inactive
+                    }`}
+                  onClick={() => handleToggleStatus(row.id, row.statusId)}
+                >
+                  {isActive ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+                </button>
+              </span>
+            </Tooltip>
+
+            {(row.status?.code === "FAILED" || row.status?.code === "AI_FAILED") && (
+              <>
+                <Tooltip content="Reanalyse" preferredPosition="left">
+                  <span style={{ display: "inline-block" }}>
+                    <button
+                      className={styles.reanalyseButton}
+                      onClick={() => handleReanalyse(row)}
+                      disabled={reanalysingId === row.id}
+                    >
+                      {reanalysingId === row.id ? (
+                        <Loader2 size={14} className={styles.animateSpin} />
+                      ) : (
+                        <RotateCcw size={14} />
+                      )}
+                    </button>
+                  </span>
+                </Tooltip>
+
+                <Tooltip content="Remove" preferredPosition="left">
+                  <span style={{ display: "inline-block" }}>
+                    <button
+                      className={styles.deleteButton}
+                      onClick={() =>
+                        setConfirmModal({
+                          isOpen: true,
+                          sopId: row.id,
+                          action: "delete",
+                        })
+                      }
+                      style={{
+                        backgroundColor: "#fff7ed",
+                        color: "#ea580c",
+                        border: "1px solid #ffedd5",
+                        padding: "6px",
+                        borderRadius: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        marginLeft: "4px"
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </span>
+                </Tooltip>
+              </>
+            )}
+
+            {row.status?.code === "EXTRACTING" && (
+              <Tooltip content="Stop Extracting" preferredPosition="left">
+                <span style={{ display: "inline-block" }}>
+                  <button
+                    className={styles.stopButton}
+                    onClick={() => handleStop(row)}
+                    disabled={stoppingId === row.id}
+                    style={{
+                      backgroundColor: "#fef2f2",
+                      color: "#ef4444",
+                      border: "1px solid #fee2e2",
+                      padding: "6px",
+                      borderRadius: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    {stoppingId === row.id ? (
+                      <Loader2 size={14} className={styles.animateSpin} />
+                    ) : (
+                      <X size={14} />
+                    )}
+                  </button>
+                </span>
+              </Tooltip>
+            )}
+          </div>
+        );
+      }
     },
   ];
   return (
@@ -969,29 +968,27 @@ useEffect(() => {
         }
         onConfirm={confirmToggleStatus}
         loading={isConfirmLoading}
-        title={`${
-          confirmModal.action === "delete"
+        title={`${confirmModal.action === "delete"
             ? "Remove"
             : confirmModal.action === "activate"
-            ? "Activate"
-            : "Deactivate"
-        } SOP`}
-        message={`Are you sure you want to ${
-          confirmModal.action === "delete" ? "remove" : confirmModal.action
-        } this SOP?`}
+              ? "Activate"
+              : "Deactivate"
+          } SOP`}
+        message={`Are you sure you want to ${confirmModal.action === "delete" ? "remove" : confirmModal.action
+          } this SOP?`}
         confirmText={
           confirmModal.action === "delete"
             ? "Remove"
             : confirmModal.action === "activate"
-            ? "Activate"
-            : "Deactivate"
+              ? "Activate"
+              : "Deactivate"
         }
         type={
           confirmModal.action === "delete"
             ? "warning"
             : confirmModal.action === "activate"
-            ? "info"
-            : "warning"
+              ? "info"
+              : "warning"
         }
       />
 
