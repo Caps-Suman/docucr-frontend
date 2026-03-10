@@ -841,25 +841,26 @@ const CreateSOP: React.FC = () => {
   const moveToBackground = async () => {
     if (!uploadedFile) return;
 
-    try {
+    // try {
 
-      const res = await sopService.checkSOPExistence(
-        selectedClientId,
-        providerIds
-      );
+      // const res = await sopService.checkSOPExistence(
+      //   selectedClientId,
+      //   providerIds
+      // );
 
-      if (res.exists) {
-        setToast({
-          message: "This client already has an SOP",
-          type: "warning"
-        });
-        return;
-      }
+      // if (res.exists) {
+      //   setToast({
+      //     message: "This client already has an SOP",
+      //     type: "warning"
+      //   });
+      //   return;
+      // }
 
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-
+      abortControllerRef.current = new AbortController();
+      try {
       setBackgroundLoading(true);
 
       const formData = new FormData();
