@@ -80,13 +80,20 @@ export interface BillingGuideline {
 export interface PayerGuidelines {
   id: string;
   title: string;
+  payerName?: string;
+  payer_name?: string;
   description: string;
   payerId?: string;
+  payer_id?: string;
   eraStatus?: string;
+  era_status?: string;
   ediStatus?: string;
+  edi_status?: string;
   tfl?: string;
   networkStatus?: string;
+  network_status?: string;
   mailingAddress?: string;
+  mailing_address?: string;
   source?: string;
 }
 export interface InfusionNDCCode {

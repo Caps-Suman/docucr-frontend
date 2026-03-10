@@ -221,10 +221,10 @@
 
 .guidelineCategory {
     font-weight: 700;
-    margin-bottom: 12px;
     color: #334155;
-    font-size: 14px;
-    display: block;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .ruleList {
@@ -261,7 +261,7 @@
 .codeLabel {
     font-weight: 700;
     color: #324155;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .codeDesc {
@@ -272,8 +272,8 @@
 .codeDetails {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 8px;
+    gap: 8px;
+    margin-top: 6px;
     font-size: 12px;
 }
 
@@ -362,7 +362,7 @@
 }
 
 .extractedCardBody > * {
-    margin-bottom: 12px;
+    /* margin-bottom: 12px; */
 }
 
 .extractedCardBody > *:last-child {
@@ -475,8 +475,8 @@
 }
 
 .payerGuidelineItem {
-    margin-bottom: 24px;
-    padding-bottom: 20px;
+    /* margin-bottom: 12px; */
+    padding-bottom: 8px;
     border-bottom: 1px dashed #e2e8f0;
 }
 
@@ -487,20 +487,25 @@
 }
 
 .guidelineDescription {
-    color: #475569;
-    font-size: 13px;
-    line-height: 1.6;
-    margin: 12px 0;
+    display: none; /* Replaced by guidelineDescriptionFlow */
 }
 
 .mailingAddress {
-    font-size: 12px;
-    margin-top: 12px;
-    color: #64748b;
-    padding: 10px 14px;
-    background: #f8fafc;
-    border-radius: 8px;
-    border: 1px solid #f1f5f9;
+    display: none; /* Replaced by detailTag inside the flow */
+}
+
+.guidelineDescriptionFlow {
+    display: inline;
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.5;
+    margin-left: 4px;
+}
+
+.guidelineDescriptionFlow::before {
+    content: "—";
+    margin-right: 8px;
+    color: #cbd5e1;
 }
 
 :global(.dark) .payerGuidelineItem {

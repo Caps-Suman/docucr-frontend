@@ -341,14 +341,14 @@ const CreateSOP: React.FC = () => {
           ...filtered,
           ...data.payer_guidelines.map((pg: any, i: number) => ({
             id: `pg_ai_${Date.now()}_${i}`,
-            title: pg?.payerName || pg?.title || "Unknown",
+            title: pg?.payerName || pg?.title || pg?.payer_name || "Unknown",
             description: pg?.description || "",
-            payerId: pg?.payerId || "",
-            eraStatus: pg?.eraStatus || "",
-            ediStatus: pg?.ediStatus || "",
+            payerId: pg?.payerId || pg?.payer_id || "",
+            eraStatus: pg?.eraStatus || pg?.era_status || "",
+            ediStatus: pg?.ediStatus || pg?.edi_status || "",
             tfl: pg?.tfl || "",
-            networkStatus: pg?.networkStatus || "",
-            mailingAddress: pg?.mailingAddress || "",
+            networkStatus: pg?.networkStatus || pg?.network_status || "",
+            mailingAddress: pg?.mailingAddress || pg?.mailing_address || "",
             source: sourceName
           }))
         ];
@@ -673,14 +673,14 @@ const CreateSOP: React.FC = () => {
       let loadedBillingGuidelines: any[] = sop.billingGuidelines ? normalizeBillingGuidelines(sop.billingGuidelines) : [];
       let loadedPayerGuidelines: any[] = sop.payerGuidelines ? sop.payerGuidelines.map((pg: any, i: number) => ({
         id: `pg_db_${i}`,
-        title: pg.payerName || pg.title || "Unknown",
+        title: pg.payerName || pg.title || pg.payer_name || "Unknown",
         description: pg.description || "",
-        payerId: pg.payerId || "",
-        eraStatus: pg.eraStatus || "",
-        ediStatus: pg.ediStatus || "",
+        payerId: pg.payerId || pg.payer_id || "",
+        eraStatus: pg.eraStatus || pg.era_status || "",
+        ediStatus: pg.ediStatus || pg.edi_status || "",
         tfl: pg.tfl || "",
-        networkStatus: pg.networkStatus || "",
-        mailingAddress: pg.mailingAddress || "",
+        networkStatus: pg.networkStatus || pg.network_status || "",
+        mailingAddress: pg.mailingAddress || pg.mailing_address || "",
         source: pg.source || "Manual"
       })) : [];
       let loadedCodingRulesCPT: any[] = sop.codingRulesCPT ? sop.codingRulesCPT.map((r: any) => ({ ...r, source: r.source || 'Manual' })) : [];
@@ -712,14 +712,14 @@ const CreateSOP: React.FC = () => {
               doc.payer_guidelines.forEach((pg: any, i: number) => {
                 loadedPayerGuidelines.push({
                    id: `pg_ext_${docIdx}_${i}`,
-                   title: pg.payerName || pg.title || "Unknown",
+                   title: pg.payerName || pg.title || pg.payer_name || "Unknown",
                    description: pg.description || "",
-                   payerId: pg.payerId || "",
-                   eraStatus: pg.eraStatus || "",
-                   ediStatus: pg.ediStatus || "",
+                   payerId: pg.payerId || pg.payer_id || "",
+                   eraStatus: pg.eraStatus || pg.era_status || "",
+                   ediStatus: pg.ediStatus || pg.edi_status || "",
                    tfl: pg.tfl || "",
-                   networkStatus: pg.networkStatus || "",
-                   mailingAddress: pg.mailingAddress || "",
+                   networkStatus: pg.networkStatus || pg.network_status || "",
+                   mailingAddress: pg.mailingAddress || pg.mailing_address || "",
                    source: sourceName
                 });
               });
@@ -2222,15 +2222,8 @@ const CreateSOP: React.FC = () => {
                                     <div className={styles.cardContent}>
                                       <div className={styles.codingMetaGrid}>
                                         <div className={styles.metaItem}>
-                                          <span className={styles.metaLabel}>Payer Name:</span>
-                                          <span className={styles.metaValue}>{pg.title}</span>
+                                          <span className={styles.metaValue} style={{ fontWeight: 700, color: '#1e293b' }}>{pg.title}</span>
                                         </div>
-                                        {pg.description && (
-                                          <div className={styles.metaItem}>
-                                            <span className={styles.metaLabel}>Description:</span>
-                                            <span className={styles.metaValue}>{pg.description}</span>
-                                          </div>
-                                        )}
                                         {pg.payerId && (
                                           <div className={styles.metaItem}>
                                             <span className={styles.metaLabel}>Payer ID:</span>
@@ -2239,13 +2232,13 @@ const CreateSOP: React.FC = () => {
                                         )}
                                         {pg.eraStatus && (
                                           <div className={styles.metaItem}>
-                                            <span className={styles.metaLabel}>ERA Status:</span>
+                                            <span className={styles.metaLabel}>ERA:</span>
                                             <span className={styles.metaValue}>{pg.eraStatus}</span>
                                           </div>
                                         )}
                                         {pg.ediStatus && (
                                           <div className={styles.metaItem}>
-                                            <span className={styles.metaLabel}>EDI Status:</span>
+                                            <span className={styles.metaLabel}>EDI:</span>
                                             <span className={styles.metaValue}>{pg.ediStatus}</span>
                                           </div>
                                         )}
@@ -2257,7 +2250,7 @@ const CreateSOP: React.FC = () => {
                                         )}
                                         {pg.networkStatus && (
                                           <div className={styles.metaItem}>
-                                            <span className={styles.metaLabel}>Network:</span>
+                                            <span className={styles.metaLabel}>Network Status:</span>
                                             <span className={styles.metaValue}>{pg.networkStatus}</span>
                                           </div>
                                         )}
@@ -2265,6 +2258,12 @@ const CreateSOP: React.FC = () => {
                                           <div className={styles.metaItem}>
                                             <span className={styles.metaLabel}>Mailing Address:</span>
                                             <span className={styles.metaValue}>{pg.mailingAddress}</span>
+                                          </div>
+                                        )}
+                                        {pg.description && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Desc:</span>
+                                            <span className={styles.metaValue}>{pg.description}</span>
                                           </div>
                                         )}
                                       </div>
@@ -2295,15 +2294,8 @@ const CreateSOP: React.FC = () => {
                                     <div className={styles.cardContent}>
                                       <div className={styles.codingMetaGrid}>
                                         <div className={styles.metaItem}>
-                                          <span className={styles.metaLabel}>Payer Name:</span>
-                                          <span className={styles.metaValue}>{pg.title}</span>
+                                          <span className={styles.metaValue} style={{ fontWeight: 700, color: '#1e293b' }}>{pg.title}</span>
                                         </div>
-                                        {pg.description && (
-                                          <div className={styles.metaItem}>
-                                            <span className={styles.metaLabel}>Description:</span>
-                                            <span className={styles.metaValue}>{pg.description}</span>
-                                          </div>
-                                        )}
                                         {pg.payerId && (
                                           <div className={styles.metaItem}>
                                             <span className={styles.metaLabel}>Payer ID:</span>
@@ -2338,6 +2330,12 @@ const CreateSOP: React.FC = () => {
                                           <div className={styles.metaItem}>
                                             <span className={styles.metaLabel}>Mailing Address:</span>
                                             <span className={styles.metaValue}>{pg.mailingAddress}</span>
+                                          </div>
+                                        )}
+                                        {pg.description && (
+                                          <div className={styles.metaItem}>
+                                            <span className={styles.metaLabel}>Description:</span>
+                                            <span className={styles.metaValue}>{pg.description}</span>
                                           </div>
                                         )}
                                       </div>

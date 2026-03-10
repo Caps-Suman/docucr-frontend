@@ -70,7 +70,6 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
 
   // ── stopPolling must be defined before the useEffect that calls it ─────────
   const stopPolling = useCallback(() => {
-    console.log('[ExtraDocsModal] stopPolling called, timer exists:', !!pollTimerRef.current);
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
@@ -100,7 +99,6 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
       // We ONLY stop polling on unmount. 
       // Individual poll cycles manage their own stop logic.
       if (pollTimerRef.current) {
-        console.log('[ExtraDocsModal] Unmounting - stopping polling');
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
@@ -117,9 +115,7 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
     pollStartRef.current = Date.now();
 
     const pollOnce = async () => {
-      console.log('[ExtraDocsModal] Poll tick');
       if (Date.now() - pollStartRef.current > POLL_TIMEOUT_MS) {
-        console.log('[ExtraDocsModal] Timeout');
         stopPolling();
         setIsPolling(false);
         onExtractionStateChange?.(false);
@@ -134,10 +130,8 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
         
         const sop: SOP = await response.json();
         const freshDocs: SOPDocument[] = sop.documents || [];
-        console.log('[ExtraDocsModal] freshDocs:', freshDocs.map(d => ({ id: d.id, name: d.name, processed: d.processed })));
 
         setExtractionDocs(prev => {
-          console.log('[ExtraDocsModal] extractionDocs:', prev);
           let anyNewlyDone = false;
           const next = prev.map(d => {
             if (d.status === "done" || d.status === "failed") return d;
@@ -145,10 +139,8 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
               (fd.id && d.docId && String(fd.id).toLowerCase() === String(d.docId).toLowerCase()) ||
               (fd.name === d.name)
             );
-            console.log(`Match ${d.docId}:`, match ? { id: match.id, processed: match.processed } : 'NO MATCH');
             if (!match) return d;
             if (match.processed) {
-              console.log(`Doc ${d.docId} DONE`);
               anyNewlyDone = true;
               return { ...d, status: "done" as const };
             }
@@ -156,16 +148,13 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
           });
 
           if (anyNewlyDone) {
-            console.log('[ExtraDocsModal] Incremental refresh triggered');
             // Silent refresh to update parent data without showing a toast
             onUploadsComplete(true);
           }
 
           const isStillBusy = next.some(d => d.status === "pending" || d.status === "extracting");
-          console.log('isStillBusy:', isStillBusy, 'next:', next);
 
           if (!isStillBusy) {
-            console.log('[ExtraDocsModal] STOPPING - calling stopPolling');
             setTimeout(() => {
               stopPolling();
               setIsPolling(false);
@@ -183,7 +172,6 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
 
     pollOnce();
     pollTimerRef.current = setInterval(pollOnce, POLL_INTERVAL_MS);
-    console.log('[ExtraDocsModal] Started polling:', pendingIds);
   }, [sopId, stopPolling, onExtractionStateChange, onUploadsComplete]);
 
   // Sync isPolling state with parent callback
@@ -280,7 +268,6 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
       
       try {
         const uploadedDoc = await sopService.uploadSOPDocument(sopId, item.file, item.category);
-        console.log('[ExtraDocsModal] Uploaded doc response:', uploadedDoc);
         uploadedIds.push(uploadedDoc.id);
         
         // Use the real docId instead of item.id
@@ -301,7 +288,6 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
     
     if (uploadedIds.length > 0) {
       try {
-        console.log('[ExtraDocsModal] Triggering extraction for uploaded docs:', uploadedIds);
         await sopService.processSOPDocuments(sopId);
         
         // Set extraction docs BEFORE starting poll
@@ -312,7 +298,6 @@ const ExtraDocumentsModal: React.FC<ExtraDocumentsModalProps> = ({
               String(existing.docId) === String(target.docId) || existing.name === target.name
             );
             if (!exists) {
-              console.log('[ExtraDocsModal] Adding to extractionDocs:', target);
               next.push(target);
             }
           });

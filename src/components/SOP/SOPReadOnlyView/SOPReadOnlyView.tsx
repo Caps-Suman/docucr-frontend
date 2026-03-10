@@ -75,7 +75,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
       name: doc.name,
       url: doc.document_url,
       guidelines: (doc.payer_guidelines || []).filter(
-        (g: any) => g.title || g.description,
+        (g: any) => g.title || g.payerName || g.payer_name || g.description,
       ),
     }))
     .filter((d) => d.guidelines.length > 0);
@@ -387,23 +387,26 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                       {/* Manual Entry */}
                       {payerGuidelines.length > 0 ? (
                         <ExtractedContentBox name="Manual Entry">
-                          {payerGuidelines.map((g, i) => (
+                          {payerGuidelines.map((g: any, i) => (
                             <div key={i} className={styles.payerGuidelineItem}>
-                              <span className={styles.guidelineCategory}>{g.title}</span>
-                              {g.description && (
-                                <p className={styles.guidelineDescription}>{g.description}</p>
-                              )}
-                              <div className={styles.codeDetails} style={{ marginTop: '8px' }}>
-                                {g.payerId && <span className={styles.detailTag}>Payer ID: {g.payerId}</span>}
-                                {g.eraStatus && <span className={styles.detailTag}>ERA: {g.eraStatus}</span>}
+                              <div className={styles.codeDetails}>
+                                <span className={styles.guidelineCategory}>{g.title || g.payerName || g.payer_name || "Unknown"}</span>
+                                {(g.payerId || g.payer_id) && <span className={styles.detailTag}>Payer ID: {g.payerId || g.payer_id}</span>}
+                                {(g.eraStatus || g.era_status) && <span className={styles.detailTag}>ERA: {g.eraStatus || g.era_status}</span>}
+                                {(g.ediStatus || g.edi_status) && <span className={styles.detailTag}>EDI: {g.ediStatus || g.edi_status}</span>}
                                 {g.tfl && <span className={styles.detailTag}>TFL: {g.tfl}</span>}
-                                {g.networkStatus && <span className={styles.detailTag}>Network: {g.networkStatus}</span>}
+                                {(g.networkStatus || g.network_status) && <span className={styles.detailTag}>Network: {g.networkStatus || g.network_status}</span>}
+                                {(g.mailingAddress || g.mailing_address) && (
+                                  <span className={styles.detailTag}>
+                                    <strong>Address:</strong> {g.mailingAddress || g.mailing_address}
+                                  </span>
+                                )}
+                                {g.description && (
+                                  <span className={styles.guidelineDescriptionFlow}>
+                                    {g.description}
+                                  </span>
+                                )}
                               </div>
-                              {g.mailingAddress && (
-                                <div className={styles.mailingAddress}>
-                                  <strong>Address:</strong> {g.mailingAddress}
-                                </div>
-                              )}
                             </div>
                           ))}
                         </ExtractedContentBox>
@@ -414,21 +417,24 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                         <ExtractedContentBox key={`ext-payer-${di}`} name={docEntry.name} url={docEntry.url}>
                           {docEntry.guidelines.map((g: any, i: number) => (
                             <div key={i} className={styles.payerGuidelineItem}>
-                              <span className={styles.guidelineCategory}>{g.title}</span>
-                              {g.description && (
-                                <p className={styles.guidelineDescription}>{g.description}</p>
-                              )}
-                              <div className={styles.codeDetails} style={{ marginTop: '8px' }}>
-                                {g.payerId && <span className={styles.detailTag}>Payer ID: {g.payerId}</span>}
-                                {g.eraStatus && <span className={styles.detailTag}>ERA: {g.eraStatus}</span>}
+                              <div className={styles.codeDetails}>
+                                <span className={styles.guidelineCategory}>{g.title || g.payerName || g.payer_name || "Unknown"}</span>
+                                {(g.payerId || g.payer_id) && <span className={styles.detailTag}>Payer ID: {g.payerId || g.payer_id}</span>}
+                                {(g.eraStatus || g.era_status) && <span className={styles.detailTag}>ERA: {g.eraStatus || g.era_status}</span>}
+                                {(g.ediStatus || g.edi_status) && <span className={styles.detailTag}>EDI: {g.ediStatus || g.edi_status}</span>}
                                 {g.tfl && <span className={styles.detailTag}>TFL: {g.tfl}</span>}
-                                {g.networkStatus && <span className={styles.detailTag}>Network: {g.networkStatus}</span>}
+                                {(g.networkStatus || g.network_status) && <span className={styles.detailTag}>Network: {g.networkStatus || g.network_status}</span>}
+                                {(g.mailingAddress || g.mailing_address) && (
+                                  <span className={styles.detailTag}>
+                                    <strong>Address:</strong> {g.mailingAddress || g.mailing_address}
+                                  </span>
+                                )}
+                                {g.description && (
+                                  <span className={styles.guidelineDescriptionFlow}>
+                                    {g.description}
+                                  </span>
+                                )}
                               </div>
-                              {g.mailingAddress && (
-                                <div className={styles.mailingAddress}>
-                                  <strong>Address:</strong> {g.mailingAddress}
-                                </div>
-                              )}
                             </div>
                           ))}
                         </ExtractedContentBox>
