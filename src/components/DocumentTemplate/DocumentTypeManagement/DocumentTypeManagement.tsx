@@ -14,7 +14,7 @@ import '../../../styles/globals/tooltips.css';
 interface DocumentType {
     id: string;
     name: string;
-    description?: string;
+    description: string;
     status_id: number;
     statusCode: string;
     created_at: string;
@@ -88,12 +88,13 @@ const DocumentTypeManagement: React.FC = () => {
         }
     };
 
-    const handleModalSubmit = async (data: { name: string; description?: string }) => {
+    const handleModalSubmit = async (data: { name: string; description: string }) => {
+        // Validation is handled by DocumentTypeModal — data here is already valid
         try {
-             const payload = {
-            ...data,
-            name: data.name.trim().toUpperCase()
-        };
+            const payload = {
+                ...data,
+                name: data.name.trim().toUpperCase()
+            };
             const url = editingDocumentType
                 ? `/api/document-types/${editingDocumentType.id}`
                 : '/api/document-types';
@@ -152,7 +153,7 @@ const DocumentTypeManagement: React.FC = () => {
             sortable: false,
             width: '350px',
             render: (value: string, row: DocumentType) => {
-                if (!value) return '-';
+                if (!value) return <span style={{ color: '#9ca3af' }}>—</span>;
                 const isExpanded = expandedDescriptions.has(row.id);
                 const shouldTruncate = value.length > 100;
                 
@@ -239,14 +240,6 @@ const DocumentTypeManagement: React.FC = () => {
                             </button>
                         </Tooltip>
                     )}
-                    {/* <span className="tooltip-wrapper" data-tooltip="Delete">
-                        <button
-                            className={styles.deleteButton}
-                            onClick={() => handleDelete(row)}
-                        >
-                            <Trash2 size={16} />
-                        </button>
-                    </span> */}
                 </div>
             )
         }
@@ -274,10 +267,6 @@ const DocumentTypeManagement: React.FC = () => {
                     <Files size={48} />
                     <h3>No document types found</h3>
                     <p>Get started by creating your first document type</p>
-                    {/* <button className={styles.createButton} onClick={handleCreate}>
-                        <Plus size={16} />
-                        Add Document Type
-                    </button> */}
                 </div>
             ) : (
                 <Table

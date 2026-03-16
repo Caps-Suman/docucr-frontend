@@ -21,6 +21,7 @@ export interface ProviderInfo {
 export interface WorkflowProcess {
     description: string;
     eligibilityPortals: string[];
+    postingCharges: string[];
 }
 export interface CodingRule {
     id: string;
@@ -108,23 +109,6 @@ export type SOPCategory =
   | string
   | { title?: string; description?: string }
   | null;
-// export interface SOP {
-//     id: string;
-//     title: string;
-//     category: string | { title?: string; description?: string } | null;
-//     providerType?: 'new' | 'existing';
-//     clientId?: string;
-//     providerInfo: ProviderInfo;
-//     workflowProcess: WorkflowProcess;
-//     postingCharges: string;
-//     billingGuidelines: BillingGuideline[];
-//     codingRules: any[];
-//     insuranceSpecific: { [key: string]: string[] };
-//     statusId?: number;
-//     status?: { id: number; code: string; description?: string };
-//     createdAt: Date;
-//     updatedAt: Date;
-// }
 export interface SOPProvider extends ProviderInfo {
   id: string;
   name: string;

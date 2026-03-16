@@ -530,16 +530,9 @@ const DocumentList: React.FC = () => {
         return {
           ...normalized,
           status: (normalized.status?.toLowerCase() || "processing") as DocStatus,
+          customFormData: doc.form_data || {}
         };
       });
-
-      // ================================
-      // FRONTEND FILTERS (ONLY TABS)
-      // ================================
-      // if (activeFilters.sharedOnly) {
-      //   formattedDocs = formattedDocs.filter(d => d.isSharedWithMe);
-      // }
-
       if (activeFilters.status === "ARCHIVED") {
         formattedDocs = formattedDocs.filter(d => d.isArchived);
       }

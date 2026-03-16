@@ -46,6 +46,7 @@ import { debounce } from "../../../utils/debounce";
 import Toast, { ToastType } from "../../Common/Toast";
 import Loading from "../../Common/Loading";
 import ExtraDocumentsModal from "./ExtraDocumentsModal";
+import { set } from "react-datepicker/dist/date_utils";
 
 const truncateFileName = (name: string = "", maxLength: number = 25) => {
   if (name.length <= maxLength) return name;
@@ -149,11 +150,11 @@ const CreateSOP: React.FC = () => {
 
   // Workflow
   const [workflowDescription, setWorkflowDescription] = useState("");
-  const [eligibilityPortals, setEligibilityPortals] = useState<string[]>([]);
-  const [newPortal, setNewPortal] = useState("");
+    const [postingCharges, setPostingCharges] = useState<string[]>([]);
 
-  // Posting
-  const [postingCharges, setPostingCharges] = useState("");
+  const [eligibilityPortals, setEligibilityPortals] = useState<string[]>([]);
+
+  const [newPortal, setNewPortal] = useState("");
 
   // Billing Guidelines
   const [billingGuidelines, setBillingGuidelines] = useState<
@@ -292,11 +293,13 @@ const CreateSOP: React.FC = () => {
           : data.workflow_process.description);
       }
       
-      if (data.workflow_process.posting_charges_rules) {
-        setPostingCharges(prev => (prev && !prev.includes(data.workflow_process.posting_charges_rules))
-          ? `${prev}\n\n${data.workflow_process.posting_charges_rules}`
-          : data.workflow_process.posting_charges_rules);
-      }
+     if (data.workflow_process.posting_charges_rules) {
+  setPostingCharges(prev =>
+    prev.includes(data.workflow_process.posting_charges_rules)
+      ? prev
+      : [...prev, data.workflow_process.posting_charges_rules]
+  );
+}
 
       setEligibilityPortals(prev => {
         const newPortals = Array.isArray(data.workflow_process.eligibility_verification_portals)
@@ -468,7 +471,7 @@ const CreateSOP: React.FC = () => {
     });
     setWorkflowDescription("");
     setEligibilityPortals([]);
-    setPostingCharges("");
+    setPostingCharges([]);
     setBillingGuidelines([]);
     setCodingRulesCPT([]);
     setCodingRulesICD([]);
@@ -637,6 +640,7 @@ const CreateSOP: React.FC = () => {
       }
       if (sop.workflowProcess) {
         setWorkflowDescription(sop.workflowProcess.description || "");
+        setPostingCharges(sop.workflowProcess.postingCharges || []);
         setEligibilityPortals(sop.workflowProcess.eligibilityPortals || []);
       }
 
@@ -1697,11 +1701,10 @@ const CreateSOP: React.FC = () => {
                     <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                       <label className={styles.label}>Posting Charges Rules</label>
                       <textarea
-                        className={styles.textarea}
-                        value={postingCharges}
-                        onChange={(e) => setPostingCharges(e.target.value)}
-                        placeholder="Rules for posting charges..."
-                      />
+  className={styles.textarea}
+  value={postingCharges.join("\n")}
+  onChange={(e) => setPostingCharges(e.target.value.split("\n"))}
+/>
                     </div>
 
                     <div className={`${styles.formGroup} ${styles.fullWidth}`}>
