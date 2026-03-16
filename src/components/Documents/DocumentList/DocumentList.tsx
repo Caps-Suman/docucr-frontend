@@ -543,11 +543,25 @@ const DocumentList: React.FC = () => {
         );
       }
 
-      else if (activeFilters.status === "PROCESSING") {
-        formattedDocs = formattedDocs.filter(
-          d => d.status === "processing" && !d.isArchived
-        );
-      }
+      else if (
+  activeFilters.status === "PROCESSING" ||
+  activeFilters.status === "UPLOADING" ||
+  activeFilters.status === "QUEUED" ||
+  activeFilters.status === "AI_QUEUED" ||
+  activeFilters.status === "ANALYZING"
+) {
+  const processingStatuses = [
+    "processing",
+    "uploading",
+    "queued",
+    "ai_queued",
+    "analyzing"
+  ];
+
+  formattedDocs = formattedDocs.filter(
+    d => processingStatuses.includes(d.status) && !d.isArchived
+  );
+}
 
       setDocuments(formattedDocs);
 
