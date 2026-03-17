@@ -573,25 +573,6 @@ const CreateSOP: React.FC = () => {
       }
     }
   }, [location.state]);
-  useEffect(() => {
-    if (!currentBackgroundSopId) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const sop = await sopService.getSOPById(currentBackgroundSopId);
-
-        if (sop.status?.code === "ACTIVE") {
-          clearInterval(interval);
-          navigate("/sops");
-        }
-
-      } catch (e) {
-        console.error(e);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [currentBackgroundSopId]);
 
   const loadSOP = async (sopId: string) => {
     try {
@@ -755,7 +736,8 @@ const CreateSOP: React.FC = () => {
         setExtractionMode("IDLE");   // IMPORTANT
       } else {
         console.error(err);
-        setExtractionMode("IDLE");   // Reset on error
+        setToast({ message: "Extraction failed. Please try again.", type: "error" });
+        setExtractionMode("IDLE");
       }
 
     } finally {
@@ -770,7 +752,6 @@ const CreateSOP: React.FC = () => {
     if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      abortControllerRef.current = new AbortController();
       try {
       setBackgroundLoading(true);
 
