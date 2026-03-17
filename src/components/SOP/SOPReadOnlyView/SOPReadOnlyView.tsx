@@ -111,7 +111,19 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
   const totalBilling =
     (sop.billingGuidelines?.length || 0) +
     extractedBillingByDoc.reduce((sum, d) => sum + d.guidelines.length, 0);
-
+  
+    console.log({
+  Loading,
+  BookOpen,
+  MapPin,
+  Shield,
+  Database,
+  Users,
+  Info,
+  Globe,
+  FileText,
+  ExternalLink
+});
   // ── Reusable extracted content box ─────────────────────────────────────────
   const ExtractedContentBox = ({
     name,
@@ -146,7 +158,6 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
       <div className={styles.extractedCardBody}>{children}</div>
     </div>
   );
-
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -287,6 +298,31 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                       "No description provided."}
                   </div>
                 </div>
+                 <div className={styles.infoItem}>
+  <strong>Posting Charges</strong>
+  <div
+    style={{
+      marginTop: "8px",
+      padding: "12px",
+      background: "white",
+      border: "1px solid #e2e8f0",
+      borderRadius: "8px",
+      color: "#0c4a6e",
+      fontSize: "13px",
+    }}
+  >
+    {Array.isArray(sop.workflowProcess?.postingCharges) &&
+    sop.workflowProcess.postingCharges.length > 0 ? (
+      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+        {sop.workflowProcess.postingCharges.map((rule, i) => (
+          <li key={i}>{rule}</li>
+        ))}
+      </ul>
+    ) : (
+      "No posting charges provided."
+    )}
+  </div>
+</div>
                 <div className={styles.infoItem}>
                   <strong>Eligibility Portals</strong>
                   <div
@@ -306,8 +342,7 @@ const SOPReadOnlyView: React.FC<SOPReadOnlyViewProps> = ({
                     )}
                   </div>
                 </div>
-              </div>
-
+</div>
               <div className={styles.accordion}>
                 {/* ===== BILLING GUIDELINES ===== */}
                 <div className={styles.accordionItem}>

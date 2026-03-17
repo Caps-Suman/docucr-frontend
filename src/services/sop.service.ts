@@ -34,7 +34,8 @@ const mapExampleToSOP = (data: any): SOP => ({
 
   workflowProcess: {
     description: data.workflow_process?.description || data.workflow_process?.superbill_source || '',
-    eligibilityPortals: data.workflow_process?.eligibilityPortals || data.workflow_process?.eligibility_verification_portals || []
+    eligibilityPortals: data.workflow_process?.eligibilityPortals || data.workflow_process?.eligibility_verification_portals || [],
+    postingCharges: data.workflow_process?.postingCharges || data.workflow_process?.posting_charges_rules || []
   },
 
   billingGuidelines: normalizeBillingGuidelines(data.billing_guidelines),

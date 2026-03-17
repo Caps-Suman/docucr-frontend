@@ -453,8 +453,8 @@ const shareMode: "client" | "internal" =
                 Derived Documents
               </h3>
             </div>
-            <div className={styles.badgeList}>
-              {Object.entries(getDerivedDocumentCounts()).map(
+            <div className={`${styles.badgeList} ${styles.cardBodyScrollable}`}>
+                {Object.entries(getDerivedDocumentCounts()).map(
                 ([type, count], index) => (
                   <span key={type} className={getBadgeClass(index)}>
                     {type}: {count}
@@ -712,8 +712,8 @@ const MetadataCard: React.FC<{ documentId: string }> = ({ documentId }) => {
           </button>
         </div>
 
-        <div className={styles.metaList}>
-          {form
+        <div className={`${styles.metaList} ${styles.cardBodyScrollable}`}>
+            {form
             ? form.fields?.map((field) => {
               const fieldId = field.id || "";
               const label = field.label || "";

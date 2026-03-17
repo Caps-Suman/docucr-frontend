@@ -590,7 +590,8 @@ const SOPListing: React.FC = () => {
       key: "npi",
       header: "NPI",
       width: "120px",
-      render: (_: any, row: SOP) => row.providerInfo?.billingProviderNPI || "-",
+      // render: (_: any, row: SOP) => row.providerInfo?.billingProviderNPI || "-",
+      render: (_: any, row: SOP) => row.client_npi || "-"
     },
     {
       key: "category",
