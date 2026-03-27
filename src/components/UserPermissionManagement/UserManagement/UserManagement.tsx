@@ -1,6 +1,6 @@
 import React, { useState, useEffect, act } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key, Loader2, Search, Filter, X, ChevronDown, Building2, UserPlus } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Edit2, StopCircle, PlayCircle, Key, Loader2, Search, Filter, X, ChevronDown, Building2, UserPlus, Upload } from 'lucide-react';
 import Table from '../../Table/Table';
 import CommonPagination from '../../Common/CommonPagination';
 import Loading from '../../Common/Loading';
@@ -20,6 +20,7 @@ import clientService from '../../../services/client.service';
 import ClientMappingModal from './ClientMappingModal';
 import ClientSelectionModal from '../../SOP/SOPListing/ClientSelectionModal';
 import { UserTypeModal } from './UserTypeModal';
+import BulkUserUploadModal from './BulkUserUploadModal';
 import { debounce } from '../../../utils/debounce';
 import CommonDropdown from '../../Common/CommonDropdown';
 import CommonMultiSelect from '../../Common/CommonMultiSelect';
@@ -35,9 +36,7 @@ type StatCard = {
 
 const UserManagement: React.FC = () => {
     const currentUser = authService.getUser();
-    // console.log("Current User in UserManagement:", currentUser);
     const [currentPage, setCurrentPage] = useState(0);
-    // const [itemsPerPage, setItemsPerPage] = useState(25);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [users, setUsers] = useState<User[]>([]);
     const [stats, setStats] = useState<UserStats | null>(null);
@@ -49,7 +48,6 @@ const UserManagement: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string[]>([]);
     const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
     const [activeTab, setActiveTab] = useState<"internal" | "client">("internal");
-    // const [supervisors, setSupervisors] = useState<Array<{ id: string; name: string }>>([]);
     const [userTypeModalOpen, setUserTypeModalOpen] = useState(false);
     const [selectedUserType, setSelectedUserType] = useState<"internal" | "client" | null>(null);
 
@@ -58,6 +56,9 @@ const UserManagement: React.FC = () => {
     const [creatorSearch, setCreatorSearch] = useState('');
     const [roleSearch, setRoleSearch] = useState('');
     const [roleOptions, setRoleOptions] = useState<Array<{ label: string, value: string }>>([]);
+
+    // ── Bulk Upload State ──────────────────────────────────────────────────────
+    const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
 
     // Search & Filter State
     const [searchQuery, setSearchQuery] = useState('');
@@ -76,7 +77,6 @@ const UserManagement: React.FC = () => {
     const [allClients, setAllClients] = useState<Array<{ label: string, value: string, organisationName?: string }>>([]);
     const [createdByOptions, setCreatedByOptions] = useState<Array<{ label: string, value: string, organisationName?: string }>>([]);
 
-    // Debounce search update
     const handleSearchChange = (val: string) => {
         setSearchQuery(val);
         debouncedUpdate(val);
@@ -84,15 +84,14 @@ const UserManagement: React.FC = () => {
 
     const debouncedUpdate = React.useCallback(debounce((val: string) => {
         setDebouncedSearch(val);
-        setCurrentPage(0); // Reset page on search
+        setCurrentPage(0);
     }, 500), []);
 
     const clientAdminRoleId = roles.find(r => r.name === "CLIENT_ADMIN")?.id;
     const [step, setStep] = useState<0 | 1 | 2>(0);
     const [userType, setUserType] = useState<"internal" | "client" | null>(null);
 
-    const canChooseUserType =
-        currentUser?.role?.name === "ORGANISATION_ADMIN";
+    const canChooseUserType = currentUser?.role?.name === "ORGANISATION_ADMIN";
     const clientAdmin = currentUser?.role?.name === "CLIENT_ADMIN";
 
     const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
@@ -100,24 +99,17 @@ const UserManagement: React.FC = () => {
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; user: User | null; action: 'toggle' }>({ isOpen: false, user: null, action: 'toggle' });
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
-    // Cross-creation state
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
     const [crossCreationData, setCrossCreationData] = useState<any>(null);
     const [showCrossCreationConfirm, setShowCrossCreationConfirm] = useState(false);
 
-    // Client Mapping State
     const [clientMappingModal, setClientMappingModal] = useState<{ isOpen: boolean; user: User | null }>({
         isOpen: false,
         user: null
     });
 
-    const handleOpenMapping = (user: User) => {
-        setClientMappingModal({ isOpen: true, user });
-    };
-
-    const handleCloseMapping = () => {
-        setClientMappingModal({ isOpen: false, user: null });
-    };
+    const handleOpenMapping = (user: User) => setClientMappingModal({ isOpen: true, user });
+    const handleCloseMapping = () => setClientMappingModal({ isOpen: false, user: null });
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
@@ -128,18 +120,7 @@ const UserManagement: React.FC = () => {
     const [tempSelectedClientFilter, setTempSelectedClientFilter] = useState<string[]>([]);
     const [tempCreatedByFilter, setTempCreatedByFilter] = useState<string[]>([]);
 
-    // Sync Effect REMOVED to prevent double API calls.
-    // Syncing is now done in handleOpenFilters before opening the panel.
-    /*
-    useEffect(() => {
-        if (showFilters) {
-           // ...
-        }
-    }, [showFilters, statusFilter, selectedRole, selectedOrg, selectedClientFilter, createdByFilter]);
-    */
-
     const handleOpenFilters = () => {
-        // Sync temp state with actual state BEFORE opening
         setTempStatusFilter(statusFilter);
         setTempSelectedRole(selectedRole);
         setTempSelectedOrg(selectedOrg);
@@ -148,17 +129,13 @@ const UserManagement: React.FC = () => {
         setShowFilters(true);
     };
 
-    // Pre-fill filters based on Role
     useEffect(() => {
         if (!currentUser) return;
-
         if (currentUser.role?.name === 'ORGANISATION_ADMIN' && currentUser.organisation_id) {
-            // Organisation Role: specific org, allow client selection
             const orgId = currentUser.organisation_id;
             setSelectedOrg([orgId]);
             setTempSelectedOrg([orgId]);
         } else if (currentUser.role?.name === 'CLIENT_ADMIN') {
-            // Client Admin: specific org and client
             if (currentUser.organisation_id) {
                 const orgId = currentUser.organisation_id;
                 setSelectedOrg([orgId]);
@@ -172,21 +149,12 @@ const UserManagement: React.FC = () => {
         }
     }, []);
 
-    // Hierarchy Cleanup moved to handlers/effects specific to data changes to avoid loops
-    // Creator cleanup is handled by its own effect above.
-
-
-
-    // Separate effect to clean up selected creators when options change
     useEffect(() => {
         if (createdByOptions.length > 0 && tempCreatedByFilter.length > 0) {
             setTempCreatedByFilter(prev => {
                 const availableIds = createdByOptions.map(c => c.value);
                 const validSelection = prev.filter(id => availableIds.includes(id));
-                // Only update if changed to avoid unnecessary renders
-                if (validSelection.length !== prev.length) {
-                    return validSelection;
-                }
+                if (validSelection.length !== prev.length) return validSelection;
                 return prev;
             });
         }
@@ -219,7 +187,6 @@ const UserManagement: React.FC = () => {
 
     useEffect(() => {
         if (!rolesLoadedRef.current) {
-            // ONLY load roles/filters for Admins (Super, Org, Client)
             if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') {
                 rolesLoadedRef.current = true;
                 loadRoles();
@@ -233,15 +200,12 @@ const UserManagement: React.FC = () => {
     const fetchCreators = async (searchVal: string, orgs: string[], clients: string[]) => {
         const requestId = Date.now();
         lastCreatorFetchId.current = requestId;
-
         try {
-            // Use lightweight creators endpoint
             const creators = await userService.getCreators(
                 searchVal,
                 orgs.length > 0 ? orgs : undefined,
                 clients.length > 0 ? clients : undefined
             );
-
             if (lastCreatorFetchId.current === requestId) {
                 setCreatedByOptions(creators.map(u => ({
                     label: `${u.first_name || ''} ${u.last_name || ''} (${u.username})`.trim(),
@@ -249,18 +213,13 @@ const UserManagement: React.FC = () => {
                     organisationName: u.organisation_name
                 })));
             }
-
         } catch (e) {
             console.error("Failed to load creator options", e);
         }
     };
 
-    const handleCreatorSearch = (val: string) => {
-        setCreatorSearch(val);
-    };
+    const handleCreatorSearch = (val: string) => setCreatorSearch(val);
 
-
-    // Role Search Effect
     useEffect(() => {
         if (!showFilters) return;
         const handler = setTimeout(() => {
@@ -269,34 +228,23 @@ const UserManagement: React.FC = () => {
         return () => clearTimeout(handler);
     }, [roleSearch]);
 
-    // Cleanup role options when filter closed or reset? 
-    // Maybe not needed, but good to keep fresh.
-
     const lastRoleFetchId = React.useRef(0);
 
     const fetchLightRoles = async (searchVal: string, orgs: string[], clients: string[]) => {
         const requestId = Date.now();
         lastRoleFetchId.current = requestId;
         try {
-            // Pass orgs and clients to filter roles relevant to them
             const rolesData = await roleService.getLightRoles(searchVal, orgs, clients);
-
             if (lastRoleFetchId.current === requestId) {
-                setRoleOptions(rolesData.map(r => ({
-                    label: r.name,
-                    value: r.id
-                })));
+                setRoleOptions(rolesData.map(r => ({ label: r.name, value: r.id })));
             }
         } catch (e) {
             console.error("Failed to load light roles", e);
         }
-    }
-
-    const handleRoleSearch = (val: string) => {
-        setRoleSearch(val);
     };
 
-    // Debounced Search Effect
+    const handleRoleSearch = (val: string) => setRoleSearch(val);
+
     useEffect(() => {
         if (!showFilters) return;
         const handler = setTimeout(() => {
@@ -305,38 +253,22 @@ const UserManagement: React.FC = () => {
         return () => clearTimeout(handler);
     }, [creatorSearch]);
 
-    // Immediate Filter Effect - Consolidated
-    // Triggers fetch for BOTH Creators and Roles when filters change or panel opens.
-    // Guards against double-execution via refs or simple dependency management.
     useEffect(() => {
         if (!showFilters) return;
-
-        // Fetch Creators - ONLY for Admins who can filter by creator
         if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') {
             fetchCreators(creatorSearch, tempSelectedOrg, tempSelectedClientFilter);
         }
-
-        // Fetch Roles - ONLY for Admins who can filter by role
         if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') {
             fetchLightRoles(roleSearch, tempSelectedOrg, tempSelectedClientFilter);
         }
-
     }, [showFilters, tempSelectedOrg, tempSelectedClientFilter]);
 
     const loadFilterOptions = async () => {
         try {
-            // Load Organisations (if superadmin)
             if (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN') {
                 const orgs = await organisationService.getOrganisations(1, 100);
                 setOrganisations(orgs.organisations.map(o => ({ label: o.name || o.username, value: o.id })));
-            } else {
-                // Optimization: Don't fetch organisations if not superadmin.
-                // We might set 'organisations' to just the current user's org if needed for display?
-                // But the filter is hidden anyway.
             }
-
-            // Load Clients
-            // Use getVisibleClients instead of getClients to get list without pagination for dropdown
             const visibleClients = await clientService.getVisibleClients();
             const mappedClients = visibleClients.map(c => ({
                 label: c.business_name || c.first_name || 'Client',
@@ -344,8 +276,7 @@ const UserManagement: React.FC = () => {
                 organisationName: c.organisation_name
             }));
             setClients(mappedClients);
-            setAllClients(mappedClients); // Populate allClients with the full list
-
+            setAllClients(mappedClients);
         } catch (error) {
             console.error("Failed to load filter options", error);
         }
@@ -362,10 +293,8 @@ const UserManagement: React.FC = () => {
     };
 
     const loadData = async () => {
-        // Prevent concurrent calls (fixes Strict Mode double-invocation)
         if (dataLoadingRef.current) return;
         dataLoadingRef.current = true;
-
         try {
             setLoading(true);
             const [usersData, statsData] = await Promise.all([
@@ -378,7 +307,7 @@ const UserManagement: React.FC = () => {
                     (selectedOrg && selectedOrg.length > 0) ? selectedOrg : undefined,
                     (selectedClientFilter && selectedClientFilter.length > 0) ? selectedClientFilter : undefined,
                     (createdByFilter && createdByFilter.length > 0) ? createdByFilter : undefined,
-                    (activeTab === "client") // isClient flag based on active tab
+                    (activeTab === "client")
                 ),
                 userService.getUserStats()
             ]);
@@ -400,7 +329,6 @@ const UserManagement: React.FC = () => {
             setLoadingEditId(user.id);
             const fullUser = await userService.getUser(user.id);
             setEditingUser(fullUser);
-
             setIsModalOpen(true);
         } catch (e) {
             console.error(e);
@@ -408,7 +336,6 @@ const UserManagement: React.FC = () => {
             setLoadingEditId(null);
         }
     };
-
 
     const handleChangePassword = (user: User) => {
         if (user.is_superuser) {
@@ -421,12 +348,6 @@ const UserManagement: React.FC = () => {
     const handlePasswordSubmit = async (password: string) => {
         if (!changePasswordUser) return;
         try {
-            // Check if userService has changePassword, if not, we need to add it or use raw fetch
-            // Ideally we add it to userService.ts, but for now I'll use fetch here if needed or assume user service update
-            // Let's check userService.ts content... waiting... I can't check it right now easily inside replace.
-            // I'll assume I need to ADD it to userService.ts differently or use direct fetch.
-            // Using direct fetch for safety since I didn't update frontend service yet.
-
             const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/users/${changePasswordUser.id}/change-password`, {
                 method: 'POST',
                 headers: {
@@ -435,18 +356,16 @@ const UserManagement: React.FC = () => {
                 },
                 body: JSON.stringify({ new_password: password })
             });
-
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || 'Failed to change password');
             }
-
             setToast({ message: 'Password changed successfully', type: 'success' });
             setChangePasswordUser(null);
         } catch (error: any) {
             console.error('Failed to change password:', error);
             setToast({ message: error.message || 'Failed to change password', type: 'error' });
-            throw error; // Re-throw to let modal handle it if needed
+            throw error;
         }
     };
 
@@ -464,8 +383,6 @@ const UserManagement: React.FC = () => {
         setEditingUser(null);
     };
 
-
-
     const handleClientModalSubmit = async (data: any) => {
         try {
             const payload = { ...data, user_id: crossCreationData?.user_id };
@@ -473,13 +390,11 @@ const UserManagement: React.FC = () => {
             setToast({ message: 'Client created successfully', type: 'success' });
             setIsClientModalOpen(false);
             setCrossCreationData(null);
-            return createdClient; // ✅ THIS IS THE FIX
-
+            return createdClient;
         } catch (error: any) {
             console.error('Failed to create client:', error);
             setToast({ message: error?.message || 'Failed to create client', type: 'error' });
-            throw error; // ✅ required for Promise<Client>
-
+            throw error;
         }
     };
 
@@ -497,7 +412,6 @@ const UserManagement: React.FC = () => {
                 await userService.createUser(data);
                 setToast({ message: "User created", type: "success" });
             }
-
             setIsModalOpen(false);
             setEditingUser(null);
             await loadData();
@@ -506,17 +420,13 @@ const UserManagement: React.FC = () => {
         }
     };
 
-
     const handleUserTypeNext = (type: "internal" | "client") => {
         setSelectedUserType(type);
         setUserTypeModalOpen(false);
-
         if (type === "internal") {
             setIsModalOpen(true);
             return;
         }
-
-        // client user
         setClientSelectionOpen(true);
     };
 
@@ -536,7 +446,6 @@ const UserManagement: React.FC = () => {
 
     const handleConfirmAction = async () => {
         if (!confirmModal.user) return;
-
         try {
             const isActive = confirmModal.user.statusCode === 'ACTIVE';
             if (isActive) {
@@ -549,23 +458,34 @@ const UserManagement: React.FC = () => {
             loadData();
         } catch (error: any) {
             console.error('Failed to perform action:', error);
-            const errorMessage = error?.message || 'Failed to perform action';
-            setToast({ message: errorMessage, type: 'error' });
+            setToast({ message: error?.message || 'Failed to perform action', type: 'error' });
         } finally {
             setConfirmModal({ isOpen: false, user: null, action: 'toggle' });
         }
     };
 
     const handleStatClick = (type: 'total' | 'active' | 'inactive') => {
-        if (type === 'total') {
-            setStatusFilter([]);
-        } else if (type === 'active') {
-            setStatusFilter(['ACTIVE']);
-        } else if (type === 'inactive') {
-            setStatusFilter(['INACTIVE']);
-        }
+        if (type === 'total') setStatusFilter([]);
+        else if (type === 'active') setStatusFilter(['ACTIVE']);
+        else if (type === 'inactive') setStatusFilter(['INACTIVE']);
         setCurrentPage(0);
     };
+
+    // ── Bulk upload handlers ───────────────────────────────────────────────────
+    const handleBulkUploadSuccess = (result: { created: number; failed: number }) => {
+        setToast({
+            message: `Bulk upload complete: ${result.created} created${result.failed > 0 ? `, ${result.failed} skipped` : ''}`,
+            type: result.failed === 0 ? 'success' : 'warning'
+        });
+        setBulkUploadOpen(false);
+        loadData();
+    };
+
+    const isAdmin =
+        currentUser?.is_superuser ||
+        currentUser?.role?.name === 'SUPER_ADMIN' ||
+        currentUser?.role?.name === 'ORGANISATION_ADMIN' ||
+        currentUser?.role?.name === 'CLIENT_ADMIN';
 
     interface StatItem {
         title: string;
@@ -601,7 +521,6 @@ const UserManagement: React.FC = () => {
             onClick: () => handleStatClick('inactive'),
             active: statusFilter.includes('INACTIVE')
         },
-        // { title: 'Admin Users', value: stats?.admin_users.toString() || '0', icon: Shield, color: 'purple', onClick: undefined, active: false }
     ];
 
     const userColumns = [
@@ -631,7 +550,7 @@ const UserManagement: React.FC = () => {
         ...(currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' ? [{
             key: 'created_by_name',
             header: 'Created By',
-            render: (_: any, row: User) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}> {row.organisation_name == null ? "Super Admin" : "Organisation"} </span>,
+            render: (_: any, row: User) => row.created_by_name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>{row.organisation_name == null ? "Super Admin" : "Organisation"}</span>,
             width: '180px'
         }] : []),
         ...(currentUser?.role?.name === 'SUPER_ADMIN' ? [{
@@ -656,37 +575,19 @@ const UserManagement: React.FC = () => {
             render: (_: any, row: User) => {
                 const count = row.client_count ?? 0;
                 let text = 'No clients';
-
-                // Default styles for "No clients" (Gray/Neutral)
-                let style = {
-                    bg: '#f3f4f6',
-                    color: '#6b7280',
-                    hoverBg: '#e5e7eb'
-                };
-
+                let style = { bg: '#f3f4f6', color: '#6b7280', hoverBg: '#e5e7eb' };
                 if (count > 0) {
                     text = count === 1 ? '1 Client' : `${count} Clients`;
-                    // Styles for Assigned Clients (Blue)
-                    style = {
-                        bg: '#e0f2fe',
-                        color: '#0369a1',
-                        hoverBg: '#bae6fd'
-                    };
+                    style = { bg: '#e0f2fe', color: '#0369a1', hoverBg: '#bae6fd' };
                 }
-
                 return (
                     <div
                         onClick={() => handleOpenMapping(row)}
                         style={{
-                            display: 'inline-block',
-                            padding: '4px 12px',
-                            background: style.bg,
-                            color: style.color,
-                            borderRadius: '9999px',
-                            fontSize: '12px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            transition: 'background 0.2s'
+                            display: 'inline-block', padding: '4px 12px',
+                            background: style.bg, color: style.color,
+                            borderRadius: '9999px', fontSize: '12px',
+                            fontWeight: 500, cursor: 'pointer', transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = style.hoverBg}
                         onMouseLeave={(e) => e.currentTarget.style.background = style.bg}
@@ -710,46 +611,43 @@ const UserManagement: React.FC = () => {
             },
             width: '150px'
         },
-        ...(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN' ? [{
+        ...(isAdmin ? [{
             key: 'actions',
             header: 'Actions',
             render: (_: any, row: User) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <Tooltip content={row.is_superuser ? 'Cannot edit superuser' : 'Edit'} preferredPosition="left">
                         <span style={{ display: 'inline-block' }}>
-                        <button
-                            className={`${styles.actionBtn} ${styles.edit}`}
-                            onClick={() => !loadingEditId && handleEdit(row)}
-                            disabled={!!loadingEditId || row.is_superuser}
-                            style={{
-                                opacity: (row.is_superuser || !!loadingEditId) ? 0.5 : 1,
-                                cursor: (row.is_superuser || !!loadingEditId) ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            {loadingEditId === row.id ? <Loader2 size={14} className={styles.animateSpin} /> : <Edit2 size={14} />}
-                        </button>
+                            <button
+                                className={`${styles.actionBtn} ${styles.edit}`}
+                                onClick={() => !loadingEditId && handleEdit(row)}
+                                disabled={!!loadingEditId || row.is_superuser}
+                                style={{ opacity: (row.is_superuser || !!loadingEditId) ? 0.5 : 1, cursor: (row.is_superuser || !!loadingEditId) ? 'not-allowed' : 'pointer' }}
+                            >
+                                {loadingEditId === row.id ? <Loader2 size={14} className={styles.animateSpin} /> : <Edit2 size={14} />}
+                            </button>
                         </span>
                     </Tooltip>
                     <Tooltip content={row.is_superuser ? 'Cannot change password' : 'Change Password'} preferredPosition="left">
                         <span style={{ display: 'inline-block' }}>
-                        <button
-                            className={`${styles.actionBtn} ${styles.key}`}
-                            onClick={() => handleChangePassword(row)}
-                            style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer' }}
-                        >
-                            <Key size={14} />
-                        </button>
+                            <button
+                                className={`${styles.actionBtn} ${styles.key}`}
+                                onClick={() => handleChangePassword(row)}
+                                style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer' }}
+                            >
+                                <Key size={14} />
+                            </button>
                         </span>
                     </Tooltip>
                     <Tooltip content={row.statusCode === 'ACTIVE' ? 'Deactivate' : 'Activate'} preferredPosition="left">
                         <span style={{ display: 'inline-block' }}>
-                        <button
-                            className={`${styles.actionBtn} ${row.statusCode === 'ACTIVE' ? styles.deactivate : styles.activate}`}
-                            onClick={() => handleToggleStatus(row)}
-                            style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer' }}
-                        >
-                            {row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />}
-                        </button>
+                            <button
+                                className={`${styles.actionBtn} ${row.statusCode === 'ACTIVE' ? styles.deactivate : styles.activate}`}
+                                onClick={() => handleToggleStatus(row)}
+                                style={{ opacity: row.is_superuser ? 0.5 : 1, cursor: row.is_superuser ? 'not-allowed' : 'pointer' }}
+                            >
+                                {row.statusCode === 'ACTIVE' ? <StopCircle size={14} /> : <PlayCircle size={14} />}
+                            </button>
                         </span>
                     </Tooltip>
                 </div>
@@ -758,14 +656,11 @@ const UserManagement: React.FC = () => {
         }] : [])
     ];
 
-    if (isInitialLoading) {
-        return <Loading message="Loading users..." />;
-    }
+    if (isInitialLoading) return <Loading message="Loading users..." />;
 
     return (
         <div className={styles.managementContent}>
             <div className={styles.statsGrid}>
-
                 {userStats.map((stat, index) => (
                     <div
                         key={index}
@@ -773,9 +668,7 @@ const UserManagement: React.FC = () => {
                         onClick={stat.onClick}
                         style={{ cursor: stat.onClick ? 'pointer' : 'default' }}
                     >
-                        <div className={styles.statIcon}>
-                            <stat.icon size={16} />
-                        </div>
+                        <div className={styles.statIcon}><stat.icon size={16} /></div>
                         <div className={styles.statContent}>
                             <h3>{stat.value}</h3>
                             <p>{stat.title}</p>
@@ -786,87 +679,115 @@ const UserManagement: React.FC = () => {
 
             <div className={styles.tableSection} style={{ position: 'relative' }}>
                 <div className={styles.tableHeader}>
+                    {/* Tabs */}
                     <div className={styles.headerTabs}>
                         <button
-                            onClick={() => {
-                                setActiveTab("internal");
-                                setCurrentPage(0);
-                            }}
+                            onClick={() => { setActiveTab("internal"); setCurrentPage(0); }}
                             className={`${styles.headerTabBtn} ${activeTab === "internal" ? styles.active : ""}`}
                         >
                             <Shield size={16} />
                             Internal Users
                         </button>
-
                         <button
-                            onClick={() => {
-                                setActiveTab("client");
-                                setCurrentPage(0);
-                            }}
+                            onClick={() => { setActiveTab("client"); setCurrentPage(0); }}
                             className={`${styles.headerTabBtn} ${activeTab === "client" ? styles.active : ""}`}
                         >
                             <Building2 size={16} />
                             Client Users
                         </button>
                     </div>
-                    <div>
 
-                        {/* Search, Filters and Add User Bar */}
-                        <div style={{ display: 'flex', gap: (currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') ? '12px' : '0', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
-                            <div className={styles.filterGroup} style={{ minWidth: '300px' }}>
-                                <div style={{ position: 'relative' }}>
-                                    <input
-                                        type="text"
-                                        placeholder="Search by name, email..."
-                                        className={styles.filterInput}
-                                        value={searchQuery}
-                                        onChange={(e) => handleSearchChange(e.target.value)}
-                                    />
-                                    {searchQuery && (
-                                        <button
-                                            onClick={() => handleSearchChange('')}
-                                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
-                                        >
-                                            <X size={14} />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className={styles.filterGroup} style={{ flex: '0 0 auto', minWidth: 'auto' }}>
-                                {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                    {/* Controls row */}
+                    <div style={{ display: 'flex', gap: isAdmin ? '12px' : '0', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
+                        {/* Search */}
+                        <div className={styles.filterGroup} style={{ minWidth: '300px' }}>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Search by name, email..."
+                                    className={styles.filterInput}
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearchChange(e.target.value)}
+                                />
+                                {searchQuery && (
                                     <button
-                                        className={styles.filterButton}
-                                        onClick={handleOpenFilters}
+                                        onClick={() => handleSearchChange('')}
+                                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
                                     >
-                                        <Filter size={16} />
-                                        Filters
-                                        {(() => {
-                                            let count = 0;
-                                            if (selectedRole && selectedRole.length > 0) count++;
-                                            // Don't count Org filter for Org Admins (implicit)
-                                            if (selectedOrg && selectedOrg.length > 0 && currentUser?.role?.name !== 'ORGANISATION_ADMIN') count++;
-                                            // Don't count Client filter for Client Admins (implicit)
-                                            if (selectedClientFilter && selectedClientFilter.length > 0 && currentUser?.role?.name !== 'CLIENT_ADMIN' && !currentUser?.is_client) count++;
-                                            if (statusFilter && statusFilter.length > 0) count++;
-                                            if (createdByFilter && createdByFilter.length > 0) count++;
-
-                                            return count > 0 ? <span className={styles.filterBadge}>{count}</span> : null;
-                                        })()}
-                                    </button>
-                                )}
-                            </div>
-                            <div className={styles.filterGroup} style={{ flex: '0 0 auto', minWidth: 'auto', marginLeft: 'auto' }}>
-                                {(  currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
-                                    <button className={styles.addBtn} onClick={handleAddNew} style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
-                                        <UserPlus size={14} style={{ marginRight: '6px' }} />
-                                        Add User
+                                        <X size={14} />
                                     </button>
                                 )}
                             </div>
                         </div>
 
+                        {/* Filters button */}
+                        {isAdmin && (
+                            <div className={styles.filterGroup} style={{ flex: '0 0 auto' }}>
+                                <button className={styles.filterButton} onClick={handleOpenFilters}>
+                                    <Filter size={16} />
+                                    Filters
+                                    {(() => {
+                                        let count = 0;
+                                        if (selectedRole?.length > 0) count++;
+                                        if (selectedOrg?.length > 0 && currentUser?.role?.name !== 'ORGANISATION_ADMIN') count++;
+                                        if (selectedClientFilter?.length > 0 && currentUser?.role?.name !== 'CLIENT_ADMIN' && !currentUser?.is_client) count++;
+                                        if (statusFilter?.length > 0) count++;
+                                        if (createdByFilter?.length > 0) count++;
+                                        return count > 0 ? <span className={styles.filterBadge}>{count}</span> : null;
+                                    })()}
+                                </button>
+                            </div>
+                        )}
 
+                        {/* Action buttons */}
+                        {isAdmin && (
+                            <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexShrink: 0 }}>
+                                {/* ── Bulk Upload Button ── */}
+                                <Tooltip content="Bulk upload users via CSV" preferredPosition="left">
+                                    <button
+                                        className={styles.bulkUploadBtn}
+                                        onClick={() => setBulkUploadOpen(true)}
+                                        style={{
+                                            height: '38px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            padding: '0 14px',
+                                            borderRadius: '6px',
+                                            border: '1px solid #d1d5db',
+                                            background: '#fff',
+                                            color: '#374151',
+                                            fontSize: '14px',
+                                            fontWeight: 500,
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap',
+                                            transition: 'all 0.15s',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = '#f9fafb';
+                                            e.currentTarget.style.borderColor = '#9ca3af';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = '#fff';
+                                            e.currentTarget.style.borderColor = '#d1d5db';
+                                        }}
+                                    >
+                                        <Upload size={14} />
+                                        Bulk Upload
+                                    </button>
+                                </Tooltip>
+
+                                {/* Add User */}
+                                <button
+                                    className={styles.addBtn}
+                                    onClick={handleAddNew}
+                                    style={{ height: '38px', display: 'flex', alignItems: 'center' }}
+                                >
+                                    <UserPlus size={14} style={{ marginRight: '6px' }} />
+                                    Add User
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -876,18 +797,12 @@ const UserManagement: React.FC = () => {
                     maxHeight="calc(100vh - 360px)"
                     className={styles.userTableContainer}
                 />
+
                 {loading && !isInitialLoading && (
                     <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(255, 255, 255, 0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 10
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(255,255,255,0.5)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10
                     }}>
                         <Loading message="Updating..." />
                     </div>
@@ -901,11 +816,10 @@ const UserManagement: React.FC = () => {
                 totalItems={totalUsers}
                 itemsPerPage={itemsPerPage}
                 onPageChange={(data) => setCurrentPage(data.selected)}
-                onItemsPerPageChange={(items) => {
-                    setItemsPerPage(items);
-                    setCurrentPage(0);
-                }}
+                onItemsPerPageChange={(items) => { setItemsPerPage(items); setCurrentPage(0); }}
             />
+
+            {/* ── Modals ── */}
             <UserTypeModal
                 isOpen={userTypeModalOpen}
                 onClose={() => setUserTypeModalOpen(false)}
@@ -917,6 +831,7 @@ const UserManagement: React.FC = () => {
                 onClose={() => setClientSelectionOpen(false)}
                 onSelect={handleClientSelected}
             />
+
             <UserModal
                 isOpen={isModalOpen}
                 onClose={handleModalClose}
@@ -941,9 +856,12 @@ const UserManagement: React.FC = () => {
                 roles={roles}
                 clientAdminRoleId={roles.find(r => r.name === "CLIENT_ADMIN")?.id}
                 allowUserTypeSelection={
-                    currentUser?.role?.name === "ORGANISATION_ADMIN" || currentUser?.role?.name === "SUPER_ADMIN" || currentUser?.is_superuser   
+                    currentUser?.role?.name === "ORGANISATION_ADMIN" ||
+                    currentUser?.role?.name === "SUPER_ADMIN" ||
+                    currentUser?.is_superuser
                 }
             />
+
             <ChangePasswordModal
                 isOpen={!!changePasswordUser}
                 onClose={() => setChangePasswordUser(null)}
@@ -961,13 +879,7 @@ const UserManagement: React.FC = () => {
                 type="warning"
             />
 
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
-                />
-            )}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             <ConfirmModal
                 isOpen={showCrossCreationConfirm}
@@ -994,6 +906,15 @@ const UserManagement: React.FC = () => {
                 onUpdate={loadData}
             />
 
+            {/* ── Bulk Upload Modal ── */}
+            <BulkUserUploadModal
+                isOpen={bulkUploadOpen}
+                onClose={() => setBulkUploadOpen(false)}
+                onSuccess={handleBulkUploadSuccess}
+                roles={roles}
+                currentUser={currentUser}
+            />
+
             {/* Filter Offcanvas */}
             <div className={`${styles.offcanvas} ${showFilters ? styles.offcanvasOpen : ''}`}>
                 <div className={styles.offcanvasOverlay} onClick={() => setShowFilters(false)} />
@@ -1005,9 +926,6 @@ const UserManagement: React.FC = () => {
                         </button>
                     </div>
                     <div className={styles.offcanvasBody}>
-
-
-                        {/* Organisation Filter - Show for Superuser ONLY (Hide for Org Role & Client Admin) */}
                         {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN') && (
                             <div className={styles.filterGroupItem}>
                                 <label>Organisation</label>
@@ -1016,17 +934,14 @@ const UserManagement: React.FC = () => {
                                     value={tempSelectedOrg}
                                     onChange={(val) => {
                                         setTempSelectedOrg(val);
-                                        // Update dependent clients immediately to prevent effect loops
                                         if (val.length > 0) {
                                             const selectedOrgNames = organisations
                                                 .filter(o => val.includes(o.value))
                                                 .map(o => o.label);
-
                                             setTempSelectedClientFilter(prev => {
                                                 const validClients = allClients.filter(c =>
                                                     c.organisationName && selectedOrgNames.some(name => c.organisationName?.includes(name))
                                                 ).map(c => c.value);
-                                                // Only update if difference found (optimization)
                                                 const newSelection = prev.filter(id => validClients.includes(id));
                                                 if (newSelection.length !== prev.length) return newSelection;
                                                 return prev;
@@ -1039,24 +954,16 @@ const UserManagement: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Client Filter - Show for Superuser AND Organisation Role (Hide for Client Admin & Standard Users) */}
                         {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN') && (
                             <div className={styles.filterGroupItem}>
                                 <label>Client</label>
                                 <CommonMultiSelect
                                     options={allClients.filter(c => {
                                         if (tempSelectedOrg.length === 0) return true;
-                                        // Find selected org names
                                         const selectedOrgNames = organisations
                                             .filter(o => tempSelectedOrg.includes(o.value))
                                             .map(o => o.label);
-
-                                        // Check if client matches any selected org name
-                                        return c.organisationName && selectedOrgNames.some(name => c.organisationName?.includes(name)); // Looser match or exact?
-                                        // Ideally exact match, but organisation_name in client might differ slightly? 
-                                        // Assuming exact match for now if possible, else looser. 
-                                        // Actually, let's try exact match first
-                                        // return c.organisationName && selectedOrgNames.includes(c.organisationName);
+                                        return c.organisationName && selectedOrgNames.some(name => c.organisationName?.includes(name));
                                     })}
                                     value={tempSelectedClientFilter}
                                     onChange={(val) => setTempSelectedClientFilter(val)}
@@ -1066,8 +973,7 @@ const UserManagement: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Role Filter - Show for Admins Only */}
-                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                        {isAdmin && (
                             <div className={styles.filterGroupItem}>
                                 <label>Role</label>
                                 <CommonMultiSelect
@@ -1082,8 +988,7 @@ const UserManagement: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Created By Filter - Show for Superuser and Organisation Role */}
-                        {(currentUser?.is_superuser || currentUser?.role?.name === 'SUPER_ADMIN' || currentUser?.role?.name === 'ORGANISATION_ADMIN' || currentUser?.role?.name === 'CLIENT_ADMIN') && (
+                        {isAdmin && (
                             <div className={styles.filterGroupItem}>
                                 <label>Created By</label>
                                 <CommonMultiSelect
@@ -1099,16 +1004,11 @@ const UserManagement: React.FC = () => {
                         )}
                     </div>
                     <div className={styles.offcanvasFooter}>
-                        <button className={styles.resetButton} onClick={handleResetFilters}>
-                            Reset
-                        </button>
-                        <button className={styles.applyButton} onClick={handleApplyFilters}>
-                            Apply Filters
-                        </button>
+                        <button className={styles.resetButton} onClick={handleResetFilters}>Reset</button>
+                        <button className={styles.applyButton} onClick={handleApplyFilters}>Apply Filters</button>
                     </div>
                 </div>
             </div>
-
         </div>
     );
 };

@@ -63,7 +63,7 @@ const ClientManagement: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
 
   const [usersLoading, setUsersLoading] = useState(false);
-
+  const [clientType, setClientType] = useState<"NPI1" | "NPI2" | "">("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null); // To be removed later after full integration
   const [showFilters, setShowFilters] = useState(false);
   const [loadingFilterData, setLoadingFilterData] = useState(false);
@@ -253,6 +253,7 @@ const ClientManagement: React.FC = () => {
   };
 
   const handleImport = () => {
+    
     setShowImportModal(true);
   };
 
