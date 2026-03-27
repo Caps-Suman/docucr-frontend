@@ -22,7 +22,7 @@ interface Props {
 }
 
 type Step = "select-type" | "upload";
-type ClientType = "NPI1" | "NPI2";
+type ClientType = "Individual" | "Group";
 
 interface ImportResult {
   success: number;
@@ -63,7 +63,7 @@ const ClientImportModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const handleTypeSelect = (type: ClientType) => {
-    if (type === "NPI2") return; // disabled
+    if (type === "Group") return; // disabled
     setSelectedType(type);
     setStep("upload");
   };
@@ -145,30 +145,20 @@ const ClientImportModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
 
         const values = parseCSVLine(line);
         if (values.length !== headers.length) {
-          rowErrors.push(`Row ${i + 1}: column count mismatch.`);
-          continue;
+            rowErrors.push(`Row ${i + 1}: column count mismatch.`);
+            continue;
         }
 
         const row: Record<string, any> = {};
         headers.forEach((h, idx) => {
-          row[h] = values[idx]?.trim() || null;
+            row[h] = values[idx]?.trim() || null;
         });
 
-        // Enforce type: row type must match selected type
-        const rowType = row["type"]?.toUpperCase();
-        if (rowType && rowType !== selectedType) {
-          rowErrors.push(
-            `Row ${i + 1}: type "${row["type"]}" does not match selected type "${selectedType}".`
-          );
-          continue;
-        }
-
-        // Normalise type to selected type
+        // 🔥 FORCE TYPE (NO VALIDATION AGAINST CSV)
         row["type"] = selectedType;
 
         clients.push(row);
-      }
-
+        }
       if (clients.length === 0) {
         setParseError(
           rowErrors.length > 0
@@ -270,13 +260,13 @@ const ClientImportModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
               {/* NPI1 Card */}
               <button
                 className={`${styles.typeCard} ${styles.enabled}`}
-                onClick={() => handleTypeSelect("NPI1")}
+                onClick={() => handleTypeSelect("Individual")}
               >
                 <div className={styles.typeCardIcon}>
                   <Building2 size={28} />
                 </div>
                 <div className={styles.typeCardContent}>
-                  <h3>NPI-1</h3>
+                  <h3>Individual</h3>
                   <p>
                     Individual healthcare providers — physicians, nurses,
                     therapists, and other solo practitioners.
@@ -292,7 +282,7 @@ const ClientImportModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
                 </div>
                 <div className={styles.typeCardContent}>
                   <h3>
-                    NPI-2
+                    Group
                     <span className={styles.comingSoonBadge}>Coming soon</span>
                   </h3>
                   <p>

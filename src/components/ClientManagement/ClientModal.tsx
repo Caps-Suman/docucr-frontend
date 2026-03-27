@@ -341,7 +341,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
   const payload: any = {
     is_user: false,
-    type: type === "Group" ? "NPI2" : "NPI1",
+    type: type === "Group" ? "Group" : "Individual",
     description,
     specialty,
     specialty_code: specialtyCode,
@@ -427,115 +427,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
   return await onSubmit(payload);
 };
-  // const handleFinish = async () => {
-  //   const pid = primaryTempId || crypto.randomUUID();
-
-  //   // Construct Payload
-  //   const payload: any = {
-  //     is_user: false,
-  //     type: type === "Group" ? "NPI2" : "NPI1",
-  //     description,
-  //   };
-
-  //   if (type === "Group") {
-  //     payload.business_name = businessName;
-  //     payload.npi = npi;
-  //     payload.primary_temp_id = pid;
-  //     payload.locations = [
-  //       // Construct locations array for Individual client too
-  //       {
-  //         temp_id: pid,
-  //         address_line_1: addressLine1,
-  //         address_line_2: addressLine2,
-  //         city,
-  //         state_code: stateCode,
-  //         state_name: stateName,
-  //         zip_code: zipCode,
-  //         country,
-  //         is_primary: true
-  //       },
-  //       ...extraAddresses.map(a => ({
-  //         ...a,
-  //         temp_id: a.temp_id,
-  //         is_primary: false
-  //       }))
-  //     ];
-
-
-
-  //     // PRIMARY ORG ADDRESS
-  //     payload.address_line_1 = addressLine1;
-  //     payload.address_line_2 = addressLine2;
-  //     payload.city = city;
-  //     payload.state_code = stateCode;
-  //     payload.state_name = stateName;
-  //     payload.zip_code = zipCode;
-  //     payload.country = country;
-
-  //     let fixedProviders: any[] = [];
-
-  //     if (isProviderOrg) {
-  //       fixedProviders = providers.map(p => ({
-  //         ...p,
-  //         location_temp_id: p.location_temp_id || primaryTempId
-  //       }));
-
-  //       for (const p of fixedProviders) {
-  //         if (!p.location_temp_id) {
-  //           throw new Error("Provider missing location link");
-  //         }
-  //       }
-
-  //       payload.providers = fixedProviders;
-  //     }
-
-  //   } else {
-  //     payload.first_name = firstName;
-  //     payload.middle_name = middleName;
-  //     payload.last_name = lastName;
-  //     payload.npi = npi;
-  //     //need to put this:  payload.primary_temp_id = primaryTempId || providers[0].location_temp_id;
-  //     payload.primary_temp_id = pid;
-
-  //     // Construct locations array for Individual client too
-  //     payload.locations = [
-  //       {
-  //         temp_id: pid,
-  //         address_line_1: addressLine1,
-  //         address_line_2: addressLine2,
-  //         city,
-  //         state_code: stateCode,
-  //         state_name: stateName,
-  //         zip_code: zipCode,
-  //         country,
-  //         is_primary: true
-  //       },
-  //       ...extraAddresses.map(a => ({
-  //         ...a,
-  //         temp_id: a.temp_id,
-  //         is_primary: false
-  //       }))
-  //     ];
-
-  //     payload.address_line_1 = addressLine1;
-  //     payload.address_line_2 = addressLine2;
-  //     payload.city = city;
-  //     payload.state_code = stateCode;
-  //     payload.state_name = stateName;
-  //     payload.zip_code = zipCode;
-  //     payload.country = country;
-  //   }
-  //   // console.log("CREATE CLIENT PAYLOAD:", JSON.stringify(payload, null, 2));
-  //   if (payload.providers) {
-  //     for (const p of payload.providers) {
-  //       if (!p.zip_code || !/^\d{5}-\d{4}$/.test(p.zip_code)) {
-  //         throw new Error("Each provider must have a valid ZIP code");
-  //       }
-  //     }
-  //   }
-  //   return await onSubmit(payload);
-  // };
-
   const [providerErrors, setProviderErrors] = useState<string | null>(null);
 
   const [fetchingNpi, setFetchingNpi] = useState(false);
@@ -746,7 +637,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
       setLastName(initialData.last_name || "");
       setNpi(initialData.npi || "");
       const t = initialData.type;
-      setType(t === "Individual" || t === "NPI1" ? "Individual" : "Group");
+      setType(t === "Individual" ? "Individual" : "Group");
       setStatusId(initialData.status_id || "");
       setDescription(initialData.description || "");
       setAddressLine1(initialData.address_line_1 || "");
