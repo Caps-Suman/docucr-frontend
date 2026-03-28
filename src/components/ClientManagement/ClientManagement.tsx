@@ -63,7 +63,7 @@ const ClientManagement: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
 
   const [usersLoading, setUsersLoading] = useState(false);
-
+  const [clientType, setClientType] = useState<"Individual" | "Group" | "">("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null); // To be removed later after full integration
   const [showFilters, setShowFilters] = useState(false);
   const [loadingFilterData, setLoadingFilterData] = useState(false);
@@ -231,7 +231,7 @@ const ClientManagement: React.FC = () => {
 
   const handleEdit = async (client: Client) => {
     try {
-      if (client.type !== "Individual" && client.type !== "NPI1") {
+      if (client.type !== "Individual" && client.type !== "Individual") {
         setLoading(true);
         const fullClient = await clientService.getClient(client.id);
         setEditingClient(fullClient);
@@ -253,6 +253,7 @@ const ClientManagement: React.FC = () => {
   };
 
   const handleImport = () => {
+    
     setShowImportModal(true);
   };
 

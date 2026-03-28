@@ -243,7 +243,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
 
     const payload: any = {
       is_user: false,
-      type: type === "Group" ? "NPI2" : "NPI1",
+      type: type === "Group" ? "Group" : "Individual",
       description,
       
       address_line_1: addressLine1,

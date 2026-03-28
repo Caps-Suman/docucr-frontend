@@ -180,7 +180,7 @@ const ClientDetail: React.FC = () => {
                             </span>
                             <span>•</span>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Shield size={12} /> {client.type || "NPI1"}
+                                <Shield size={12} /> {client.type || "Individual"}
                             </span>
                             {client.npi && (
                                 <>
@@ -223,7 +223,7 @@ const ClientDetail: React.FC = () => {
                         <Pencil size={16} />
                         Edit Client
                     </button>
-                    {client.type !== "NPI1" && client.type !== "Individual" && (
+                    {client.type !== "Individual" && (
                         <button
                             className={styles.secondaryAction}
                             onClick={() => setIsAddLocationModalOpen(true)}
@@ -232,7 +232,7 @@ const ClientDetail: React.FC = () => {
                             Add Location
                         </button>
                     )}
-                    {client.type !== "NPI1" && client.type !== "Individual" && (
+                    {client.type !== "Individual" && (
                         <button
                             className={styles.primaryAction}
                             onClick={() => setIsAddProviderModalOpen(true)}

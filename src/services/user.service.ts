@@ -59,7 +59,35 @@ export interface UserUpdateData {
     role_ids?: string[];
     supervisor_id?: string;
 }
+export interface BulkUserRow {
+    email: string;
+    username: string;
+    first_name: string;
+    last_name: string;
+    password: string;
+    middle_name?: string;
+    phone_country_code?: string;
+    phone_number?: string;
+    role_ids?: string[];
+    supervisor_id?: string;
+}
 
+export interface BulkUserUploadRequest {
+    user_type: "internal" | "client";
+    client_id?: string;
+    users: BulkUserRow[];
+}
+
+export interface BulkUserUploadResponse {
+    created: number;
+    failed: number;
+    failed_rows: {
+        row_index: number;
+        email?: string;
+        error: string;
+    }[];
+    errors: string[];
+}
 const userService = {
     getUsers: async (
         page: number = 1,
@@ -95,7 +123,21 @@ const userService = {
         if (!response.ok) throw new Error('Failed to fetch users');
         return response.json();
     },
+    bulkCreateUsers: async (
+    data: BulkUserUploadRequest
+): Promise<BulkUserUploadResponse> => {
+    const response = await apiClient(`${API_URL}/api/users/bulk`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
 
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to bulk create users');
+    }
+
+    return response.json();
+},
     getUserStats: async (): Promise<UserStats> => {
         const response = await apiClient(`${API_URL}/api/users/stats`);
         if (!response.ok) throw new Error('Failed to fetch user stats');
