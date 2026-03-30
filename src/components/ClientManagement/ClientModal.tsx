@@ -73,6 +73,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
+  const [location_npi, setLocationNpi] = useState("");
   const [stateCode, setStateCode] = useState("");
   const [stateName, setStateName] = useState("");
   const [zipCode, setZipCode] = useState("");
@@ -81,10 +82,12 @@ const ClientModal: React.FC<ClientModalProps> = ({
   const [isProviderOrg, setIsProviderOrg] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [primaryTempId, setPrimaryTempId] = useState("");
-
+  const normalizeType = (t: string) =>
+  t?.toLowerCase() === "group" ? "Group" : "Individual";
   const [extraAddresses, setExtraAddresses] = useState<
     Array<{
       id?: string; // Backend ID
+      location_npi?: string;
       temp_id: string;
       address_line_1: string;
       address_line_2?: string;
@@ -148,6 +151,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
         if (primary) {
           setAddressLine1(primary.address_line_1);
           setAddressLine2(primary.address_line_2 || "");
+          setLocationNpi(primary.location_npi || ""); // In case primary location has its own NPI (for providers)
           setCity(primary.city);
           setStateCode(primary.state_code);
           setStateName(primary.state_name || "");
@@ -159,6 +163,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
         // Additional Locations
         const extras = initialData.locations.filter(l => !l.is_primary).map(l => ({
           temp_id: l.id, // Use real ID
+          npi: l.location_npi || "",
           address_line_1: l.address_line_1,
           address_line_2: l.address_line_2,
           city: l.city,
@@ -188,26 +193,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
           middle_name: p.middle_name || "",
           last_name: p.last_name,
           npi: p.npi,
-          // Provider addresses are not stored directly on provider object in backend currently?
-          // Wait, backend Provider model HAS location_id. 
-          // Does Provider model have address fields? NO. 
-          // Provider is linked to a Location.
-          // BUT Frontend ProviderForm expects address fields physically on the card?
-          // Re-reading `ClientModal.tsx`:
-          // The ProviderForm interface has `address_line_1`, etc.
-          // When we create a provider, we enter specific address fields?
-          // Let's check `ClientModal.tsx` form.
-          // Yes, each provider card has address inputs.
-          // BUT backend `ProviderResponse` in `clients_router.py` ONLY has names + NPI + ID + created_at.
-          // AND `get_client_by_id` (service) populates providers.
-          // Wait, look at `client_service.py` Step 282:
-          // It maps `provider_rows` to dicts.
-          // It includes `address_line_1`... wait.
-          // `provider_rows` query joins `ClientLocation`.
-          // So the `providers` array from backend DOES have address fields!
-          // Let verify `client_service.py` logic around line 785 (from diffs).
-          // It performs a join and aliases location fields.
-          // Correct. Backend returns flattened provider + location fields.
 
           address_line_1: (p as any).address_line_1 || "",
           address_line_2: (p as any).address_line_2 || "",
@@ -309,7 +294,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
   const providerTimeouts = useRef<{ [key: number]: NodeJS.Timeout }>({});
   const lastFetchedNpis = useRef<{ [key: number]: string }>({});
-
+  const locationTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
   useEffect(() => {
     if (step !== 2) return;
 
@@ -349,6 +334,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
   // ---------- PRIMARY LOCATION ----------
   const primaryLocation: any = {
+    npi: location_npi || null,
     address_line_1: addressLine1,
     address_line_2: addressLine2,
     city,
@@ -368,6 +354,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
   // ---------- SECONDARY LOCATIONS ----------
   const secondaryLocations = extraAddresses.map(a => {
     const loc: any = {
+      npi: a.location_npi || "",
       address_line_1: a.address_line_1,
       address_line_2: a.address_line_2,
       city: a.city,
@@ -386,8 +373,27 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
     return loc;
   });
+  const allLocations = [primaryLocation, ...secondaryLocations];
 
-  payload.locations = [primaryLocation, ...secondaryLocations];
+const processedLocations = allLocations.map((loc) => {
+  let finalNpi = loc.npi;
+
+  if (type === "Individual") {
+    finalNpi = npi;
+  } else if (type === "Group") {
+    if (allLocations.length === 1) {
+      finalNpi = npi;
+    } else {
+      finalNpi = loc.npi || npi;
+    }
+  }
+
+  return {
+    ...loc,
+    npi: finalNpi
+  };
+});
+  payload.locations = processedLocations;
 
   // ---------- BASIC FIELDS ----------
   if (type === "Group") {
@@ -737,7 +743,51 @@ const ClientModal: React.FC<ClientModalProps> = ({
     setExtraAddressErrors({});
     setProviderErrorsMap({});
   }, [initialData, isOpen]);
+  const handleLocationNpiLookup = async (index?: number, isPrimary = false) => {
+  const targetNpi = isPrimary
+    ? location_npi
+    : extraAddresses[index!]?.location_npi;
 
+  if (!targetNpi || !/^\d{10}$/.test(targetNpi)) return;
+
+  try {
+    const data = await clientService.lookupNPI(targetNpi);
+
+    if (data.results?.length > 0) {
+      const result = data.results[0];
+      const address =
+        result.addresses?.find((a: any) => a.address_purpose === "LOCATION") ||
+        result.addresses?.[0];
+
+      if (!address) return;
+
+      const mapped = {
+        address_line_1: address.address_1 || "",
+        address_line_2: address.address_2 || "",
+        city: address.city || "",
+        state_code: address.state || "",
+        zip_code: address.postal_code,
+        country: "United States"
+      };
+
+      if (isPrimary) {
+        setAddressLine1(mapped.address_line_1);
+        setAddressLine2(mapped.address_line_2);
+        setCity(mapped.city);
+        setStateCode(mapped.state_code);
+        setZipCode(mapped.zip_code);
+      } else {
+        setExtraAddresses((prev) => {
+          const copy = [...prev];
+          copy[index!] = { ...copy[index!], ...mapped };
+          return copy;
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Location NPI lookup failed", err);
+  }
+};
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
     const newExtraAddressErrors: { [index: number]: { [key: string]: string } } = {};
@@ -905,12 +955,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
         const basic = result.basic;
         const addresses = result.addresses;
 
-        // if (type === "Individual" && result.enumeration_type === "NPI-1") {
-        //   setFirstName(basic.first_name || "");
-        //   setLastName(basic.last_name || "");
-        //   setMiddleName(basic.middle_name || "");
-        //   setType("Individual");
-        // }
         if (result.enumeration_type === "NPI-1") {
           // Validate type match (only for Step 1 client NPI — not for providers in Step 2)
           if (index === undefined && type === "Group") {
@@ -1215,11 +1259,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
             <X size={20} />
           </button>
         </div>
-
-        {/* <form
-          className={styles.form}
-          onSubmit={step === 1 ? handleStep1Submit : undefined}
-        > */}
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.formContent}>
             {step === 1 && !isProviderStep && (
@@ -1235,31 +1274,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
                 />
               </div>
             )}
-
-            {/* <div className={styles.formGroup}>
-              <label className={styles.label}>Client Type *</label>
-              <Select
-                value={typeOptions.find((opt) => opt.value === type)}
-                onChange={(selected) =>
-                  setType(selected?.value || "Individual")
-                }
-                options={typeOptions}
-                placeholder="Select client type"
-                styles={{
-                  ...getCustomSelectStyles(),
-                  menu: (base) => ({
-                    ...getCustomSelectStyles().menu(base),
-                    zIndex: 10000,
-                  }),
-                  menuPortal: (base) => ({
-                    ...base,
-                    zIndex: 10000,
-                  }),
-                }}
-                menuPortalTarget={document.body}
-                menuPosition="fixed"
-              />
-            </div> */}
             {step === 1 && (
               <>
                 <div className={styles.formGroup}>
@@ -1374,8 +1388,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
                         onClick={() => setProviders(prev => prev.filter((_, i) => i !== index))}
                         title="Remove provider"
                         style={{ cursor: 'pointer' }}
-                      // disabled={providers.length <= 1}
-                      // style={{ opacity: providers.length <= 1 ? 0.5 : 1, cursor: providers.length <= 1 ? 'not-allowed' : 'pointer' }}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -1408,14 +1420,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
                             <div className={styles.spinner} />
                           </div>
                         )}
-                        {/* <button
-                          type="button"
-                          className={styles.lookupButton}
-                          onClick={() => handleFetchNPIDetails(index)}
-                          title="Lookup NPI details"
-                        >
-                          <Search size={18} /> */}
-                        {/* </button> */}
                       </div>
                       {providerErrorsMap[index]?.npi && <span className={styles.errorText}>{providerErrorsMap[index].npi}</span>}
                     </div>
@@ -1647,7 +1651,6 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
                     {/* Location Dropdown */}
                     <div className={styles.formGroup}>
-                      {/* <label className={styles.label}>Provider Location Link</label> */}
                       <label className={styles.label}>Select Client Location *</label>
                       <Select
                         value={
@@ -1820,6 +1823,36 @@ const ClientModal: React.FC<ClientModalProps> = ({
                     >
                       <Trash2 size={16} />
                     </button>
+                  </div>
+
+                                       <div className={styles.formGroup}>
+                    <input
+                      className={styles.input}
+                      placeholder="Location NPI"
+                      value={addr.location_npi || ""}
+                      onChange={(e) => {
+                        if (locationTimeouts.current[index]) {
+                          clearTimeout(locationTimeouts.current[index]);
+                        }
+
+                        locationTimeouts.current[index] = setTimeout(() => {
+                          handleLocationNpiLookup(index);
+                        }, 500);
+                        setExtraAddresses((prev) => {
+                          const copy = [...prev];
+                          copy[index] = {
+                            ...copy[index],
+                            location_npi: e.target.value,
+                          };
+                          return copy;
+                        });
+                      }}
+                        onBlur={() => handleLocationNpiLookup(index)}
+
+
+                      style={extraAddressErrors[index]?.location_npi ? { borderColor: 'red' } : {}}
+                    />
+                    {extraAddressErrors[index]?.location_npi && <span className={styles.errorText}>{extraAddressErrors[index].location_npi}</span>}
                   </div>
 
                   <div className={styles.formGroup}>

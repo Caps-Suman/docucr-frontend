@@ -496,3 +496,41 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.schemaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+ 
+@media (max-width: 640px) {
+  .schemaGrid {
+    grid-template-columns: 1fr;
+  }
+}
+ 
+.schemaSheet {
+  background: var(--color-surface-raised, #f8f9fa);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+ 
+.schemaSheet strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary, #1a202c);
+  text-transform: capitalize;
+}
+ 
+.schemaSheet code {
+  font-size: 10px;
+  color: var(--color-text-secondary, #718096);
+  line-height: 1.5;
+  word-break: break-word;
+  font-family: "JetBrains Mono", "Fira Mono", monospace;
+}

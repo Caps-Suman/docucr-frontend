@@ -4,6 +4,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export interface ClientLocation {
     id: string;
+    location_npi:string;
     address_line_1: string;
     address_line_2?: string;
     city: string;
