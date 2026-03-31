@@ -468,6 +468,7 @@ const BulkUserUploadModal: React.FC<BulkUserUploadModalProps> = ({
                                 <div>
                                     <p className={styles.sectionDesc}>
                                         Upload a CSV file with user data.
+                                        Don't worry about column order — just make sure required headers are present. Don't change the header names, but extra columns are fine! See the template for details.
                                         {isClientType && selectedClient && (
                                             <span className={styles.clientTag}> Client: <strong>{selectedClient.name}</strong></span>
                                         )}
@@ -479,21 +480,6 @@ const BulkUserUploadModal: React.FC<BulkUserUploadModalProps> = ({
                                 </button>
                             </div>
 
-                            {/* Required columns */}
-                            <div className={styles.requiredBox}>
-                                <span className={styles.requiredLabel}>Required columns:</span>
-                                {REQUIRED_FIELDS.map(f => (
-                                    <span key={f} className={styles.requiredChip}>{f}</span>
-                                ))}
-                                {!isClientType && (
-                                    <>
-                                        <span className={styles.optionalChip}>role_names</span>
-                                        <span className={styles.optionalChip}>supervisor_email</span>
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Dropzone */}
                             <div
                                 className={`${styles.dropzone} ${dragging ? styles.dropzoneActive : ''} ${file ? styles.dropzoneHasFile : ''}`}
                                 onDragOver={e => { e.preventDefault(); setDragging(true); }}

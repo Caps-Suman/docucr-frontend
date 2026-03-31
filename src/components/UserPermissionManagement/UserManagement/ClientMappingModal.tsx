@@ -53,7 +53,6 @@ const ClientMappingModal: React.FC<ClientMappingModalProps> = ({ isOpen, onClose
             const assigned = await userService.getUserClients(user.id);
             setAssignedClients(assigned);
 
-            // const allClients = await clientService.getVisibleClients();
             const allClients = await clientService.getAllClients();
             const assignedIds = new Set(assigned.map((c: any) => c.id));
             const unassigned = allClients.filter(c => !assignedIds.has(c.id));

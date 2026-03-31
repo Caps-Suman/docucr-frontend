@@ -37,7 +37,8 @@ const NPI2_CLIENT_HEADERS = ["client_ref", "business_name", "npi"];
 // location_npi is now required – it is the NPI assigned to a specific location
 const NPI2_LOCATION_HEADERS = [
   "client_ref", "location_ref", "location_npi",
-  "address", "city", "state", "is_primary",
+  "address", "city", "state", "location_type",
+  "zip_code", "country",
 ];
 
 // Providers are linked via both location_ref AND location_npi
@@ -277,7 +278,9 @@ function parseGroupXLSX(
       continue;
     }
 
-    const primaryLocs = locs.filter((l) => asPrimary(l["is_primary"]));
+    const primaryLocs = locs.filter(
+  (l) => str(l["location_type"]).toLowerCase() === "primary"
+);
     if (primaryLocs.length === 0) {
       validationErrors.push(`Client '${ref}': no location has is_primary=true.`);
       continue;
@@ -318,6 +321,8 @@ function parseGroupXLSX(
     // ── Location payload → BulkLocationCreate ─────────────────────────────
     const locationPayload = locs.map((l) => {
       const stateRaw = str(l["state"]);
+      const locationType = str(l["location_type"]).toLowerCase();
+
       return {
         temp_id:        str(l["location_ref"]) || null,
         location_npi:   strOrNull(l["location_npi"]),   // ← new field
@@ -328,7 +333,7 @@ function parseGroupXLSX(
         state_name:     stateRaw || null,
         zip_code:       strOrNull(l["zip_code"]),
         country:        str(l["country"]) || "United States",
-        is_primary:     asPrimary(l["is_primary"]),
+        is_primary: str(l["location_type"]).toLowerCase() === "primary"
       };
     });
 
@@ -451,11 +456,11 @@ function downloadTemplate(type: ClientType) {
 
     const locationHeaders = [
       "client_ref *", "location_ref *", "location_npi *",
-      "address *", "city *", "state *", "is_primary *",
+      "address *", "city *", "state *", "location_type *",
       "address_2", "zip_code", "country",
     ];
-    const locationExample1 = ["GRP001", "LOC001", "3333333333", "100 Sunrise Blvd", "Los Angeles", "CA", "TRUE", "Suite 1", "90001", "United States"];
-    const locationExample2 = ["GRP001", "LOC002", "4444444444", "200 Wellness Ave", "San Diego", "CA", "FALSE", "", "92101", "United States"];
+    const locationExample1 = ["GRP001", "LOC001", "3333333333", "100 Sunrise Blvd", "Los Angeles", "CA", "Primary", "Suite 1", "90001", "United States"];
+    const locationExample2 = ["GRP001", "LOC002", "4444444444", "200 Wellness Ave", "San Diego", "CA", "Secondary", "", "92101", "United States"];
 
     const providerHeaders = [
       "client_ref *", "location_ref *", "location_npi *",
@@ -644,16 +649,18 @@ const ClientImportModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
                 <Info size={15} />
                 {selectedType === "Individual" ? (
                   <span>
-                    File must include: <code>first_name, last_name, npi, state</code>.
                     Accepts <strong>.csv</strong> or <strong>.xlsx</strong>.
+                    Don't worry about column order — just make sure required headers are present.
+                    Don't change the header names, but extra columns are fine! See the template for details.
                   </span>
                 ) : (
                   <span>
                     XLSX must have <strong>3 sheets</strong>: <code>clients</code>,{" "}
-                    <code>locations</code>, <code>providers</code>. Each location needs a{" "}
-                    <code>location_npi</code>. Providers link to a location via{" "}
-                    <code>location_ref</code> <strong>+</strong> <code>location_npi</code>.
-                    Exactly one location per client must have <code>is_primary=true</code>.
+                    <code>locations</code>, <code>providers</code>Providers link to a location via{" "}
+                    <code>location_serial_number</code>.
+                    Exactly one location per client must have <code>location_type as primary</code>.
+                    Don't worry about column order — just make sure required headers are present.
+                    Don't change the header names, but extra columns are fine! See the template for details.
                   </span>
                 )}
               </div>
