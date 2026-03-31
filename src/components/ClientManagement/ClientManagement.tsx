@@ -831,10 +831,10 @@ const ClientManagement: React.FC = () => {
               <Users size={14} style={{ marginRight: "6px" }} />
               Add Client
             </button>
-            {/* <button className={styles.addBtn} onClick={handleImport}>
+            <button className={styles.addBtn} onClick={handleImport}>
               <Upload size={14} style={{ marginRight: "6px" }} />
               Import Client
-            </button> */}
+            </button>
           </div>
         </div>
         {clients.length === 0 ? (

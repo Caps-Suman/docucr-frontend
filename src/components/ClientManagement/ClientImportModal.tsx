@@ -1,16 +1,8 @@
 import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import {
-  Upload,
-  X,
-  FileText,
-  AlertCircle,
-  CheckCircle,
-  ChevronRight,
-  ArrowLeft,
-  Building2,
-  Users,
-  Info,
+  Upload, X, FileText, AlertCircle, CheckCircle,
+  ChevronRight, ArrowLeft, Building2, Users, Info, Download,
 } from "lucide-react";
 import clientService from "../../services/client.service";
 import styles from "./ClientImportModal.module.css";
@@ -35,18 +27,23 @@ interface ImportResult {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Schema constants
+// Header validation constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Only truly required columns — middle_name, business_name, email, phone_* are optional
 const NPI1_REQUIRED_HEADERS = ["first_name", "last_name", "npi", "state"];
 
-const NPI2_CLIENT_HEADERS   = ["client_ref", "business_name", "npi", "state_name"];
-const NPI2_LOCATION_HEADERS = ["client_ref", "location_ref", "address", "city", "state", "is_primary"];
+const NPI2_CLIENT_HEADERS = ["client_ref", "business_name", "npi"];
+
+// location_npi is now required – it is the NPI assigned to a specific location
+const NPI2_LOCATION_HEADERS = [
+  "client_ref", "location_ref", "location_npi",
+  "address", "city", "state", "is_primary",
+];
+
+// Providers are linked via both location_ref AND location_npi
 const NPI2_PROVIDER_HEADERS = [
-  "client_ref", "location_ref",
+  "client_ref", "location_ref", "location_npi",
   "first_name", "last_name", "npi",
-  "provider_address", "provider_city", "provider_state",
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,7 +73,8 @@ function normaliseKeys(rows: Record<string, any>[]): Record<string, any>[] {
 
 function deriveStateCode(state: string): string {
   if (!state) return "";
-  if (state.length === 2) return state.toUpperCase();
+  const trimmed = state.trim();
+  if (trimmed.length === 2) return trimmed.toUpperCase();
   const map: Record<string, string> = {
     alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR",
     california: "CA", colorado: "CO", connecticut: "CT", delaware: "DE",
@@ -93,7 +91,7 @@ function deriveStateCode(state: string): string {
     virginia: "VA", washington: "WA", "west virginia": "WV",
     wisconsin: "WI", wyoming: "WY",
   };
-  return map[state.toLowerCase()] ?? state.slice(0, 2).toUpperCase();
+  return map[trimmed.toLowerCase()] ?? trimmed.slice(0, 2).toUpperCase();
 }
 
 function asPrimary(val: any): boolean {
@@ -101,11 +99,69 @@ function asPrimary(val: any): boolean {
   return String(val).toLowerCase() === "true" || String(val) === "1";
 }
 
+function str(val: any): string {
+  return String(val ?? "").trim();
+}
+
+function strOrNull(val: any): string | null {
+  const s = str(val);
+  return s || null;
+}
+
+function readWorkbook(buffer: ArrayBuffer): XLSX.WorkBook {
+  return XLSX.read(buffer, { type: "array" });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Parsers
-// Both return a `clients` array that goes directly into the POST /bulk body.
-// The `type` discriminator field routes processing on the backend.
+// Individual parsers (unchanged)
 // ─────────────────────────────────────────────────────────────────────────────
+
+function parseIndividualRows(
+  rows: Record<string, any>[]
+): { clients: Record<string, any>[]; rowErrors: string[] } {
+  const clients: Record<string, any>[] = [];
+  const rowErrors: string[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowNum = i + 2;
+
+    const missingRequired = NPI1_REQUIRED_HEADERS.filter(
+      (h) => !row[h] || str(row[h]) === ""
+    );
+    if (missingRequired.length) {
+      rowErrors.push(`Row ${rowNum}: missing required fields: ${missingRequired.join(", ")}`);
+      continue;
+    }
+
+    const stateRaw = str(row["state"]);
+
+    clients.push({
+      type: "Individual",
+      first_name: str(row["first_name"]),
+      middle_name: strOrNull(row["middle_name"]),
+      last_name: str(row["last_name"]),
+      business_name: strOrNull(row["business_name"]),
+      npi: str(row["npi"]),
+      is_user: false,
+      providers: [],
+      locations: null,
+      primary_temp_id: null,
+      address_line_1: strOrNull(row["address_line_1"]),
+      address_line_2: strOrNull(row["address_line_2"]),
+      city: strOrNull(row["city"]),
+      state_code: deriveStateCode(stateRaw),
+      state_name: stateRaw || null,
+      zip_code: strOrNull(row["zip_code"]),
+      country: str(row["country"]) || "United States",
+      description: strOrNull(row["description"]),
+      specialty: strOrNull(row["specialty"]),
+      specialty_code: strOrNull(row["specialty_code"]),
+    });
+  }
+
+  return { clients, rowErrors };
+}
 
 function parseIndividualCSV(
   text: string
@@ -122,36 +178,54 @@ function parseIndividualCSV(
   if (missing.length)
     throw new Error(`Missing required columns: ${missing.join(", ")}`);
 
-  const clients: Record<string, any>[] = [];
-  const rowErrors: string[] = [];
+  const rawRows: Record<string, any>[] = [];
+  const earlyErrors: string[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
     const values = parseCSVLine(line);
     if (values.length !== headers.length) {
-      rowErrors.push(`Row ${i + 1}: column count mismatch (got ${values.length}, expected ${headers.length}).`);
+      earlyErrors.push(`Row ${i + 1}: column count mismatch (got ${values.length}, expected ${headers.length}).`);
       continue;
     }
     const row: Record<string, any> = {};
     headers.forEach((h, idx) => (row[h] = values[idx]?.trim() || null));
-    row["type"] = "Individual"; // always force — backend discriminates on this
-    row["address_line_1"] = row["address_line_1"] || null;
-    row["address_line_2"] = row["address_line_2"] || null;
-    row["city"] = row["city"] || null;
-    row["state_code"] = deriveStateCode(row["state"]);
-    row["state_name"] = row["state"] || null;
-    row["zip_code"] = row["zip_code"] || null;
-    row["country"] = "United States";
-
-    row["description"] = row["description"] || null;
-    row["specialty"] = row["specialty"] || null;
-    row["specialty_code"] = row["specialty_code"] || null;
-    clients.push(row);
+    rawRows.push(row);
   }
 
-  return { clients, rowErrors };
+  const { clients, rowErrors } = parseIndividualRows(rawRows);
+  return { clients, rowErrors: [...earlyErrors, ...rowErrors] };
 }
+
+function parseIndividualXLSX(
+  wb: XLSX.WorkBook
+): { clients: Record<string, any>[]; rowErrors: string[] } {
+  const sheetName = wb.SheetNames[0];
+  if (!sheetName) throw new Error("Workbook is empty — no sheets found.");
+
+  const rawRows = normaliseKeys(
+    XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: null })
+  );
+  if (!rawRows.length) throw new Error("Sheet is empty — no data rows found.");
+
+  const headers = Object.keys(rawRows[0]);
+  const missing = NPI1_REQUIRED_HEADERS.filter((h) => !headers.includes(h));
+  if (missing.length)
+    throw new Error(`Missing required columns: ${missing.join(", ")}`);
+
+  return parseIndividualRows(rawRows);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Group parser
+//
+// Each location row now carries a location_npi column.
+// Provider → location linkage is validated and sent as a composite key:
+//   location_temp_id = location_ref value
+//   location_npi     = location_npi value
+// The backend uses whichever identifier resolves the location first.
+// ─────────────────────────────────────────────────────────────────────────────
 
 function parseGroupXLSX(
   wb: XLSX.WorkBook
@@ -174,7 +248,7 @@ function parseGroupXLSX(
   const locationRows = normaliseKeys(XLSX.utils.sheet_to_json(getSheet("locations"), { defval: null }));
   const providerRows = normaliseKeys(XLSX.utils.sheet_to_json(getSheet("providers"), { defval: null }));
 
-  // ── Header validation ───────────────────────────────────────────────────
+  // ── Header validation ──────────────────────────────────────────────────────
   const headerErrors: string[] = [];
   const checkHeaders = (rows: Record<string, any>[], required: string[], sheet: string) => {
     if (!rows.length) { headerErrors.push(`[${sheet}] sheet is empty.`); return; }
@@ -187,21 +261,17 @@ function parseGroupXLSX(
   checkHeaders(providerRows, NPI2_PROVIDER_HEADERS, "providers");
   if (headerErrors.length) throw new Error(headerErrors.join("\n"));
 
-  // ── Row-level validation & payload assembly ─────────────────────────────
   const validationErrors: string[] = [];
   const clients: Record<string, any>[] = [];
 
   for (const clientRow of clientRows) {
-    const ref = String(clientRow["client_ref"] ?? "").trim();
+    const ref = str(clientRow["client_ref"]);
     if (!ref) {
       validationErrors.push("A row in [clients] is missing client_ref.");
       continue;
     }
 
-    // Locations for this client
-    const locs = locationRows.filter(
-      (l) => String(l["client_ref"] ?? "").trim() === ref
-    );
+    const locs = locationRows.filter((l) => str(l["client_ref"]) === ref);
     if (!locs.length) {
       validationErrors.push(`Client '${ref}': no rows in [locations] — at least one required.`);
       continue;
@@ -213,176 +283,256 @@ function parseGroupXLSX(
       continue;
     }
     if (primaryLocs.length > 1) {
-      validationErrors.push(`Client '${ref}': ${primaryLocs.length} locations marked is_primary=true — only one allowed.`);
+      validationErrors.push(
+        `Client '${ref}': ${primaryLocs.length} locations marked is_primary=true — only one allowed.`
+      );
       continue;
     }
 
-    // Providers for this client — validate location_ref linkage
-    const provs = providerRows.filter(
-      (p) => String(p["client_ref"] ?? "").trim() === ref
+    // ── Composite key set: "location_ref|location_npi" ────────────────────
+    // A provider row is valid only when BOTH location_ref AND location_npi
+    // together match a row in [locations] for this client.
+    const locCompositeKeys = new Set(
+      locs.map((l) => `${str(l["location_ref"])}|${str(l["location_npi"])}`)
     );
-    const locRefs = new Set(locs.map((l) => String(l["location_ref"] ?? "").trim()));
+
+    const provs = providerRows.filter((p) => str(p["client_ref"]) === ref);
+
     for (const p of provs) {
-      const locRef = String(p["location_ref"] ?? "").trim();
-      if (locRef && !locRefs.has(locRef)) {
-        validationErrors.push(
-          `Client '${ref}', provider '${p["first_name"]} ${p["last_name"]}': ` +
-          `location_ref '${locRef}' does not exist in [locations].`
-        );
+      const provLocRef = str(p["location_ref"]);
+      const provLocNpi = str(p["location_npi"]);
+      if (provLocRef || provLocNpi) {
+        const compositeKey = `${provLocRef}|${provLocNpi}`;
+        if (!locCompositeKeys.has(compositeKey)) {
+          validationErrors.push(
+            `Client '${ref}', provider '${str(p["first_name"])} ${str(p["last_name"])}': ` +
+            `location_ref '${provLocRef}' + location_npi '${provLocNpi}' ` +
+            `does not match any location in [locations].`
+          );
+        }
       }
     }
 
-    // zip_code lives on the clients sheet, not the locations sheet —
-    // read it once from clientRow and share it across all locations for this client.
-    const clientZip = clientRow["zip_code"] ? String(clientRow["zip_code"]).trim() : null;
-
-    // Build location payload
- const locationPayload = locs.map((l) => ({
-  temp_id: String(l["location_ref"] ?? "").trim(),
-
-  address_line_1: String(l["address"] ?? "").trim(),
-  address_line_2: String(l["address_2"] ?? "").trim() || null,
-
-  city: String(l["city"] ?? "").trim(),
-  state_code: deriveStateCode(String(l["state"] ?? "").trim()),
-  state_name: String(l["state"] ?? "").trim(),
-
-  zip_code: String(l["zip_code"] ?? "").trim(),
-  country: "United States",
-
-  is_primary: asPrimary(l["is_primary"]),
-}));
-    // Build provider payload
-    const providerPayload = provs.map((p) => ({
-  first_name: String(p["first_name"] ?? "").trim(),
-  middle_name: String(p["middle_name"] ?? "").trim() || null,
-  last_name: String(p["last_name"] ?? "").trim(),
-  npi: String(p["npi"] ?? "").trim(),
-  ptan_id: String(p["ptan_id"] ?? "").trim() || null,
-
-  address_line_1: String(p["provider_address"] ?? "").trim(),
-  address_line_2: String(p["provider_address_2"] ?? "").trim() || null,
-  city: String(p["provider_city"] ?? "").trim(),
-  state_code: deriveStateCode(String(p["provider_state"] ?? "").trim()),
-  state_name: String(p["provider_state"] ?? "").trim(),
-  zip_code: String(p["provider_zip"] ?? "").trim(),
-  country: "United States",
-
-  specialty: String(p["specialty"] ?? "").trim() || null,
-  specialty_code: String(p["specialty_code"] ?? "").trim() || null,
-
-  location_temp_id: String(p["location_ref"] ?? "").trim(),
-}));
-
     const primaryLoc = primaryLocs[0];
 
-clients.push({
-  type: "Group",
+    // ── Location payload → BulkLocationCreate ─────────────────────────────
+    const locationPayload = locs.map((l) => {
+      const stateRaw = str(l["state"]);
+      return {
+        temp_id:        str(l["location_ref"]) || null,
+        location_npi:   strOrNull(l["location_npi"]),   // ← new field
+        address_line_1: str(l["address"]),
+        address_line_2: strOrNull(l["address_2"]),
+        city:           str(l["city"]),
+        state_code:     deriveStateCode(stateRaw),
+        state_name:     stateRaw || null,
+        zip_code:       strOrNull(l["zip_code"]),
+        country:        str(l["country"]) || "United States",
+        is_primary:     asPrimary(l["is_primary"]),
+      };
+    });
 
-  business_name: String(clientRow["business_name"] ?? "").trim(),
-  npi: String(clientRow["npi"] ?? "").trim(),
+    // ── Provider payload → BulkProviderCreate ─────────────────────────────
+    const providerPayload = provs.map((p) => {
+      const provStateRaw = str(p["provider_state"]);
+      return {
+        first_name:       str(p["first_name"]),
+        middle_name:      strOrNull(p["middle_name"]),
+        last_name:        str(p["last_name"]),
+        npi:              str(p["npi"]),
+        ptan_id:          strOrNull(p["ptan_id"]),
 
-  description: String(clientRow["description"] ?? "").trim() || null,
-  specialty: String(clientRow["specialty"] ?? "").trim() || null,
-  specialty_code: String(clientRow["specialty_code"] ?? "").trim() || null,
+        // Composite reference: backend resolves location by temp_id + location_npi
+        location_temp_id: str(p["location_ref"]) || null,
+        location_npi:     strOrNull(p["location_npi"]),   // ← new field
 
-  primary_temp_id: String(primaryLoc["location_ref"] ?? "").trim(),
+        address_line_1:   strOrNull(p["provider_address"]),
+        address_line_2:   strOrNull(p["provider_address_2"]),
+        city:             strOrNull(p["provider_city"]),
+        state_code:       provStateRaw ? deriveStateCode(provStateRaw) : null,
+        state_name:       provStateRaw || null,
+        zip_code:         strOrNull(p["provider_zip"]),
+        country:          "United States",
+        specialty:        strOrNull(p["specialty"]),
+        specialty_code:   strOrNull(p["specialty_code"]),
+      };
+    });
 
-  address_line_1: String(primaryLoc["address"] ?? "").trim(),
-  address_line_2: String(primaryLoc["address_2"] ?? "").trim() || null,
-  city: String(primaryLoc["city"] ?? "").trim(),
-  state_code: deriveStateCode(String(primaryLoc["state_name"] ?? "").trim()),
-  state_name: String(primaryLoc["state_name"] ?? "").trim(),
-  zip_code: String(primaryLoc["zip_code"] ?? "").trim(),
-  country: "United States",
+    const primaryStateRaw = str(primaryLoc["state"]);
+    const primaryTempId   = str(primaryLoc["location_ref"]) || null;
 
-  locations: locationPayload,
-  providers: providerPayload,
-});
+    clients.push({
+      type: "Group",
+
+      business_name:  str(clientRow["business_name"]),
+      npi:            str(clientRow["npi"]),
+      description:    strOrNull(clientRow["description"]),
+      specialty:      strOrNull(clientRow["specialty"]),
+      specialty_code: strOrNull(clientRow["specialty_code"]),
+
+      // Top-level address mirrored from primary location
+      address_line_1: str(primaryLoc["address"]),
+      address_line_2: strOrNull(primaryLoc["address_2"]),
+      city:           str(primaryLoc["city"]),
+      state_code:     deriveStateCode(primaryStateRaw),
+      state_name:     primaryStateRaw || null,
+      zip_code:       strOrNull(primaryLoc["zip_code"]) ?? strOrNull(clientRow["zip_code"]),
+      country:        "United States",
+
+      primary_temp_id: primaryTempId,
+      locations:       locationPayload,
+      providers:       providerPayload,
+    });
   }
 
   return { clients, validationErrors };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Component
+// Unified file dispatcher
 // ─────────────────────────────────────────────────────────────────────────────
 
+async function parseFile(
+  file: File,
+  selectedType: ClientType
+): Promise<{ clients: Record<string, any>[]; errors: string[] }> {
+  const isCSV  = file.name.toLowerCase().endsWith(".csv");
+  const isXLSX = /\.xlsx?$/i.test(file.name);
+
+  if (!isCSV && !isXLSX)
+    throw new Error("Unsupported file format. Please upload a .csv or .xlsx file.");
+
+  if (selectedType === "Individual") {
+    if (isCSV) {
+      const text = await file.text();
+      const { clients, rowErrors } = parseIndividualCSV(text);
+      return { clients, errors: rowErrors };
+    } else {
+      const buffer = await file.arrayBuffer();
+      const { clients, rowErrors } = parseIndividualXLSX(readWorkbook(buffer));
+      return { clients, errors: rowErrors };
+    }
+  } else {
+    if (isCSV)
+      throw new Error(
+        "Group imports require an XLSX file with 3 sheets: clients, locations, providers.\n" +
+        "A single CSV cannot represent the nested locations and providers structure."
+      );
+    const buffer = await file.arrayBuffer();
+    const { clients, validationErrors } = parseGroupXLSX(readWorkbook(buffer));
+    return { clients, errors: validationErrors };
+  }
+}
+
+function downloadTemplate(type: ClientType) {
+  if (type === "Individual") {
+    const headers = [
+      "first_name *", "last_name *", "npi *", "state *",
+      "middle_name", "business_name",
+      "address_line_1", "address_line_2", "city", "zip_code", "country",
+      "description", "specialty", "specialty_code",
+    ];
+    const example = [
+      "Jane", "Doe", "1234567890", "CA",
+      "M", "",
+      "123 Main St", "Ste 4", "Los Angeles", "90001", "United States",
+      "Primary care", "Internal Medicine", "207Q00000X",
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Individual");
+    XLSX.writeFile(wb, "Individual_Import_Template.xlsx");
+  } else {
+    const clientHeaders = [
+      "client_ref *", "business_name *", "npi *",
+      "description", "specialty", "specialty_code",
+    ];
+    const clientExample = ["GRP001", "Sunrise Health Clinic", "1111111111", "", "Family Medicine", "207Q00000X"];
+
+    const locationHeaders = [
+      "client_ref *", "location_ref *", "location_npi *",
+      "address *", "city *", "state *", "is_primary *",
+      "address_2", "zip_code", "country",
+    ];
+    const locationExample1 = ["GRP001", "LOC001", "3333333333", "100 Sunrise Blvd", "Los Angeles", "CA", "TRUE", "Suite 1", "90001", "United States"];
+    const locationExample2 = ["GRP001", "LOC002", "4444444444", "200 Wellness Ave", "San Diego", "CA", "FALSE", "", "92101", "United States"];
+
+    const providerHeaders = [
+      "client_ref *", "location_ref *", "location_npi *",
+      "first_name *", "last_name *", "npi *",
+      "middle_name", "ptan_id",
+      "provider_address", "provider_address_2", "provider_city", "provider_state", "provider_zip",
+      "specialty", "specialty_code",
+    ];
+    const providerExample1 = ["GRP001", "LOC001", "3333333333", "Alice", "Johnson", "6666666666", "R", "P12345", "", "", "", "", "", "Internal Medicine", "207R00000X"];
+    const providerExample2 = ["GRP001", "LOC002", "4444444444", "Bob", "Williams", "7777777777", "", "", "", "", "", "", "", "Family Medicine", "207Q00000X"];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([clientHeaders,   clientExample]),                    "clients");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([locationHeaders, locationExample1, locationExample2]), "locations");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([providerHeaders, providerExample1, providerExample2]), "providers");
+    XLSX.writeFile(wb, "Group_Import_Template.xlsx");
+  }
+}
+
 const ClientImportModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
-  const [step, setStep]                 = useState<Step>("select-type");
-  const [selectedType, setSelectedType] = useState<ClientType | null>(null);
-  const [file, setFile]                 = useState<File | null>(null);
-  const [isDragging, setIsDragging]     = useState(false);
-  const [importing, setImporting]       = useState(false);
-  const [result, setResult]             = useState<ImportResult | null>(null);
-  const [parseError, setParseError]     = useState<string | null>(null);
+  const [step, setStep]                     = useState<Step>("select-type");
+  const [selectedType, setSelectedType]     = useState<ClientType | null>(null);
+  const [file, setFile]                     = useState<File | null>(null);
+  const [isDragging, setIsDragging]         = useState(false);
+  const [importing, setImporting]           = useState(false);
+  const [result, setResult]                 = useState<ImportResult | null>(null);
+  const [parseError, setParseError]         = useState<string | null>(null);
   const [validationDone, setValidationDone] = useState(false);
   const [validatedClients, setValidatedClients] = useState<any[]>([]);
-  const fileInputRef                    = useRef<HTMLInputElement>(null);
+  const [previewCount, setPreviewCount]     = useState<number>(0);
+  const fileInputRef                        = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setStep("select-type"); setSelectedType(null);
     setFile(null); setResult(null); setParseError(null);
+    setValidationDone(false); setValidatedClients([]); setPreviewCount(0);
   };
-  const handleClose       = () => { reset(); onClose(); };
-  const handleBack        = () => reset();
-  const handleTypeSelect  = (type: ClientType) => { setSelectedType(type); setStep("upload"); };
+  const handleClose      = () => { reset(); onClose(); };
+  const handleBack       = () => reset();
+  const handleTypeSelect = (type: ClientType) => { setSelectedType(type); setStep("upload"); };
 
   const validateFile = (f: File): string | null => {
-    if (selectedType === "Individual" && !f.name.endsWith(".csv"))
-      return "Individual imports require a .csv file.";
-    if (selectedType === "Group" && !f.name.match(/\.xlsx?$/i))
-      return "Group imports require an .xlsx file.";
-    if (f.size > 10 * 1024 * 1024) return "File size must be under 10 MB.";
+    const isCSV  = f.name.toLowerCase().endsWith(".csv");
+    const isXLSX = /\.xlsx?$/i.test(f.name);
+    if (!isCSV && !isXLSX)
+      return "Please upload a .csv or .xlsx file.";
+    if (selectedType === "Group" && isCSV)
+      return "Group imports require an XLSX file (3 sheets: clients, locations, providers).";
+    if (f.size > 10 * 1024 * 1024)
+      return "File size must be under 10 MB.";
     return null;
   };
-const handleValidate = async () => {
-  if (!file || !selectedType) return;
 
-  setImporting(true);
-  setParseError(null);
-
-  try {
-    let clients: any[] = [];
-    let errors: string[] = [];
-
-    if (selectedType === "Individual") {
-      const text = await file.text();
-      const { clients: parsed, rowErrors } = parseIndividualCSV(text);
-
-      clients = parsed;
-      errors = rowErrors;
-
-    } else {
-      const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer, { type: "array" });
-
-      const { clients: parsed, validationErrors } = parseGroupXLSX(wb);
-
-      clients = parsed;
-      errors = validationErrors;
+  const handleValidate = async () => {
+    if (!file || !selectedType) return;
+    setImporting(true);
+    setParseError(null);
+    setValidationDone(false);
+    setValidatedClients([]);
+    setPreviewCount(0);
+    try {
+      const { clients, errors } = await parseFile(file, selectedType);
+      if (errors.length) { setParseError(errors.join("\n")); return; }
+      if (!clients.length) { setParseError("No valid rows found in the file."); return; }
+      setValidatedClients(clients);
+      setPreviewCount(clients.length);
+      setValidationDone(true);
+    } catch (err: any) {
+      setParseError(err?.message || "Validation failed.");
+    } finally {
+      setImporting(false);
     }
+  };
 
-    if (errors.length) {
-      setParseError(errors.join("\n"));
-      setValidationDone(false);
-      return;
-    }
-
-    // 🔥 OPTIONAL: call backend validation API (BEST PRACTICE)
-    // await clientService.validateBulk(clients)
-
-    setValidatedClients(clients);
-    setValidationDone(true);
-
-  } catch (err: any) {
-    setParseError(err?.message || "Validation failed");
-  } finally {
-    setImporting(false);
-  }
-};
   const processFile = (f: File) => {
     setParseError(null); setResult(null);
+    setValidationDone(false); setValidatedClients([]); setPreviewCount(0);
     const err = validateFile(f);
     err ? setParseError(err) : setFile(f);
   };
@@ -395,106 +545,37 @@ const handleValidate = async () => {
     const f = e.target.files?.[0]; if (f) processFile(f);
   };
 
-  // ── Core import handler ───────────────────────────────────────────────────
   const handleImport = async () => {
-  if (!validationDone) {
-    setParseError("Please validate before importing.");
-    return;
-  }
-
-  setImporting(true);
-
-  try {
-    const response = await clientService.createClientsFromBulk(validatedClients);
-
-    setResult({
-      success: response.success,
-      failed: response.failed,
-      errors: response.errors || [],
-    });
-
-    if (response.success > 0) onSuccess();
-
-  } catch (err: any) {
-    setParseError(err?.message || "Import failed");
-  } finally {
-    setImporting(false);
-  }
-};
-//   const handleImport = async () => {
-//     if (!file || !selectedType) return;
-//     setImporting(true);
-//     setParseError(null);
-
-//     try {
-//       let clients: Record<string, any>[] = [];
-//       let preflightFailed = 0;
-//       let preflightErrors: string[] = [];
-
-//       if (selectedType === "Individual") {
-//         // Parse CSV → flat Individual rows
-//         const text = await file.text();
-//         const { clients: parsed, rowErrors } = parseIndividualCSV(text);
-
-//         if (!parsed.length) {
-//           setParseError(
-//             rowErrors.length
-//               ? `No valid rows found.\n${rowErrors.join("\n")}`
-//               : "No data rows found in the file."
-//           );
-//           return;
-//         }
-//         clients         = parsed;
-//         preflightFailed = rowErrors.length;
-//         preflightErrors = rowErrors;
-
-//       } else {
-//         // Parse XLSX → nested Group objects
-//         const buffer = await file.arrayBuffer();
-//         const wb = XLSX.read(buffer, { type: "array" });
-//         const { clients: parsed, validationErrors } = parseGroupXLSX(wb);
-
-//         // Any validation error blocks the whole upload — surface them before any API call
-//         if (validationErrors.length) {
-//           setParseError(validationErrors.join("\n"));
-//           return;
-//         }
-//         if (!parsed.length) {
-//           setParseError("No valid client rows found in the workbook.");
-//           return;
-//         }
-//         clients = parsed;
-//       }
-
-//       // ── Single API call for both types ─────────────────────────────────────
-//       //    POST /clients/bulk  →  { clients: [ ...IndividualClientImport | GroupClientImport ] }
-//       //    The `type` field on each item tells the backend which branch to execute.
-//       const response = await clientService.createClientsFromBulk(clients);
-
-//       setResult({
-//         success: response.success,
-//         failed:  response.failed + preflightFailed,
-//         errors:  [...(response.errors ?? []), ...preflightErrors],
-//       });
-
-//       if (response.success > 0) onSuccess();
-
-//     } catch (err: any) {
-//       setParseError(err?.message ?? "Import failed. Please try again.");
-//     } finally {
-//       setImporting(false);
-//     }
-//   };
+    if (!validationDone || !validatedClients.length) {
+      setParseError("Please validate the file before importing.");
+      return;
+    }
+    setImporting(true);
+    setParseError(null);
+    try {
+      const response = await clientService.createClientsFromBulk(validatedClients);
+      setResult({
+        success: response.success ?? 0,
+        failed:  response.failed  ?? 0,
+        errors:  response.errors  ?? [],
+      });
+      if ((response.success ?? 0) > 0) onSuccess();
+    } catch (err: any) {
+      setParseError(err?.message || "Import failed. Please try again.");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   if (!isOpen) return null;
 
-  const acceptAttr = selectedType === "Group" ? ".xlsx,.xls" : ".csv";
+  const acceptAttr = selectedType === "Group" ? ".xlsx,.xls" : ".csv,.xlsx,.xls";
 
   return (
     <div className={styles.overlay} onClick={handleClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
 
-        {/* ── Header ── */}
+        {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             {step === "upload" && (
@@ -510,17 +591,15 @@ const handleValidate = async () => {
                 {step === "select-type"
                   ? "Choose the client type to import"
                   : selectedType === "Individual"
-                  ? "Upload a CSV file with client data"
+                  ? "Upload a CSV or XLSX file with client data"
                   : "Upload an XLSX file with clients, locations & providers"}
               </p>
             </div>
           </div>
-          <button className={styles.closeBtn} onClick={handleClose}>
-            <X size={20} />
-          </button>
+          <button className={styles.closeBtn} onClick={handleClose}><X size={20} /></button>
         </div>
 
-        {/* ── Step indicator ── */}
+        {/* Step indicator */}
         <div className={styles.stepBar}>
           <div className={`${styles.stepDot} ${styles.done}`}>1</div>
           <div className={`${styles.stepLine} ${step === "upload" ? styles.activeLine : ""}`} />
@@ -530,16 +609,14 @@ const handleValidate = async () => {
           </span>
         </div>
 
-        {/* ── Body ── */}
+        {/* Body */}
         <div className={styles.body}>
 
           {/* STEP 1 */}
           {step === "select-type" && (
             <div className={styles.typeGrid}>
-              <button
-                className={`${styles.typeCard} ${styles.enabled}`}
-                onClick={() => handleTypeSelect("Individual")}
-              >
+              <button className={`${styles.typeCard} ${styles.enabled}`}
+                onClick={() => handleTypeSelect("Individual")}>
                 <div className={styles.typeCardIcon}><Building2 size={28} /></div>
                 <div className={styles.typeCardContent}>
                   <h3>Individual</h3>
@@ -548,10 +625,8 @@ const handleValidate = async () => {
                 <ChevronRight size={18} className={styles.typeCardArrow} />
               </button>
 
-              <button
-                className={`${styles.typeCard} ${styles.enabled}`}
-                onClick={() => handleTypeSelect("Group")}
-              >
+              <button className={`${styles.typeCard} ${styles.enabled}`}
+                onClick={() => handleTypeSelect("Group")}>
                 <div className={styles.typeCardIcon}><Users size={28} /></div>
                 <div className={styles.typeCardContent}>
                   <h3>Group</h3>
@@ -569,35 +644,32 @@ const handleValidate = async () => {
                 <Info size={15} />
                 {selectedType === "Individual" ? (
                   <span>
-                    CSV must include: <code>first_name, last_name, npi, state</code>.
-                    The <code>type</code> column is always forced to <code>Individual</code>.
+                    File must include: <code>first_name, last_name, npi, state</code>.
+                    Accepts <strong>.csv</strong> or <strong>.xlsx</strong>.
                   </span>
                 ) : (
                   <span>
-                    XLSX must have <strong>3 sheets</strong>: <code>clients</code>, <code>locations</code>, <code>providers</code>.
-                    Each client needs ≥1 location with exactly one <code>is_primary=true</code>.
-                    Each provider must reference a valid <code>location_ref</code>.
+                    XLSX must have <strong>3 sheets</strong>: <code>clients</code>,{" "}
+                    <code>locations</code>, <code>providers</code>. Each location needs a{" "}
+                    <code>location_npi</code>. Providers link to a location via{" "}
+                    <code>location_ref</code> <strong>+</strong> <code>location_npi</code>.
+                    Exactly one location per client must have <code>is_primary=true</code>.
                   </span>
                 )}
               </div>
 
-              {selectedType === "Group" && (
-                <div className={styles.schemaGrid}>
-                  <div className={styles.schemaSheet}>
-                    <strong>clients</strong>
-                    <code>client_ref, business_name, npi, state</code>
-                  </div>
-                  <div className={styles.schemaSheet}>
-                    <strong>locations</strong>
-                    <code>client_ref, location_ref, address, city, state, is_primary</code>
-                  </div>
-                  <div className={styles.schemaSheet}>
-                    <strong>providers</strong>
-                    <code>client_ref, location_ref, first_name, last_name, npi, provider_address, provider_city, provider_state</code>
-                  </div>
-                </div>
-              )}
+              {/* Template download button */}
+              <div className={styles.templateRow}>
+                <button
+                  className={styles.templateBtn}
+                  onClick={() => selectedType && downloadTemplate(selectedType)}
+                >
+                  <Download size={14} />
+                  Download {selectedType} template
+                </button>
+              </div>
 
+              {/* Drop zone */}
               <div
                 className={`${styles.dropZone} ${isDragging ? styles.dragging : ""} ${file ? styles.hasFile : ""}`}
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -605,34 +677,43 @@ const handleValidate = async () => {
                 onDrop={handleFileDrop}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={acceptAttr}
-                  style={{ display: "none" }}
-                  onChange={handleFileChange}
-                />
+                <input ref={fileInputRef} type="file" accept={acceptAttr}
+                  style={{ display: "none" }} onChange={handleFileChange} />
                 {file ? (
                   <div className={styles.fileReady}>
                     <FileText size={32} className={styles.fileIcon} />
                     <span className={styles.fileName}>{file.name}</span>
                     <span className={styles.fileSize}>{(file.size / 1024).toFixed(1)} KB</span>
-                    <button
-                      className={styles.removeFile}
-                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                    >Remove</button>
+                    <button className={styles.removeFile} onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null); setValidationDone(false);
+                      setValidatedClients([]); setPreviewCount(0); setParseError(null);
+                    }}>Remove</button>
                   </div>
                 ) : (
                   <div className={styles.uploadPrompt}>
                     <Upload size={32} className={styles.uploadIcon} />
                     <p>
-                      Drag & drop your {selectedType === "Individual" ? "CSV" : "XLSX"} here,
+                      Drag & drop your{" "}
+                      {selectedType === "Individual" ? "CSV or XLSX" : "XLSX"} here,
                       or <span>browse</span>
                     </p>
-                    <small>Accepts {selectedType === "Individual" ? ".csv" : ".xlsx"} · Max 10 MB</small>
+                    <small>
+                      Accepts {selectedType === "Individual" ? ".csv, .xlsx" : ".xlsx"} · Max 10 MB
+                    </small>
                   </div>
                 )}
               </div>
+
+              {validationDone && previewCount > 0 && (
+                <div className={styles.successSummary} style={{ marginTop: 12 }}>
+                  <CheckCircle size={15} />
+                  <span>
+                    Validated <strong>{previewCount}</strong>{" "}
+                    client{previewCount !== 1 ? "s" : ""} — ready to import.
+                  </span>
+                </div>
+              )}
 
               {parseError && (
                 <div className={styles.errorBox}>
@@ -680,15 +761,16 @@ const handleValidate = async () => {
           {step === "upload" && !result && (
             <>
               <button className={styles.cancelBtn} onClick={handleBack}>Back</button>
-             {!validationDone ? (
-                <button onClick={handleValidate} disabled={!file || importing}>
-                    Validate
+              {!validationDone ? (
+                <button className={styles.importBtn} onClick={handleValidate}
+                  disabled={!file || importing}>
+                  {importing ? "Validating…" : "Validate"}
                 </button>
-                ) : (
-                <button onClick={handleImport} disabled={importing}>
-                    Confirm Import
+              ) : (
+                <button className={styles.importBtn} onClick={handleImport} disabled={importing}>
+                  {importing ? "Importing…" : `Confirm Import (${previewCount})`}
                 </button>
-                )}
+              )}
             </>
           )}
           {result && (
