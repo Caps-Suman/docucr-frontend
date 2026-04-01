@@ -2,6 +2,40 @@ import apiClient from '../utils/apiClient';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+export interface UserUploadImportFileResponse {
+    history_id: string;
+    s3_key: string;
+    message: string;
+}
+
+export interface UserImportHistoryItem {
+    id: string;
+    created_at: string;
+    original_filename: string;
+    file_size_bytes: number | null;
+    user_type: string;
+    client_id: string | null;
+    client_name: string | null;
+    s3_key: string | null;
+    status: 'pending' | 'uploaded' | 'processing' | 'completed' | 'failed';
+    total_rows: number | null;
+    success_count: number | null;
+    failed_count: number | null;
+    errors: string[] | null;
+}
+
+export interface UserImportHistoryList {
+    items: UserImportHistoryItem[];
+    total: number;
+}
+
+export interface UserPatchOutcomePayload {
+    status: string;
+    total_rows: number;
+    success_count: number;
+    failed_count: number;
+    errors: string[];
+}
 export interface User {
     id: string;
     email: string;
@@ -162,7 +196,81 @@ const userService = {
 
         return response.json();
     },
+    /*
+  Add these four methods to your existing userService object.
+  They mirror the exact same pattern as clientService's import methods.
+*/
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+
+// ── Method 1: Upload CSV to S3 ────────────────────────────────────────────────
+//
+// Sends the File as multipart/form-data.
+// IMPORTANT: do NOT set Content-Type — the browser sets it with the boundary.
+
+uploadUserImportFile: async (
+    file: File,
+    userType: 'internal' | 'client',
+    clientId?: string,
+    clientName?: string,
+): Promise<UserUploadImportFileResponse> => {
+    const formData = new FormData();
+    formData.append('file',      file);
+    formData.append('user_type', userType);
+    if (clientId)   formData.append('client_id',   clientId);
+    if (clientName) formData.append('client_name', clientName);
+
+    const response = await apiClient(`${API_URL}/api/users/import/upload`, {
+        method: 'POST',
+        // No Content-Type header — browser sets multipart/form-data with boundary
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.detail ?? `Upload failed (${response.status})`);
+    }
+    return response.json();
+},
+
+// ── Method 2: Patch history record with outcome ───────────────────────────────
+
+patchUserImportOutcome: async (
+    historyId: string,
+    payload: UserPatchOutcomePayload,
+): Promise<void> => {
+    const response = await apiClient(`${API_URL}/api/users/import/history/${historyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+        console.warn('Could not patch user import history:', await response.text().catch(() => ''));
+    }
+},
+
+// ── Method 3: List import history ────────────────────────────────────────────
+
+getUserImportHistory: async (page = 1, pageSize = 20): Promise<UserImportHistoryList> => {
+    const response = await apiClient(
+        `${API_URL}/api/users/import/history?page=${page}&page_size=${pageSize}`,
+    );
+    if (!response.ok) throw new Error(`Failed to fetch user import history (${response.status})`);
+    return response.json();
+},
+
+// ── Method 4: Presigned download URL ─────────────────────────────────────────
+
+getUserImportDownloadUrl: async (
+    historyId: string,
+): Promise<{ download_url: string; expires_in_seconds: number }> => {
+    const response = await apiClient(
+        `${API_URL}/api/users/import/${historyId}/download`,
+    );
+    if (!response.ok) throw new Error(`Failed to get download URL (${response.status})`);
+    return response.json();
+},
     getCreators: async (
         search?: string,
         organisationId?: string | string[],

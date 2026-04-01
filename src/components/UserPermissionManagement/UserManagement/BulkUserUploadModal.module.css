@@ -927,3 +927,261 @@
     .summaryCards { flex-direction: column; }
     .stepLabel { display: none; }
 }
+
+/*
+  Append these rules to BulkUserUploadModal.module.css
+  All existing rules remain unchanged — only add the blocks below.
+*/
+
+/* ── Tab bar ──────────────────────────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  gap: 4px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  background: var(--color-bg-subtle, #f9fafb);
+  flex-shrink: 0;
+}
+
+.tabBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary, #6b7280);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tabBtn:hover { color: var(--color-text-primary, #111827); }
+
+.tabActive {
+  color: var(--color-primary, #2563eb);
+  border-bottom-color: var(--color-primary, #2563eb);
+}
+
+/* ── "View in history" shortcut after done ────────────────────────────────── */
+.viewHistoryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 7px 14px;
+  font-size: 13px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-secondary, #6b7280);
+  transition: background 0.15s;
+}
+.viewHistoryBtn:hover {
+  background: var(--color-bg-hover, #f3f4f6);
+  color: var(--color-text-primary, #111827);
+}
+
+/* ── History panel container ──────────────────────────────────────────────── */
+.historyPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.historyToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.historyCount {
+  font-size: 13px;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.refreshBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  background: none;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-text-secondary, #6b7280);
+  transition: background 0.15s;
+}
+.refreshBtn:hover:not(:disabled) {
+  background: var(--color-bg-hover, #f3f4f6);
+  color: var(--color-text-primary, #111827);
+}
+.refreshBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Spinner */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spinning { animation: spin 0.8s linear infinite; }
+
+/* ── History empty state ──────────────────────────────────────────────────── */
+.historyEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--color-text-tertiary, #9ca3af);
+  font-size: 14px;
+}
+
+/* ── History list + cards ─────────────────────────────────────────────────── */
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.historyCard {
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-bg-card, #fff);
+  transition: box-shadow 0.15s;
+}
+.historyCard:hover { box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+.historyCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  gap: 12px;
+}
+
+.historyCardLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.historyFileIcon {
+  flex-shrink: 0;
+  color: var(--color-text-tertiary, #9ca3af);
+  margin-top: 2px;
+}
+
+.historyFilename {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.historyMeta {
+  font-size: 12px;
+  color: var(--color-text-tertiary, #9ca3af);
+  margin-top: 2px;
+}
+
+.historyCardRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.downloadBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-secondary, #6b7280);
+  transition: background 0.15s, color 0.15s;
+}
+.downloadBtn:hover:not(:disabled) {
+  background: var(--color-bg-hover, #f3f4f6);
+  color: var(--color-text-primary, #111827);
+}
+.downloadBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.expandChevron {
+  color: var(--color-text-tertiary, #9ca3af);
+  transition: transform 0.2s;
+}
+.expandChevron.expanded { transform: rotate(90deg); }
+
+/* ── Expanded card body ───────────────────────────────────────────────────── */
+.historyCardBody {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+  animation: slideDown 0.15s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.outcomeSummary {
+  display: flex;
+  gap: 16px;
+  margin: 12px 0 8px;
+  font-size: 13px;
+}
+.outcomeSuccess { color: #10B981; font-weight: 500; }
+.outcomeFailed  { color: #EF4444; font-weight: 500; }
+.outcomeTotal   { color: var(--color-text-secondary, #6b7280); }
+
+.historyErrorList {
+  margin-top: 8px;
+  max-height: 160px;
+  overflow-y: auto;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.historyErrorList ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: #dc2626;
+  line-height: 1.7;
+}
+.moreErrors { color: var(--color-text-tertiary, #9ca3af); font-style: italic; }
+
+.errorListTitle {
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0 0 4px;
+  color: var(--color-text-secondary, #6b7280);
+}

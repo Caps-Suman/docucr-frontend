@@ -144,7 +144,53 @@ const clientService = {
         if (!response.ok) throw new Error('Failed to fetch client');
         return response.json();
     },
+    uploadImportFile: async (file: File, clientType: string): Promise<{ history_id: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("client_type", clientType);
 
+    const response = await apiClient(`${API_URL}/api/clients/import/upload`, {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to upload import file");
+    }
+
+    return response.json();
+},
+patchImportOutcome: async (historyId: string, data: any): Promise<void> => {
+    const response = await apiClient(`${API_URL}/api/clients/import/history/${historyId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+ 
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || "Failed to update import history");
+    }
+},
+getImportHistory: async (): Promise<{ items: any[]; total: number }> => {
+    const response = await apiClient(`${API_URL}/api/clients/import/history`);
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch import history");
+    }
+
+    return response.json();
+},
+getImportDownloadUrl: async (id: string): Promise<{ download_url: string }> => {
+    const response = await apiClient(`${API_URL}/api/clients/import/${id}/download`);
+
+    if (!response.ok) {
+        throw new Error("Failed to get download URL");
+    }
+
+    return response.json();
+},
     createClient: async (data: ClientCreateData): Promise<Client> => {
         const response = await apiClient(`${API_URL}/api/clients/`, {
             method: 'POST',
