@@ -813,7 +813,7 @@ interface Props {
 
 type ModalTab = "import" | "history";
 type Step = "select-type" | "upload";
-type ClientType = "Individual" | "Group";
+type ClientType = "Individual" | "Group" ;
 
 interface ImportResult {
   success: number;

@@ -173,7 +173,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
 
     const result = data.results[0];
 
-    if (result.enumeration_type !== "NPI-1") {
+    if (result.enumeration_type !== "Individual") {
       setNpiError("Found an Organization NPI. Please use an Individual NPI.");
       return;
     }

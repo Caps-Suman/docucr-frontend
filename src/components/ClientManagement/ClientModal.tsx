@@ -64,7 +64,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
   const [npi, setNpi] = useState("");
-  const [type, setType] = useState("Individual");
+  const [type, setType] = useState("");
   const [statusId, setStatusId] = useState<string | number>("");
   const [description, setDescription] = useState("");
   const [specialty, setSpecialty] = useState("");
@@ -955,7 +955,7 @@ const processedLocations = allLocations.map((loc) => {
         const basic = result.basic;
         const addresses = result.addresses;
 
-        if (result.enumeration_type === "NPI-1") {
+        if (result.enumeration_type === "Individual") {
           // Validate type match (only for Step 1 client NPI — not for providers in Step 2)
           if (index === undefined && type === "Group") {
             setErrors({ npi: "This is an Individual (NPI-1) but you selected Organization. Please change the client type." });
@@ -964,7 +964,7 @@ const processedLocations = allLocations.map((loc) => {
           }
           applyNamesFromNPI(basic, index);
           applySpecialtyFromNPI(result, index);
-        } else if (result.enumeration_type === "NPI-2") {
+        } else if (result.enumeration_type === "Group") {
           // Validate type match
           if (index === undefined && type === "Individual") {
             setErrors({ npi: "This is an Organization (NPI-2) but you selected Individual. Please change the client type." });
@@ -1247,7 +1247,7 @@ const processedLocations = allLocations.map((loc) => {
 
   const typeOptions = [
     { value: "Individual", label: "Individual (NPI-1)" },
-    { value: "Group", label: "Organization (NPI-2)" },
+    { value: "Group", label: "Group (NPI-2)" },
   ];
 
   return (

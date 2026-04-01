@@ -25,7 +25,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
   const [npi, setNpi] = useState("");
-  const [type, setType] = useState("Individual");
+  const [type, setType] = useState("");
   const [description, setDescription] = useState("");
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
@@ -51,7 +51,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
     setNpi(initialData.npi || "");
     setDescription(initialData.description || "");
 
-    const t = initialData.type === "NPI2" ? "Group" : "Individual";
+    const t = initialData.type === "Group" ? "Group" : "Individual";
     setType(t);
 
     if (initialData.locations && initialData.locations.length > 0) {
@@ -129,8 +129,8 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
               basic.authorized_official_organization_name || ""
             );
         } else {
-          const expectedType = type === "Individual" ? "NPI-1 (Individual)" : "NPI-2 (Organization)";
-          const actualType = result.enumeration_type === "NPI-1" ? "Individual" : "Organization";
+          const expectedType = type === "Individual" ? "NPI-1 (Individual)" : "NPI-2 (Group)";
+          const actualType = result.enumeration_type === "NPI-1" ? "Individual" : "Group";
           setErrors({
             npi: `Found ${actualType} but expected ${expectedType}`,
           });
@@ -327,7 +327,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
               <input
                  type="text"
                  className={styles.input}
-                 value={type === "Group" ? "Organization (NPI-2)" : "Individual (NPI-1)"}
+                 value={type === "Group" ? "Group" : "Individual"}
                  disabled
                  style={{ backgroundColor: '#f8fafc', cursor: 'not-allowed' }}
               />
